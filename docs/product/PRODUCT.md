@@ -1,6 +1,6 @@
 # PaperPilot product specification
 
-Task 6. Draft. This file is the Stage 1 specification. It becomes the approved specification when you accept the wording. It consolidates the product documents below. It does not add procedures, and it does not start the official-source research in Stage 2.
+Task 6. Accepted on 1 November 2026. This file is the Stage 1 specification. It consolidates the product documents below. It does not add procedures.
 
 - Problem, audience, and objectives: [VISION.md](VISION.md)
 - Evidence and untested assumptions: [USER_PROBLEMS.md](USER_PROBLEMS.md)
@@ -54,4 +54,4 @@ Exclusions are the list in `MVP_SCOPE.md`. They are not repeated here. The first
 
 ## Still open
 
-The seven assumptions in `USER_PROBLEMS.md` are untested. No interview has been done. Stage 2 must confirm documents, deadlines, and exceptions before the agent may state them. Until you approve this draft, Stage 1 is not complete.
+The seven assumptions in `USER_PROBLEMS.md` are untested. No interview has been done. Stage 2 must confirm documents, deadlines, and exceptions before the agent may state them. The wording of this specification was accepted on 1 November 2026, so Stage 1 is complete.
