@@ -29,4 +29,4 @@ The person describes their situation in their own words. PaperPilot identifies t
 
 ## Boundary
 
-The first procedure in view is a change of registered residence address in Milan, in English and Italian. This document does not decide the supported and excluded legal scenarios, success metrics, screen designs, or system architecture.
+The first procedure in view is a change of registered residence address in Milan, in English and Italian. Supported and excluded cases are listed in `MVP_SCOPE.md`. This document does not set success metrics, screen designs, or system architecture.
