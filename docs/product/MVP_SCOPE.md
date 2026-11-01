@@ -43,4 +43,4 @@ PaperPilot does not open a case for any of these. It names the official door whe
 
 ## Done for this task
 
-Supported and excluded cases are listed. The single-adult, already-resident, owner-or-named-tenant move inside Milan is the only case the first release runs.
+Supported and excluded cases are listed. The single-adult, already-resident, owner-or-named-tenant move inside Milan is the only case the first release runs. Reference requests are in `SCENARIOS.md`.
