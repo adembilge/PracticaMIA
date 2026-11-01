@@ -1,159 +1,625 @@
 Stage 1 — Product Discovery and Definition
-Tasks 1–6
-Goal: Establish exactly what PaperPilot solves, for whom, and what the first release must accomplish.
-1. Define the product vision —  Cursor documents the problem, primary audience, value proposition, and product objectives. Complete when the vision is clearly specified.
-2. Research user problems —  Cursor researches common administrative difficulties, prepares user interview questions, and summarizes available evidence. Complete when the problems are documented and important assumptions identified.
-3. Analyze existing solutions —  Cursor investigates government portals, administrative service providers, and competing AI products. Complete when a competitor comparison identifies genuine product gaps.
-4. Define MVP boundaries —  Cursor specifies the initial Milan residence-change scenario and explicitly excludes unsupported procedures. Complete when supported and unsupported cases are listed.
-5. Define user scenarios —  Cursor creates realistic examples of successful, incomplete, ambiguous, and unsupported user requests. Complete when a reference scenario collection exists.
-6. Write the product specification —  Cursor consolidates features, requirements, user outcomes, and success metrics in PRODUCT.md. Complete after your approval.
-Stage completion: Approved product specification, target audience, MVP scope, and initial scenarios.
+Tasks 1–6 · Establish the product's purpose, users, scope, and success criteria.
+Task 1 — Define the product vision
+Implementation: Codex examines the PaperPilot concept and develops a concise product strategy. It identifies the central problem, the intended audience, the benefits to users, and why an autonomous AI agent is necessary rather than a conventional chatbot or static checklist. It should also identify what PaperPilot must not attempt to do.
+
+Deliverable: A product vision document containing the mission, value proposition, target outcomes, guiding principles, and long-term direction.
+
+Completion: The document clearly explains who PaperPilot serves, which problem it solves, and what successful use looks like. You approve the vision.
+Task 2 — Research user problems
+Implementation: Codex investigates common challenges faced by international residents, students, and professionals navigating Italian bureaucracy. It reviews available public evidence, identifies frequent frustrations, and prepares interview questions for potential users. It must distinguish documented problems from assumptions requiring user validation.
+
+Deliverable: A problem-research report containing user pain points, supporting evidence, initial hypotheses, and a research interview guide.
+
+Completion: A prioritized list of problems exists, with supporting sources or explicit validation needs. Codex must not invent user interviews or claim uncollected feedback.
+Task 3 — Analyze existing solutions
+Implementation: Codex researches existing government websites, digital administrative platforms, document-preparation services, and AI-based assistance products. It compares their capabilities, limitations, intended audiences, languages, and user workflows. It identifies where PaperPilot could provide additional value through personalized case management and document preparation.
+
+Deliverable: A competitor matrix and a differentiation analysis.
+
+Completion: The report identifies concrete opportunities and explains why PaperPilot would be meaningfully different from existing services.
+Task 4 — Define MVP boundaries
+Implementation: Codex translates the product vision into a tightly scoped first release. It specifies supported users, locations, residence-change scenarios, languages, document types, and agent actions. It explicitly excludes unsupported immigration, legal, family, and government-submission workflows.
+
+Deliverable: An MVP specification with included features, excluded features, assumptions, and a definition of a complete user journey.
+
+Completion: Every proposed feature can be classified as included, excluded, or deferred. You approve the MVP scope.
+Task 5 — Define user scenarios
+Implementation: Codex prepares realistic administrative scenarios representing different users and situations. These should include successful cases, missing documents, contradictory information, unsupported requests, and uncertain eligibility. Each scenario defines the user's initial request, available information, expected questions, and acceptable outcome.
+
+Deliverable: A structured scenario dataset that can later become the foundation for agent evaluations.
+
+Completion: Scenarios cover major supported decision branches and important failure conditions. Expected outcomes are marked as provisional until the governing requirements are verified.
+Task 6 — Write the product specification
+Implementation: Codex consolidates the approved research, product vision, target audience, MVP scope, user scenarios, functional requirements, and nonfunctional requirements. It assigns stable identifiers to requirements so future implementation tasks can reference them.
+
+Deliverable: docs/PRODUCT.md, containing the complete product requirements specification.
+
+Completion: The specification is internally consistent, traceable to previous decisions, and approved by you. It becomes the authoritative product reference.
+
+Stage 1 completion: PaperPilot has a clear purpose, validated assumptions are distinguished from unvalidated ones, and its first release is explicitly defined.
+
 Stage 2 — Government Procedure Research
-Tasks 7–14
-Goal: Establish a trustworthy administrative foundation before building the AI agent.
-7. Discover official sources —  Cursor identifies relevant Italian government, ANPR, and Comune di Milano pages. Complete when an authoritative source inventory exists.
-8. Map the procedure —  Cursor documents the residence-change process from eligibility checks to final submission and follow-up. Complete when the workflow is mapped.
-9. Identify eligibility scenarios —  Cursor distinguishes relevant residence, nationality, tenancy, and household circumstances. Complete when the supported decision branches are documented.
-10. Extract document requirements —  Cursor identifies required forms, information, supporting documents, and conditional requirements. Complete when each requirement has a traceable source.
-11. Identify deadlines and obligations —  Cursor records applicable deadlines, fees if any, and relevant conditions. Complete when sourced and unresolved obligations are distinguished.
-12. Research submission channels —  Cursor identifies official portals, authentication requirements, and supported submission methods. Complete when the user handoff process is documented.
-13. Identify related procedures —  Cursor researches related obligations, such as applicable TARI declarations, while keeping them outside the initial scope unless approved. Complete when dependencies are classified.
-14. Validate administrative research —  Cursor creates a dated, source-linked procedure dossier and highlights contradictions. Complete only after independent human review of consequential requirements.
-Stage completion: A reviewed official-procedure dossier containing sources, decision rules, document requirements, exceptions, and submission instructions.
+Tasks 7–14 · Establish reliable administrative knowledge before implementing the AI agent.
+Task 7 — Discover official sources
+Implementation: Codex identifies the authoritative government resources relevant to the selected Milan residence-change procedure. It examines national, municipal, and official digital-service sources, checks their authority and scope, and records when each resource was accessed. Third-party explanations may assist discovery but must not replace authoritative requirements.
 
-Human verification is necessary here.  Cursor can collect and organize official information, but it cannot independently certify that its legal or administrative interpretation is correct.
+Deliverable: A source registry containing URLs, institutions, jurisdictions, subjects, access dates, and source status.
+
+Completion: Every initial administrative topic has an identified authoritative source or is explicitly flagged as unresolved.
+Task 8 — Map the administrative procedure
+Implementation: Codex studies official instructions and converts the procedure into a step-by-step workflow. It identifies required starting conditions, actions, decision points, submission channels, follow-up steps, and expected completion outcomes. Different official routes must remain separate where their requirements differ.
+
+Deliverable: A procedural workflow diagram and structured sequence of administrative actions.
+
+Completion: Every supported workflow path has a documented beginning, required steps, decision branches, and submission endpoint.
+Task 9 — Identify eligibility scenarios
+Implementation: Codex identifies which user characteristics can change the applicable administrative procedure. Examples may include current registration, relocation origin, citizenship, household composition, residence documentation, and housing arrangement. It builds an explicit decision table rather than leaving eligibility decisions to unrestricted LLM reasoning.
+
+Deliverable: An eligibility matrix containing conditions, branches, exceptions, and source references.
+
+Completion: Each supported scenario maps to a defined procedural route, while unsupported or ambiguous scenarios lead to an explicit unresolved state.
+Task 10 — Extract document requirements
+Implementation: Codex examines official instructions and records every document or information field required for supported scenarios. It differentiates mandatory, conditional, alternative, and optional documents. It also records whether an original, copy, specific form, or additional declaration is required.
+
+Deliverable: A structured document-requirements catalog linked to official sources.
+
+Completion: Each requirement includes its applicability conditions, evidence, and review status. Unsupported assumptions are not accepted as requirements.
+Task 11 — Identify deadlines and obligations
+Implementation: Codex researches applicable submission deadlines, processing stages, fees where relevant, and possible related obligations. It records the triggering event, deadline calculation, authority, and exceptions. It distinguishes fixed rules from guidance or service estimates that may change.
+
+Deliverable: A deadline and obligations registry.
+
+Completion: Every deadline used by the MVP is traceable to an approved source, with ambiguous or conflicting rules flagged for review.
+Task 12 — Research submission channels
+Implementation: Codex determines how each supported application is officially submitted. It records applicable portals, identity verification methods, required attachments, confirmation mechanisms, and whether an authorized machine integration exists. It explicitly defines where PaperPilot's responsibilities end and the user's official submission begins.
+
+Deliverable: A submission-channel specification and handoff workflow.
+
+Completion: Each supported route has a verified destination and documented user actions. No unsupported automatic submission capability is assumed.
+Task 13 — Identify related procedures
+Implementation: Codex investigates administrative obligations potentially connected to a residence change, such as local taxation or updates to other records. It determines which are directly dependent, which merely warrant user awareness, and which should remain outside the MVP.
+
+Deliverable: A dependency map and related-procedures catalog.
+
+Completion: Related obligations are classified without accidentally expanding the MVP into additional unsupported procedures.
+Task 14 — Validate administrative research
+Implementation: Codex audits the complete research package for conflicting information, outdated pages, missing source references, and inconsistent decision rules. It prepares a reviewable dossier containing all conclusions and unresolved questions. You, or an appropriately qualified reviewer where necessary, validate consequential administrative requirements.
+
+Deliverable: A versioned, reviewed administrative knowledge dossier.
+
+Completion: All requirements intended for production are approved or marked unresolved. Unresolved critical rules block dependent development or release.
+
+Stage 2 completion: The project has a reviewed, source-grounded description of the supported administrative procedure.
+
 Stage 3 — UX and Product Design
-Tasks 15–20
-Goal: Define the complete user experience before implementing the interface.
-15. Design user journeys —  Cursor maps how users create a case, answer questions, upload documents, and complete the procedure. Complete when primary journeys are documented.
-16. Design information collection —  Cursor defines the questions, input types, conditional fields, and information PaperPilot must collect. Complete when intake schemas exist.
-17. Design conversational behavior —  Cursor specifies how the agent asks questions, explains requirements, and handles uncertainty in English and Italian. Complete when conversation examples cover major cases.
-18. Design application navigation —  Cursor creates wireframes for the dashboard, case pages, document workspace, and task checklists. Complete when essential screens are represented.
-19. Design error and interruption states —  Cursor designs missing-document warnings, conflicting-information prompts, blocked cases, and saved progress. Complete when non-happy-path interactions are specified.
-20. Prepare the UI design system —  Cursor defines typography, colors, reusable components, responsive layouts, and accessible interactions. Complete after design review.
-Stage completion: Approved user journeys, screen designs, interface standards, and conversational interaction requirements.
+Tasks 15–20 · Design how people will use PaperPilot from their first request to completing their case.
+Task 15 — Design user journeys
+Implementation: Codex translates the MVP scenarios into detailed user journeys. It maps each screen and action involved in starting a case, describing a situation, answering questions, supplying documents, reviewing requirements, and preparing an application. It also defines how users return to unfinished cases.
+
+Deliverable: User-flow diagrams describing the complete supported journeys.
+
+Completion: Every major MVP scenario has a complete sequence of user actions, system responses, and expected outcomes.
+Task 16 — Design information collection
+Implementation: Codex defines which personal and administrative fields the application needs, when each field should be requested, and which questions are conditional. It specifies field types, validation rules, dependencies, and whether information comes from the user or an uploaded document. Unnecessary personal-data collection must be avoided.
+
+Deliverable: Structured intake schemas and conditional-question specifications.
+
+Completion: Each required field has a purpose, validation rule, and associated administrative requirement. The intake can support all approved MVP scenarios.
+Task 17 — Design conversational behavior
+Implementation: Codex designs the AI agent's conversational interaction model. It specifies how the agent introduces procedures, asks one or several necessary questions, uses previously supplied information, explains terminology, and responds to uncertainty. It defines language behavior for English and Italian, including when official Italian terms should be preserved.
+
+Deliverable: Conversation guidelines, interaction rules, and example dialogues for supported scenarios.
+
+Completion: Examples cover successful intake, missing information, contradictions, unsupported procedures, and clarification requests.
+Task 18 — Design application navigation
+Implementation: Codex designs the application's page hierarchy and screen layouts. It determines how users navigate between the dashboard, case details, AI chat, documents, checklists, and application review. It creates low-fidelity wireframes before high-fidelity designs to establish information hierarchy and user flow.
+
+Deliverable: A sitemap and wireframes for desktop and mobile views.
+
+Completion: All primary application screens and navigation routes are represented, and users can find necessary actions without depending entirely on chat.
+Task 19 — Design error and interruption states
+Implementation: Codex defines what users see when uploads fail, documents are unreadable, facts conflict, sources are unavailable, sessions expire, or the agent cannot determine an appropriate procedure. It also designs progress saving, retry options, correction flows, and resuming interrupted applications.
+
+Deliverable: Error-state designs, recovery flows, and exceptional user journeys.
+
+Completion: Every significant error or blocked condition has an understandable message and an appropriate next action.
+Task 20 — Prepare the UI design system
+Implementation: Codex creates the visual standards for PaperPilot, including typography, spacing, colors, components, form controls, status indicators, and interactive states. It defines responsive behavior, accessibility principles, and consistent presentation of official evidence, warnings, and required actions.
+
+Deliverable: Design tokens, component specifications, UI prototypes, and a design-system reference.
+
+Completion: The design system supports all approved screens and major interaction states. You approve the design direction.
+
+Stage 3 completion: PaperPilot has a coherent, reviewed user experience that can be implemented without inventing interface requirements during development.
+
 Stage 4 — System Architecture
-Tasks 21–27
-Goal: Decide how the complete application should work internally.
-21. Define system components —  Cursor designs boundaries between frontend, backend, AI agent, government knowledge engine, and document services. Complete when an architecture diagram exists.
-22. Design the database —  Cursor models accounts, profiles, cases, documents, requirements, sources, agent sessions, and audit events. Complete when relationships and constraints are documented.
-23. Design case and agent states —  Cursor defines workflow transitions, persistent context, interruptions, retries, and completion states. Complete when state machines are specified.
-24. Design the requirements engine —  Cursor defines machine-readable eligibility rules, conditional documents, source references, and versioning. Complete when the rule schema is specified.
-25. Design document processing —  Cursor specifies ingestion, OCR, field extraction, validation, storage, and form preparation. Complete when the document pipeline is mapped.
-26. Design security and privacy controls —  Cursor defines authentication, access control, data retention, encryption, threat boundaries, and approval rules. Complete when a threat model exists.
-27. Define API contracts and architectural decisions —  Cursor documents endpoints, service interfaces, technology choices, and rejected alternatives. Complete after architecture review.
-Stage completion: Approved technical architecture, data model, interfaces, security requirements, and agent design.
-Stage 5 —  Cursor and Development Environment
-Tasks 28–35
-Goal: Prepare a development environment where  Cursor can implement features sequentially and verify its work.
-28. Create  Cursor instructions —  Cursor writes AGENTS.md describing coding standards, required verification, security constraints, and prohibited actions. Complete when the instructions are reviewed.
-29. Build the execution backlog —  Cursor converts the approved roadmap into ordered task records containing prerequisites, acceptance criteria, and verification commands. Complete when the backlog is machine-readable.
-30. Implement progress tracking —  Cursor establishes persistent task status, decision logs, test evidence, and blocker records. Complete when a fresh session can identify the next task.
-31. Initialize the application structure —  Cursor creates the monorepo directories, backend/frontend structure, configuration files, and documentation conventions. Complete when the repository structure validates.
-32. Configure dependencies —  Cursor sets up Python, FastAPI, LangGraph, Next.js, TypeScript, test frameworks, and reproducible dependency locks. Complete when dependencies install cleanly.
-33. Configure local infrastructure —  Cursor prepares Docker Compose, PostgreSQL, environment templates, and local startup commands. Complete when local services start successfully.
-34. Establish automated verification —  Cursor implements linting, formatting, type checking, test commands, and basic GitHub Actions CI. Complete when checks pass on a clean checkout.
-35. Verify the autonomous development workflow —  Cursor tests task selection, worktree isolation, failure handling, progress updates, and review procedures using a small sample task. Complete when the process is reproducible.
-Stage completion: A functioning development environment with a verified  Cursor task-execution workflow.
+Tasks 21–27 · Define the technical system and its engineering boundaries.
+Task 21 — Define system components
+Implementation: Codex designs the relationships between Next.js, FastAPI, LangGraph, PostgreSQL, the knowledge engine, document processing, and external model services. It defines which component owns each responsibility, how components exchange data, and which operations must be synchronous or asynchronous.
 
-At this point,  Cursor should be able to execute implementation tasks with limited supervision, provided each task has objective completion conditions and does not require a protected external action.
+Deliverable: A system architecture diagram, component responsibilities, and interaction diagrams.
+
+Completion: Every MVP feature maps to an architectural component, with no unnecessary infrastructure or unclear ownership.
+Task 22 — Design the database
+Implementation: Codex designs tables and relationships for users, profiles, cases, documents, source records, procedures, requirements, agent sessions, and audit events. It specifies identifiers, constraints, indexes, versioning, deletion behavior, and access boundaries. Personal data should be separated from reusable administrative knowledge.
+
+Deliverable: Database entity-relationship diagrams and schema specifications.
+
+Completion: The schema supports all planned workflows, persistence requirements, and privacy controls without duplicating core information unnecessarily.
+Task 23 — Design case and agent states
+Implementation: Codex defines the state machines for an administrative case and its AI execution. It determines valid states such as collecting information, waiting for documents, reviewing requirements, preparing an application, and completed or blocked. It specifies how state is persisted, resumed, and recovered following interruptions.
+
+Deliverable: State-transition diagrams and typed state definitions.
+
+Completion: Every transition has defined triggers, validation conditions, and behavior for invalid transitions or failures.
+Task 24 — Design the requirements engine
+Implementation: Codex defines how official administrative rules will be stored and evaluated independently from the LLM. It creates schemas for conditions, decisions, required documents, deadlines, applicability, sources, and revisions. It specifies how contradictory or unknown requirements are represented.
+
+Deliverable: A machine-readable requirements schema and deterministic evaluation design.
+
+Completion: The proposed schema can represent every approved MVP scenario, including conditional branches and unresolved cases.
+Task 25 — Design document processing
+Implementation: Codex designs the complete document-processing pipeline: upload validation, safe storage, text extraction, OCR, classification, structured extraction, user confirmation, and application preparation. It identifies which operations should use deterministic parsing and which may require an LLM.
+
+Deliverable: Document-processing architecture, supported formats, extraction schemas, and validation rules.
+
+Completion: Each document type has a defined processing path, failure handling, and data-retention behavior.
+Task 26 — Design security and privacy controls
+Implementation: Codex analyzes the risks created by collecting personal information, processing documents, accessing LLM APIs, and executing agent tools. It specifies session security, permissions, encryption, secret management, data retention, deletion, safe logging, and prompt-injection defenses. It identifies external processors and trust boundaries.
+
+Deliverable: Security architecture, threat model, and privacy requirements.
+
+Completion: Important threats have corresponding controls, and security-sensitive decisions are reviewed before implementation.
+Task 27 — Define API contracts and architectural decisions
+Implementation: Codex specifies backend endpoints, request and response schemas, error formats, pagination, authorization requirements, agent interfaces, and document operations. It records major engineering decisions and their alternatives, including why the project will avoid unnecessary AWS and distributed infrastructure.
+
+Deliverable: OpenAPI-oriented API contracts and architecture decision records.
+
+Completion: Components have sufficiently precise interfaces to begin implementation, and major architecture choices receive your approval.
+
+Stage 4 completion: The project has a reviewed architecture, data model, security design, agent design, and documented interfaces.
+
+Stage 5 — Codex and Development Environment
+Tasks 28–35 · Establish reliable, reproducible sequential development.
+Task 28 — Create coding-agent instructions
+Implementation: Codex creates and validates AGENTS.md. It defines coding conventions, repository navigation, test requirements, progress tracking, approval boundaries, and security restrictions. It also states that the agent must not fabricate administrative requirements, weaken tests, or claim completion without evidence.
+
+Deliverable: A permanent repository instruction file.
+
+Completion: The instructions are unambiguous, consistent with the product specification, and approved for future development sessions.
+Task 29 — Build the execution backlog
+Implementation: Codex converts the complete 94-task plan into machine-readable records. Each record includes task ID, stage, dependencies, description, expected artifacts, acceptance criteria, verification method, approval requirements, and status. It validates numbering and dependency consistency.
+
+Deliverable: docs/TASKS.yaml and a backlog-validation utility.
+
+Completion: All 94 tasks are represented exactly once, dependencies are valid, and the next eligible task can be determined reliably.
+Task 30 — Implement progress tracking
+Implementation: Codex establishes how development progress is persisted between sessions. It defines task states, evidence records, blocker reporting, approval status, and decision history. It also prevents a task from being silently marked completed without satisfying its verification and review requirements.
+
+Deliverable: docs/PROGRESS.md, docs/DECISIONS.md, and a task-status update procedure.
+
+Completion: A new agent session can reconstruct project status, identify blockers, and select the next eligible task without relying on previous chat history.
+Task 31 — Initialize the application structure
+Implementation: Codex creates the actual application monorepo within the already initialized Git repository. It establishes separate backend, frontend, database, evaluation, scripts, and documentation directories, along with shared configuration conventions.
+
+Deliverable: An organized, reproducible repository structure.
+
+Completion: The directory layout follows the approved architecture, references resolve, and basic repository integrity checks pass.
+Task 32 — Configure dependencies
+Implementation: Codex creates the Python and JavaScript project configurations. It installs and pins the necessary versions of FastAPI, LangGraph, Next.js, TypeScript, testing libraries, database packages, and other dependencies. It establishes lockfiles and separates production dependencies from development tooling.
+
+Deliverable: Reproducible dependency manifests and project initialization scripts.
+
+Completion: Dependencies install successfully in a clean environment, and package scripts execute correctly.
+Task 33 — Configure local infrastructure
+Implementation: Codex creates Docker Compose configurations for the application and PostgreSQL. It defines environment variable templates, service health checks, persistent volumes, development ports, and startup instructions. It ensures development can run locally without AWS.
+
+Deliverable: Local infrastructure configuration and startup documentation.
+
+Completion: A clean checkout can start the required local services, connect to the database, and shut down without configuration errors.
+Task 34 — Establish automated verification
+Implementation: Codex configures Python formatting and linting, TypeScript type checking, frontend linting, unit-test execution, and CI. It defines a single verification entry point and ensures GitHub Actions independently runs relevant checks on changes.
+
+Deliverable: Test configuration, verification scripts, and CI workflows.
+
+Completion: The complete baseline verification process passes from a fresh checkout and reports failures correctly.
+Task 35 — Verify the autonomous development workflow
+Implementation: Codex executes a small controlled development task using the actual task-selection and verification process. It tests whether it can select a task, make changes in an isolated branch or worktree, run checks, record evidence, handle failure, and resume in a new session.
+
+Deliverable: A successful development-workflow demonstration and documented operating procedure.
+
+Completion: The full task lifecycle works reproducibly, including failure handling and approval boundaries.
+
+Stage 5 completion: Codex can implement and verify future tasks using a persistent, structured development process.
+
 Stage 6 — Backend Foundation
-Tasks 36–43
+Tasks 36–43 · Build the application backend before introducing the AI agent.
+Task 36 — Initialize FastAPI
+Implementation: Codex creates the FastAPI application with structured routers, configuration management, dependency injection, centralized error handling, logging, and health endpoints. It configures API versioning and interactive documentation. It also adds a predictable development startup command.
 
-Goal: Build the core application services before introducing AI functionality.
-36. Initialize FastAPI —  Cursor implements application configuration, routing, exception handling, health checks, and API documentation. Complete when the API starts and basic tests pass.
-37. Implement database models and migrations —  Cursor creates the database schema for users, cases, documents, and administrative records. Complete when migrations apply and roll back correctly.
-38. Implement authentication —  Cursor adds account registration, login, logout, and secure session handling. Complete when authentication tests pass.
-39. Implement authorization —  Cursor enforces user ownership of cases and documents, preventing access across accounts. Complete when access-control tests pass.
-40. Implement user profiles —  Cursor creates APIs for storing and updating relevant personal information with user consent. Complete when profile CRUD and validation tests pass.
-41. Implement case management —  Cursor creates endpoints for opening, viewing, editing, and archiving administrative cases. Complete when case lifecycle tests pass.
-42. Implement secure document storage —  Cursor adds private file storage, metadata, size restrictions, retrieval, and deletion. Complete when file-management and security tests pass.
-43. Complete backend integration testing —  Cursor verifies database persistence, API errors, authentication, and case-state transitions. Complete when the backend test suite passes.
-Stage completion: A secure backend capable of managing users, administrative cases, and documents without AI.
+Deliverable: A running backend with foundational API services.
+
+Completion: Health endpoints respond correctly, invalid requests return standardized errors, and foundational API tests pass.
+Task 37 — Implement database models and migrations
+Implementation: Codex translates the approved database architecture into SQLAlchemy models and migration scripts. It creates tables, constraints, foreign keys, indexes, and appropriate default values. It establishes repeatable migration procedures for local and test environments.
+
+Deliverable: Database models, Alembic migrations, and database test fixtures.
+
+Completion: Migrations apply successfully to a clean database, schema constraints work correctly, and rollback procedures are tested where applicable.
+Task 38 — Implement authentication
+Implementation: Codex implements the approved authentication method and secure session lifecycle. It covers account creation, login, logout, credential protection, expired sessions, and recovery where supported. It applies safe cookie or token handling and appropriate rate limiting.
+
+Deliverable: Authentication endpoints, session management, and tests.
+
+Completion: Valid users can authenticate, invalid requests are rejected, and session-related security tests pass.
+Task 39 — Implement authorization
+Implementation: Codex implements object-level access control for profiles, cases, documents, and agent sessions. It ensures that users cannot access or modify another person's records simply by changing an identifier. Authorization should be enforced server-side rather than relying on frontend behavior.
+
+Deliverable: Authorization policies and protected API operations.
+
+Completion: Cross-user access tests demonstrate that unauthorized reads and writes are rejected.
+Task 40 — Implement user profiles
+Implementation: Codex builds APIs for storing only the personal information necessary for supported administrative workflows. It defines validation for relevant fields, optional information, corrections, user consent, and data removal. It distinguishes reusable profile information from facts specific to an individual case.
+
+Deliverable: User-profile models, endpoints, and validation logic.
+
+Completion: Users can create, retrieve, update, and delete permitted profile information without affecting other users.
+Task 41 — Implement case management
+Implementation: Codex builds the case lifecycle: create, retrieve, update, archive, and track an administrative case. It connects cases to the appropriate user, selected procedure, current status, and outstanding requirements. It enforces valid state transitions and preserves a history of consequential changes.
+
+Deliverable: Case-management API, persistence logic, and lifecycle tests.
+
+Completion: The supported case lifecycle works without an AI agent, including state persistence and invalid-transition handling.
+Task 42 — Implement secure document storage
+Implementation: Codex creates secure upload and retrieval endpoints and private document storage. It verifies file types and size limits, generates safe internal identifiers, protects access, and supports retention and deletion policies. Metadata is stored separately from file content, and documents must not be publicly accessible through guessable URLs.
+
+Deliverable: Document-storage service, metadata models, and secure APIs.
+
+Completion: Authorized users can manage their files, unauthorized access is rejected, and invalid or oversized uploads fail safely.
+Task 43 — Complete backend integration testing
+Implementation: Codex creates realistic integration tests covering authentication, database persistence, profiles, cases, uploads, permissions, and error handling. It tests full API sequences against a disposable test database and verifies cleanup behavior and transaction handling.
+
+Deliverable: An integrated backend test suite and verification report.
+
+Completion: All required backend checks pass, including cases involving invalid input, access violations, and interrupted operations.
+
+Stage 6 completion: PaperPilot has a functioning, secure backend capable of supporting administrative cases without AI.
+
 Stage 7 — Government Knowledge Engine
-Tasks 44–51
+Tasks 44–51 · Transform verified government information into structured rules that PaperPilot can safely use.
+Task 44 — Implement the official-source registry
+Implementation: Codex creates database models and backend APIs for storing approved government sources. Each source records the responsible institution, jurisdiction, URL, relevant procedure, language, date reviewed, and approval status. It also implements source versioning and ensures ordinary users cannot modify the trusted source registry.
 
-Goal: Convert verified administrative research into reliable, machine-readable application knowledge.
-44. Implement the official-source registry —  Cursor creates storage for approved government sources, jurisdictions, review dates, and publication metadata. Complete when sources can be managed and retrieved.
-45. Implement source ingestion —  Cursor builds controlled retrieval and versioned snapshots for permitted official pages. Complete when approved sources can be processed with provenance retained.
-46. Implement structured requirements —  Cursor represents eligibility, deadlines, document requirements, and conditional rules as structured records. Complete when reviewed requirements load correctly.
-47. Build the rules evaluator —  Cursor implements deterministic evaluation of conditional requirements against user information. Complete when known rule scenarios produce expected results.
-48. Build procedure selection —  Cursor identifies supported procedures from user circumstances and flags ambiguous or unsupported situations. Complete when routing tests pass.
-49. Build the checklist generator —  Cursor converts applicable rules into personalized document and action checklists. Complete when generated checklists match reference cases.
-50. Implement evidence traceability —  Cursor connects requirements to exact source references, versions, and review status. Complete when procedural claims can be traced.
-51. Validate the knowledge engine —  Cursor runs reference scenarios, conflicting-rule tests, missing-source tests, and outdated-source checks. Complete when all release-blocking rule checks pass.
-Stage completion: A verified requirements engine that determines which administrative steps apply to supported users.
+Deliverable: Source registry models, administrative management functions, and retrieval APIs.
 
-This is one of PaperPilot's most important components. The agent will depend on this engine instead of inventing government requirements through its language model.
+Completion: Approved sources can be created, retrieved, updated, versioned, and archived. Permission and source-integrity tests pass.
+Task 45 — Implement source ingestion
+Implementation: Codex builds a controlled system for retrieving and processing official webpages and supported government documents. It extracts relevant text, preserves source metadata, and records content versions. It handles inaccessible pages, changed layouts, and retrieval failures without silently replacing trusted information. Automated access must respect applicable website access conditions.
+
+Deliverable: Official-source ingestion pipeline with versioned content snapshots.
+
+Completion: Supported sources can be ingested reproducibly, changes can be detected, and failed retrieval does not corrupt previously approved content.
+Task 46 — Implement structured requirements
+Implementation: Codex converts the reviewed administrative dossier into machine-readable requirements using the architecture defined in Task 24. It creates records for eligibility conditions, mandatory and conditional documents, deadlines, submission procedures, and exceptions. Each rule references approved source evidence and includes a version and review status.
+
+Deliverable: A structured administrative requirements database and initial Milan residence-change ruleset.
+
+Completion: All approved MVP requirements are represented, schema validation passes, and no unreviewed rule can automatically enter the trusted production set.
+Task 47 — Build the rules evaluator
+Implementation: Codex implements a deterministic rules engine that evaluates requirements against the user's known circumstances. It must distinguish true, false, and unknown conditions instead of treating missing information as false. It generates explanations showing which conditions caused each result.
+
+Deliverable: A reusable rules evaluation service with structured outputs.
+
+Completion: The engine correctly evaluates supported reference scenarios, detects missing prerequisites, and handles contradictory or incomplete inputs without guessing.
+Task 48 — Build procedure selection
+Implementation: Codex creates the procedure-selection service that determines which supported administrative route applies. It uses structured user information and the verified rules engine to distinguish supported, unsupported, and unresolved scenarios. It provides the reason for each decision and specifies which additional information could resolve ambiguity.
+
+Deliverable: Procedure-selection API with explanation and uncertainty support.
+
+Completion: Reference routing tests pass, unsupported scenarios are rejected appropriately, and ambiguous situations request additional facts instead of choosing an arbitrary procedure.
+Task 49 — Build the checklist generator
+Implementation: Codex implements a service that translates applicable requirements into personalized administrative checklists. Each checklist item contains a description, required action, supporting documents, dependencies, status, and source reference. The system must distinguish automatically verified items from those awaiting user confirmation.
+
+Deliverable: Checklist-generation service and persistent checklist data models.
+
+Completion: Generated checklists match approved reference cases, change appropriately when relevant user information changes, and maintain consistent progress states.
+Task 50 — Implement evidence traceability
+Implementation: Codex connects every procedural requirement to its supporting official-source version. It exposes evidence references through backend APIs and records when requirements were last verified. It must also prevent unverified source text from being presented as an approved administrative rule.
+
+Deliverable: Evidence-provenance models, citation APIs, and source-review status handling.
+
+Completion: Every trusted requirement can be traced to approved evidence, and missing, revoked, or outdated evidence triggers the appropriate warning or restriction.
+Task 51 — Validate the knowledge engine
+Implementation: Codex builds a dedicated test suite using the approved administrative scenarios. It checks eligibility decisions, document requirements, checklists, rule conflicts, unknown conditions, and source references. It also tests what happens when official content changes or a previously approved rule becomes invalid.
+
+Deliverable: Administrative correctness test suite and knowledge-engine validation report.
+
+Completion: All critical reference scenarios pass, and unresolved or outdated rules are handled safely. Results are reviewed before the agent is permitted to use the knowledge engine.
+
+Stage 7 completion: PaperPilot has a deterministic, source-grounded administrative knowledge system that supports procedure selection, requirement checking, and personalized checklists.
+
 Stage 8 — AI Agent Development
-Tasks 52–60
+Tasks 52–60 · Build the autonomous AI agent that coordinates PaperPilot's administrative workflows.
+Task 52 — Implement LLM integration
+Implementation: Codex creates a model-provider abstraction supporting structured outputs, tool calling, configuration, and reliable error handling. It defines model settings, token budgets, retries, request timeouts, and API key management. It separates provider-specific code from the application's agent logic and records usage metadata without exposing sensitive personal information.
 
-Goal: Create an autonomous, stateful agent that can manage an administrative case using the backend and knowledge engine.
-52. Implement LLM integration —  Cursor creates the model interface, structured-output handling, configuration, and usage tracking. Complete when contract tests and controlled model tests pass.
-53. Build the LangGraph workflow —  Cursor implements the agent's states, transitions, and orchestration logic. Complete when the graph executes a basic test scenario.
-54. Implement intent understanding —  Cursor enables the agent to interpret administrative requests and select relevant supported workflows. Complete when intent-routing evaluations pass.
-55. Implement intelligent intake —  Cursor makes the agent identify missing information and ask appropriate follow-up questions. Complete when reference intake conversations pass.
-56. Implement agent tools —  Cursor connects procedure lookup, rule evaluation, document metadata, case updates, and checklist operations. Complete when tool contracts and permission tests pass.
-57. Implement autonomous case planning —  Cursor enables the agent to create and revise an administrative action plan using verified requirements. Complete when generated plans satisfy reference scenarios.
-58. Implement uncertainty handling —  Cursor adds explicit responses for contradictory evidence, unsupported cases, and unresolved rules. Complete when the agent does not fabricate answers in negative tests.
-59. Implement persistence and recovery —  Cursor adds session checkpoints, resumable conversations, execution limits, and failure recovery. Complete when interrupted workflows resume correctly.
-60. Evaluate the initial agent —  Cursor runs multilingual scenarios, tool-call tests, behavioral evaluations, and trace inspections. Complete when defined thresholds are met.
-Stage completion: A functioning AI agent that can understand a user's situation, research approved requirements, ask questions, create a plan, and maintain case progress.
+Deliverable: A reusable LLM client, structured-output schemas, and controlled integration tests.
+
+Completion: The application can call a configured model, validate structured responses, handle provider failures, and run tests using mock responses or bounded real API calls.
+Task 53 — Build the LangGraph workflow
+Implementation: Codex implements the core stateful agent using LangGraph. The initial graph should contain explicit stages for understanding the request, collecting context, retrieving requirements, planning actions, executing tools, and evaluating progress. It also defines when the agent must stop, ask for information, or request human approval.
+
+Deliverable: Executable LangGraph workflow, typed agent state, and transition tests.
+
+Completion: The agent can execute a complete simulated workflow with predictable state transitions, bounded execution, and observable results.
+Task 54 — Implement intent understanding
+Implementation: Codex enables PaperPilot to interpret natural-language administrative requests and map them to supported procedures. The agent must distinguish between general questions, new application requests, updates to existing cases, and unsupported requests. It should extract relevant facts without treating inferred information as confirmed user data.
+
+Deliverable: Intent-classification and request-routing components.
+
+Completion: An evaluation dataset demonstrates correct routing for supported and unsupported English and Italian requests, including ambiguous wording.
+Task 55 — Implement intelligent intake
+Implementation: Codex connects the conversational agent to the structured intake schemas and requirements engine. The agent identifies missing information, selects appropriate follow-up questions, avoids asking for already known facts, and validates answers before updating case data. It should ask for clarification when inputs conflict or are insufficient.
+
+Deliverable: Dynamic conversational intake workflow integrated with persistent cases.
+
+Completion: The agent can collect all necessary information for supported scenarios, avoid redundant questions, and correctly pause when essential facts are missing.
+Task 56 — Implement agent tools
+Implementation: Codex provides the agent with typed tools for procedure selection, requirements lookup, checklist retrieval, case updates, document metadata, and other approved backend operations. Each tool has validated arguments, explicit permissions, structured error responses, and appropriate audit records. Tools that change important information require the necessary authorization or approval.
+
+Deliverable: Agent-tool interfaces, tool registry, permission boundaries, and contract tests.
+
+Completion: The agent can execute approved operations, cannot access unauthorized records, and handles tool failures without fabricating successful results.
+Task 57 — Implement autonomous case planning
+Implementation: Codex develops the agent's ability to construct an action plan from verified requirements and available user information. It should identify dependencies, missing documents, actions the agent can perform, and actions requiring the user. Plans must be revised when circumstances change, with changes explained and previously completed work preserved where valid.
+
+Deliverable: Personalized planning component with persistent, structured plans.
+
+Completion: Generated plans match approved procedure scenarios, contain no unsupported required actions, and update correctly when user information changes.
+Task 58 — Implement uncertainty handling
+Implementation: Codex creates explicit agent behavior for missing sources, contradictory documents, unavailable procedures, failed tools, and uncertain eligibility. The agent should distinguish confirmed information from assumptions and clearly explain what it cannot determine. It must never invent a government requirement, completed submission, or successful administrative outcome.
+
+Deliverable: Uncertainty policies, error-recovery responses, and negative-case evaluations.
+
+Completion: The agent handles representative uncertainty cases by asking for information, requesting review, or declining unsupported actions rather than generating unverified conclusions.
+Task 59 — Implement persistence and recovery
+Implementation: Codex integrates LangGraph checkpoints with persistent case state. It ensures conversations, collected facts, tool results, and workflow progress survive application restarts or interrupted sessions. It also implements execution limits, idempotent operations where needed, safe retries, and detection of duplicate actions.
+
+Deliverable: Persistent agent sessions, recovery logic, and interruption tests.
+
+Completion: A user can leave and resume a case without losing verified information, while interrupted or repeated tool operations do not corrupt case state.
+Task 60 — Evaluate the initial agent
+Implementation: Codex creates a structured agent evaluation suite using the scenarios from Stages 1 and 2. It measures intent recognition, intake correctness, tool selection, workflow planning, groundedness, multilingual behavior, and failure recovery. Deterministic tests should run routinely, while live-model evaluations can use controlled sample sizes and cost budgets.
+
+Deliverable: Agent benchmark dataset, evaluation runner, trace reports, and performance baseline.
+
+Completion: Required acceptance thresholds are met, major failures are documented, and regressions can be detected in future development.
+
+Stage 8 completion: PaperPilot has a stateful, tool-using AI agent that can understand a user's administrative objective, collect information, use verified rules, build a plan, and manage progress.
+
 Stage 9 — Document Intelligence
-Tasks 61–68
+Tasks 61–68 · Enable PaperPilot to process administrative documents and prepare application information.
+Task 61 — Implement document ingestion safeguards
+Implementation: Codex strengthens the existing upload system for document processing. It validates actual file content rather than trusting filenames, enforces processing limits, restricts unsafe formats, and prevents malicious files from accessing application infrastructure. It also defines safe handling for malformed PDFs and large images.
 
-Goal: Enable PaperPilot to understand uploaded documents and prepare reliable application information.
-61. Implement document ingestion safeguards —  Cursor adds file-type validation, size limits, scanning, and safe processing boundaries. Complete when unsafe and invalid files are rejected.
-62. Implement PDF and image extraction —  Cursor integrates PDF text extraction and OCR for supported document types. Complete when representative documents can be parsed.
-63. Implement document classification —  Cursor builds a classifier to identify supported rental agreements, identity documents, and administrative forms. Complete when classification evaluations pass.
-64. Implement structured field extraction —  Cursor extracts names, addresses, dates, identifiers, and other required fields. Complete when expected fields and evidence locations are recorded.
-65. Implement extraction confidence handling —  Cursor flags uncertain, missing, or ambiguous information for user confirmation. Complete when low-confidence extraction cannot silently become trusted data.
-66. Implement cross-document validation —  Cursor compares extracted fields with user information and other documents, identifying inconsistencies. Complete when deliberately conflicting fixtures are detected.
-67. Implement application preparation —  Cursor maps verified information into supported form templates or submission-ready summaries, requiring user review. Complete when generated outputs match verified inputs.
-68. Evaluate document intelligence —  Cursor tests parsing, extraction, field consistency, privacy handling, and form generation against synthetic fixtures. Complete when defined accuracy and safety checks pass.
-Stage completion: PaperPilot can process supported paperwork, identify missing information, and prepare user-reviewed application materials.
+Deliverable: Hardened document ingestion and processing boundaries.
+
+Completion: Unsupported, malformed, oversized, and potentially malicious files are rejected or isolated safely without exposing application data.
+Task 62 — Implement PDF and image extraction
+Implementation: Codex builds a document-reading pipeline using direct text extraction for digital PDFs and OCR for scanned pages or images. It preserves page references and coordinates where feasible, detects unreadable content, and normalizes extracted text without silently altering important identifiers or dates.
+
+Deliverable: PDF and image text-extraction service with structured extraction results.
+
+Completion: Representative digital and scanned documents can be processed, and failed or incomplete extraction is detected explicitly.
+Task 63 — Implement document classification
+Implementation: Codex creates a classifier for the document categories supported by the MVP, such as tenancy agreements, identification documents, and official forms. It combines extracted content, document structure, and model-based interpretation where useful. Unknown documents should be classified as unsupported instead of forced into a known category.
+
+Deliverable: Document-type classifier and classification API.
+
+Completion: The classifier meets agreed performance criteria on synthetic or properly licensed representative documents, including unknown and ambiguous types.
+Task 64 — Implement structured field extraction
+Implementation: Codex defines extraction schemas for each supported document type and implements the extraction pipeline. For rental agreements, this might include tenant names, property address, contract dates, and relevant reference information. Every extracted field should preserve its source location and raw value where possible.
+
+Deliverable: Typed field-extraction models, extraction service, and evidence references.
+
+Completion: Expected fields are correctly extracted from the benchmark documents, and every extracted value can be linked to the source material or identified as unavailable.
+Task 65 — Implement extraction confidence handling
+Implementation: Codex builds a review system that distinguishes reliable extracted information from uncertain or missing values. It may use model confidence signals, validation checks, and document evidence, but must not treat an LLM-generated confidence number as proof of correctness. Critical fields require user confirmation before becoming verified application information.
+
+Deliverable: Field-review states, confidence-handling rules, and confirmation APIs.
+
+Completion: Uncertain fields are flagged, users can correct them, and unverified values cannot silently populate consequential application fields.
+Task 66 — Implement cross-document validation
+Implementation: Codex compares user-provided information with extracted document fields and other records associated with the case. It detects conflicting names, inconsistent addresses, invalid dates, and missing identifiers. It should distinguish actual contradictions from acceptable formatting differences or incomplete information.
+
+Deliverable: Cross-document consistency engine with structured warnings.
+
+Completion: Reference fixtures containing matching, missing, and contradictory information produce the expected validation results.
+Task 67 — Implement application preparation
+Implementation: Codex builds a system for producing the information and documents needed for supported official submissions. It maps confirmed case fields into approved templates or structured application summaries. It preserves user-entered information, identifies unresolved mandatory fields, and requires explicit review before an application package is marked ready.
+
+Deliverable: Application-preparation engine, template mappings, and reviewable outputs.
+
+Completion: A complete supported case generates an accurate, submission-ready package; incomplete or conflicting cases remain blocked from final preparation.
+Task 68 — Evaluate document intelligence
+Implementation: Codex creates benchmarks for OCR quality, classification accuracy, field extraction, inconsistency detection, review workflows, and application preparation. It uses synthetic fixtures for sensitive document types and ensures test results are reproducible. It examines failures by document type and field rather than relying only on an overall accuracy score.
+
+Deliverable: Document-processing evaluation suite, performance report, and documented limitations.
+
+Completion: All critical document fields and preparation workflows meet approved acceptance criteria, with failures corrected or explicitly excluded from supported functionality.
+
+Stage 9 completion: PaperPilot can securely process supported documents, extract information, detect inconsistencies, request corrections, and prepare reliable application materials.
+
 Stage 10 — Frontend and Complete Workflows
-Tasks 69–76
+Tasks 69–76 · Connect the backend, AI agent, and document intelligence into a usable application.
+Task 69 — Implement the application shell
+Implementation: Codex implements the approved Next.js design system, application layout, navigation, authentication screens, and reusable UI components. It configures English and Italian localization, responsive layouts, loading states, and consistent error presentation. It should use the designs from Stage 3 rather than independently inventing another visual direction.
 
-Goal: Turn the backend and AI agent into a usable consumer application.
-69. Implement the application shell —  Cursor builds the design system, responsive navigation, authentication screens, and language selection. Complete when core UI checks pass.
-70. Implement the case dashboard —  Cursor displays active cases, statuses, outstanding actions, and case history. Complete when dashboard data matches backend state.
-71. Implement case onboarding —  Cursor builds the interface for creating an administrative case and providing initial information. Complete when onboarding creates valid cases.
-72. Implement the AI conversation interface —  Cursor builds messaging, structured questions, tool-status indicators, and resumable conversations. Complete when agent interactions work end to end.
-73. Implement the document workspace —  Cursor adds uploads, previews, extraction results, and field-correction controls. Complete when users can review and correct information.
-74. Implement interactive checklists —  Cursor displays applicable requirements, progress, missing information, and deadlines. Complete when checklist state remains synchronized.
-75. Implement evidence and application review —  Cursor shows official citations, prepared application information, warnings, and explicit approval controls. Complete when users can inspect and correct outputs.
-76. Implement official submission handoff —  Cursor connects the completed case to verified government submission instructions and tests the full user journey. Complete when a supported case reaches a submission-ready state.
-Stage completion: A user can complete the supported PaperPilot workflow through the actual application interface.
+Deliverable: Functional application shell with routing, reusable components, and localization infrastructure.
 
-At this point, there should be a fully working MVP.
+Completion: Users can navigate the application, authentication screens work, layouts adapt to supported devices, and baseline accessibility checks pass.
+Task 70 — Implement the case dashboard
+Implementation: Codex builds the main dashboard displaying users' administrative cases, current status, outstanding tasks, and recent activity. It connects the interface to the case-management API and handles empty states, loading failures, and archived cases. Users should be able to identify what requires attention without opening every case.
+
+Deliverable: Connected case dashboard with filtering and status presentation.
+
+Completion: The dashboard displays accurate backend information, respects user permissions, and passes component and browser tests.
+Task 71 — Implement case onboarding
+Implementation: Codex implements the workflow for creating a new administrative case. Users can describe their objective or select a supported procedure, provide initial information, and receive guidance about what PaperPilot can accomplish. The interface must detect unsupported requests and avoid promising unsupported government services.
+
+Deliverable: New-case onboarding interface connected to procedure selection and case creation.
+
+Completion: Supported users can create a case successfully, initial information is saved, and unsupported cases receive appropriate guidance.
+Task 72 — Implement the AI conversation interface
+Implementation: Codex creates the interface through which users interact with the LangGraph agent. It supports message history, structured questions, input validation, agent activity indicators, tool-result summaries, and conversation resumption. It should clearly distinguish confirmed administrative requirements from general explanations or unresolved issues.
+
+Deliverable: Persistent, multilingual AI conversation workspace.
+
+Completion: Users can complete an intake conversation, refresh the page, resume the session, and continue without losing previously verified information.
+Task 73 — Implement the document workspace
+Implementation: Codex creates an interface for uploading, viewing, organizing, and reviewing documents. Users should see document types, processing states, extracted fields, uncertainties, and requested corrections. They must be able to confirm or edit extracted information before it is used in their application.
+
+Deliverable: Document-management interface integrated with the processing pipeline.
+
+Completion: The complete upload-to-review workflow functions for supported documents, including failed extraction and correction scenarios.
+Task 74 — Implement interactive checklists
+Implementation: Codex displays the personalized action plan generated by the knowledge engine and agent. Checklist items show required actions, documents, dependencies, evidence references, deadlines where applicable, and completion states. Updates from the agent, documents, or user must remain consistent with the underlying case state.
+
+Deliverable: Interactive case checklist and progress tracker.
+
+Completion: Checklist items update accurately, users cannot bypass required verification, and backend state remains consistent with displayed progress.
+Task 75 — Implement evidence and application review
+Implementation: Codex creates a review interface showing the prepared application information, uploaded evidence, unresolved warnings, and official source references. Users can inspect extracted values, correct mistakes, and confirm that information is ready for submission. Changes must trigger any necessary revalidation.
+
+Deliverable: Application review workspace with citations and approval controls.
+
+Completion: Users can inspect and correct all consequential information, and the application cannot be marked ready while blocking issues remain.
+Task 76 — Implement official submission handoff
+Implementation: Codex creates the final supported user workflow. PaperPilot presents the reviewed application package, verified official submission destination, authentication instructions, and remaining user actions. It records whether the user reports submission and allows them to attach official confirmation, without pretending that opening a government portal constitutes successful submission.
+
+Deliverable: Complete case preparation and official submission-handoff workflow.
+
+Completion: A supported user can proceed from case creation to submission-ready materials through the real UI, with no unresolved blocking requirements.
+
+Stage 10 completion: PaperPilot has a complete, interactive MVP. Its frontend, backend, AI agent, requirements engine, and document-processing components operate together.
+
 Stage 11 — Testing, Security and Reliability
-Tasks 77–86
+Tasks 77–86 · Validate the integrated application under realistic and adversarial conditions.
 
-Goal: Verify the integrated product thoroughly before allowing external users to depend on it.
+The earlier stages already require testing. This stage focuses on final integration, reliability, security, and release readiness.
+Task 77 — Run comprehensive functional tests
+Implementation: Codex reviews existing automated coverage and expands tests for all major backend and frontend workflows. It verifies authentication, case management, source retrieval, rules, agent state, document handling, and API interactions. It resolves gaps in important integration paths and ensures tests use isolated, reproducible environments.
 
-Testing already happens throughout development. This stage focuses on system-wide validation and release readiness, not introducing testing for the first time.
-77. Run comprehensive functional tests —  Cursor executes and expands unit, integration, database, and API tests. Complete when required suites pass.
-78. Run agent correctness evaluations —  Cursor benchmarks procedure selection, questions, tool use, planning, and recovery against approved scenarios. Complete when acceptance thresholds are met.
-79. Evaluate document-processing accuracy —  Cursor measures classification, extraction, consistency checks, and form-preparation correctness. Complete when required thresholds are met.
-80. Test source-grounded reasoning —  Cursor checks unsupported claims, outdated requirements, incorrect citations, and unresolved administrative questions. Complete when critical correctness failures are resolved.
-81. Test adversarial inputs —  Cursor evaluates prompt injection, malicious document content, misleading user instructions, and tool misuse. Complete when defined security cases are blocked.
-82. Perform privacy and security verification —  Cursor tests authentication, authorization, sensitive-data exposure, file isolation, and deletion. Complete when release-blocking findings are resolved.
-83. Test usability and accessibility —  Cursor runs browser tests, responsive-layout checks, accessibility tests, and bilingual interface checks. Complete when agreed standards are met.
-84. Evaluate performance and costs —  Cursor measures API latency, agent response times, model usage, document-processing speed, and operating cost. Complete when budgets are satisfied.
-85. Verify regression protection —  Cursor ensures key tests run in CI, detects unstable tests, and checks that future changes cannot silently bypass critical validations. Complete when required CI gates operate correctly.
-86. Conduct final release acceptance —  Cursor produces a release-readiness report using complete simulated cases, latest approved rules, and test evidence. Complete after required human review and approval.
-Stage completion: A verified MVP with documented correctness, security, usability, and performance results.
+Deliverable: Complete functional regression suite and coverage report.
+
+Completion: Required unit, integration, and API tests pass, with no unresolved critical functional defects.
+Task 78 — Run agent correctness evaluations
+Implementation: Codex evaluates the complete AI agent using independently reviewed administrative scenarios. It measures procedure identification, intake questions, tool selection, plan generation, state management, multilingual handling, and recovery. It compares observed behavior with expected outcomes and records execution traces for failures.
+
+Deliverable: Agent evaluation report containing task success, failure categories, and baseline metrics.
+
+Completion: Defined acceptance thresholds are met, critical failures are resolved, and results are reproducible under documented model and evaluation settings.
+Task 79 — Evaluate document-processing accuracy
+Implementation: Codex tests the document pipeline across supported types, different layouts, scanned documents, incomplete files, and inconsistent information. It measures classification performance, field-level extraction accuracy, false acceptance of incorrect values, and application preparation errors.
+
+Deliverable: Document-intelligence benchmark results and error analysis.
+
+Completion: Critical field and validation requirements meet approved thresholds; unsupported document variants are explicitly identified rather than presented as reliable.
+Task 80 — Test source-grounded reasoning
+Implementation: Codex creates adversarial administrative scenarios involving missing sources, conflicting guidance, outdated requirements, and unsupported legal interpretations. It checks whether the agent cites the correct approved evidence and correctly distinguishes official requirements from assumptions or explanations.
+
+Deliverable: Groundedness and administrative correctness evaluation suite.
+
+Completion: Critical unsupported procedural claims are eliminated from the release test set, and the system handles unavailable or conflicting evidence safely.
+Task 81 — Test adversarial inputs
+Implementation: Codex tests prompt injection embedded in uploaded documents, manipulated webpages, misleading user requests, and malicious attempts to influence tool execution. It examines whether untrusted content can override system instructions, reveal private information, or cause unauthorized actions.
+
+Deliverable: Adversarial test collection, vulnerability findings, and implemented mitigations.
+
+Completion: Identified critical injection and tool-abuse scenarios are prevented, and the security test suite passes.
+Task 82 — Perform privacy and security verification
+Implementation: Codex conducts security testing across account access, authorization, file storage, session handling, API inputs, secret management, logging, and deletion flows. It also checks that personal information is handled according to the agreed privacy design, including third-party model processing and retention controls.
+
+Deliverable: Security assessment report, privacy-control verification, and remediation records.
+
+Completion: No unresolved release-blocking vulnerabilities remain. Any necessary legal or specialist privacy review is completed separately.
+Task 83 — Test usability and accessibility
+Implementation: Codex runs automated browser tests for important user journeys, screen sizes, keyboard navigation, form accessibility, and language switching. It checks that errors are understandable, users can recover from interruptions, and the interface does not misrepresent completion states. Real user feedback should supplement automated tests.
+
+Deliverable: End-to-end usability test suite, accessibility report, and issue register.
+
+Completion: Defined accessibility and usability acceptance criteria are met, with significant user-facing problems resolved.
+Task 84 — Evaluate performance and costs
+Implementation: Codex measures API response times, LLM latency, tool execution, document-processing duration, database performance, and model usage. It identifies expensive or slow operations and proposes targeted optimizations. It also tests concurrent usage and failure behavior under realistic MVP loads.
+
+Deliverable: Performance benchmarks, per-workflow cost estimates, and optimization report.
+
+Completion: Application latency, reliability, and model costs meet the approved operating budget under documented test conditions.
+Task 85 — Verify regression protection
+Implementation: Codex audits the CI pipeline to ensure important tests cannot be accidentally skipped. It confirms that frontend, backend, knowledge-rule, document, and agent evaluations execute at the correct development checkpoints. It detects flaky tests, verifies test isolation, and ensures required checks block failed changes.
+
+Deliverable: Hardened CI pipeline and regression-prevention policy.
+
+Completion: Required checks reliably run, failures block progression, and representative deliberate defects are detected by the appropriate tests.
+Task 86 — Conduct final release acceptance
+Implementation: Codex performs a complete release-candidate evaluation using approved scenarios and verified current administrative rules. It checks deployment readiness, correctness, security, privacy, performance, documentation, and known limitations. It creates a report linking each release requirement to actual verification evidence.
+
+Deliverable: Release-readiness report and documented go/no-go decision.
+
+Completion: All critical acceptance criteria are satisfied, unresolved limitations are disclosed, and you approve progression to production preparation.
+
+Stage 11 completion: PaperPilot has demonstrated sufficient functional correctness, administrative reliability, security, usability, and performance to begin controlled deployment.
+
 Stage 12 — Deployment, Beta and Launch
-Tasks 87–94
+Tasks 87–94 · Deploy PaperPilot safely, validate it with external users, and prepare for public availability.
+Task 87 — Prepare staging infrastructure
+Implementation: Codex configures a staging environment on the selected VPS or hosting platform using Docker and the approved deployment architecture. It establishes isolated services, database configuration, environment variables, application startup, and deployment scripts. Staging must not share real user data with development.
 
-Goal: Deploy PaperPilot, validate it with real users, and establish sustainable operations.
-87. Prepare staging infrastructure —  Cursor configures the VPS or other selected hosting environment, container services, databases, and isolated staging configuration. Complete when staging starts reliably.
-88. Configure production security —  Cursor prepares HTTPS, domain configuration, secret handling, service permissions, and production environment settings. Complete when deployment security checks pass.
-89. Implement backup and recovery —  Cursor configures database backups, retention, and restoration procedures. Complete when a restoration has been tested successfully.
-90. Implement operational monitoring —  Cursor configures application logs, error tracking, health monitoring, and privacy-conscious agent telemetry. Complete when representative failures produce actionable alerts.
-91. Verify deployment behavior —  Cursor executes staging smoke tests, database migration checks, failure-recovery tests, and a complete application journey. Complete when staging acceptance passes.
-92. Conduct a private beta —  Cursor prepares feedback collection and analyzes authorized beta results; you recruit participants and authorize their access. Complete when feedback and observed problems are documented.
-93. Resolve beta findings —  Cursor prioritizes and fixes approved defects, reruns relevant evaluations, and updates release documentation. Complete when all critical blockers are resolved.
-94. Prepare and execute public release —  Cursor prepares release artifacts, documentation, deployment instructions, and monitoring checks. Production launch proceeds after your approval, followed by verified smoke tests.
-Stage completion: PaperPilot is publicly available, operationally monitored, and supported by documented procedures for handling failures.
+Deliverable: Reproducible staging deployment configuration and runbook.
+
+Completion: The application deploys successfully to staging, services pass health checks, and the deployment can be reproduced.
+Task 88 — Configure production security
+Implementation: Codex prepares domain configuration, HTTPS, reverse proxy settings, secure environment variables, service accounts, firewall rules, and database access restrictions. It verifies safe defaults and ensures debugging interfaces, development credentials, and unnecessary network services are not exposed.
+
+Deliverable: Production security configuration and deployment security checklist.
+
+Completion: The infrastructure passes the required security checks and sensitive operations are restricted to authorized administrators.
+Task 89 — Implement backup and recovery
+Implementation: Codex designs and configures backups for the application database and other persistent data requiring recovery. It defines backup frequency, encryption, retention, restoration procedures, and expected recovery objectives. It then tests restoration into an isolated environment using synthetic or appropriately protected data.
+
+Deliverable: Automated backup configuration and disaster-recovery runbook.
+
+Completion: A backup can be restored successfully, recovered data passes integrity checks, and the tested recovery process is documented.
+Task 90 — Implement operational monitoring
+Implementation: Codex configures application health monitoring, structured error logs, agent-execution telemetry, operational alerts, and resource usage tracking. It ensures logs do not expose uploaded documents, credentials, or unnecessary personal information. It establishes alert conditions for service failures, elevated errors, and unusually high model usage.
+
+Deliverable: Monitoring configuration, alert rules, and operational dashboard.
+
+Completion: Simulated operational failures trigger appropriate alerts, and maintainers can investigate failures without exposing sensitive data.
+Task 91 — Verify deployment behavior
+Implementation: Codex performs staging smoke tests and full user-journey tests against the deployed environment. It checks application startup, migrations, authentication, document processing, agent calls, official-source access, HTTPS, and backup behavior. It also verifies that deployments can be rolled back when necessary.
+
+Deliverable: Staging acceptance report and deployment verification scripts.
+
+Completion: Required tests pass against the actual staging deployment, including a complete supported administrative case.
+Task 92 — Conduct a private beta
+Implementation: Codex prepares the beta testing process, feedback forms, issue tracking, and relevant monitoring. You recruit appropriate participants and authorize access. The beta focuses on whether users understand the workflow, whether administrative instructions are helpful, and whether the application correctly handles real user situations.
+
+Deliverable: Private-beta plan, feedback dataset, issue register, and findings report.
+
+Completion: The agreed beta validation activities have been completed, participant feedback is documented, and significant product risks are identified. Codex cannot invent participant feedback or complete this task without the actual beta.
+Task 93 — Resolve beta findings
+Implementation: Codex reviews the recorded beta issues, groups them by severity, and implements approved improvements. It prioritizes incorrect administrative instructions, privacy problems, confusing workflows, document-processing failures, and application instability. It then reruns relevant evaluations and regression tests.
+
+Deliverable: Resolved beta issue records, updated implementation, and verification report.
+
+Completion: All critical issues and required high-priority findings have been addressed and verified. Remaining limitations are documented and approved.
+Task 94 — Prepare and execute public release
+Implementation: Codex prepares the production release, deployment documentation, user guidance, privacy-related notices, supported-procedure descriptions, and operational runbooks. It verifies the release candidate and prepares a deployment checklist. After your explicit approval, authorized deployment occurs, followed by production smoke tests and monitoring.
+
+Deliverable: Publicly accessible PaperPilot MVP, release notes, operational documentation, and launch verification report.
+
+Completion: The application is available, critical workflows operate correctly, monitoring is active, and the release has been explicitly approved.
+
+Stage 12 completion: PaperPilot is launched as a working consumer product with controlled administrative scope, operational monitoring, and documented support procedures.
