@@ -1,0 +1,159 @@
+Stage 1 — Product Discovery and Definition
+Tasks 1–6
+Goal: Establish exactly what PaperPilot solves, for whom, and what the first release must accomplish.
+1. Define the product vision —  Cursor documents the problem, primary audience, value proposition, and product objectives. Complete when the vision is clearly specified.
+2. Research user problems —  Cursor researches common administrative difficulties, prepares user interview questions, and summarizes available evidence. Complete when the problems are documented and important assumptions identified.
+3. Analyze existing solutions —  Cursor investigates government portals, administrative service providers, and competing AI products. Complete when a competitor comparison identifies genuine product gaps.
+4. Define MVP boundaries —  Cursor specifies the initial Milan residence-change scenario and explicitly excludes unsupported procedures. Complete when supported and unsupported cases are listed.
+5. Define user scenarios —  Cursor creates realistic examples of successful, incomplete, ambiguous, and unsupported user requests. Complete when a reference scenario collection exists.
+6. Write the product specification —  Cursor consolidates features, requirements, user outcomes, and success metrics in PRODUCT.md. Complete after your approval.
+Stage completion: Approved product specification, target audience, MVP scope, and initial scenarios.
+Stage 2 — Government Procedure Research
+Tasks 7–14
+Goal: Establish a trustworthy administrative foundation before building the AI agent.
+7. Discover official sources —  Cursor identifies relevant Italian government, ANPR, and Comune di Milano pages. Complete when an authoritative source inventory exists.
+8. Map the procedure —  Cursor documents the residence-change process from eligibility checks to final submission and follow-up. Complete when the workflow is mapped.
+9. Identify eligibility scenarios —  Cursor distinguishes relevant residence, nationality, tenancy, and household circumstances. Complete when the supported decision branches are documented.
+10. Extract document requirements —  Cursor identifies required forms, information, supporting documents, and conditional requirements. Complete when each requirement has a traceable source.
+11. Identify deadlines and obligations —  Cursor records applicable deadlines, fees if any, and relevant conditions. Complete when sourced and unresolved obligations are distinguished.
+12. Research submission channels —  Cursor identifies official portals, authentication requirements, and supported submission methods. Complete when the user handoff process is documented.
+13. Identify related procedures —  Cursor researches related obligations, such as applicable TARI declarations, while keeping them outside the initial scope unless approved. Complete when dependencies are classified.
+14. Validate administrative research —  Cursor creates a dated, source-linked procedure dossier and highlights contradictions. Complete only after independent human review of consequential requirements.
+Stage completion: A reviewed official-procedure dossier containing sources, decision rules, document requirements, exceptions, and submission instructions.
+
+Human verification is necessary here.  Cursor can collect and organize official information, but it cannot independently certify that its legal or administrative interpretation is correct.
+Stage 3 — UX and Product Design
+Tasks 15–20
+Goal: Define the complete user experience before implementing the interface.
+15. Design user journeys —  Cursor maps how users create a case, answer questions, upload documents, and complete the procedure. Complete when primary journeys are documented.
+16. Design information collection —  Cursor defines the questions, input types, conditional fields, and information PaperPilot must collect. Complete when intake schemas exist.
+17. Design conversational behavior —  Cursor specifies how the agent asks questions, explains requirements, and handles uncertainty in English and Italian. Complete when conversation examples cover major cases.
+18. Design application navigation —  Cursor creates wireframes for the dashboard, case pages, document workspace, and task checklists. Complete when essential screens are represented.
+19. Design error and interruption states —  Cursor designs missing-document warnings, conflicting-information prompts, blocked cases, and saved progress. Complete when non-happy-path interactions are specified.
+20. Prepare the UI design system —  Cursor defines typography, colors, reusable components, responsive layouts, and accessible interactions. Complete after design review.
+Stage completion: Approved user journeys, screen designs, interface standards, and conversational interaction requirements.
+Stage 4 — System Architecture
+Tasks 21–27
+Goal: Decide how the complete application should work internally.
+21. Define system components —  Cursor designs boundaries between frontend, backend, AI agent, government knowledge engine, and document services. Complete when an architecture diagram exists.
+22. Design the database —  Cursor models accounts, profiles, cases, documents, requirements, sources, agent sessions, and audit events. Complete when relationships and constraints are documented.
+23. Design case and agent states —  Cursor defines workflow transitions, persistent context, interruptions, retries, and completion states. Complete when state machines are specified.
+24. Design the requirements engine —  Cursor defines machine-readable eligibility rules, conditional documents, source references, and versioning. Complete when the rule schema is specified.
+25. Design document processing —  Cursor specifies ingestion, OCR, field extraction, validation, storage, and form preparation. Complete when the document pipeline is mapped.
+26. Design security and privacy controls —  Cursor defines authentication, access control, data retention, encryption, threat boundaries, and approval rules. Complete when a threat model exists.
+27. Define API contracts and architectural decisions —  Cursor documents endpoints, service interfaces, technology choices, and rejected alternatives. Complete after architecture review.
+Stage completion: Approved technical architecture, data model, interfaces, security requirements, and agent design.
+Stage 5 —  Cursor and Development Environment
+Tasks 28–35
+Goal: Prepare a development environment where  Cursor can implement features sequentially and verify its work.
+28. Create  Cursor instructions —  Cursor writes AGENTS.md describing coding standards, required verification, security constraints, and prohibited actions. Complete when the instructions are reviewed.
+29. Build the execution backlog —  Cursor converts the approved roadmap into ordered task records containing prerequisites, acceptance criteria, and verification commands. Complete when the backlog is machine-readable.
+30. Implement progress tracking —  Cursor establishes persistent task status, decision logs, test evidence, and blocker records. Complete when a fresh session can identify the next task.
+31. Initialize the application structure —  Cursor creates the monorepo directories, backend/frontend structure, configuration files, and documentation conventions. Complete when the repository structure validates.
+32. Configure dependencies —  Cursor sets up Python, FastAPI, LangGraph, Next.js, TypeScript, test frameworks, and reproducible dependency locks. Complete when dependencies install cleanly.
+33. Configure local infrastructure —  Cursor prepares Docker Compose, PostgreSQL, environment templates, and local startup commands. Complete when local services start successfully.
+34. Establish automated verification —  Cursor implements linting, formatting, type checking, test commands, and basic GitHub Actions CI. Complete when checks pass on a clean checkout.
+35. Verify the autonomous development workflow —  Cursor tests task selection, worktree isolation, failure handling, progress updates, and review procedures using a small sample task. Complete when the process is reproducible.
+Stage completion: A functioning development environment with a verified  Cursor task-execution workflow.
+
+At this point,  Cursor should be able to execute implementation tasks with limited supervision, provided each task has objective completion conditions and does not require a protected external action.
+Stage 6 — Backend Foundation
+Tasks 36–43
+
+Goal: Build the core application services before introducing AI functionality.
+36. Initialize FastAPI —  Cursor implements application configuration, routing, exception handling, health checks, and API documentation. Complete when the API starts and basic tests pass.
+37. Implement database models and migrations —  Cursor creates the database schema for users, cases, documents, and administrative records. Complete when migrations apply and roll back correctly.
+38. Implement authentication —  Cursor adds account registration, login, logout, and secure session handling. Complete when authentication tests pass.
+39. Implement authorization —  Cursor enforces user ownership of cases and documents, preventing access across accounts. Complete when access-control tests pass.
+40. Implement user profiles —  Cursor creates APIs for storing and updating relevant personal information with user consent. Complete when profile CRUD and validation tests pass.
+41. Implement case management —  Cursor creates endpoints for opening, viewing, editing, and archiving administrative cases. Complete when case lifecycle tests pass.
+42. Implement secure document storage —  Cursor adds private file storage, metadata, size restrictions, retrieval, and deletion. Complete when file-management and security tests pass.
+43. Complete backend integration testing —  Cursor verifies database persistence, API errors, authentication, and case-state transitions. Complete when the backend test suite passes.
+Stage completion: A secure backend capable of managing users, administrative cases, and documents without AI.
+Stage 7 — Government Knowledge Engine
+Tasks 44–51
+
+Goal: Convert verified administrative research into reliable, machine-readable application knowledge.
+44. Implement the official-source registry —  Cursor creates storage for approved government sources, jurisdictions, review dates, and publication metadata. Complete when sources can be managed and retrieved.
+45. Implement source ingestion —  Cursor builds controlled retrieval and versioned snapshots for permitted official pages. Complete when approved sources can be processed with provenance retained.
+46. Implement structured requirements —  Cursor represents eligibility, deadlines, document requirements, and conditional rules as structured records. Complete when reviewed requirements load correctly.
+47. Build the rules evaluator —  Cursor implements deterministic evaluation of conditional requirements against user information. Complete when known rule scenarios produce expected results.
+48. Build procedure selection —  Cursor identifies supported procedures from user circumstances and flags ambiguous or unsupported situations. Complete when routing tests pass.
+49. Build the checklist generator —  Cursor converts applicable rules into personalized document and action checklists. Complete when generated checklists match reference cases.
+50. Implement evidence traceability —  Cursor connects requirements to exact source references, versions, and review status. Complete when procedural claims can be traced.
+51. Validate the knowledge engine —  Cursor runs reference scenarios, conflicting-rule tests, missing-source tests, and outdated-source checks. Complete when all release-blocking rule checks pass.
+Stage completion: A verified requirements engine that determines which administrative steps apply to supported users.
+
+This is one of PaperPilot's most important components. The agent will depend on this engine instead of inventing government requirements through its language model.
+Stage 8 — AI Agent Development
+Tasks 52–60
+
+Goal: Create an autonomous, stateful agent that can manage an administrative case using the backend and knowledge engine.
+52. Implement LLM integration —  Cursor creates the model interface, structured-output handling, configuration, and usage tracking. Complete when contract tests and controlled model tests pass.
+53. Build the LangGraph workflow —  Cursor implements the agent's states, transitions, and orchestration logic. Complete when the graph executes a basic test scenario.
+54. Implement intent understanding —  Cursor enables the agent to interpret administrative requests and select relevant supported workflows. Complete when intent-routing evaluations pass.
+55. Implement intelligent intake —  Cursor makes the agent identify missing information and ask appropriate follow-up questions. Complete when reference intake conversations pass.
+56. Implement agent tools —  Cursor connects procedure lookup, rule evaluation, document metadata, case updates, and checklist operations. Complete when tool contracts and permission tests pass.
+57. Implement autonomous case planning —  Cursor enables the agent to create and revise an administrative action plan using verified requirements. Complete when generated plans satisfy reference scenarios.
+58. Implement uncertainty handling —  Cursor adds explicit responses for contradictory evidence, unsupported cases, and unresolved rules. Complete when the agent does not fabricate answers in negative tests.
+59. Implement persistence and recovery —  Cursor adds session checkpoints, resumable conversations, execution limits, and failure recovery. Complete when interrupted workflows resume correctly.
+60. Evaluate the initial agent —  Cursor runs multilingual scenarios, tool-call tests, behavioral evaluations, and trace inspections. Complete when defined thresholds are met.
+Stage completion: A functioning AI agent that can understand a user's situation, research approved requirements, ask questions, create a plan, and maintain case progress.
+Stage 9 — Document Intelligence
+Tasks 61–68
+
+Goal: Enable PaperPilot to understand uploaded documents and prepare reliable application information.
+61. Implement document ingestion safeguards —  Cursor adds file-type validation, size limits, scanning, and safe processing boundaries. Complete when unsafe and invalid files are rejected.
+62. Implement PDF and image extraction —  Cursor integrates PDF text extraction and OCR for supported document types. Complete when representative documents can be parsed.
+63. Implement document classification —  Cursor builds a classifier to identify supported rental agreements, identity documents, and administrative forms. Complete when classification evaluations pass.
+64. Implement structured field extraction —  Cursor extracts names, addresses, dates, identifiers, and other required fields. Complete when expected fields and evidence locations are recorded.
+65. Implement extraction confidence handling —  Cursor flags uncertain, missing, or ambiguous information for user confirmation. Complete when low-confidence extraction cannot silently become trusted data.
+66. Implement cross-document validation —  Cursor compares extracted fields with user information and other documents, identifying inconsistencies. Complete when deliberately conflicting fixtures are detected.
+67. Implement application preparation —  Cursor maps verified information into supported form templates or submission-ready summaries, requiring user review. Complete when generated outputs match verified inputs.
+68. Evaluate document intelligence —  Cursor tests parsing, extraction, field consistency, privacy handling, and form generation against synthetic fixtures. Complete when defined accuracy and safety checks pass.
+Stage completion: PaperPilot can process supported paperwork, identify missing information, and prepare user-reviewed application materials.
+Stage 10 — Frontend and Complete Workflows
+Tasks 69–76
+
+Goal: Turn the backend and AI agent into a usable consumer application.
+69. Implement the application shell —  Cursor builds the design system, responsive navigation, authentication screens, and language selection. Complete when core UI checks pass.
+70. Implement the case dashboard —  Cursor displays active cases, statuses, outstanding actions, and case history. Complete when dashboard data matches backend state.
+71. Implement case onboarding —  Cursor builds the interface for creating an administrative case and providing initial information. Complete when onboarding creates valid cases.
+72. Implement the AI conversation interface —  Cursor builds messaging, structured questions, tool-status indicators, and resumable conversations. Complete when agent interactions work end to end.
+73. Implement the document workspace —  Cursor adds uploads, previews, extraction results, and field-correction controls. Complete when users can review and correct information.
+74. Implement interactive checklists —  Cursor displays applicable requirements, progress, missing information, and deadlines. Complete when checklist state remains synchronized.
+75. Implement evidence and application review —  Cursor shows official citations, prepared application information, warnings, and explicit approval controls. Complete when users can inspect and correct outputs.
+76. Implement official submission handoff —  Cursor connects the completed case to verified government submission instructions and tests the full user journey. Complete when a supported case reaches a submission-ready state.
+Stage completion: A user can complete the supported PaperPilot workflow through the actual application interface.
+
+At this point, there should be a fully working MVP.
+Stage 11 — Testing, Security and Reliability
+Tasks 77–86
+
+Goal: Verify the integrated product thoroughly before allowing external users to depend on it.
+
+Testing already happens throughout development. This stage focuses on system-wide validation and release readiness, not introducing testing for the first time.
+77. Run comprehensive functional tests —  Cursor executes and expands unit, integration, database, and API tests. Complete when required suites pass.
+78. Run agent correctness evaluations —  Cursor benchmarks procedure selection, questions, tool use, planning, and recovery against approved scenarios. Complete when acceptance thresholds are met.
+79. Evaluate document-processing accuracy —  Cursor measures classification, extraction, consistency checks, and form-preparation correctness. Complete when required thresholds are met.
+80. Test source-grounded reasoning —  Cursor checks unsupported claims, outdated requirements, incorrect citations, and unresolved administrative questions. Complete when critical correctness failures are resolved.
+81. Test adversarial inputs —  Cursor evaluates prompt injection, malicious document content, misleading user instructions, and tool misuse. Complete when defined security cases are blocked.
+82. Perform privacy and security verification —  Cursor tests authentication, authorization, sensitive-data exposure, file isolation, and deletion. Complete when release-blocking findings are resolved.
+83. Test usability and accessibility —  Cursor runs browser tests, responsive-layout checks, accessibility tests, and bilingual interface checks. Complete when agreed standards are met.
+84. Evaluate performance and costs —  Cursor measures API latency, agent response times, model usage, document-processing speed, and operating cost. Complete when budgets are satisfied.
+85. Verify regression protection —  Cursor ensures key tests run in CI, detects unstable tests, and checks that future changes cannot silently bypass critical validations. Complete when required CI gates operate correctly.
+86. Conduct final release acceptance —  Cursor produces a release-readiness report using complete simulated cases, latest approved rules, and test evidence. Complete after required human review and approval.
+Stage completion: A verified MVP with documented correctness, security, usability, and performance results.
+Stage 12 — Deployment, Beta and Launch
+Tasks 87–94
+
+Goal: Deploy PaperPilot, validate it with real users, and establish sustainable operations.
+87. Prepare staging infrastructure —  Cursor configures the VPS or other selected hosting environment, container services, databases, and isolated staging configuration. Complete when staging starts reliably.
+88. Configure production security —  Cursor prepares HTTPS, domain configuration, secret handling, service permissions, and production environment settings. Complete when deployment security checks pass.
+89. Implement backup and recovery —  Cursor configures database backups, retention, and restoration procedures. Complete when a restoration has been tested successfully.
+90. Implement operational monitoring —  Cursor configures application logs, error tracking, health monitoring, and privacy-conscious agent telemetry. Complete when representative failures produce actionable alerts.
+91. Verify deployment behavior —  Cursor executes staging smoke tests, database migration checks, failure-recovery tests, and a complete application journey. Complete when staging acceptance passes.
+92. Conduct a private beta —  Cursor prepares feedback collection and analyzes authorized beta results; you recruit participants and authorize their access. Complete when feedback and observed problems are documented.
+93. Resolve beta findings —  Cursor prioritizes and fixes approved defects, reruns relevant evaluations, and updates release documentation. Complete when all critical blockers are resolved.
+94. Prepare and execute public release —  Cursor prepares release artifacts, documentation, deployment instructions, and monitoring checks. Production launch proceeds after your approval, followed by verified smoke tests.
+Stage completion: PaperPilot is publicly available, operationally monitored, and supported by documented procedures for handling failures.
