@@ -456,9 +456,9 @@
   description: "Validate the complete government knowledge and RAG system"
   artifact: "RAG evaluation dataset, automated retrieval benchmark runner, administrative rules test suite, and a performance and failure-analysis report."
   acceptance: "Retrieval and rules tests meet approved acceptance thresholds. Critical source-filtering and evidence-traceability failures are resolved."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 52
   stage: 8
   depends: [51]
