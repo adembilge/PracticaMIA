@@ -1,0 +1,848 @@
+# Task backlog. Not a rule the agent may state.
+# shortcut: linear order, split a dependency when a later task names one.
+- id: 1
+  stage: 1
+  depends: []
+  description: "Define the product vision"
+  artifact: "A product vision document containing the mission, value proposition, target outcomes, guiding principles, and long-term direction."
+  acceptance: "The document clearly explains who PaperPilot serves, which problem it solves, and what successful use looks like. You approve the vision."
+  verification: artifact on main
+  approval: user
+  status: done
+- id: 2
+  stage: 1
+  depends: [1]
+  description: "Research user problems"
+  artifact: "A problem-research report containing user pain points, supporting evidence, initial hypotheses, and a research interview guide."
+  acceptance: "A prioritized list of problems exists, with supporting sources or explicit validation needs. Codex must not invent user interviews or claim uncollected feedback."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 3
+  stage: 1
+  depends: [2]
+  description: "Analyze existing solutions"
+  artifact: "A competitor matrix and a differentiation analysis."
+  acceptance: "The report identifies concrete opportunities and explains why PaperPilot would be meaningfully different from existing services."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 4
+  stage: 1
+  depends: [3]
+  description: "Define MVP boundaries"
+  artifact: "An MVP specification with included features, excluded features, assumptions, and a definition of a complete user journey."
+  acceptance: "Every proposed feature can be classified as included, excluded, or deferred. You approve the MVP scope."
+  verification: artifact on main
+  approval: user
+  status: done
+- id: 5
+  stage: 1
+  depends: [4]
+  description: "Define user scenarios"
+  artifact: "A structured scenario dataset that can later become the foundation for agent evaluations."
+  acceptance: "Scenarios cover major supported decision branches and important failure conditions. Expected outcomes are marked as provisional until the governing requirements are verified."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 6
+  stage: 1
+  depends: [5]
+  description: "Write the product specification"
+  artifact: "docs/PRODUCT.md, containing the complete product requirements specification."
+  acceptance: "The specification is internally consistent, traceable to previous decisions, and approved by you. It becomes the authoritative product reference."
+  verification: artifact on main
+  approval: user
+  status: done
+- id: 7
+  stage: 2
+  depends: [6]
+  description: "Discover official sources"
+  artifact: "A source registry containing URLs, institutions, jurisdictions, subjects, access dates, and source status."
+  acceptance: "Every initial administrative topic has an identified authoritative source or is explicitly flagged as unresolved."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 8
+  stage: 2
+  depends: [7]
+  description: "Map the administrative procedure"
+  artifact: "A procedural workflow diagram and structured sequence of administrative actions."
+  acceptance: "Every supported workflow path has a documented beginning, required steps, decision branches, and submission endpoint."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 9
+  stage: 2
+  depends: [8]
+  description: "Identify eligibility scenarios"
+  artifact: "An eligibility matrix containing conditions, branches, exceptions, and source references."
+  acceptance: "Each supported scenario maps to a defined procedural route, while unsupported or ambiguous scenarios lead to an explicit unresolved state."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 10
+  stage: 2
+  depends: [9]
+  description: "Extract document requirements"
+  artifact: "A structured document-requirements catalog linked to official sources."
+  acceptance: "Each requirement includes its applicability conditions, evidence, and review status. Unsupported assumptions are not accepted as requirements."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 11
+  stage: 2
+  depends: [10]
+  description: "Identify deadlines and obligations"
+  artifact: "A deadline and obligations registry."
+  acceptance: "Every deadline used by the MVP is traceable to an approved source, with ambiguous or conflicting rules flagged for review."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 12
+  stage: 2
+  depends: [11]
+  description: "Research submission channels"
+  artifact: "A submission-channel specification and handoff workflow."
+  acceptance: "Each supported route has a verified destination and documented user actions. No unsupported automatic submission capability is assumed."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 13
+  stage: 2
+  depends: [12]
+  description: "Identify related procedures"
+  artifact: "A dependency map and related-procedures catalog."
+  acceptance: "Related obligations are classified without accidentally expanding the MVP into additional unsupported procedures."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 14
+  stage: 2
+  depends: [13]
+  description: "Validate administrative research"
+  artifact: "A versioned, reviewed administrative knowledge dossier."
+  acceptance: "All requirements intended for production are approved or marked unresolved. Unresolved critical rules block dependent development or release."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 15
+  stage: 3
+  depends: [14]
+  description: "Design user journeys"
+  artifact: "User-flow diagrams describing the complete supported journeys."
+  acceptance: "Every major MVP scenario has a complete sequence of user actions, system responses, and expected outcomes."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 16
+  stage: 3
+  depends: [15]
+  description: "Design information collection"
+  artifact: "Structured intake schemas and conditional-question specifications."
+  acceptance: "Each required field has a purpose, validation rule, and associated administrative requirement. The intake can support all approved MVP scenarios."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 17
+  stage: 3
+  depends: [16]
+  description: "Design conversational behavior"
+  artifact: "Conversation guidelines, interaction rules, and example dialogues for supported scenarios."
+  acceptance: "Examples cover successful intake, missing information, contradictions, unsupported procedures, and clarification requests."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 18
+  stage: 3
+  depends: [17]
+  description: "Design application navigation"
+  artifact: "A sitemap and wireframes for desktop and mobile views."
+  acceptance: "All primary application screens and navigation routes are represented, and users can find necessary actions without depending entirely on chat."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 19
+  stage: 3
+  depends: [18]
+  description: "Design error and interruption states"
+  artifact: "Error-state designs, recovery flows, and exceptional user journeys."
+  acceptance: "Every significant error or blocked condition has an understandable message and an appropriate next action."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 20
+  stage: 3
+  depends: [19]
+  description: "Prepare the UI design system"
+  artifact: "Design tokens, component specifications, UI prototypes, and a design-system reference."
+  acceptance: "The design system supports all approved screens and major interaction states. You approve the design direction."
+  verification: artifact on main
+  approval: user
+  status: done
+- id: 21
+  stage: 4
+  depends: [20]
+  description: "Define system components"
+  artifact: "A system architecture diagram, component responsibilities, and interaction diagrams."
+  acceptance: "Every MVP feature maps to an architectural component, with no unnecessary infrastructure or unclear ownership."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 22
+  stage: 4
+  depends: [21]
+  description: "Design the database"
+  artifact: "Database entity-relationship diagrams and schema specifications."
+  acceptance: "The schema supports all planned workflows, persistence requirements, and privacy controls without duplicating core information unnecessarily."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 23
+  stage: 4
+  depends: [22]
+  description: "Design case and agent states"
+  artifact: "State-transition diagrams and typed state definitions."
+  acceptance: "Every transition has defined triggers, validation conditions, and behavior for invalid transitions or failures."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 24
+  stage: 4
+  depends: [23]
+  description: "Design the requirements engine"
+  artifact: "A machine-readable requirements schema and deterministic evaluation design."
+  acceptance: "The proposed schema can represent every approved MVP scenario, including conditional branches and unresolved cases."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 25
+  stage: 4
+  depends: [24]
+  description: "Design document processing"
+  artifact: "Document-processing architecture, supported formats, extraction schemas, and validation rules."
+  acceptance: "Each document type has a defined processing path, failure handling, and data-retention behavior."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 26
+  stage: 4
+  depends: [25]
+  description: "Design security and privacy controls"
+  artifact: "Security architecture, threat model, and privacy requirements."
+  acceptance: "Important threats have corresponding controls, and security-sensitive decisions are reviewed before implementation."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 27
+  stage: 4
+  depends: [26]
+  description: "Define API contracts and architectural decisions"
+  artifact: "OpenAPI-oriented API contracts and architecture decision records."
+  acceptance: "Components have sufficiently precise interfaces to begin implementation, and major architecture choices receive your approval."
+  verification: artifact on main
+  approval: user
+  status: done
+- id: 28
+  stage: 5
+  depends: [27]
+  description: "Create coding-agent instructions"
+  artifact: "A permanent repository instruction file."
+  acceptance: "The instructions are unambiguous, consistent with the product specification, and approved for future development sessions."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 29
+  stage: 5
+  depends: [28]
+  description: "Build the execution backlog"
+  artifact: "docs/TASKS.yaml and a backlog-validation utility."
+  acceptance: "All 94 tasks are represented exactly once, dependencies are valid, and the next eligible task can be determined reliably."
+  verification: artifact on main
+  approval: none
+  status: done
+- id: 30
+  stage: 5
+  depends: [29]
+  description: "Implement progress tracking"
+  artifact: "docs/PROGRESS.md, docs/DECISIONS.md, and a task-status update procedure."
+  acceptance: "A new agent session can reconstruct project status, identify blockers, and select the next eligible task without relying on previous chat history."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 31
+  stage: 5
+  depends: [30]
+  description: "Initialize the application structure"
+  artifact: "An organized, reproducible repository structure."
+  acceptance: "The directory layout follows the approved architecture, references resolve, and basic repository integrity checks pass."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 32
+  stage: 5
+  depends: [31]
+  description: "Configure dependencies"
+  artifact: "Reproducible dependency manifests and project initialization scripts."
+  acceptance: "Dependencies install successfully in a clean environment, and package scripts execute correctly."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 33
+  stage: 5
+  depends: [32]
+  description: "Configure local infrastructure"
+  artifact: "Local infrastructure configuration and startup documentation."
+  acceptance: "A clean checkout can start the required local services, connect to the database, and shut down without configuration errors."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 34
+  stage: 5
+  depends: [33]
+  description: "Establish automated verification"
+  artifact: "Test configuration, verification scripts, and CI workflows."
+  acceptance: "The complete baseline verification process passes from a fresh checkout and reports failures correctly."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 35
+  stage: 5
+  depends: [34]
+  description: "Verify the autonomous development workflow"
+  artifact: "A successful development-workflow demonstration and documented operating procedure."
+  acceptance: "The full task lifecycle works reproducibly, including failure handling and approval boundaries."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 36
+  stage: 6
+  depends: [35]
+  description: "Initialize FastAPI"
+  artifact: "A running backend with foundational API services."
+  acceptance: "Health endpoints respond correctly, invalid requests return standardized errors, and foundational API tests pass."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 37
+  stage: 6
+  depends: [36]
+  description: "Implement database models and migrations"
+  artifact: "Database models, Alembic migrations, and database test fixtures."
+  acceptance: "Migrations apply successfully to a clean database, schema constraints work correctly, and rollback procedures are tested where applicable."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 38
+  stage: 6
+  depends: [37]
+  description: "Implement authentication"
+  artifact: "Authentication endpoints, session management, and tests."
+  acceptance: "Valid users can authenticate, invalid requests are rejected, and session-related security tests pass."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 39
+  stage: 6
+  depends: [38]
+  description: "Implement authorization"
+  artifact: "Authorization policies and protected API operations."
+  acceptance: "Cross-user access tests demonstrate that unauthorized reads and writes are rejected."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 40
+  stage: 6
+  depends: [39]
+  description: "Implement user profiles"
+  artifact: "User-profile models, endpoints, and validation logic."
+  acceptance: "Users can create, retrieve, update, and delete permitted profile information without affecting other users."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 41
+  stage: 6
+  depends: [40]
+  description: "Implement case management"
+  artifact: "Case-management API, persistence logic, and lifecycle tests."
+  acceptance: "The supported case lifecycle works without an AI agent, including state persistence and invalid-transition handling."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 42
+  stage: 6
+  depends: [41]
+  description: "Implement secure document storage"
+  artifact: "Document-storage service, metadata models, and secure APIs."
+  acceptance: "Authorized users can manage their files, unauthorized access is rejected, and invalid or oversized uploads fail safely."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 43
+  stage: 6
+  depends: [42]
+  description: "Complete backend integration testing"
+  artifact: "An integrated backend test suite and verification report."
+  acceptance: "All required backend checks pass, including cases involving invalid input, access violations, and interrupted operations."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 44
+  stage: 7
+  depends: [43]
+  description: "Implement the official-source registry"
+  artifact: "Source registry models, administrative management functions, and retrieval APIs."
+  acceptance: "Approved sources can be created, retrieved, updated, versioned, and archived. Permission and source-integrity tests pass."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 45
+  stage: 7
+  depends: [44]
+  description: "Implement source ingestion"
+  artifact: "Official-source ingestion pipeline with versioned content snapshots."
+  acceptance: "Supported sources can be ingested reproducibly, changes can be detected, and failed retrieval does not corrupt previously approved content."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 46
+  stage: 7
+  depends: [45]
+  description: "Implement structured requirements"
+  artifact: "A structured administrative requirements database and initial Milan residence-change ruleset."
+  acceptance: "All approved MVP requirements are represented, schema validation passes, and no unreviewed rule can automatically enter the trusted production set."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 47
+  stage: 7
+  depends: [46]
+  description: "Build the rules evaluator"
+  artifact: "A reusable rules evaluation service with structured outputs."
+  acceptance: "The engine correctly evaluates supported reference scenarios, detects missing prerequisites, and handles contradictory or incomplete inputs without guessing."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 48
+  stage: 7
+  depends: [47]
+  description: "Build procedure selection"
+  artifact: "Procedure-selection API with explanation and uncertainty support."
+  acceptance: "Reference routing tests pass, unsupported scenarios are rejected appropriately, and ambiguous situations request additional facts instead of choosing an arbitrary procedure."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 49
+  stage: 7
+  depends: [48]
+  description: "Build the checklist generator"
+  artifact: "Checklist-generation service and persistent checklist data models."
+  acceptance: "Generated checklists match approved reference cases, change appropriately when relevant user information changes, and maintain consistent progress states."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 50
+  stage: 7
+  depends: [49]
+  description: "Implement evidence traceability"
+  artifact: "Evidence-provenance models, citation APIs, and source-review status handling."
+  acceptance: "Every trusted requirement can be traced to approved evidence, and missing, revoked, or outdated evidence triggers the appropriate warning or restriction."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 51
+  stage: 7
+  depends: [50]
+  description: "Validate the knowledge engine"
+  artifact: "Administrative correctness test suite and knowledge-engine validation report."
+  acceptance: "All critical reference scenarios pass, and unresolved or outdated rules are handled safely. Results are reviewed before the agent is permitted to use the knowledge engine."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 52
+  stage: 8
+  depends: [51]
+  description: "Implement LLM integration"
+  artifact: "A reusable LLM client, structured-output schemas, and controlled integration tests."
+  acceptance: "The application can call a configured model, validate structured responses, handle provider failures, and run tests using mock responses or bounded real API calls."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 53
+  stage: 8
+  depends: [52]
+  description: "Build the LangGraph workflow"
+  artifact: "Executable LangGraph workflow, typed agent state, and transition tests."
+  acceptance: "The agent can execute a complete simulated workflow with predictable state transitions, bounded execution, and observable results."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 54
+  stage: 8
+  depends: [53]
+  description: "Implement intent understanding"
+  artifact: "Intent-classification and request-routing components."
+  acceptance: "An evaluation dataset demonstrates correct routing for supported and unsupported English and Italian requests, including ambiguous wording."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 55
+  stage: 8
+  depends: [54]
+  description: "Implement intelligent intake"
+  artifact: "Dynamic conversational intake workflow integrated with persistent cases."
+  acceptance: "The agent can collect all necessary information for supported scenarios, avoid redundant questions, and correctly pause when essential facts are missing."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 56
+  stage: 8
+  depends: [55]
+  description: "Implement agent tools"
+  artifact: "Agent-tool interfaces, tool registry, permission boundaries, and contract tests."
+  acceptance: "The agent can execute approved operations, cannot access unauthorized records, and handles tool failures without fabricating successful results."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 57
+  stage: 8
+  depends: [56]
+  description: "Implement autonomous case planning"
+  artifact: "Personalized planning component with persistent, structured plans."
+  acceptance: "Generated plans match approved procedure scenarios, contain no unsupported required actions, and update correctly when user information changes."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 58
+  stage: 8
+  depends: [57]
+  description: "Implement uncertainty handling"
+  artifact: "Uncertainty policies, error-recovery responses, and negative-case evaluations."
+  acceptance: "The agent handles representative uncertainty cases by asking for information, requesting review, or declining unsupported actions rather than generating unverified conclusions."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 59
+  stage: 8
+  depends: [58]
+  description: "Implement persistence and recovery"
+  artifact: "Persistent agent sessions, recovery logic, and interruption tests."
+  acceptance: "A user can leave and resume a case without losing verified information, while interrupted or repeated tool operations do not corrupt case state."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 60
+  stage: 8
+  depends: [59]
+  description: "Evaluate the initial agent"
+  artifact: "Agent benchmark dataset, evaluation runner, trace reports, and performance baseline."
+  acceptance: "Required acceptance thresholds are met, major failures are documented, and regressions can be detected in future development."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 61
+  stage: 9
+  depends: [60]
+  description: "Implement document ingestion safeguards"
+  artifact: "Hardened document ingestion and processing boundaries."
+  acceptance: "Unsupported, malformed, oversized, and potentially malicious files are rejected or isolated safely without exposing application data."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 62
+  stage: 9
+  depends: [61]
+  description: "Implement PDF and image extraction"
+  artifact: "PDF and image text-extraction service with structured extraction results."
+  acceptance: "Representative digital and scanned documents can be processed, and failed or incomplete extraction is detected explicitly."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 63
+  stage: 9
+  depends: [62]
+  description: "Implement document classification"
+  artifact: "Document-type classifier and classification API."
+  acceptance: "The classifier meets agreed performance criteria on synthetic or properly licensed representative documents, including unknown and ambiguous types."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 64
+  stage: 9
+  depends: [63]
+  description: "Implement structured field extraction"
+  artifact: "Typed field-extraction models, extraction service, and evidence references."
+  acceptance: "Expected fields are correctly extracted from the benchmark documents, and every extracted value can be linked to the source material or identified as unavailable."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 65
+  stage: 9
+  depends: [64]
+  description: "Implement extraction confidence handling"
+  artifact: "Field-review states, confidence-handling rules, and confirmation APIs."
+  acceptance: "Uncertain fields are flagged, users can correct them, and unverified values cannot silently populate consequential application fields."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 66
+  stage: 9
+  depends: [65]
+  description: "Implement cross-document validation"
+  artifact: "Cross-document consistency engine with structured warnings."
+  acceptance: "Reference fixtures containing matching, missing, and contradictory information produce the expected validation results."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 67
+  stage: 9
+  depends: [66]
+  description: "Implement application preparation"
+  artifact: "Application-preparation engine, template mappings, and reviewable outputs."
+  acceptance: "A complete supported case generates an accurate, submission-ready package; incomplete or conflicting cases remain blocked from final preparation."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 68
+  stage: 9
+  depends: [67]
+  description: "Evaluate document intelligence"
+  artifact: "Document-processing evaluation suite, performance report, and documented limitations."
+  acceptance: "All critical document fields and preparation workflows meet approved acceptance criteria, with failures corrected or explicitly excluded from supported functionality."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 69
+  stage: 10
+  depends: [68]
+  description: "Implement the application shell"
+  artifact: "Functional application shell with routing, reusable components, and localization infrastructure."
+  acceptance: "Users can navigate the application, authentication screens work, layouts adapt to supported devices, and baseline accessibility checks pass."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 70
+  stage: 10
+  depends: [69]
+  description: "Implement the case dashboard"
+  artifact: "Connected case dashboard with filtering and status presentation."
+  acceptance: "The dashboard displays accurate backend information, respects user permissions, and passes component and browser tests."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 71
+  stage: 10
+  depends: [70]
+  description: "Implement case onboarding"
+  artifact: "New-case onboarding interface connected to procedure selection and case creation."
+  acceptance: "Supported users can create a case successfully, initial information is saved, and unsupported cases receive appropriate guidance."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 72
+  stage: 10
+  depends: [71]
+  description: "Implement the AI conversation interface"
+  artifact: "Persistent, multilingual AI conversation workspace."
+  acceptance: "Users can complete an intake conversation, refresh the page, resume the session, and continue without losing previously verified information."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 73
+  stage: 10
+  depends: [72]
+  description: "Implement the document workspace"
+  artifact: "Document-management interface integrated with the processing pipeline."
+  acceptance: "The complete upload-to-review workflow functions for supported documents, including failed extraction and correction scenarios."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 74
+  stage: 10
+  depends: [73]
+  description: "Implement interactive checklists"
+  artifact: "Interactive case checklist and progress tracker."
+  acceptance: "Checklist items update accurately, users cannot bypass required verification, and backend state remains consistent with displayed progress."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 75
+  stage: 10
+  depends: [74]
+  description: "Implement evidence and application review"
+  artifact: "Application review workspace with citations and approval controls."
+  acceptance: "Users can inspect and correct all consequential information, and the application cannot be marked ready while blocking issues remain."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 76
+  stage: 10
+  depends: [75]
+  description: "Implement official submission handoff"
+  artifact: "Complete case preparation and official submission-handoff workflow."
+  acceptance: "A supported user can proceed from case creation to submission-ready materials through the real UI, with no unresolved blocking requirements."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 77
+  stage: 11
+  depends: [76]
+  description: "Run comprehensive functional tests"
+  artifact: "Complete functional regression suite and coverage report."
+  acceptance: "Required unit, integration, and API tests pass, with no unresolved critical functional defects."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 78
+  stage: 11
+  depends: [77]
+  description: "Run agent correctness evaluations"
+  artifact: "Agent evaluation report containing task success, failure categories, and baseline metrics."
+  acceptance: "Defined acceptance thresholds are met, critical failures are resolved, and results are reproducible under documented model and evaluation settings."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 79
+  stage: 11
+  depends: [78]
+  description: "Evaluate document-processing accuracy"
+  artifact: "Document-intelligence benchmark results and error analysis."
+  acceptance: "Critical field and validation requirements meet approved thresholds; unsupported document variants are explicitly identified rather than presented as reliable."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 80
+  stage: 11
+  depends: [79]
+  description: "Test source-grounded reasoning"
+  artifact: "Groundedness and administrative correctness evaluation suite."
+  acceptance: "Critical unsupported procedural claims are eliminated from the release test set, and the system handles unavailable or conflicting evidence safely."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 81
+  stage: 11
+  depends: [80]
+  description: "Test adversarial inputs"
+  artifact: "Adversarial test collection, vulnerability findings, and implemented mitigations."
+  acceptance: "Identified critical injection and tool-abuse scenarios are prevented, and the security test suite passes."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 82
+  stage: 11
+  depends: [81]
+  description: "Perform privacy and security verification"
+  artifact: "Security assessment report, privacy-control verification, and remediation records."
+  acceptance: "No unresolved release-blocking vulnerabilities remain. Any necessary legal or specialist privacy review is completed separately."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 83
+  stage: 11
+  depends: [82]
+  description: "Test usability and accessibility"
+  artifact: "End-to-end usability test suite, accessibility report, and issue register."
+  acceptance: "Defined accessibility and usability acceptance criteria are met, with significant user-facing problems resolved."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 84
+  stage: 11
+  depends: [83]
+  description: "Evaluate performance and costs"
+  artifact: "Performance benchmarks, per-workflow cost estimates, and optimization report."
+  acceptance: "Application latency, reliability, and model costs meet the approved operating budget under documented test conditions."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 85
+  stage: 11
+  depends: [84]
+  description: "Verify regression protection"
+  artifact: "Hardened CI pipeline and regression-prevention policy."
+  acceptance: "Required checks reliably run, failures block progression, and representative deliberate defects are detected by the appropriate tests."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 86
+  stage: 11
+  depends: [85]
+  description: "Conduct final release acceptance"
+  artifact: "Release-readiness report and documented go/no-go decision."
+  acceptance: "All critical acceptance criteria are satisfied, unresolved limitations are disclosed, and you approve progression to production preparation."
+  verification: completion sentence
+  approval: user
+  status: not_started
+- id: 87
+  stage: 12
+  depends: [86]
+  description: "Prepare staging infrastructure"
+  artifact: "Reproducible staging deployment configuration and runbook."
+  acceptance: "The application deploys successfully to staging, services pass health checks, and the deployment can be reproduced."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 88
+  stage: 12
+  depends: [87]
+  description: "Configure production security"
+  artifact: "Production security configuration and deployment security checklist."
+  acceptance: "The infrastructure passes the required security checks and sensitive operations are restricted to authorized administrators."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 89
+  stage: 12
+  depends: [88]
+  description: "Implement backup and recovery"
+  artifact: "Automated backup configuration and disaster-recovery runbook."
+  acceptance: "A backup can be restored successfully, recovered data passes integrity checks, and the tested recovery process is documented."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 90
+  stage: 12
+  depends: [89]
+  description: "Implement operational monitoring"
+  artifact: "Monitoring configuration, alert rules, and operational dashboard."
+  acceptance: "Simulated operational failures trigger appropriate alerts, and maintainers can investigate failures without exposing sensitive data."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 91
+  stage: 12
+  depends: [90]
+  description: "Verify deployment behavior"
+  artifact: "Staging acceptance report and deployment verification scripts."
+  acceptance: "Required tests pass against the actual staging deployment, including a complete supported administrative case."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 92
+  stage: 12
+  depends: [91]
+  description: "Conduct a private beta"
+  artifact: "Private-beta plan, feedback dataset, issue register, and findings report."
+  acceptance: "The agreed beta validation activities have been completed, participant feedback is documented, and significant product risks are identified. Cursor cannot invent participant feedback or complete this task without the actual beta."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 93
+  stage: 12
+  depends: [92]
+  description: "Resolve beta findings"
+  artifact: "Resolved beta issue records, updated implementation, and verification report."
+  acceptance: "All critical issues and required high-priority findings have been addressed and verified. Remaining limitations are documented and approved."
+  verification: completion sentence
+  approval: none
+  status: not_started
+- id: 94
+  stage: 12
+  depends: [93]
+  description: "Prepare and execute public release"
+  artifact: "Publicly accessible PaperPilot MVP, release notes, operational documentation, and launch verification report."
+  acceptance: "The application is available, critical workflows operate correctly, monitoring is active, and the release has been explicitly approved."
+  verification: completion sentence
+  approval: none
+  status: not_started
