@@ -7,6 +7,8 @@ from starlette.exceptions import HTTPException
 
 from auth import router as auth_router
 from case import router as case_router
+from onboard import router as onboard_router
+from chat import router as chat_router
 from ingest import router as ingest_router
 from requirement import router as requirement_router
 from source import router as source_router
@@ -38,6 +40,8 @@ app = FastAPI(exception_handlers={HTTPException: http_error})
 app.include_router(router)
 app.include_router(auth_router)
 app.include_router(case_router)
+app.include_router(onboard_router)
+app.include_router(chat_router)
 app.include_router(upload_router)
 app.include_router(source_router)
 app.include_router(ingest_router)

@@ -6,10 +6,11 @@ from sqlalchemy import text
 from starlette.exceptions import HTTPException
 
 from auth import COOKIE, _body, _caller, engine
+from checklist import from_stored
 
 router = APIRouter()
 ANSWERS = ("language", "f02", "f03", "f04", "f05", "f06")
-REQUIRED = ("language", "f02", "f03", "f04", "f05")
+REQUIRED = ("language", "f02", "f04", "f05")
 LISTS = {
     "language": {"English", "Italian"},
     "f02": {"Yes"},
@@ -94,30 +95,34 @@ async def open_case(request: Request):
         ).first()
         if existing is not None:
             raise HTTPException(status_code=400)
-        case_id = secrets.token_urlsafe()
-        conn.execute(
-            text(
-                """
-                INSERT INTO "case"
-                    (id, person_id, language, f02, f03, f04, f05, f06, stop)
-                VALUES
-                    (:id, :person_id, :language, :f02, :f03, :f04, :f05, :f06, 'not ready')
-                """
-            ),
-            {
-                "id": case_id,
-                "person_id": person_id,
-                "language": body["language"],
-                "f02": body["f02"],
-                "f03": body["f03"],
-                "f04": body["f04"],
-                "f05": body["f05"],
-                "f06": body.get("f06"),
-            },
-        )
-        _audit(conn, case_id, "opened")
-        row = _load_case(conn, case_id, person_id)
+        row = _insert(conn, person_id, body)
     return _public(row)
+
+
+def _insert(conn, person_id, body):
+    case_id = secrets.token_urlsafe()
+    conn.execute(
+        text(
+            """
+            INSERT INTO "case"
+                (id, person_id, language, f02, f03, f04, f05, f06, stop)
+            VALUES
+                (:id, :person_id, :language, :f02, :f03, :f04, :f05, :f06, 'not ready')
+            """
+        ),
+        {
+            "id": case_id,
+            "person_id": person_id,
+            "language": body["language"],
+            "f02": body["f02"],
+            "f03": body.get("f03"),
+            "f04": body["f04"],
+            "f05": body["f05"],
+            "f06": body.get("f06"),
+        },
+    )
+    _audit(conn, case_id, "opened")
+    return _load_case(conn, case_id, person_id)
 
 
 @router.get("/v1/case/{case_id}")
@@ -155,3 +160,33 @@ async def update_case(case_id: str, request: Request):
     if row is None:
         raise HTTPException(status_code=404)
     return _public(row)
+
+
+@router.get("/v1/case/{case_id}/checklist")
+def read_checklist(case_id: str, request: Request):
+    _session_id, person_id, _case_id = _caller(request)
+    with engine.begin() as conn:
+        row = conn.execute(
+            text(
+                """
+                SELECT stop, language, f02, f03, f04, f05, f06, named_name, named_address
+                FROM "case"
+                WHERE id = :id AND person_id = :person_id
+                """
+            ),
+            {"id": case_id, "person_id": person_id},
+        ).mappings().first()
+        if row is None:
+            raise HTTPException(status_code=404)
+        uploads = conn.execute(
+            text(
+                """
+                SELECT role, status, extracted_name, extracted_address
+                FROM upload
+                WHERE case_id = :id AND current
+                """
+            ),
+            {"id": case_id},
+        ).mappings().all()
+    found = from_stored(row, uploads)
+    return {"stop": row["stop"], "items": found["items"], "missing": found["missing"]}

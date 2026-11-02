@@ -210,6 +210,32 @@ async def create_upload(case_id: str, request: Request):
     return {"id": upload_id, "role": role}
 
 
+@router.get("/v1/case/{case_id}/uploads")
+def list_uploads(case_id: str, request: Request):
+    _session_id, person_id, _case_id = _caller(request)
+    with engine.begin() as conn:
+        case = conn.execute(
+            text('SELECT stop FROM "case" WHERE id = :id AND person_id = :person_id'),
+            {"id": case_id, "person_id": person_id},
+        ).mappings().first()
+        if case is None:
+            raise HTTPException(status_code=404)
+        rows = conn.execute(
+            text(
+                """
+                SELECT id, role, status FROM upload
+                WHERE case_id = :id AND current
+                ORDER BY role DESC
+                """
+            ),
+            {"id": case_id},
+        ).mappings().all()
+    return {
+        "stop": case["stop"],
+        "uploads": [{"id": row["id"], "role": row["role"], "status": row["status"]} for row in rows],
+    }
+
+
 @router.get("/v1/upload/{upload_id}")
 def read_upload(upload_id: str, request: Request):
     _session_id, person_id, _case_id = _caller(request)

@@ -1,6 +1,4 @@
-import { copy } from "../lib/copy"
-import { Language } from "./shell"
-import { StartButton } from "./start-button"
+import { Dashboard } from "./dashboard"
 
 export default async function Page({
   searchParams,
@@ -9,12 +7,5 @@ export default async function Page({
 }) {
   const params = await searchParams
   const lang = params.lang === "it" ? "it" : "en"
-  const text = copy[lang]
-  return (
-    <main id="content" lang={lang}>
-      <Language path="/" />
-      <p className="status">{text.none}</p>
-      <StartButton label={text.continue} loading={text.loading} error={text.error} />
-    </main>
-  )
+  return <Dashboard lang={lang} />
 }

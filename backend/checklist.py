@@ -1,5 +1,6 @@
 """The intake list for one open case. The case row stays the store."""
 
+from prepare import _story
 from procedure import select
 
 IGNORED = ("research", "deadline", "paper", "sign_in")
@@ -55,3 +56,43 @@ def checklist(facts):
         f09 = "missing"
     items.append({"id": "f09", "state": f09})
     return {"items": items, "missing": _gap(items)}
+
+
+def _status(value):
+    if value in ("read", "failed", "unreadable"):
+        return value
+    return "missing"
+
+
+def from_stored(row, uploads):
+    facts = {}
+    for key in ("language", "f02", "f03", "f04", "f05", "f06"):
+        value = row[key]
+        if isinstance(value, str) and value:
+            facts[key] = value
+    if facts.get("f06") == "Yes":
+        facts["non_eu"] = True
+    papers = []
+    for item in uploads:
+        status = _status(item["status"])
+        if item["role"] == "title":
+            facts["f07"] = status
+            kind = "ownership" if facts.get("f05") == "Owner" else "lease"
+        elif item["role"] == "identity":
+            facts["f08"] = status
+            kind = "permit"
+        else:
+            continue
+        if status == "read":
+            papers.append(
+                {
+                    "type": kind,
+                    "name": item.get("extracted_name"),
+                    "address": item.get("extracted_address"),
+                }
+            )
+    named = None
+    if isinstance(row.get("named_name"), str) and isinstance(row.get("named_address"), str):
+        named = {"name": row["named_name"], "address": row["named_address"]}
+    story, _compared = _story(facts, papers, named)
+    return checklist(story)

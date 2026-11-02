@@ -627,45 +627,45 @@
   description: "Implement the case dashboard"
   artifact: "Connected case dashboard with filtering and status presentation."
   acceptance: "The dashboard displays accurate backend information, respects user permissions, and passes component and browser tests."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 71
   stage: 10
   depends: [70]
   description: "Implement case onboarding"
   artifact: "New-case onboarding interface connected to procedure selection and case creation."
   acceptance: "Supported users can create a case successfully, initial information is saved, and unsupported cases receive appropriate guidance."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 72
   stage: 10
   depends: [71]
   description: "Implement the AI conversation interface"
   artifact: "Persistent, multilingual AI conversation workspace."
   acceptance: "Users can complete an intake conversation, refresh the page, resume the session, and continue without losing previously verified information."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 73
   stage: 10
   depends: [72]
   description: "Implement the document workspace"
   artifact: "Document-management interface integrated with the processing pipeline."
   acceptance: "The complete upload-to-review workflow functions for supported documents, including failed extraction and correction scenarios."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 74
   stage: 10
   depends: [73]
   description: "Implement interactive checklists"
   artifact: "Interactive case checklist and progress tracker."
   acceptance: "Checklist items update accurately, users cannot bypass required verification, and backend state remains consistent with displayed progress."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 75
   stage: 10
   depends: [74]

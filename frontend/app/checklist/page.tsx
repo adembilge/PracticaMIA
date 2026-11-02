@@ -1,3 +1,4 @@
+import { List } from "./list"
 import { CaseShell } from "../shell"
 
 export default async function Page({
@@ -7,5 +8,9 @@ export default async function Page({
 }) {
   const params = await searchParams
   const lang = params.lang === "it" ? "it" : "en"
-  return <CaseShell lang={lang} path="/checklist"><div className="block" /></CaseShell>
+  return (
+    <CaseShell lang={lang} path="/checklist">
+      <List lang={lang} />
+    </CaseShell>
+  )
 }
