@@ -15,3 +15,5 @@ The usability walk is `py -3 scripts/check_usability.py`, and it has no threshol
 The performance walk is `py -3 scripts/check_performance.py`, and it has no threshold.
 
 The regression pin is `py -3 scripts/check_regression.py`. Version 1 is [regression.json](fixtures/regression.json).
+
+The release hold is `py -3 scripts/check_release.py`. The decision stays held.
