@@ -285,9 +285,9 @@
   description: "Configure dependencies"
   artifact: "Reproducible dependency manifests and project initialization scripts."
   acceptance: "Dependencies install successfully in a clean environment, and package scripts execute correctly."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 33
   stage: 5
   depends: [32]
