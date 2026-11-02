@@ -33,6 +33,7 @@ def _count(sql):
 
 def _insert_case(person_id, case_id):
     with engine.begin() as conn:
+        conn.execute(text('DELETE FROM "case" WHERE id = :id'), {"id": case_id})
         conn.execute(
             text('INSERT INTO "case" (id, person_id, stop) VALUES (:id, :person_id, :stop)'),
             {"id": case_id, "person_id": person_id, "stop": "not ready"},
@@ -58,6 +59,9 @@ def _insert_upload(case_id, upload_id, path):
 
 def _insert_passage():
     with engine.begin() as conn:
+        conn.execute(text("DELETE FROM passage WHERE id = 'pass-profile'"))
+        conn.execute(text("DELETE FROM source_version WHERE id = 'ver-profile'"))
+        conn.execute(text("DELETE FROM source_document WHERE id = 'doc-profile'"))
         conn.execute(text("INSERT INTO source_document (id) VALUES ('doc-profile')"))
         conn.execute(
             text(

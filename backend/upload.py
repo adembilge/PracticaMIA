@@ -11,6 +11,7 @@ from starlette.exceptions import HTTPException
 from starlette.responses import Response
 
 from auth import _caller, engine
+from case import sync_stop
 from extract import read as extracted
 
 router = APIRouter()
@@ -196,6 +197,16 @@ async def create_upload(case_id: str, request: Request):
                 conn.execute(
                     text(
                         """
+                        UPDATE "case"
+                        SET named_name = NULL, named_address = NULL
+                        WHERE id = :case_id
+                        """
+                    ),
+                    {"case_id": case_id},
+                )
+                conn.execute(
+                    text(
+                        """
                         INSERT INTO audit_event (id, case_id, action)
                         VALUES (:id, :case_id, 'upload replaced')
                         """
@@ -204,6 +215,7 @@ async def create_upload(case_id: str, request: Request):
                 )
                 if old["path"] and os.path.isfile(old["path"]):
                     os.remove(old["path"])
+            sync_stop(conn, case_id, person_id)
     except Exception:
         path.unlink(missing_ok=True)
         raise

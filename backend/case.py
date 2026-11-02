@@ -6,7 +6,8 @@ from sqlalchemy import text
 from starlette.exceptions import HTTPException
 
 from auth import COOKIE, _body, _caller, engine
-from checklist import from_stored
+from checklist import from_stored, stored
+from prepare import prepare
 
 router = APIRouter()
 ANSWERS = ("language", "f02", "f03", "f04", "f05", "f06")
@@ -162,31 +163,134 @@ async def update_case(case_id: str, request: Request):
     return _public(row)
 
 
+def _open_row(conn, case_id, person_id):
+    row = conn.execute(
+        text(
+            """
+            SELECT stop, language, f02, f03, f04, f05, f06, named_name, named_address
+            FROM "case"
+            WHERE id = :id AND person_id = :person_id
+            """
+        ),
+        {"id": case_id, "person_id": person_id},
+    ).mappings().first()
+    if row is None:
+        return None, None
+    uploads = conn.execute(
+        text(
+            """
+            SELECT role, status, extracted_name, extracted_address
+            FROM upload
+            WHERE case_id = :id AND current
+            """
+        ),
+        {"id": case_id},
+    ).mappings().all()
+    return row, uploads
+
+
+def _package(row, uploads):
+    facts, papers, named = stored(row, uploads)
+    found = prepare(facts, papers, named)
+    stop = "ready to hand over" if found["ready"] else "not ready"
+    missing = ["f07"] if "f07" not in facts else found["missing"]
+    language = row["language"]
+    body = {
+        "stop": stop,
+        "missing": missing,
+        "name": found["name"],
+        "address": found["address"],
+        "language": language if language in ("English", "Italian") else None,
+        "warnings": found["warnings"],
+    }
+    if stop == "ready to hand over" and found["link"]:
+        body["link"] = found["link"]
+        method = "CIE" if language == "Italian" else "SPID"
+        body["notice"] = (
+            "I will not take your %s password, and I will not file it. "
+            "Opening that page is not acceptance by the Comune di Milano."
+        ) % method
+    return body
+
+
+def sync_stop(conn, case_id, person_id):
+    row, uploads = _open_row(conn, case_id, person_id)
+    if row is None:
+        return None
+    body = _package(row, uploads)
+    if row["stop"] != body["stop"]:
+        conn.execute(
+            text('UPDATE "case" SET stop = :stop WHERE id = :id'),
+            {"stop": body["stop"], "id": case_id},
+        )
+        if body["stop"] == "ready to hand over":
+            conn.execute(
+                text(
+                    """
+                    INSERT INTO audit_event (id, case_id, action)
+                    VALUES (:id, :case_id, 'stop became ready')
+                    """
+                ),
+                {"id": secrets.token_urlsafe(), "case_id": case_id},
+            )
+    return body
+
+
+def _conflict(found):
+    warnings = found["warnings"]
+    return warnings["name"]["status"] == "conflict" or warnings["address"]["status"] == "conflict"
+
+
 @router.get("/v1/case/{case_id}/checklist")
 def read_checklist(case_id: str, request: Request):
     _session_id, person_id, _case_id = _caller(request)
     with engine.begin() as conn:
-        row = conn.execute(
-            text(
-                """
-                SELECT stop, language, f02, f03, f04, f05, f06, named_name, named_address
-                FROM "case"
-                WHERE id = :id AND person_id = :person_id
-                """
-            ),
-            {"id": case_id, "person_id": person_id},
-        ).mappings().first()
-        if row is None:
-            raise HTTPException(status_code=404)
-        uploads = conn.execute(
-            text(
-                """
-                SELECT role, status, extracted_name, extracted_address
-                FROM upload
-                WHERE case_id = :id AND current
-                """
-            ),
-            {"id": case_id},
-        ).mappings().all()
+        row, uploads = _open_row(conn, case_id, person_id)
+    if row is None:
+        raise HTTPException(status_code=404)
     found = from_stored(row, uploads)
     return {"stop": row["stop"], "items": found["items"], "missing": found["missing"]}
+
+
+@router.get("/v1/case/{case_id}/review")
+def read_review(case_id: str, request: Request):
+    _session_id, person_id, _case_id = _caller(request)
+    with engine.begin() as conn:
+        body = sync_stop(conn, case_id, person_id)
+    if body is None:
+        raise HTTPException(status_code=404)
+    return body
+
+
+@router.post("/v1/case/{case_id}/review")
+async def name_review(case_id: str, request: Request):
+    _session_id, person_id, _case_id = _caller(request)
+    body = await _body(request)
+    if set(body) != {"name", "address"}:
+        raise HTTPException(status_code=400)
+    name = body["name"]
+    address = body["address"]
+    if not isinstance(name, str) or not isinstance(address, str):
+        raise HTTPException(status_code=400)
+    name = name.strip()
+    address = address.strip()
+    if not name or not address:
+        raise HTTPException(status_code=400)
+    with engine.begin() as conn:
+        row, uploads = _open_row(conn, case_id, person_id)
+        if row is None:
+            raise HTTPException(status_code=404)
+        facts, papers, _named = stored(row, uploads)
+        if not _conflict(prepare(facts, papers, _named)):
+            raise HTTPException(status_code=400)
+        conn.execute(
+            text(
+                """
+                UPDATE "case"
+                SET named_name = :name, named_address = :address
+                WHERE id = :id
+                """
+            ),
+            {"id": case_id, "name": name, "address": address},
+        )
+        return sync_stop(conn, case_id, person_id)

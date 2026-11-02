@@ -88,7 +88,7 @@ def test_a_read_paper_updates_only_that_row(client):
     assert read["items"][0] == {"id": "f07", "state": "done"}
     assert read["items"][1] == {"id": "f09", "state": "done"}
     assert read["missing"] is None
-    assert _stop(case_id) == "not ready"
+    assert _stop(case_id) == "ready to hand over"
 
 
 def test_other_person_cannot_read_the_list(client):

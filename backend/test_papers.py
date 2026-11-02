@@ -1,4 +1,4 @@
-"""A paper can be replaced. The stop stays not ready."""
+"""A paper can be replaced. The stop follows the check."""
 import sys
 from pathlib import Path
 
@@ -77,7 +77,7 @@ def test_unreadable_then_a_readable_replacement(client):
     assert replaced.status_code == 200
     read = client.get("/v1/case/%s/uploads" % case_id).json()
     assert read["uploads"] == [{"id": replaced.json()["id"], "role": "title", "status": "read"}]
-    assert _stop(case_id) == "not ready"
+    assert _stop(case_id) == "ready to hand over"
     assert upload.LIMIT == 10 * 1024 * 1024
 
 
@@ -88,4 +88,4 @@ def test_other_person_cannot_list_papers(client):
     _open(client)
     rejected = client.get("/v1/case/%s/uploads" % case_id)
     assert rejected.status_code == 404
-    assert _stop(case_id) == "not ready"
+    assert _stop(case_id) == "ready to hand over"

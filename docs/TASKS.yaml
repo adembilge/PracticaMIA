@@ -672,18 +672,18 @@
   description: "Implement evidence and application review"
   artifact: "Application review workspace with citations and approval controls."
   acceptance: "Users can inspect and correct all consequential information, and the application cannot be marked ready while blocking issues remain."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 76
   stage: 10
   depends: [75]
   description: "Implement official submission handoff"
   artifact: "Complete case preparation and official submission-handoff workflow."
   acceptance: "A supported user can proceed from case creation to submission-ready materials through the real UI, with no unresolved blocking requirements."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 77
   stage: 11
   depends: [76]

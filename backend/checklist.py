@@ -64,7 +64,7 @@ def _status(value):
     return "missing"
 
 
-def from_stored(row, uploads):
+def stored(row, uploads):
     facts = {}
     for key in ("language", "f02", "f03", "f04", "f05", "f06"):
         value = row[key]
@@ -94,5 +94,10 @@ def from_stored(row, uploads):
     named = None
     if isinstance(row.get("named_name"), str) and isinstance(row.get("named_address"), str):
         named = {"name": row["named_name"], "address": row["named_address"]}
+    return facts, papers, named
+
+
+def from_stored(row, uploads):
+    facts, papers, named = stored(row, uploads)
     story, _compared = _story(facts, papers, named)
     return checklist(story)

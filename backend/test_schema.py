@@ -127,7 +127,7 @@ def test_passage_body_is_searchable(db):
     row = db.execute(
         """
         SELECT id FROM passage
-        WHERE body_tsv @@ plainto_tsquery('simple', 'alpha')
+        WHERE id = 'pass-fts' AND body_tsv @@ plainto_tsquery('simple', 'alpha')
         """
     ).fetchone()
     assert row[0] == "pass-fts"

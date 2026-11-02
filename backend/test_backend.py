@@ -21,8 +21,8 @@ SUPPORTED = {
     "f04": "Via Torino 20, Milano",
     "f05": "named tenant",
 }
-PDF = b"%PDF-1.4\nhello"
-REPLACEMENT = b"%PDF-1.4\nreplaced"
+PDF = b"%PDF-1.4\nhello\n%%EOF"
+REPLACEMENT = b"%PDF-1.4\nreplaced\n%%EOF"
 
 
 @pytest.fixture
@@ -64,6 +64,9 @@ def _one(sql, **params):
 
 def test_backend_sequence(client):
     with engine.begin() as conn:
+        conn.execute(text("DELETE FROM passage WHERE id = 'pass-backend'"))
+        conn.execute(text("DELETE FROM source_version WHERE id = 'ver-backend'"))
+        conn.execute(text("DELETE FROM source_document WHERE id = 'doc-backend'"))
         conn.execute(text("INSERT INTO source_document (id) VALUES ('doc-backend')"))
         conn.execute(
             text(
