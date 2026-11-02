@@ -1,6 +1,8 @@
-"""Prove the local PostgreSQL service starts, accepts a connection, and stops."""
+"""Prove PostgreSQL and the health service start, accept a connection, and stop."""
+import json
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,7 +24,8 @@ def compose(args, check=True):
             ["docker", "compose", "-f", str(ROOT / "compose.yaml"), *args],
             check=False,
             capture_output=True,
-            text=True,
+            encoding="utf-8",
+            errors="replace",
             cwd=ROOT,
         )
     except FileNotFoundError:
@@ -52,6 +55,12 @@ def prove():
         ).fetchone()
         if ext is None:
             sys.exit("vector extension is missing")
+    with urllib.request.urlopen("http://127.0.0.1:8000/health") as response:
+        if response.status != 200:
+            sys.exit("api returned %s" % response.status)
+        body = json.loads(response.read().decode())
+        if body != {"status": "ok"}:
+            sys.exit("api returned %s" % body)
     print("infra ok")
 
 

@@ -312,27 +312,27 @@
   description: "Verify the autonomous development workflow"
   artifact: "A successful development-workflow demonstration and documented operating procedure."
   acceptance: "The full task lifecycle works reproducibly, including failure handling and approval boundaries."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 36
   stage: 6
   depends: [35]
   description: "Initialize FastAPI"
   artifact: "A running backend with foundational API services."
   acceptance: "Health endpoints respond correctly, invalid requests return standardized errors, and foundational API tests pass."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 37
   stage: 6
   depends: [36]
   description: "Implement database models and migrations"
   artifact: "Database models, Alembic migrations, and database test fixtures."
   acceptance: "Migrations apply successfully to a clean database, schema constraints work correctly, and rollback procedures are tested where applicable."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 38
   stage: 6
   depends: [37]

@@ -14,4 +14,6 @@ These stay open when the next task advances.
 
 ## Update
 
+The procedure is [WORKFLOW.md](WORKFLOW.md).
+
 Set a task to `done` and its verification to `artifact on main` only after that task's check passed. If `approval` is `user`, write `accepted: <id>` in [DECISIONS.md](DECISIONS.md) first. Then run the checker again. The printed id is the next task.

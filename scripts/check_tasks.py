@@ -48,25 +48,30 @@ def decode(key, value):
     return value
 
 
-def main():
+def load(text):
     records = []
-    for item in parse(PATH.read_text(encoding="utf-8")):
+    for item in parse(text):
         missing = [field for field in FIELDS if field not in item]
         if missing:
-            sys.exit("missing fields: " + ", ".join(missing))
+            return "missing fields: " + ", ".join(missing)
         records.append({key: decode(key, item[key]) for key in FIELDS})
+    return records
+
+
+def report(records, decisions):
+    if isinstance(records, str):
+        return records
     ids = [record["id"] for record in records]
     if ids != list(range(1, 95)):
-        sys.exit("ids are not 1 through 94 once")
+        return "ids are not 1 through 94 once"
     by_id = {record["id"]: record for record in records}
-    decisions = (ROOT / "docs" / "DECISIONS.md").read_text(encoding="utf-8")
     for record in records:
         if record["status"] not in ("done", "not_started"):
-            sys.exit("bad status on %s" % record["id"])
+            return "bad status on %s" % record["id"]
         if record["approval"] not in ("user", "none"):
-            sys.exit("bad approval on %s" % record["id"])
+            return "bad approval on %s" % record["id"]
         if record["status"] == "done" and record["verification"] != "artifact on main":
-            sys.exit("silent done on %s" % record["id"])
+            return "silent done on %s" % record["id"]
         # shortcut: tasks 1-29 are already committed; the label is not a git lookup
         if (
             record["status"] == "done"
@@ -74,10 +79,10 @@ def main():
             and record["id"] > 29
             and ("accepted: %s" % record["id"]) not in decisions
         ):
-            sys.exit("missing acceptance for %s" % record["id"])
+            return "missing acceptance for %s" % record["id"]
         for dep in record["depends"]:
             if dep >= record["id"] or dep not in by_id:
-                sys.exit("bad dependency on %s" % record["id"])
+                return "bad dependency on %s" % record["id"]
     ready = [
         record["id"]
         for record in records
@@ -85,8 +90,17 @@ def main():
         and all(by_id[dep]["status"] == "done" for dep in record["depends"])
     ]
     if not ready:
-        sys.exit("no next task")
-    print("next: %s" % min(ready))
+        return "no next task"
+    return "next: %s" % min(ready)
+
+
+def main():
+    text = PATH.read_text(encoding="utf-8")
+    decisions = (ROOT / "docs" / "DECISIONS.md").read_text(encoding="utf-8")
+    result = report(load(text), decisions)
+    if not result.startswith("next: "):
+        sys.exit(result)
+    print(result)
 
 
 if __name__ == "__main__":

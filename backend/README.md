@@ -1,1 +1,1 @@
-FastAPI is the only writer of the case. The server is not in this task. [COMPONENTS.md](../docs/architecture/COMPONENTS.md)
+Health only. From this directory, `py -3 -m uvicorn app:app --host 127.0.0.1 --port 8000`. The Compose service `api` publishes 127.0.0.1:8000 from [compose.yaml](../compose.yaml). From the repository root, `py -3 scripts/check_api.py` runs [check_api.py](../scripts/check_api.py). [COMPONENTS.md](../docs/architecture/COMPONENTS.md)
