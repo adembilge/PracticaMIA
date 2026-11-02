@@ -10,7 +10,7 @@ This file is the instruction set for a later session. It is not the backlog, the
 
 ## Conventions
 
-One owner per job, as [docs/architecture/COMPONENTS.md](docs/architecture/COMPONENTS.md). No AWS, no queue, no second store, no credential field. Do not add a dependency for a few lines.
+One owner per job, as [docs/architecture/COMPONENTS.md](docs/architecture/COMPONENTS.md). No AWS, no queue, no second store, no credential field. Do not add a dependency for a few lines. Frontend and UI work reads the Stage 3 and Stage 10 skill rule in PracticaMIA masterplan.txt before a screen is edited.
 
 ## Tests
 

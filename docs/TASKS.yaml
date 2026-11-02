@@ -474,90 +474,90 @@
   description: "Integrate RAG into the LangGraph workflow"
   artifact: "RAG-aware LangGraph workflow, evidence retrieval execution state, integration between retrieval and rule evaluation, and agent workflow tests."
   acceptance: "The agent retrieves government evidence, evaluates applicable rules independently, and does not turn retrieved text into a trusted rule."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 54
   stage: 8
   depends: [53]
   description: "Implement intent understanding"
   artifact: "Intent-classification and request-routing components."
   acceptance: "An evaluation dataset demonstrates correct routing for supported and unsupported English and Italian requests, including ambiguous wording."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 55
   stage: 8
   depends: [54]
   description: "Implement intelligent intake"
   artifact: "Dynamic conversational intake workflow integrated with persistent cases."
   acceptance: "The agent can collect all necessary information for supported scenarios, avoid redundant questions, and correctly pause when essential facts are missing."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 56
   stage: 8
   depends: [55]
   description: "Implement RAG and administrative agent tools"
   artifact: "RAG search tool, evidence lookup tool, requirements evaluation tool, procedure and checklist tools, and tool authorization and contract tests."
   acceptance: "The agent invokes the correct tools, receives structured results, handles missing evidence, and cannot bypass source approval or data-access restrictions."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 57
   stage: 8
   depends: [56]
   description: "Implement evidence-grounded case planning"
   artifact: "Evidence-grounded planning logic, rule-linked action plans, and plan validation tests."
   acceptance: "Generated plans are consistent with approved requirements, include traceable evidence, and do not introduce unsupported mandatory actions."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 58
   stage: 8
   depends: [57]
   description: "Implement RAG grounding and uncertainty handling"
   artifact: "Grounding checks, missing-evidence behavior, conflict-resolution and escalation rules, prompt-injection safeguards, and negative-case tests."
   acceptance: "The agent handles unsupported or conflicting administrative information without making unsupported eligibility, deadline, or document claims."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 59
   stage: 8
   depends: [58]
   description: "Implement persistence and recovery"
   artifact: "Persistent agent sessions, recovery logic, and interruption tests."
   acceptance: "A user can leave and resume a case without losing verified information, while interrupted or repeated tool operations do not corrupt case state."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 60
   stage: 8
   depends: [59]
   description: "Evaluate RAG-enhanced agent behavior"
   artifact: "End-to-end RAG-agent evaluation suite, trace-level failure reports, model and retrieval configuration baseline, and an evaluation summary."
   acceptance: "The integrated agent meets approved correctness and reliability criteria on supported scenarios, and critical grounding failures are resolved."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 61
   stage: 9
   depends: [60]
   description: "Implement document ingestion safeguards"
   artifact: "Hardened document ingestion and processing boundaries."
   acceptance: "Unsupported, malformed, oversized, and potentially malicious files are rejected or isolated safely without exposing application data."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 62
   stage: 9
   depends: [61]
   description: "Implement PDF and image extraction"
   artifact: "PDF and image text-extraction service with structured extraction results."
   acceptance: "Representative digital and scanned documents can be processed, and failed or incomplete extraction is detected explicitly."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 63
   stage: 9
   depends: [62]

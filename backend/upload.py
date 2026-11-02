@@ -1,4 +1,4 @@
-"""One current file per case role. The paper is not read here."""
+"""One current file per case role."""
 import os
 import secrets
 from email import message_from_bytes
@@ -11,15 +11,25 @@ from starlette.exceptions import HTTPException
 from starlette.responses import Response
 
 from auth import _caller, engine
+from extract import read as extracted
 
 router = APIRouter()
-# shortcut: status stays failed until task 62 reads the file, because a rejected upload has no row
 LIMIT = 10 * 1024 * 1024
+PIXELS = 20_000_000
 ROLES = ("title", "identity")
 KINDS = (
     (b"%PDF", ".pdf", "application/pdf"),
     (b"\x89PNG\r\n\x1a\n", ".png", "image/png"),
     (b"\xff\xd8\xff", ".jpg", "image/jpeg"),
+)
+# shortcut: token scan is not a PDF parser, upgrade when task 62 parses the file.
+_PDF_BLOCK = (
+    b"/JavaScript",
+    b"/JS",
+    b"/Launch",
+    b"/OpenAction",
+    b"/EmbeddedFile",
+    b"/AA",
 )
 
 
@@ -35,6 +45,42 @@ def _kind(payload):
         if payload.startswith(magic):
             return suffix, media
     return None
+
+
+def _dims(width, height):
+    return width > 0 and height > 0 and width * height <= PIXELS
+
+
+def _png(payload):
+    start = payload.find(b"IHDR")
+    if start < 0 or start + 12 > len(payload):
+        return False
+    width = int.from_bytes(payload[start + 4:start + 8], "big")
+    height = int.from_bytes(payload[start + 8:start + 12], "big")
+    return _dims(width, height)
+
+
+def _jpeg(payload):
+    for marker in (b"\xff\xc0", b"\xff\xc2"):
+        start = payload.find(marker)
+        if start < 0 or start + 9 > len(payload):
+            continue
+        height = int.from_bytes(payload[start + 5:start + 7], "big")
+        width = int.from_bytes(payload[start + 7:start + 9], "big")
+        return _dims(width, height)
+    return False
+
+
+def _safe(payload):
+    kind = _kind(payload)
+    if kind is None:
+        return False
+    suffix, _media = kind
+    if suffix == ".pdf":
+        return b"%%EOF" in payload and not any(token in payload for token in _PDF_BLOCK)
+    if suffix == ".png":
+        return _png(payload)
+    return _jpeg(payload)
 
 
 async def _raw(request: Request):
@@ -101,12 +147,14 @@ async def create_upload(case_id: str, request: Request):
         raise HTTPException(status_code=400)
     role, payload = parsed
     kind = _kind(payload)
-    if kind is None:
+    if kind is None or not _safe(payload):
         raise HTTPException(status_code=400)
     suffix, _media = kind
     directory = Path(upload_dir())
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / (secrets.token_urlsafe() + suffix)
+    if not path.resolve().is_relative_to(directory.resolve()):
+        raise HTTPException(status_code=400)
     path.write_bytes(payload)
     try:
         with engine.begin() as conn:
@@ -122,14 +170,27 @@ async def create_upload(case_id: str, request: Request):
             if old is not None:
                 conn.execute(text("DELETE FROM upload WHERE id = :id"), {"id": old["id"]})
             upload_id = secrets.token_urlsafe()
+            found = extracted(payload)
             conn.execute(
                 text(
                     """
-                    INSERT INTO upload (id, case_id, role, status, path)
-                    VALUES (:id, :case_id, :role, 'failed', :path)
+                    INSERT INTO upload (
+                        id, case_id, role, status, path, extracted_name, extracted_address
+                    )
+                    VALUES (
+                        :id, :case_id, :role, :status, :path, :name, :address
+                    )
                     """
                 ),
-                {"id": upload_id, "case_id": case_id, "role": role, "path": str(path)},
+                {
+                    "id": upload_id,
+                    "case_id": case_id,
+                    "role": role,
+                    "status": found["status"],
+                    "path": str(path),
+                    "name": found["name"],
+                    "address": found["address"],
+                },
             )
             if old is not None:
                 conn.execute(

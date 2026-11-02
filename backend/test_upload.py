@@ -21,8 +21,8 @@ SUPPORTED = {
     "f04": "Via Torino 20, Milano",
     "f05": "named tenant",
 }
-PDF = b"%PDF-1.4\nhello"
-REPLACEMENT = b"%PDF-1.4\nreplaced"
+PDF = b"%PDF-1.4\nhello\n%%EOF"
+REPLACEMENT = b"%PDF-1.4\nreplaced\n%%EOF"
 NAME = "lease-client-name.pdf"
 
 
@@ -138,3 +138,56 @@ def test_other_person_cannot_use_the_file(client):
     assert fetched.json() == MISSING
     assert Path(stored).is_file()
     assert _path(upload_id) == stored
+
+
+def _png(width, height):
+    data = width.to_bytes(4, "big") + height.to_bytes(4, "big") + b"\x08\x02\x00\x00\x00"
+    return b"\x89PNG\r\n\x1a\n" + len(data).to_bytes(4, "big") + b"IHDR" + data + b"\x00\x00\x00\x00"
+
+
+def _jpeg(height, width):
+    return (
+        b"\xff\xd8\xff\xc0\x00\x0b\x08"
+        + height.to_bytes(2, "big")
+        + width.to_bytes(2, "big")
+        + b"\x01\x01\x11\x00"
+    )
+
+
+def test_bad_bytes_are_not_written(client):
+    _person_id, case_id = _open(client)
+    before = _count_uploads(case_id)
+    samples = (
+        b"%PDF-1.4\nhello",
+        b"%PDF-1.4\n/JavaScript\n%%EOF",
+        _png(100000, 100000),
+        b"\xff\xd8\xff\xd9",
+    )
+    for payload in samples:
+        rejected = _post(client, case_id, payload)
+        assert rejected.status_code == 400
+        assert rejected.json() == REJECTED
+    assert _count_uploads(case_id) == before
+    assert list(Path(upload.upload_dir()).iterdir()) == []
+    assert _stop(case_id) == "not ready"
+
+
+def test_small_images_keep_the_signature_suffix(client):
+    _person_id, case_id = _open(client)
+    png = _post(client, case_id, _png(1, 1), name="photo.pdf")
+    assert png.status_code == 200
+    assert _path(png.json()["id"]).endswith(".png")
+    jpeg = _post(client, case_id, _jpeg(1, 1), name="photo.pdf")
+    assert jpeg.status_code == 200
+    assert _path(jpeg.json()["id"]).endswith(".jpg")
+    assert _stop(case_id) == "not ready"
+
+
+def test_client_filename_is_not_stored(client):
+    _person_id, case_id = _open(client)
+    created = _post(client, case_id, PDF, name="../../secret.pdf")
+    assert created.status_code == 200
+    stored = _path(created.json()["id"])
+    assert "secret" not in stored
+    assert ".." not in stored
+    assert stored.endswith(".pdf")

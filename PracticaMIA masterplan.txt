@@ -94,6 +94,7 @@ Stage 2 completion: The project has a reviewed, source-grounded description of t
 
 Stage 3 — UX and Product Design
 Tasks 15–20 · Design how people will use PaperPilot from their first request to completing their case.
+Before a screen, flow, wireframe, token, or component in this stage, read and follow the Cursor skills that match the work: ui-ux-pro-max for layout, interaction, and accessibility; design-system for tokens and component specifications; open-design when the work is a visual prototype. The screens in docs/product/DESIGN.md, docs/product/NAVIGATION.md, and docs/product/ERRORS.md stay the reference. The design direction stays unapproved until accepted: 20 is in docs/DECISIONS.md. A skill does not add a component library.
 Task 15 — Design user journeys
 Implementation: Cursor translates the MVP scenarios into detailed user journeys. It maps each screen and action involved in starting a case, describing a situation, answering questions, supplying documents, reviewing requirements, and preparing an application. It also defines how users return to unfinished cases.
 
@@ -453,6 +454,7 @@ Stage 9 completion: PaperPilot can securely process supported documents, extract
 
 Stage 10 — Frontend and Complete Workflows
 Tasks 69–76 · Connect the backend, AI agent, and document intelligence into a usable application.
+Before implementing a screen, read and follow ui-ux-pro-max, design-system, and ui-styling. Use open-design when the task is to generate or refine a visual prototype. The screens in docs/product/DESIGN.md, docs/product/NAVIGATION.md, and docs/product/ERRORS.md stay the reference. The design direction stays unapproved until accepted: 20 is in docs/DECISIONS.md. A skill does not add a component library.
 Task 69 — Implement the application shell
 Implementation: Cursor implements the approved Next.js design system, application layout, navigation, authentication screens, and reusable UI components. It configures English and Italian localization, responsive layouts, loading states, and consistent error presentation. It should use the designs from Stage 3 rather than independently inventing another visual direction.
 
