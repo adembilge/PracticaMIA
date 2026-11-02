@@ -564,63 +564,63 @@
   description: "Implement document classification"
   artifact: "Document-type classifier and classification API."
   acceptance: "The classifier meets agreed performance criteria on synthetic or properly licensed representative documents, including unknown and ambiguous types."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 64
   stage: 9
   depends: [63]
   description: "Implement structured field extraction"
   artifact: "Typed field-extraction models, extraction service, and evidence references."
   acceptance: "Expected fields are correctly extracted from the benchmark documents, and every extracted value can be linked to the source material or identified as unavailable."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 65
   stage: 9
   depends: [64]
   description: "Implement extraction confidence handling"
   artifact: "Field-review states, confidence-handling rules, and confirmation APIs."
   acceptance: "Uncertain fields are flagged, users can correct them, and unverified values cannot silently populate consequential application fields."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 66
   stage: 9
   depends: [65]
   description: "Implement cross-document validation"
   artifact: "Cross-document consistency engine with structured warnings."
   acceptance: "Reference fixtures containing matching, missing, and contradictory information produce the expected validation results."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 67
   stage: 9
   depends: [66]
   description: "Implement application preparation"
   artifact: "Application-preparation engine, template mappings, and reviewable outputs."
   acceptance: "A complete supported case generates an accurate, submission-ready package; incomplete or conflicting cases remain blocked from final preparation."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 68
   stage: 9
   depends: [67]
   description: "Evaluate document intelligence"
   artifact: "Document-processing evaluation suite, performance report, and documented limitations."
   acceptance: "All critical document fields and preparation workflows meet approved acceptance criteria, with failures corrected or explicitly excluded from supported functionality."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 69
   stage: 10
   depends: [68]
   description: "Implement the application shell"
   artifact: "Functional application shell with routing, reusable components, and localization infrastructure."
   acceptance: "Users can navigate the application, authentication screens work, layouts adapt to supported devices, and baseline accessibility checks pass."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 70
   stage: 10
   depends: [69]
