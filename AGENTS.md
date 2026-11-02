@@ -18,7 +18,7 @@ A change to a decision or a stop keeps a check. Do not weaken a test, skip it, o
 
 ## Progress
 
-Until Task 30, the git log is the record. Do not invent a completed status in a file that does not exist.
+The status is [docs/TASKS.yaml](docs/TASKS.yaml). The next task is whatever `py -3 scripts/check_tasks.py` prints. Blockers and the update rule are in [docs/PROGRESS.md](docs/PROGRESS.md). Decisions are in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Approval
 

@@ -267,9 +267,9 @@
   description: "Implement progress tracking"
   artifact: "docs/PROGRESS.md, docs/DECISIONS.md, and a task-status update procedure."
   acceptance: "A new agent session can reconstruct project status, identify blockers, and select the next eligible task without relying on previous chat history."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 31
   stage: 5
   depends: [30]

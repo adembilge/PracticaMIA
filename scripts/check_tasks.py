@@ -59,11 +59,22 @@ def main():
     if ids != list(range(1, 95)):
         sys.exit("ids are not 1 through 94 once")
     by_id = {record["id"]: record for record in records}
+    decisions = (ROOT / "docs" / "DECISIONS.md").read_text(encoding="utf-8")
     for record in records:
         if record["status"] not in ("done", "not_started"):
             sys.exit("bad status on %s" % record["id"])
         if record["approval"] not in ("user", "none"):
             sys.exit("bad approval on %s" % record["id"])
+        if record["status"] == "done" and record["verification"] != "artifact on main":
+            sys.exit("silent done on %s" % record["id"])
+        # shortcut: tasks 1-29 are already committed; the label is not a git lookup
+        if (
+            record["status"] == "done"
+            and record["approval"] == "user"
+            and record["id"] > 29
+            and ("accepted: %s" % record["id"]) not in decisions
+        ):
+            sys.exit("missing acceptance for %s" % record["id"])
         for dep in record["depends"]:
             if dep >= record["id"] or dep not in by_id:
                 sys.exit("bad dependency on %s" % record["id"])
