@@ -285,9 +285,9 @@
   description: "Configure RAG dependencies"
   artifact: "RAG dependency configuration, pgvector environment setup, embedding model configuration, and reproducible dependency locks."
   acceptance: "The local environment supports embedding generation, vector storage, vector similarity queries, and keyword search."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 33
   stage: 5
   depends: [32]

@@ -27,7 +27,7 @@ def main():
         sys.exit("npm is missing")
     frontend = ROOT / "frontend"
     run([npm, "ci"], cwd=frontend)
-    run([str(PYTHON), "-c", "import fastapi, langgraph, sqlalchemy, psycopg"])
+    run([str(PYTHON), "-c", "import fastapi, langgraph, sqlalchemy, psycopg, pgvector"])
     run([str(PYTHON), "-m", "pytest", "--version"])
     run([npm, "run", "versions"], cwd=frontend)
     print("deps ok")

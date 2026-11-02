@@ -8,6 +8,7 @@ dependencies = [
   "langgraph==1.2.19",
   "sqlalchemy==2.1.6",
   "psycopg[binary]==3.3.6",
+  "pgvector==0.5.1",
 ]
 
 [project.optional-dependencies]
