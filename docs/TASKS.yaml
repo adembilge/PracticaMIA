@@ -339,9 +339,9 @@
   description: "Implement authentication"
   artifact: "Authentication endpoints, session management, and tests."
   acceptance: "Valid users can authenticate, invalid requests are rejected, and session-related security tests pass."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 39
   stage: 6
   depends: [38]

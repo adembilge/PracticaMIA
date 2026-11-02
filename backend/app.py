@@ -1,13 +1,17 @@
-"""Health routes only. No case call."""
+"""Health routes and the session. No credential is stored."""
 import logging
 
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
+from auth import router as auth_router
+
 log = logging.getLogger("app")
 router = APIRouter()
 ERRORS = {
+    400: ("rejected", "That field is not accepted."),
+    401: ("unauthorized", "The session is not valid."),
     404: ("not_found", "Not found."),
     405: ("method_not_allowed", "Method not allowed."),
 }
@@ -27,3 +31,4 @@ def http_error(request: Request, exc: HTTPException):
 
 app = FastAPI(exception_handlers={HTTPException: http_error})
 app.include_router(router)
+app.include_router(auth_router)
