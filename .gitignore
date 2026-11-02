@@ -1,6 +1,8 @@
 .env
 .env.*
 !.env.example
+!.env.staging
+!.env.production
 
 node_modules/
 .next/

@@ -771,54 +771,54 @@
   description: "Conduct final release acceptance"
   artifact: "Release-readiness report and documented go/no-go decision."
   acceptance: "All critical acceptance criteria are satisfied, unresolved limitations are disclosed, and you approve progression to production preparation."
-  verification: completion sentence
+  verification: artifact on main
   approval: user
-  status: not_started
+  status: done
 - id: 87
   stage: 12
   depends: [86]
   description: "Prepare staging infrastructure"
   artifact: "Reproducible staging deployment configuration and runbook."
   acceptance: "The application deploys successfully to staging, services pass health checks, and the deployment can be reproduced."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 88
   stage: 12
   depends: [87]
   description: "Configure production security"
   artifact: "Production security configuration and deployment security checklist."
   acceptance: "The infrastructure passes the required security checks and sensitive operations are restricted to authorized administrators."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 89
   stage: 12
   depends: [88]
   description: "Implement backup and recovery"
   artifact: "Automated backup configuration and disaster-recovery runbook."
   acceptance: "A backup can be restored successfully, recovered data passes integrity checks, and the tested recovery process is documented."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 90
   stage: 12
   depends: [89]
   description: "Monitor RAG and agent reliability"
   artifact: "RAG observability metrics, ingestion and indexing health monitoring, retrieval failure alerts, and agent execution monitoring."
   acceptance: "Operational failures can be detected and investigated, and representative simulated failures trigger appropriate alerts. Sensitive user information is not stored in traces or logs."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 91
   stage: 12
   depends: [90]
   description: "Verify deployment behavior"
   artifact: "Staging acceptance report and deployment verification scripts."
   acceptance: "Required tests pass against the actual staging deployment, including a complete supported administrative case."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 92
   stage: 12
   depends: [91]

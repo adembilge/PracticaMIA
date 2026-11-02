@@ -1,5 +1,6 @@
 """Health routes and the session. No credential is stored."""
 import logging
+import os
 
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -36,7 +37,13 @@ def http_error(request: Request, exc: HTTPException):
     return JSONResponse(status_code=exc.status_code, content={"code": code, "message": message})
 
 
-app = FastAPI(exception_handlers={HTTPException: http_error})
+_production = os.environ.get("PAPERPILOT_ENV") == "production"
+app = FastAPI(
+    exception_handlers={HTTPException: http_error},
+    docs_url=None if _production else "/docs",
+    redoc_url=None if _production else "/redoc",
+    openapi_url=None if _production else "/openapi.json",
+)
 app.include_router(router)
 app.include_router(auth_router)
 app.include_router(case_router)

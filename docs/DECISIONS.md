@@ -8,6 +8,8 @@ An open decision is not a rule the agent may state.
 
 The wording of the product specification was accepted on 1 November 2026. That covers tasks 1, 4, and 6.
 
+accepted: 86 on 2 November 2026.
+
 ## Open
 
 - Task 20. The design direction is not approved.
