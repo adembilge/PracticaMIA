@@ -429,9 +429,9 @@
   description: "Build procedure selection"
   artifact: "Procedure-selection API with explanation and uncertainty support."
   acceptance: "Reference routing tests pass, unsupported scenarios are rejected appropriately, and ambiguous situations request additional facts instead of choosing an arbitrary procedure."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 49
   stage: 7
   depends: [48]
