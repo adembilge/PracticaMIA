@@ -14,3 +14,4 @@ jobs:
           python-version: "3.12"
       - run: pip install -r backend/requirements.txt -r backend/requirements-dev.txt
       - run: python scripts/check_rag.py
+      - run: python scripts/check_regression.py

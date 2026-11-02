@@ -9,3 +9,9 @@ The groundedness walk is `py -3 scripts/check_grounded.py`, and it has no thresh
 The adversarial walk is `py -3 scripts/check_adversarial.py`, and it has no threshold.
 
 The privacy walk is `py -3 scripts/check_privacy.py`, and it has no threshold.
+
+The usability walk is `py -3 scripts/check_usability.py`, and it has no threshold.
+
+The performance walk is `py -3 scripts/check_performance.py`, and it has no threshold.
+
+The regression pin is `py -3 scripts/check_regression.py`. Version 1 is [regression.json](fixtures/regression.json).

@@ -97,11 +97,11 @@ export function Review({ lang }: { lang: Lang }) {
           </ul>
           <form onSubmit={onSubmit}>
             <label>
-              Name
+              {text.name}
               <input name="name" type="text" />
             </label>
             <label>
-              Address
+              {text.address}
               <input name="address" type="text" />
             </label>
             <button type="submit">{pending ? text.loading : text.continue}</button>

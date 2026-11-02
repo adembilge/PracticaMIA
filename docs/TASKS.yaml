@@ -744,27 +744,27 @@
   description: "Test usability and accessibility"
   artifact: "End-to-end usability test suite, accessibility report, and issue register."
   acceptance: "Defined accessibility and usability acceptance criteria are met, with significant user-facing problems resolved."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 84
   stage: 11
   depends: [83]
   description: "Evaluate performance and costs"
   artifact: "Performance benchmarks, per-workflow cost estimates, and optimization report."
   acceptance: "Application latency, reliability, and model costs meet the approved operating budget under documented test conditions."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 85
   stage: 11
   depends: [84]
   description: "Verify RAG regression protection"
   artifact: "RAG regression test suite, CI verification gates, and versioned benchmark results."
   acceptance: "Critical retrieval and administrative-rule regressions block changes from passing required verification."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 86
   stage: 11
   depends: [85]

@@ -1,3 +1,6 @@
+"use client"
+
+import { useEffect } from "react"
 import { copy, type Lang } from "../lib/copy"
 
 const ROUTES = [
@@ -8,7 +11,10 @@ const ROUTES = [
   ["review", "/review"],
 ] as const
 
-export function Language({ path }: { path: string }) {
+export function Language({ path, lang }: { path: string, lang: Lang }) {
+  useEffect(() => {
+    document.documentElement.lang = lang
+  }, [lang])
   return (
     <p className="languages">
       <a href={path}>English</a>
@@ -44,7 +50,7 @@ export function CaseShell({
         ))}
       </nav>
       <section>
-        <Language path={path} />
+        <Language path={path} lang={lang} />
         {children}
       </section>
     </main>

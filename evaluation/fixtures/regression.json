@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "embedding": "8acc03725cb7a0397576b5d5bb632f7fe1ca26659ed64e0b358f98f23ee5a125",
+  "status_rejected": true,
+  "retrieval": [
+    {
+      "text": "alpha token",
+      "jurisdiction": "sample-city",
+      "procedure": "sample",
+      "passage_id": "p-alpha",
+      "source_id": "src-alpha",
+      "section": "s1",
+      "source_version": "v1"
+    },
+    {
+      "text": "alpha token",
+      "jurisdiction": "nowhere",
+      "procedure": "sample",
+      "passage_id": null,
+      "source_id": null,
+      "section": null,
+      "source_version": null
+    }
+  ],
+  "rules": [
+    {
+      "facts": {
+        "language": "English",
+        "f02": "Yes",
+        "f04": "Via Torino 20, Milano",
+        "f05": "named tenant",
+        "non_eu": true,
+        "f06": "Yes",
+        "f07": "read",
+        "f08": "read",
+        "f09": "agree"
+      },
+      "result": {
+        "id": "R-08",
+        "decision": "ready"
+      }
+    },
+    {
+      "facts": {
+        "language": "English",
+        "f02": "Yes",
+        "f04": "Via Torino 20, Milano",
+        "f05": "named tenant",
+        "non_eu": true,
+        "f06": "Yes",
+        "f07": "read",
+        "f08": "read",
+        "f09": "agree",
+        "deadline": "a question"
+      },
+      "result": {
+        "id": "R-09",
+        "decision": "not stated"
+      }
+    },
+    {
+      "facts": {
+        "language": "Turkish",
+        "f02": "Yes",
+        "f04": "Via Torino 20, Milano",
+        "f05": "named tenant",
+        "non_eu": true,
+        "f06": "Yes",
+        "f07": "read",
+        "f08": "read",
+        "f09": "agree"
+      },
+      "result": {
+        "id": "R-01",
+        "decision": "no case"
+      }
+    },
+    {
+      "facts": {
+        "language": "English",
+        "f02": "Yes",
+        "f04": "Via Torino 20, Milano",
+        "f05": "named tenant",
+        "non_eu": true,
+        "f06": "Yes",
+        "f07": "missing",
+        "f08": "read",
+        "f09": "agree"
+      },
+      "result": {
+        "id": "R-06",
+        "decision": "not ready"
+      }
+    },
+    {
+      "facts": {
+        "language": "English",
+        "f05": "Owner"
+      },
+      "result": {
+        "id": "f04",
+        "decision": "unknown",
+        "missing": "f04"
+      }
+    }
+  ]
+}

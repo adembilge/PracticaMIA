@@ -32,7 +32,7 @@ export function Dashboard({ lang }: { lang: Lang }) {
   if (view === "empty") return <EmptyCase lang={lang} />
   return (
     <main id="content" lang={lang}>
-      <Language path="/" />
+      <Language path="/" lang={lang} />
       {view === "error" ? <Warning text={text.error} /> : <p className="status">{text.loading}</p>}
     </main>
   )

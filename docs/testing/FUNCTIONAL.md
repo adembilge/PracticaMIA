@@ -10,5 +10,5 @@ The suite runs on `paperpilot_functional` and drops that database. It does not m
 - Documents: backend/test_upload.py, backend/test_papers.py, evaluation/test_documents.py
 - Frontend loaders: frontend/test
 
-pytest: 182 passed in 5.16s
-node: tests 26, pass 26, fail 0
+pytest: 188 passed in 4.72s
+node: tests 34, pass 34, fail 0

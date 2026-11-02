@@ -46,7 +46,7 @@ export function EmptyCase({ lang }: { lang: Lang }) {
 
   return (
     <main id="content" lang={lang}>
-      <Language path="/" />
+      <Language path="/" lang={lang} />
       <p className="status">{text.none}</p>
       <form onSubmit={onSubmit}>
         <label>

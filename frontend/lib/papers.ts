@@ -28,7 +28,10 @@ async function bodyOf(response: { json: () => Promise<unknown> }) {
   }
 }
 
-export async function loadPapers(caseId: string, fetchImpl = fetch) {
+export async function loadPapers(
+  caseId: string,
+  fetchImpl = fetch,
+): Promise<Papers | { error: "Error." }> {
   const id = encodeURIComponent(caseId)
   let found
   let listed
@@ -43,14 +46,13 @@ export async function loadPapers(caseId: string, fetchImpl = fetch) {
   const papers = await bodyOf(listed)
   const stop = caseRow && caseRow.stop
   const uploads = papers && papers.uploads
-  if ((stop !== "not ready" && stop !== "ready to hand over") || !Array.isArray(uploads)) {
-    return { error: "Error." as const }
-  }
-  if (!uploads.every(isPaper)) return { error: "Error." as const }
+  if (stop !== "not ready" && stop !== "ready to hand over") return { error: "Error." as const }
+  const checked = stop === "ready to hand over" ? "ready to hand over" : "not ready"
+  if (!Array.isArray(uploads) || !uploads.every(isPaper)) return { error: "Error." as const }
   const f05 = caseRow && caseRow.f05
   const f06 = caseRow && caseRow.f06
   return {
-    stop,
+    stop: checked,
     f05: typeof f05 === "string" ? f05 : null,
     f06: typeof f06 === "string" ? f06 : null,
     uploads,
