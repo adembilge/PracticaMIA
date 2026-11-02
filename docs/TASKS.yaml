@@ -420,9 +420,9 @@
   description: "Build the rules evaluator"
   artifact: "A reusable rules evaluation service with structured outputs."
   acceptance: "The engine correctly evaluates supported reference scenarios, detects missing prerequisites, and handles contradictory or incomplete inputs without guessing."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 48
   stage: 7
   depends: [47]
