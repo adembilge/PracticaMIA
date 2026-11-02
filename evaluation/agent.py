@@ -9,6 +9,8 @@ sys.path.insert(0, str(HERE.parent / "backend"))
 sys.path.insert(0, str(HERE))
 
 import intake
+import ragcheck
+from embeddings import embed
 from ground import check
 from intent import read
 from knowledge import summarize
@@ -26,6 +28,8 @@ PASSAGE = {
 }
 _RESEARCH = ("deadline", "paper", "sign_in", "research")
 _PAPERS = ("f07", "f08", "f09")
+_OPEN = ("S-01", "S-02")
+FOLLOW = "What is the deadline?"
 
 CASES = [
     {
@@ -199,6 +203,42 @@ def _replay(case):
     return store, calls
 
 
+def _follow(case, store):
+    # shortcut: open cases only, extend when an ask-once question must survive a follow-up.
+    if case["name"] not in _OPEN:
+        return []
+    before = resume(store, case["name"])
+    turn(store, case["name"], FOLLOW, "m2")
+    after = resume(store, case["name"])
+    failed = []
+    if after["facts"] != before["facts"] or "deadline" in after["facts"]:
+        failed.append("follow")
+    grounded = check(_probe(after, case["message"]), {"outcome": "no evidence", "passages": []})
+    if grounded["rule"] != case["rule"] or grounded["decision"] != case["decision"]:
+        failed.append("follow")
+    return failed
+
+
+def _cited(case, facts):
+    if case["name"] != "S-01":
+        return []
+    data = ragcheck.load()
+    query = data["queries"][0]
+    texts = [passage["text"] for passage in data["passages"]]
+    texts.append(query["text"])
+    embedder = ragcheck.MockEmbedder({text: embed(text) for text in texts})
+    hit = ragcheck.rank(query, data["passages"], embedder)
+    if hit is None or hit["passage_id"] != query["expect"]:
+        return ["retrieval"]
+    passage = next(item for item in data["passages"] if item["id"] == hit["passage_id"])
+    if passage["review_status"] != "unreviewed":
+        return ["retrieval"]
+    planned = build(facts, {"outcome": "insufficient evidence", "passages": [passage]})
+    if planned["evidence"] or planned["rule"] != case["rule"] or planned["decision"] != case["decision"]:
+        return ["retrieval"]
+    return []
+
+
 def _one(case):
     failed = []
     store, calls = _replay(case)
@@ -247,6 +287,8 @@ def _one(case):
         failed.append("missing")
     if case.get("door") and {"kind": "door", "id": case["door"]} not in grounded["claims"]:
         failed.append("door")
+    failed.extend(_follow(case, store))
+    failed.extend(_cited(case, facts))
     if case["name"] == "S-01":
         other = dict(PASSAGE)
         other["id"] = "p2"
@@ -278,5 +320,7 @@ def report(rows, traces=None):
         lines.append("trace: " + item)
     lines.extend(["model: local", "tokens: 0", "retrieval: injected"])
     if rows and all(ok for _name, ok, _seconds in rows):
+        lines.append("retrieval: " + ragcheck.load()["queries"][0]["expect"])
+        lines.append("follow: stable")
         lines.append("agent ok")
     return lines

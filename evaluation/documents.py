@@ -9,6 +9,7 @@ sys.path.insert(0, str(HERE))
 
 from classify import classify
 from compare import compare
+from extract import read
 from fields import fields
 from knowledge import summarize
 from prepare import LINK, prepare
@@ -21,6 +22,12 @@ LIMITS = (
     "limit: case and commas are not a conflict",
     "limit: agreed trusts a review already on the dict",
     "limit: a missing name and address share one dict",
+)
+ERRORS = (
+    "error: a shifted lease has no agreed name or address",
+    "error: a truncated file can match a type word and is not ready",
+    "error: a scan is not a supported type",
+    "error: a date label is not a name",
 )
 
 
@@ -44,6 +51,15 @@ LEASE = _pdf(
 )
 OWNERSHIP = _pdf("Atto di proprieta", "Nome: Ada Lovelace")
 PASSPORT = _pdf("Passport", "Via Torino 20, Milano")
+SHIFTED = _pdf("Lease agreement", "Ada Lovelace", "Address Via Torino 20")
+TRUNCATED = b"%PDF-1.4\n(Lease agreement"
+DATED = _pdf("Lease agreement", "Name: 01/11/2026", "Via Torino 20, Milano")
+SCAN = (
+    b"\xff\xd8\xff\xc0\x00\x0b\x08"
+    + (1).to_bytes(2, "big")
+    + (1).to_bytes(2, "big")
+    + b"\x01\x01\x11\x00"
+)
 MATCH = (
     {"type": "lease", "name": "Ada Lovelace", "address": "Via Torino 20, Milano"},
     {"type": "identity", "name": "ada  lovelace", "address": None},
@@ -107,6 +123,52 @@ def _prepare_blocked():
     return found["ready"] is False and found["link"] is None
 
 
+def _paper(payload):
+    found = fields(payload)
+    return found, {
+        "type": found["type"],
+        "name": found["name"]["value"],
+        "address": found["address"]["value"],
+    }
+
+
+def _not_ready(payload):
+    found, paper = _paper(payload)
+    values = agreed(review(found))
+    package = prepare(S01, (paper,))
+    return values == {"name": None, "address": None} and package["ready"] is False
+
+
+def _shifted():
+    found, _paper_row = _paper(SHIFTED)
+    return (
+        found["type"] == "lease"
+        and found["name"]["value"] is None
+        and found["address"]["value"] is None
+        and _not_ready(SHIFTED)
+    )
+
+
+def _truncated():
+    found, _paper_row = _paper(TRUNCATED)
+    return found["name"]["value"] is None and found["type"] == "lease" and _not_ready(TRUNCATED)
+
+
+def _scan():
+    image, _paper_row = _paper(SCAN)
+    png, _png_row = _paper(_png())
+    return image["type"] == "unknown" and png["type"] == "unknown" and _not_ready(SCAN)
+
+
+def _date_label():
+    found = read(DATED)
+    return (
+        found["name"] is None
+        and "01/11/2026" in found["pages"][0]["text"]
+        and _not_ready(DATED)
+    )
+
+
 CHECKS = (
     ("lease classify", lambda: classify(_pdf("Lease agreement", "Name: Ada Lovelace"))["type"] == "lease"),
     ("ownership classify", lambda: classify(_pdf("Atto di proprieta"))["type"] == "ownership"),
@@ -145,6 +207,10 @@ CHECKS = (
     ("compare conflict", _compare_conflict),
     ("prepare ready", _prepare_ready),
     ("prepare blocked", _prepare_blocked),
+    ("lease layout", _shifted),
+    ("lease truncated", _truncated),
+    ("image scan", _scan),
+    ("review date", _date_label),
 )
 
 
@@ -159,6 +225,9 @@ def walk():
 def report(rows):
     lines = summarize(rows)
     lines.extend(LIMITS)
+    lines.extend(ERRORS)
     if rows and all(ok for _name, ok, _seconds in rows):
+        lines.append("checked: %s" % len(rows))
+        lines.append("unsupported: shifted layout, truncated file, scan, date label")
         lines.append("documents ok")
     return lines

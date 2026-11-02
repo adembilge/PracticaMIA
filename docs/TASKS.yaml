@@ -690,27 +690,27 @@
   description: "Run comprehensive functional tests"
   artifact: "Complete functional regression suite and coverage report."
   acceptance: "Required unit, integration, and API tests pass, with no unresolved critical functional defects."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 78
   stage: 11
   depends: [77]
   description: "Evaluate complete agent and RAG correctness"
   artifact: "End-to-end RAG-agent benchmarks, a workflow accuracy report, and regression test scenarios."
   acceptance: "Required agent and retrieval evaluations pass on the release candidate."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 79
   stage: 11
   depends: [78]
   description: "Evaluate document-processing accuracy"
   artifact: "Document-intelligence benchmark results and error analysis."
   acceptance: "Critical field and validation requirements meet approved thresholds; unsupported document variants are explicitly identified rather than presented as reliable."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 80
   stage: 11
   depends: [79]

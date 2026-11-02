@@ -54,13 +54,20 @@ def _pages(payload):
     return pages
 
 
+def _date(value):
+    # shortcut: digits and separators only, upgrade when a date parser exists.
+    return all(char.isdigit() or char in "/-." for char in value)
+
+
 def _label(line):
     for label in ("Name:", "Nome:"):
         if line.startswith(label):
             rest = line[len(label):]
             if rest.startswith(" "):
                 rest = rest[1:]
-            return rest or None
+            if not rest or _date(rest):
+                return None
+            return rest
     return None
 
 

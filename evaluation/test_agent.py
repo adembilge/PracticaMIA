@@ -28,4 +28,6 @@ def test_the_walk_meets_the_existing_decisions():
     assert "thresholds: none approved" in lines
     assert "failures: none" in lines
     assert "tokens: 0" in lines
+    assert "retrieval: p-alpha" in lines
+    assert "follow: stable" in lines
     assert "agent ok" in lines

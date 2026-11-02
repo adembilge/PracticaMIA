@@ -39,6 +39,19 @@ def test_a_named_pdf_keeps_the_date():
     assert found["pages"][0]["page"] == 1
 
 
+def test_a_date_label_is_not_a_name():
+    payload = (
+        b"%PDF-1.4\n"
+        b"(Name: 01/11/2026) Tj\n"
+        b"(Via Torino 20, Milano) Tj\n"
+        b"%%EOF"
+    )
+    found = read(payload)
+    assert found["status"] == "unreadable"
+    assert found["name"] is None
+    assert "01/11/2026" in found["pages"][0]["text"]
+
+
 def test_a_pdf_without_text_is_unreadable():
     found = read(b"%PDF-1.4\n%%EOF")
     assert found == {"status": "unreadable", "pages": [], "name": None, "address": None}

@@ -9,14 +9,40 @@ PYTHON = VENV / "Scripts" / "python.exe" if sys.platform == "win32" else VENV / 
 if PYTHON.is_file() and Path(sys.executable).resolve() != PYTHON.resolve():
     raise SystemExit(subprocess.call([str(PYTHON), *sys.argv]))
 
+REPORT = ROOT / "docs" / "testing" / "DOCUMENTS.md"
+
 
 def main():
+    sys.path.insert(0, str(ROOT / "evaluation"))
+    sys.path.insert(0, str(ROOT / "backend"))
     result = subprocess.run(
-        [sys.executable, "-m", "pytest", str(ROOT / "evaluation" / "test_documents.py"), "-q"],
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            str(ROOT / "evaluation" / "test_documents.py"),
+            str(ROOT / "backend" / "test_extract.py"),
+            "-q",
+            "--import-mode=importlib",
+        ],
         cwd=ROOT,
     )
     if result.returncode != 0:
         sys.exit(result.returncode)
+    from documents import report, walk
+
+    rows = walk()
+    lines = report(rows)
+    if not rows or not all(ok for _name, ok, _seconds in rows) or lines[-1] != "documents ok":
+        sys.exit("\n".join(lines))
+    REPORT.parent.mkdir(parents=True, exist_ok=True)
+    REPORT.write_text(
+        "# Document benchmark\n\n"
+        "No threshold is approved. An unsupported file is not a ready package.\n\n"
+        + "\n".join(lines)
+        + "\n",
+        encoding="utf-8",
+    )
     print("documents ok")
 
 

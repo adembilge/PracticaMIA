@@ -11,6 +11,7 @@ from sqlalchemy import text
 import upload
 from app import app
 from auth import engine
+from prepare import LINK
 
 REJECTED = {"code": "rejected", "message": "That field is not accepted."}
 MISSING = {"code": "not_found", "message": "Not found."}
@@ -23,6 +24,12 @@ SUPPORTED = {
 }
 PDF = b"%PDF-1.4\nhello\n%%EOF"
 REPLACEMENT = b"%PDF-1.4\nreplaced\n%%EOF"
+READABLE = (
+    b"%PDF-1.4\n"
+    b"(Name: Ada Lovelace) Tj\n"
+    b"(Via Torino 20, Milano) Tj\n"
+    b"%%EOF"
+)
 
 
 @pytest.fixture
@@ -144,3 +151,24 @@ def test_interrupted_replace_keeps_the_first_file(client, monkeypatch):
     assert client.get("/v1/upload/" + upload_id).content == PDF
     names = {path.name for path in Path(upload.upload_dir()).iterdir()}
     assert names == {Path(stored).name}
+
+
+def test_one_upload_fills_the_checklist_and_the_review(client):
+    _person_id, case_id = _open(client)
+    created = _post(client, case_id, READABLE)
+    assert created.status_code == 200
+    listed = client.get("/v1/case/%s/checklist" % case_id)
+    assert listed.status_code == 200
+    items = {item["id"]: item["state"] for item in listed.json()["items"]}
+    assert items["f07"] == "done"
+    reviewed = client.get("/v1/case/%s/review" % case_id)
+    assert reviewed.status_code == 200
+    body = reviewed.json()
+    assert body["stop"] == "ready to hand over"
+    assert body["link"] == LINK
+    refused = client.post(
+        "/v1/case/%s/review" % case_id,
+        json={"stop": "ready to hand over"},
+    )
+    assert refused.status_code == 400
+    assert _stop(case_id) == "ready to hand over"
