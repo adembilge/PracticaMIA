@@ -1,0 +1,24 @@
+name: paperpilot
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: paperpilot-postgres
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_USER: postgres
+      POSTGRES_DB: paperpilot
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - paperpilot-pgdata:/var/lib/postgresql/data
+      - ./database/init/01-vector.sql:/docker-entrypoint-initdb.d/01-vector.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d paperpilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+volumes:
+  paperpilot-pgdata:

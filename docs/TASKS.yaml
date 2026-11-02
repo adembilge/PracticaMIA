@@ -294,18 +294,18 @@
   description: "Configure local infrastructure"
   artifact: "Local infrastructure configuration and startup documentation."
   acceptance: "A clean checkout can start the required local services, connect to the database, and shut down without configuration errors."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 34
   stage: 5
   depends: [33]
   description: "Establish RAG verification infrastructure"
   artifact: "RAG testing utilities, retrieval evaluation fixtures, and CI configuration for deterministic retrieval tests."
   acceptance: "RAG-related tests run through the repository's standard verification commands."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 35
   stage: 5
   depends: [34]
