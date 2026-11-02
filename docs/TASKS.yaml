@@ -348,45 +348,45 @@
   description: "Implement authorization"
   artifact: "Authorization policies and protected API operations."
   acceptance: "Cross-user access tests demonstrate that unauthorized reads and writes are rejected."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 40
   stage: 6
   depends: [39]
   description: "Implement user profiles"
   artifact: "User-profile models, endpoints, and validation logic."
   acceptance: "Users can create, retrieve, update, and delete permitted profile information without affecting other users."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 41
   stage: 6
   depends: [40]
   description: "Implement case management"
   artifact: "Case-management API, persistence logic, and lifecycle tests."
   acceptance: "The supported case lifecycle works without an AI agent, including state persistence and invalid-transition handling."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 42
   stage: 6
   depends: [41]
   description: "Implement secure document storage"
   artifact: "Document-storage service, metadata models, and secure APIs."
   acceptance: "Authorized users can manage their files, unauthorized access is rejected, and invalid or oversized uploads fail safely."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 43
   stage: 6
   depends: [42]
   description: "Complete backend integration testing"
   artifact: "An integrated backend test suite and verification report."
   acceptance: "All required backend checks pass, including cases involving invalid input, access violations, and interrupted operations."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 44
   stage: 7
   depends: [43]

@@ -6,6 +6,8 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
 from auth import router as auth_router
+from case import router as case_router
+from upload import router as upload_router
 
 log = logging.getLogger("app")
 router = APIRouter()
@@ -32,3 +34,5 @@ def http_error(request: Request, exc: HTTPException):
 app = FastAPI(exception_handlers={HTTPException: http_error})
 app.include_router(router)
 app.include_router(auth_router)
+app.include_router(case_router)
+app.include_router(upload_router)

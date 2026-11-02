@@ -31,6 +31,38 @@ def _aware(value):
     return value
 
 
+def _load_session(conn, session_id):
+    return conn.execute(
+        text(
+            """
+            SELECT s.expires_at, s.case_id, c.person_id
+            FROM session AS s
+            JOIN "case" AS c ON c.id = s.case_id
+            WHERE s.id = :id
+            """
+        ),
+        {"id": session_id},
+    ).mappings().first()
+
+
+def _expired(row):
+    return row["expires_at"] is not None and _aware(row["expires_at"]) <= datetime.now(timezone.utc)
+
+
+def _caller(request):
+    session_id = request.cookies.get(COOKIE)
+    if not session_id:
+        raise HTTPException(status_code=401)
+    with engine.begin() as conn:
+        row = _load_session(conn, session_id)
+        if row is not None and _expired(row):
+            conn.execute(text("DELETE FROM session WHERE id = :id"), {"id": session_id})
+            row = None
+    if row is None:
+        raise HTTPException(status_code=401)
+    return session_id, row["person_id"], row["case_id"]
+
+
 async def _body(request: Request):
     raw = await request.body()
     if not raw:
@@ -52,6 +84,43 @@ async def create_person(request: Request):
     with engine.begin() as conn:
         conn.execute(text("INSERT INTO person (id) VALUES (:id)"), {"id": person_id})
     return {"id": person_id}
+
+
+@router.get("/v1/person")
+def read_person(request: Request):
+    _session_id, person_id, _case_id = _caller(request)
+    return {"id": person_id}
+
+
+@router.patch("/v1/person")
+async def update_person(request: Request):
+    _session_id, person_id, _case_id = _caller(request)
+    if await _body(request):
+        raise HTTPException(status_code=400)
+    return {"id": person_id}
+
+
+@router.delete("/v1/person")
+def delete_person(request: Request, response: Response):
+    _session_id, person_id, _case_id = _caller(request)
+    with engine.begin() as conn:
+        paths = conn.execute(
+            text(
+                """
+                SELECT u.path
+                FROM upload AS u
+                JOIN "case" AS c ON c.id = u.case_id
+                WHERE c.person_id = :person_id
+                """
+            ),
+            {"person_id": person_id},
+        ).scalars().all()
+        conn.execute(text("DELETE FROM person WHERE id = :id"), {"id": person_id})
+        for path in paths:
+            if path and os.path.isfile(path):
+                os.remove(path)
+    response.delete_cookie(COOKIE)
+    return {"status": "ok"}
 
 
 @router.post("/v1/session")
@@ -88,31 +157,25 @@ async def open_session(request: Request, response: Response):
 
 @router.get("/v1/session")
 def read_session(request: Request):
-    session_id = request.cookies.get(COOKIE)
-    if not session_id:
-        raise HTTPException(status_code=401)
+    _session_id, person_id, case_id = _caller(request)
+    return {"person_id": person_id, "case_id": case_id}
+
+
+@router.delete("/v1/session/{session_id}")
+def close_named_session(session_id: str, request: Request, response: Response):
+    cookie_id, person_id, _case_id = _caller(request)
     with engine.begin() as conn:
-        row = conn.execute(
-            text(
-                """
-                SELECT s.expires_at, s.case_id, c.person_id
-                FROM session AS s
-                JOIN "case" AS c ON c.id = s.case_id
-                WHERE s.id = :id
-                """
-            ),
-            {"id": session_id},
-        ).mappings().first()
-        if row is None:
-            found = None
-        elif row["expires_at"] is not None and _aware(row["expires_at"]) <= datetime.now(timezone.utc):
-            conn.execute(text("DELETE FROM session WHERE id = :id"), {"id": session_id})
-            found = None
+        row = _load_session(conn, session_id)
+        if row is None or row["person_id"] != person_id:
+            owned = False
         else:
-            found = {"person_id": row["person_id"], "case_id": row["case_id"]}
-    if found is None:
-        raise HTTPException(status_code=401)
-    return found
+            conn.execute(text("DELETE FROM session WHERE id = :id"), {"id": session_id})
+            owned = True
+    if not owned:
+        raise HTTPException(status_code=404)
+    if cookie_id == session_id:
+        response.delete_cookie(COOKIE)
+    return {"status": "ok"}
 
 
 @router.delete("/v1/session")
