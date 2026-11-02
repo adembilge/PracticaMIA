@@ -465,9 +465,9 @@
   description: "Implement LLM integration"
   artifact: "A reusable LLM client, structured-output schemas, and controlled integration tests."
   acceptance: "The application can call a configured model, validate structured responses, handle provider failures, and run tests using mock responses or bounded real API calls."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 53
   stage: 8
   depends: [52]
