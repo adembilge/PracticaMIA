@@ -447,9 +447,9 @@
   description: "Implement hybrid retrieval, reranking, and citation resolution"
   artifact: "Hybrid retrieval service, metadata filtering, ranking and optional reranking, citation resolution, structured retrieval API, and retrieval integration tests."
   acceptance: "Subtasks 50.1 through 50.6 are verified in order. Retrieval returns approved passages and excludes irrelevant jurisdictions, revoked content, and unsupported procedures."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 51
   stage: 7
   depends: [50]
