@@ -438,9 +438,9 @@
   description: "Build the checklist generator"
   artifact: "Checklist-generation service and persistent checklist data models."
   acceptance: "Generated checklists match approved reference cases, change appropriately when relevant user information changes, and maintain consistent progress states."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 50
   stage: 7
   depends: [49]
