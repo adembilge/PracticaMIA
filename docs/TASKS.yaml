@@ -393,18 +393,18 @@
   description: "Implement the official government source registry"
   artifact: "Source registry database, source management APIs, source approval and versioning logic, and metadata validation tests."
   acceptance: "Sources can be registered, versioned, reviewed, retrieved, and invalidated without losing provenance."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 45
   stage: 7
   depends: [44]
   description: "Implement the RAG ingestion and indexing pipeline"
   artifact: "Government document ingestion pipeline, text extraction and chunking, embedding generation, PostgreSQL vector and keyword indexes, index synchronization, and automated ingestion tests."
   acceptance: "Subtasks 45.1 through 45.6 are verified in order. Approved government documents can be processed and indexed reproducibly, and every stored passage keeps its source identity and evidence location."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 46
   stage: 7
   depends: [45]
