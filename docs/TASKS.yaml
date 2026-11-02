@@ -411,9 +411,9 @@
   description: "Implement structured requirements with RAG evidence links"
   artifact: "Structured administrative requirements, links between rules and source passages, requirement versioning, and evidence-consistency validation."
   acceptance: "Approved requirements load correctly and reference valid, traceable supporting sources. An unreviewed row cannot enter the trusted set."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 47
   stage: 7
   depends: [46]

@@ -8,6 +8,7 @@ from starlette.exceptions import HTTPException
 from auth import router as auth_router
 from case import router as case_router
 from ingest import router as ingest_router
+from requirement import router as requirement_router
 from source import router as source_router
 from upload import router as upload_router
 
@@ -40,3 +41,4 @@ app.include_router(case_router)
 app.include_router(upload_router)
 app.include_router(source_router)
 app.include_router(ingest_router)
+app.include_router(requirement_router)

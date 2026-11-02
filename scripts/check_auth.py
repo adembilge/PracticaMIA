@@ -67,7 +67,7 @@ def main():
         compose(["up", "-d", "--wait", "postgres"])
         alembic("upgrade", "head")
         result = subprocess.run(
-            [sys.executable, "-m", "pytest", str(ROOT / "backend" / "test_auth.py"), str(ROOT / "backend" / "test_case.py"), str(ROOT / "backend" / "test_upload.py"), str(ROOT / "backend" / "test_backend.py"), str(ROOT / "backend" / "test_source.py"), "-q"],
+            [sys.executable, "-m", "pytest", str(ROOT / "backend" / "test_auth.py"), str(ROOT / "backend" / "test_case.py"), str(ROOT / "backend" / "test_upload.py"), str(ROOT / "backend" / "test_backend.py"), str(ROOT / "backend" / "test_source.py"), str(ROOT / "backend" / "test_requirement.py"), "-q"],
             cwd=ROOT,
         )
         if result.returncode != 0:
