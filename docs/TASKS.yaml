@@ -717,27 +717,27 @@
   description: "Test grounded reasoning and citation accuracy"
   artifact: "Groundedness evaluation suite, citation validation tests, unsupported-claim detection tests, and failure analysis and remediation records."
   acceptance: "No critical unsupported administrative claims or incorrect authoritative citations remain in the release test set."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 81
   stage: 11
   depends: [80]
   description: "Test adversarial inputs"
   artifact: "Adversarial test collection, vulnerability findings, and implemented mitigations."
   acceptance: "Identified critical injection and tool-abuse scenarios are prevented, and the security test suite passes."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 82
   stage: 11
   depends: [81]
   description: "Perform privacy and security verification"
   artifact: "Security assessment report, privacy-control verification, and remediation records."
   acceptance: "No unresolved release-blocking vulnerabilities remain. Any necessary legal or specialist privacy review is completed separately."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 83
   stage: 11
   depends: [82]
