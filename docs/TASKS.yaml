@@ -276,9 +276,9 @@
   description: "Initialize the application structure"
   artifact: "An organized, reproducible repository structure."
   acceptance: "The directory layout follows the approved architecture, references resolve, and basic repository integrity checks pass."
-  verification: completion sentence
+  verification: artifact on main
   approval: none
-  status: not_started
+  status: done
 - id: 32
   stage: 5
   depends: [31]
