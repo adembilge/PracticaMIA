@@ -18,6 +18,12 @@ A conflict row records two wordings, or a single-source gap, and does not choose
 | [SUBMISSION.md](SUBMISSION.md) | CH-01 through CH-11. Task 12. |
 | [RELATED.md](RELATED.md) | RP-01 through RP-06. Task 13. |
 
+## Retrieval and rules
+
+Opened rows in [SOURCES.md](SOURCES.md), other than SRC-16, are retrieval candidates. SRC-16 is a pointer and is not a candidate. Pages that did not open are not candidates. Every candidate stays unreviewed. This file is not an approved corpus.
+
+No row in this package is authorized for deterministic evaluation. The conflict rows and the missing-source rows stay unresolved. A write cannot promote a row.
+
 ## Agreement
 
 A row is here only when two pages ranked Primary in [SOURCES.md](SOURCES.md) use the same words. One source is not agreement. A shared paraphrase is not agreement. These rows stay unreviewed. They are not a decision.

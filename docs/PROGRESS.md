@@ -11,6 +11,7 @@ These stay open when the next task advances.
 - The design direction from task 20 is not approved.
 - The controls in [SECURITY.md](architecture/SECURITY.md) and the choices in [API.md](architecture/API.md) are unreviewed. Do not build the server from them.
 - The research rows are unreviewed. Do not state a document, a deadline, or an eligibility rule from them.
+- Task 32 is open again because the RAG dependency set is not installed.
 
 ## Update
 

@@ -6,6 +6,8 @@ This file is the decision table and the order FastAPI evaluates it. It is not a 
 
 The dossier version is 2026-11-02. Every research row stays unreviewed. A revision does not promote a row. Age is not an input.
 
+A rule row is stored apart from passage text. It may cite passage ids. R-01 through R-08 cite product documents, not government passages. No current rule cites a government passage as approved evidence. An unknown, contradictory, outdated, or invalidated government input stays on R-09. Retrieved text cannot flip R-09, and a write cannot promote a row.
+
 ## Decisions
 
 | ID | When | Inputs | Decision | Scenarios | Source |

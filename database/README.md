@@ -1,1 +1,1 @@
-PostgreSQL. FastAPI is the only writer. No schema file yet. [COMPONENTS.md](../docs/architecture/COMPONENTS.md)
+PostgreSQL. FastAPI is the only writer. No schema file yet. Vector tables are specified in [SCHEMA.md](../docs/architecture/SCHEMA.md) and are not created. [COMPONENTS.md](../docs/architecture/COMPONENTS.md)

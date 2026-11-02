@@ -16,10 +16,22 @@ The browser talks only to Next.js. Next.js talks only to FastAPI. The model is n
 
 An error body is one code and the message already written for that row: E-01, E-02, E-03, E-04, E-05, E-06, E-07, E-08. A second case, a credential, or a model write of the stop is refused, and the stored stop stays.
 
+## Retrieval
+
+Unreviewed. This is not a server.
+
+The call carries the query, the procedure, the jurisdiction, the language, the case context, the filters, and the limit. The result carries the source id, the passage id, the review status, and the provenance. The outcome is no evidence, insufficient evidence, or conflicting evidence. An upload is not a source.
+
+## Rules
+
+Unreviewed. The call is evaluate_requirements for a procedure and a case context. The answer is one row from the decision table in [RULES.md](RULES.md). The model does not choose it.
+
+Later tool names are contracts only, and they are not routes yet: search_official_knowledge, get_source_evidence, find_procedure, evaluate_requirements, and generate_checklist.
+
 ## Choices
 
 The alternative not taken is AWS, a queue, and object storage.
 
-- One API process and PostgreSQL. Files stay on that process.
+- One API process and PostgreSQL. Files stay on that process. Government passages and embeddings live in that same PostgreSQL. There is no second store.
 - No account sign-in here. The person id is opaque. The credential stays on ANPR.
 - FastAPI writes the stop. The model does not.

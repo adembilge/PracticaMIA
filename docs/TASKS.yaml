@@ -57,9 +57,9 @@
 - id: 7
   stage: 2
   depends: [6]
-  description: "Discover official sources"
-  artifact: "A source registry containing URLs, institutions, jurisdictions, subjects, access dates, and source status."
-  acceptance: "Every initial administrative topic has an identified authoritative source or is explicitly flagged as unresolved."
+  description: "Discover and classify official sources"
+  artifact: "Official government source inventory, source classification and metadata specification, and an initial collection of documents suitable for RAG ingestion."
+  acceptance: "All supported administrative topics have traceable official sources or documented gaps. Sources are classified and ready for human review."
   verification: artifact on main
   approval: none
   status: done
@@ -120,9 +120,9 @@
 - id: 14
   stage: 2
   depends: [13]
-  description: "Validate administrative research"
-  artifact: "A versioned, reviewed administrative knowledge dossier."
-  acceptance: "All requirements intended for production are approved or marked unresolved. Unresolved critical rules block dependent development or release."
+  description: "Validate administrative research and RAG sources"
+  artifact: "Reviewed government-source collection, initial RAG corpus marked unreviewed, verified-requirements dossier, and a record of unresolved or conflicting sources."
+  acceptance: "Retrieval candidates are separated from rows that may later be evaluated as rules. Every research row stays unreviewed. Conflicts stay unresolved."
   verification: artifact on main
   approval: none
   status: done
@@ -183,18 +183,18 @@
 - id: 21
   stage: 4
   depends: [20]
-  description: "Define system components"
-  artifact: "A system architecture diagram, component responsibilities, and interaction diagrams."
-  acceptance: "Every MVP feature maps to an architectural component, with no unnecessary infrastructure or unclear ownership."
+  description: "Define system components and RAG architecture"
+  artifact: "High-level system architecture, offline RAG ingestion workflow, runtime retrieval workflow, and component responsibilities and trust boundaries."
+  acceptance: "All major components and communication paths are documented. RAG retrieval and deterministic administrative decisions have separate responsibilities."
   verification: artifact on main
   approval: none
   status: done
 - id: 22
   stage: 4
   depends: [21]
-  description: "Design the database"
-  artifact: "Database entity-relationship diagrams and schema specifications."
-  acceptance: "The schema supports all planned workflows, persistence requirements, and privacy controls without duplicating core information unnecessarily."
+  description: "Design the database and vector storage"
+  artifact: "Database entity-relationship diagram, vector storage schema, full-text search design, and source and passage versioning model."
+  acceptance: "The schema supports semantic search, keyword search, source filtering, citations, and rule traceability. Private user documents stay out of the shared government knowledge index."
   verification: artifact on main
   approval: none
   status: done
@@ -210,9 +210,9 @@
 - id: 24
   stage: 4
   depends: [23]
-  description: "Design the requirements engine"
-  artifact: "A machine-readable requirements schema and deterministic evaluation design."
-  acceptance: "The proposed schema can represent every approved MVP scenario, including conditional branches and unresolved cases."
+  description: "Design the requirements and evidence engine"
+  artifact: "Administrative rule schema, rule-to-evidence mapping, evidence approval lifecycle, and rule versioning and validation design."
+  acceptance: "Rules can be evaluated independently of the LLM while retaining traceable supporting evidence. A write cannot promote an unreviewed research row."
   verification: artifact on main
   approval: none
   status: done
@@ -237,9 +237,9 @@
 - id: 27
   stage: 4
   depends: [26]
-  description: "Define API contracts and architectural decisions"
-  artifact: "OpenAPI-oriented API contracts and architecture decision records."
-  acceptance: "Components have sufficiently precise interfaces to begin implementation, and major architecture choices receive your approval."
+  description: "Define API and retrieval contracts"
+  artifact: "RAG retrieval API specification, rules engine API specification, agent tool contracts, and architecture decision records."
+  acceptance: "Retrieval and rules interfaces are defined. The choices stay unreviewed until accepted in DECISIONS.md."
   verification: artifact on main
   approval: user
   status: done
@@ -282,12 +282,12 @@
 - id: 32
   stage: 5
   depends: [31]
-  description: "Configure dependencies"
-  artifact: "Reproducible dependency manifests and project initialization scripts."
-  acceptance: "Dependencies install successfully in a clean environment, and package scripts execute correctly."
-  verification: artifact on main
+  description: "Configure RAG dependencies"
+  artifact: "RAG dependency configuration, pgvector environment setup, embedding model configuration, and reproducible dependency locks."
+  acceptance: "The local environment supports embedding generation, vector storage, vector similarity queries, and keyword search."
+  verification: completion sentence
   approval: none
-  status: done
+  status: not_started
 - id: 33
   stage: 5
   depends: [32]
@@ -300,9 +300,9 @@
 - id: 34
   stage: 5
   depends: [33]
-  description: "Establish automated verification"
-  artifact: "Test configuration, verification scripts, and CI workflows."
-  acceptance: "The complete baseline verification process passes from a fresh checkout and reports failures correctly."
+  description: "Establish RAG verification infrastructure"
+  artifact: "RAG testing utilities, retrieval evaluation fixtures, and CI configuration for deterministic retrieval tests."
+  acceptance: "RAG-related tests run through the repository's standard verification commands."
   verification: completion sentence
   approval: none
   status: not_started
@@ -390,27 +390,27 @@
 - id: 44
   stage: 7
   depends: [43]
-  description: "Implement the official-source registry"
-  artifact: "Source registry models, administrative management functions, and retrieval APIs."
-  acceptance: "Approved sources can be created, retrieved, updated, versioned, and archived. Permission and source-integrity tests pass."
+  description: "Implement the official government source registry"
+  artifact: "Source registry database, source management APIs, source approval and versioning logic, and metadata validation tests."
+  acceptance: "Sources can be registered, versioned, reviewed, retrieved, and invalidated without losing provenance."
   verification: completion sentence
   approval: none
   status: not_started
 - id: 45
   stage: 7
   depends: [44]
-  description: "Implement source ingestion"
-  artifact: "Official-source ingestion pipeline with versioned content snapshots."
-  acceptance: "Supported sources can be ingested reproducibly, changes can be detected, and failed retrieval does not corrupt previously approved content."
+  description: "Implement the RAG ingestion and indexing pipeline"
+  artifact: "Government document ingestion pipeline, text extraction and chunking, embedding generation, PostgreSQL vector and keyword indexes, index synchronization, and automated ingestion tests."
+  acceptance: "Subtasks 45.1 through 45.6 are verified in order. Approved government documents can be processed and indexed reproducibly, and every stored passage keeps its source identity and evidence location."
   verification: completion sentence
   approval: none
   status: not_started
 - id: 46
   stage: 7
   depends: [45]
-  description: "Implement structured requirements"
-  artifact: "A structured administrative requirements database and initial Milan residence-change ruleset."
-  acceptance: "All approved MVP requirements are represented, schema validation passes, and no unreviewed rule can automatically enter the trusted production set."
+  description: "Implement structured requirements with RAG evidence links"
+  artifact: "Structured administrative requirements, links between rules and source passages, requirement versioning, and evidence-consistency validation."
+  acceptance: "Approved requirements load correctly and reference valid, traceable supporting sources. An unreviewed row cannot enter the trusted set."
   verification: completion sentence
   approval: none
   status: not_started
@@ -444,18 +444,18 @@
 - id: 50
   stage: 7
   depends: [49]
-  description: "Implement evidence traceability"
-  artifact: "Evidence-provenance models, citation APIs, and source-review status handling."
-  acceptance: "Every trusted requirement can be traced to approved evidence, and missing, revoked, or outdated evidence triggers the appropriate warning or restriction."
+  description: "Implement hybrid retrieval, reranking, and citation resolution"
+  artifact: "Hybrid retrieval service, metadata filtering, ranking and optional reranking, citation resolution, structured retrieval API, and retrieval integration tests."
+  acceptance: "Subtasks 50.1 through 50.6 are verified in order. Retrieval returns approved passages and excludes irrelevant jurisdictions, revoked content, and unsupported procedures."
   verification: completion sentence
   approval: none
   status: not_started
 - id: 51
   stage: 7
   depends: [50]
-  description: "Validate the knowledge engine"
-  artifact: "Administrative correctness test suite and knowledge-engine validation report."
-  acceptance: "All critical reference scenarios pass, and unresolved or outdated rules are handled safely. Results are reviewed before the agent is permitted to use the knowledge engine."
+  description: "Validate the complete government knowledge and RAG system"
+  artifact: "RAG evaluation dataset, automated retrieval benchmark runner, administrative rules test suite, and a performance and failure-analysis report."
+  acceptance: "Retrieval and rules tests meet approved acceptance thresholds. Critical source-filtering and evidence-traceability failures are resolved."
   verification: completion sentence
   approval: none
   status: not_started
@@ -471,9 +471,9 @@
 - id: 53
   stage: 8
   depends: [52]
-  description: "Build the LangGraph workflow"
-  artifact: "Executable LangGraph workflow, typed agent state, and transition tests."
-  acceptance: "The agent can execute a complete simulated workflow with predictable state transitions, bounded execution, and observable results."
+  description: "Integrate RAG into the LangGraph workflow"
+  artifact: "RAG-aware LangGraph workflow, evidence retrieval execution state, integration between retrieval and rule evaluation, and agent workflow tests."
+  acceptance: "The agent retrieves government evidence, evaluates applicable rules independently, and does not turn retrieved text into a trusted rule."
   verification: completion sentence
   approval: none
   status: not_started
@@ -498,27 +498,27 @@
 - id: 56
   stage: 8
   depends: [55]
-  description: "Implement agent tools"
-  artifact: "Agent-tool interfaces, tool registry, permission boundaries, and contract tests."
-  acceptance: "The agent can execute approved operations, cannot access unauthorized records, and handles tool failures without fabricating successful results."
+  description: "Implement RAG and administrative agent tools"
+  artifact: "RAG search tool, evidence lookup tool, requirements evaluation tool, procedure and checklist tools, and tool authorization and contract tests."
+  acceptance: "The agent invokes the correct tools, receives structured results, handles missing evidence, and cannot bypass source approval or data-access restrictions."
   verification: completion sentence
   approval: none
   status: not_started
 - id: 57
   stage: 8
   depends: [56]
-  description: "Implement autonomous case planning"
-  artifact: "Personalized planning component with persistent, structured plans."
-  acceptance: "Generated plans match approved procedure scenarios, contain no unsupported required actions, and update correctly when user information changes."
+  description: "Implement evidence-grounded case planning"
+  artifact: "Evidence-grounded planning logic, rule-linked action plans, and plan validation tests."
+  acceptance: "Generated plans are consistent with approved requirements, include traceable evidence, and do not introduce unsupported mandatory actions."
   verification: completion sentence
   approval: none
   status: not_started
 - id: 58
   stage: 8
   depends: [57]
-  description: "Implement uncertainty handling"
-  artifact: "Uncertainty policies, error-recovery responses, and negative-case evaluations."
-  acceptance: "The agent handles representative uncertainty cases by asking for information, requesting review, or declining unsupported actions rather than generating unverified conclusions."
+  description: "Implement RAG grounding and uncertainty handling"
+  artifact: "Grounding checks, missing-evidence behavior, conflict-resolution and escalation rules, prompt-injection safeguards, and negative-case tests."
+  acceptance: "The agent handles unsupported or conflicting administrative information without making unsupported eligibility, deadline, or document claims."
   verification: completion sentence
   approval: none
   status: not_started
@@ -534,9 +534,9 @@
 - id: 60
   stage: 8
   depends: [59]
-  description: "Evaluate the initial agent"
-  artifact: "Agent benchmark dataset, evaluation runner, trace reports, and performance baseline."
-  acceptance: "Required acceptance thresholds are met, major failures are documented, and regressions can be detected in future development."
+  description: "Evaluate RAG-enhanced agent behavior"
+  artifact: "End-to-end RAG-agent evaluation suite, trace-level failure reports, model and retrieval configuration baseline, and an evaluation summary."
+  acceptance: "The integrated agent meets approved correctness and reliability criteria on supported scenarios, and critical grounding failures are resolved."
   verification: completion sentence
   approval: none
   status: not_started
@@ -696,9 +696,9 @@
 - id: 78
   stage: 11
   depends: [77]
-  description: "Run agent correctness evaluations"
-  artifact: "Agent evaluation report containing task success, failure categories, and baseline metrics."
-  acceptance: "Defined acceptance thresholds are met, critical failures are resolved, and results are reproducible under documented model and evaluation settings."
+  description: "Evaluate complete agent and RAG correctness"
+  artifact: "End-to-end RAG-agent benchmarks, a workflow accuracy report, and regression test scenarios."
+  acceptance: "Required agent and retrieval evaluations pass on the release candidate."
   verification: completion sentence
   approval: none
   status: not_started
@@ -714,9 +714,9 @@
 - id: 80
   stage: 11
   depends: [79]
-  description: "Test source-grounded reasoning"
-  artifact: "Groundedness and administrative correctness evaluation suite."
-  acceptance: "Critical unsupported procedural claims are eliminated from the release test set, and the system handles unavailable or conflicting evidence safely."
+  description: "Test grounded reasoning and citation accuracy"
+  artifact: "Groundedness evaluation suite, citation validation tests, unsupported-claim detection tests, and failure analysis and remediation records."
+  acceptance: "No critical unsupported administrative claims or incorrect authoritative citations remain in the release test set."
   verification: completion sentence
   approval: none
   status: not_started
@@ -759,9 +759,9 @@
 - id: 85
   stage: 11
   depends: [84]
-  description: "Verify regression protection"
-  artifact: "Hardened CI pipeline and regression-prevention policy."
-  acceptance: "Required checks reliably run, failures block progression, and representative deliberate defects are detected by the appropriate tests."
+  description: "Verify RAG regression protection"
+  artifact: "RAG regression test suite, CI verification gates, and versioned benchmark results."
+  acceptance: "Critical retrieval and administrative-rule regressions block changes from passing required verification."
   verification: completion sentence
   approval: none
   status: not_started
@@ -804,9 +804,9 @@
 - id: 90
   stage: 12
   depends: [89]
-  description: "Implement operational monitoring"
-  artifact: "Monitoring configuration, alert rules, and operational dashboard."
-  acceptance: "Simulated operational failures trigger appropriate alerts, and maintainers can investigate failures without exposing sensitive data."
+  description: "Monitor RAG and agent reliability"
+  artifact: "RAG observability metrics, ingestion and indexing health monitoring, retrieval failure alerts, and agent execution monitoring."
+  acceptance: "Operational failures can be detected and investigated, and representative simulated failures trigger appropriate alerts. Sensitive user information is not stored in traces or logs."
   verification: completion sentence
   approval: none
   status: not_started

@@ -28,9 +28,29 @@ These rows have no personal column. Deleting a person does not delete them. The 
 |---|---|---|
 | `source_record` | [SOURCES.md](../research/SOURCES.md) | unreviewed |
 | `procedure_row` | [PROCEDURE.md](../research/PROCEDURE.md) | unreviewed |
-| `requirement_row` | [DOCUMENTS.md](../research/DOCUMENTS.md), [DEADLINES.md](../research/DEADLINES.md), [SUBMISSION.md](../research/SUBMISSION.md), or [RELATED.md](../research/RELATED.md) | unreviewed |
+| `requirement_row` | [DOCUMENTS.md](../research/DOCUMENTS.md), [DEADLINES.md](../research/DEADLINES.md), [SUBMISSION.md](../research/SUBMISSION.md), or [RELATED.md](../research/RELATED.md). It may also point at passage ids. | unreviewed |
+| `source_document` | One government source from [SOURCES.md](../research/SOURCES.md). | unreviewed |
+| `source_version` | One retrieved snapshot of a source document. | unreviewed. An unreviewed version cannot replace a trusted version. |
+| `passage` | A chunk of one source version. The text is what full-text search reads. | unreviewed |
+| `embedding` | The vector for one passage, with the model name and the embedding version. Stored with pgvector in this same database. | follows the passage |
+| `citation` | The link from one requirement row to one passage id. | unreviewed |
 
-Each row is an id, the file it points at, and the review status.
+Each of `source_record`, `procedure_row`, and `requirement_row` is an id, the file it points at, and the review status. A passage keeps the source id, the source version, and the section it came from. `upload` is not a passage. Deleting a person does not delete these rows.
+
+```mermaid
+flowchart TD
+  sourceDoc[source_document]
+  sourceVersion[source_version]
+  passage[passage]
+  embedding[embedding]
+  requirement[requirement_row]
+  citation[citation]
+  sourceDoc --> sourceVersion
+  sourceVersion --> passage
+  passage --> embedding
+  requirement --> citation
+  citation --> passage
+```
 
 ## Audit
 
@@ -60,4 +80,7 @@ flowchart TD
 - Messages ordered by case.
 - One current upload per case and role.
 - Knowledge lookup by id.
+- Passage full-text search.
+- Passage vector similarity.
+- Passage lookup by source version, jurisdiction, procedure, language, and review status.
 - Audit lookup by case.

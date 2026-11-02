@@ -2,7 +2,7 @@
 
 Task 7. Opened 1 November 2026. This file names pages. It does not state eligibility, documents, deadlines, or steps. Those are Tasks 8–13. Task 14 is still the human review of consequential requirements.
 
-A row is here only if the page opened. Civiko, Sportellino, patronati, and news articles stay in [EXISTING_SOLUTIONS.md](../product/EXISTING_SOLUTIONS.md) and are not rule sources.
+A row is here only if the page opened. Civiko, Sportellino, patronati, and news articles stay in [EXISTING_SOLUTIONS.md](../product/EXISTING_SOLUTIONS.md) and are not rule sources. The classification table records document type and content shape. It does not approve a row.
 
 ## How this was gathered
 
@@ -50,15 +50,38 @@ URLs:
 
 SRC-02 opened, and the citizen page SRC-01 did not link it on this date. SRC-03 is the sign-in page SRC-01 and SRC-06 both point at. It offers CIE, SPID, CNS, and eIDAS. SRC-06 links SRC-10 and names it as the housing-tax declaration that follows an address change.
 
+## Classification
+
+The access date for every row in this file is 1 November 2026. An indexable candidate is a page that opened and is not only a pointer. A candidate is not approved. This table does not state a document list, a deadline, or an eligibility rule.
+
+| ID | Document type | Content shape | Indexable candidate |
+|---|---|---|---|
+| SRC-01 | webpage | guide | yes |
+| SRC-02 | pdf | guide | yes |
+| SRC-03 | webpage | guide | yes |
+| SRC-04 | webpage | notice | yes |
+| SRC-05 | webpage | instrument | yes |
+| SRC-06 | webpage | guide | yes |
+| SRC-07 | webpage | guide | yes |
+| SRC-08 | webpage | guide | yes |
+| SRC-09 | webpage | form | yes |
+| SRC-10 | webpage | guide | yes |
+| SRC-11 | webpage | guide | yes |
+| SRC-12 | webpage | instrument | yes |
+| SRC-13 | webpage | instrument | yes |
+| SRC-14 | webpage | instrument | yes |
+| SRC-15 | webpage | instrument | yes |
+| SRC-16 | webpage | pointer | no |
+
 ## Did not open
 
-The English Milan service page returned HTTP 503, with the title "Pagina temporaneamente non disponibile": https://www.comune.milano.it/en/servizi/anagrafe/cambio-di-residenza
+These pages are not indexable candidates. The English Milan service page returned HTTP 503, with the title "Pagina temporaneamente non disponibile": https://www.comune.milano.it/en/servizi/anagrafe/cambio-di-residenza
 
 SRC-06 lists that English URL, and the same page in Arabic, Chinese, French, Japanese, Greek, Russian, Spanish, and German. Those other languages were not opened. SRC-07 lists an English copy that was not opened.
 
 ## Cited on an opened page, and not opened
 
-SRC-06 also cites instruments that were not opened on this pass. They are not sources until a later pass opens them:
+SRC-06 also cites instruments that were not opened on this pass. They are not sources, and they are not indexable candidates, until a later pass opens them:
 
 - Directive 2004/38/CE and D.Lgs. 6 February 2007, n. 30
 - Circolare del Ministero dell'Interno n. 3 of 11 February 2020

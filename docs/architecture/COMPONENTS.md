@@ -11,10 +11,13 @@ One owner per job.
 - Next.js shows the six screens. It does not decide ready, and it does not call the model.
 - FastAPI is the only writer of the case. It decides ready from the intake: the title paper is present, and the name and the new address on the uploaded papers agree. It refuses a password.
 - LangGraph runs one turn. It asks the one missing field. It does not store the case except by calling FastAPI.
-- PostgreSQL stores the case, the messages, and the upload records. FastAPI is the only component that writes it.
+- PostgreSQL stores the case, the messages, the upload records, and the government passages. FastAPI is the only component that writes it.
 - The knowledge engine stores the research rows and their unreviewed status. Asked for a deadline, an unasked paper, or the only sign-in method, it returns that this release does not state that. It does not promote an unresolved dossier row.
 - Document processing reads one upload and returns the name and the address, or unreadable. It does not mark ready.
 - The model writes the reply sentences and may propose the extracted name and address. FastAPI checks them. The model does not choose the door or a value when two papers disagree.
+- Ingestion is a local command. It sends approved government sources to FastAPI, which writes them. It is not a request path, not a queue, and not a second store. It does not run during a chat turn.
+- Retrieval searches government passages and returns them. It does not evaluate a rule, and it does not read an upload. LangGraph calls retrieval and the knowledge engine as separate calls. Text that retrieval returns is untrusted input.
+- An uploaded file stays on the document-processing path. It is never written into the government passage index.
 
 ```mermaid
 flowchart TD
@@ -24,6 +27,8 @@ flowchart TD
   graph[LangGraph]
   db[PostgreSQL]
   knowledge[KnowledgeEngine]
+  retrieve[Retrieval]
+  ingest[IngestionCommand]
   docs[DocumentProcessing]
   model[Model]
   browser --> web
@@ -31,9 +36,12 @@ flowchart TD
   api --> graph
   api --> db
   api --> docs
+  api --> retrieve
   graph --> model
   graph --> knowledge
+  graph --> retrieve
   graph --> api
+  ingest --> api
 ```
 
 A chat turn and an upload are both one synchronous request. The turn waits for the model and, if a file was just uploaded, for the read of that file. There is no background job. Files stay with the API process. No second store.
@@ -44,3 +52,4 @@ A chat turn and an upload are both one synchronous request. The turn waits for t
 - Check the papers. Document processing reads the file. FastAPI compares the name and the new address. A mismatch or a missing title paper stays not ready.
 - Keep the case. PostgreSQL holds the answers, the uploads, the missing field, and the package. Coming back reads that row. It does not read ANPR.
 - Hand over. Next.js shows the CH-01 link only when FastAPI says ready. Nothing in this system files the declaration.
+- Explain a government page. Retrieval returns passages. The knowledge engine still answers a deadline, an unasked paper, or a research row with not stated. The model does not turn a passage into a rule.
