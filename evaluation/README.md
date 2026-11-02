@@ -17,3 +17,5 @@ The performance walk is `py -3 scripts/check_performance.py`, and it has no thre
 The regression pin is `py -3 scripts/check_regression.py`. Version 1 is [regression.json](fixtures/regression.json).
 
 The release hold is `py -3 scripts/check_release.py`. The decision stays held.
+
+The beta hold is `py -3 scripts/check_beta.py`. No session is recorded.
