@@ -1,6 +1,0 @@
-services:
-  postgres:
-    ports: !reset []
-  api:
-    environment:
-      PAPERPILOT_ENV: production

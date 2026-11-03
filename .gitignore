@@ -1,18 +1,24 @@
+# Secrets and environment
 .env
 .env.*
 !.env.example
-!.env.staging
-!.env.production
+*.pem
+*.key
 
+# Node and Next.js
 node_modules/
 .next/
+out/
 dist/
+coverage/
 *.tsbuildinfo
 
-.venv/
-venv/
+# Python
 __pycache__/
-*.pyc
 .pytest_cache/
-backend/uploads/
-graphify-out/
+.venv/
+*.pyc
+
+# Local work
+.DS_Store
+*.log

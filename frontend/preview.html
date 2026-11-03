@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"/><title>PracticaMIA — Interactive Prototype Preview</title><style>:root {
+  --ink: #1f2d38;
+  --ink-2: #334452;
+  --muted: #70808a;
+  --subtle: #8a969d;
+  --line: #e5e9e9;
+  --cream: #f8f9f6;
+  --paper: #ffffff;
+  --blue: #315f81;
+  --blue-dark: #254b68;
+  --blue-pale: #edf4f8;
+  --mint: #e5f1ec;
+  --green: #2a7859;
+  --warning: #9b5c32;
+  --warning-bg: #fff6ed;
+  --shadow: 0 18px 65px rgba(32, 51, 57, .07);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; color: var(--ink); background: var(--cream); font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+button, input, textarea { font: inherit; }
+button { cursor: pointer; }
+button:disabled { opacity: .48; cursor: not-allowed; }
+a { color: inherit; text-decoration: none; }
+a:hover { text-decoration: none; }
+:focus-visible { outline: 3px solid #83b1d0; outline-offset: 3px; }
+.container { width: min(1160px, calc(100% - 64px)); margin: 0 auto; }
+.site-header { background: rgba(255,255,255,.94); border-bottom: 1px solid #edf0ec; position: relative; z-index: 2; }
+.header-inner { height: 79px; display: flex; align-items: center; justify-content: space-between; }
+.brand { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+.brand-mark { width: 36px; height: 36px; border-radius: 10px; background: var(--blue-dark); color: white; display: grid; place-items: center; font-family: Georgia, serif; font-size: 24px; font-weight: bold; letter-spacing: -3px; padding-right: 2px; }
+.brand-mark span { color: #c2d8db; font-size: 22px; }
+.brand-name { font-size: 22px; font-weight: 740; letter-spacing: -1.1px; }
+.brand-name span { color: #447a92; }
+.header-nav { display: flex; gap: 34px; align-items: center; }
+.nav-link { font-size: 13px; font-weight: 650; color: #51606b; }
+.nav-link:hover, .back-link:hover, .inline-link:hover { color: var(--blue); }
+.language-toggle { border: 1px solid #e4e9e8; border-radius: 9px; color: #486173; display: inline-flex; align-items: center; gap: 8px; background: #fff; padding: 10px 12px; font-size: 12px; font-weight: 700; }
+.eyebrow, .tiny-eyebrow { color: #6f8992; letter-spacing: 1.6px; font-size: 11px; font-weight: 800; }
+.eyebrow { display: inline-flex; align-items: center; gap: 11px; }
+.eyebrow-line { width: 23px; height: 1px; background: #6f8992; }
+.home-hero { min-height: 650px; display: grid; grid-template-columns: 1.07fr .93fr; gap: 36px; align-items: center; padding-top: 70px; padding-bottom: 91px; }
+.hero-copy { max-width: 620px; }
+.hero-copy h1 { font-family: Georgia, 'Times New Roman', serif; font-weight: 500; letter-spacing: -3.4px; font-size: clamp(42px, 4.4vw, 66px); line-height: 1.13; margin: 28px 0 24px; }
+.hero-copy h1 em { font-style: normal; color: #4d8093; }
+.lead { font-size: 16px; line-height: 1.78; color: #697b85; margin: 0; }
+.hero-lead { max-width: 540px; }
+.hero-actions { display: flex; align-items: center; gap: 18px; margin-top: 36px; flex-wrap: wrap; }
+.button { min-height: 46px; padding: 13px 18px; border-radius: 8px; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; gap: 12px; font-weight: 720; font-size: 13px; line-height: 1.25; transition: background .15s ease, box-shadow .15s ease; white-space: normal; text-align: center; }
+.button-primary { background: var(--blue-dark); color: #fff; border-color: var(--blue-dark); }
+.button-primary:not(:disabled):hover { background: #376581; box-shadow: 0 7px 21px rgba(37,75,104,.2); }
+.button-outline { background: white; color: var(--ink-2); border: 1px solid #dce5e8; }
+.button-outline:hover { background: #f8fafb; }
+.button-text { color: #486d7c; background: transparent; }
+.button-text:hover { color: var(--blue-dark); background: #edf3f3; }
+.button-wide { width: 100%; }
+.hero-smallprint { display: flex; gap: 9px; align-items: flex-start; font-size: 11px; line-height: 1.65; color: #879297; margin-top: 27px; max-width: 510px; }
+.hero-smallprint svg { flex: none; margin-top: 1px; }
+.hero-visual { height: 475px; position: relative; display: flex; align-items: center; justify-content: center; }
+.visual-grid-decor { position: absolute; width: 90%; height: 90%; background: radial-gradient(#cbdcd7 .85px, transparent 1px); background-size: 17px 17px; opacity: .45; mask-image: radial-gradient(circle, #000 15%, transparent 77%); }
+.hero-visual:before { content: ''; position: absolute; width: 370px; height: 370px; background: #eaf0eb; border-radius: 50%; top: 45px; right: 14px; }
+.sample-card { position: relative; z-index: 1; width: min(100%, 404px); background: white; padding: 31px 31px 25px; border: 1px solid #e8eae5; border-radius: 15px; box-shadow: 0 26px 55px rgba(43,65,69,.13); transform: rotate(-1.4deg); }
+.sample-card-top { display: flex; justify-content: space-between; align-items: center; }
+.status-dot { width: 7px; height: 7px; background: #6fa794; border-radius: 50%; box-shadow: 0 0 0 5px #e5f2ec; }
+.sample-card h2 { font-family: Georgia, serif; margin: 20px 0 9px; font-size: 28px; font-weight: normal; letter-spacing: -.7px; }
+.sample-status { display: flex; gap: 7px; align-items: center; color: #6e8b92; font-size: 11px; }
+.sample-pulse { width: 7px; height: 7px; border-radius: 50%; background: #4a8191; }
+.sample-progress { margin: 26px 0 9px; height: 5px; background: #ecf0ef; border-radius: 10px; overflow: hidden; }
+.sample-progress span { display: block; width: 41%; height: 100%; background: #5f8995; border-radius: 10px; }
+.sample-row { min-height: 67px; border-bottom: 1px solid #edf1ee; display: flex; align-items: center; gap: 13px; font-weight: 670; font-size: 12px; }
+.sample-row > span:nth-child(2) { flex: 1; }
+.sample-row > svg { color: var(--green); }
+.sample-row.dim { opacity: .48; border-bottom: 0; }
+.sample-number { width: 30px; height: 30px; flex: none; background: #f3f5f4; border-radius: 8px; display: grid; place-items: center; color: #829199; font-size: 11px; }
+.sample-number.complete { background: #e9f4ed; color: #38785e; }
+.sample-number.current { background: #dcebf0; color: #325d73; }
+.mini-bars { display: flex; align-items: center; gap: 3px; }
+.mini-bars i { display: block; width: 4px; height: 7px; background: #81a7b0; border-radius: 2px; }
+.mini-bars i:nth-child(2) { height: 13px; }
+.mini-bars i:nth-child(3) { height: 9px; }
+.empty-circle { width: 12px; height: 12px; border: 1.5px solid #b1babb; border-radius: 50%; }
+.sample-footer { display: flex; align-items: center; gap: 7px; padding-top: 19px; color: #8c9a9b; font-size: 10px; line-height: 1.5; }
+.sample-footer svg { flex: none; }
+.floating-note { z-index: 1; position: absolute; bottom: 19px; left: 0; display: flex; align-items: center; gap: 12px; padding: 13px 18px; background: white; box-shadow: 0 11px 32px rgba(37,58,67,.11); border: 1px solid #e6ecea; border-radius: 12px; font-size: 10px; line-height: 1.6; color: #87949b; transform: rotate(2deg); }
+.floating-note strong { color: #2d4955; font-weight: 700; font-size: 11px; }
+.floating-icon { background: #e9f2f2; padding: 10px; border-radius: 9px; color: #4c8290; }
+.how-section { background: white; border-top: 1px solid #edf0eb; padding: 90px 0 75px; }
+.how-section h2 { font-family: Georgia, serif; font-size: clamp(30px, 3vw, 42px); line-height: 1.2; max-width: 600px; font-weight: 500; letter-spacing: -1.3px; margin: 17px 0 39px; }
+.feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.feature { min-height: 230px; padding: 27px; border-radius: 12px; border: 1px solid #e8edeb; background: #fcfdfb; position: relative; }
+.feature-number { position: absolute; top: 30px; right: 25px; color: #b5bfc0; font-size: 12px; letter-spacing: 1px; }
+.feature-icon { height: 48px; width: 48px; display: grid; place-items: center; background: #e9f1f2; border-radius: 12px; color: #547e8b; }
+.feature h3 { font-size: 17px; margin: 23px 0 8px; letter-spacing: -.2px; }
+.feature p { margin: 0; font-size: 13px; color: #819097; line-height: 1.75; }
+.how-footer { margin-top: 36px; display: flex; align-items: center; gap: 10px; color: #748790; font-size: 12px; }
+.site-footer { display: flex; justify-content: space-between; gap: 15px; font-size: 11px; color: #97a2a5; padding-top: 27px; padding-bottom: 31px; }
+.subpage-background { background: #f8f9f7; min-height: calc(100vh - 80px); padding: 40px 0 80px; }
+.new-case-shell { max-width: 1050px; }
+.back-link { display: inline-flex; gap: 10px; align-items: center; color: #778893; font-weight: 650; font-size: 12px; margin: 4px 0 42px; }
+.new-grid { display: grid; grid-template-columns: 1.55fr 1fr; gap: 60px; align-items: start; }
+.new-main { max-width: 595px; }
+.subpage-title { margin: 18px 0 17px; font-family: Georgia, serif; font-size: clamp(36px, 3.5vw, 49px); letter-spacing: -1.5px; font-weight: 500; line-height: 1.17; }
+.new-main .lead { max-width: 560px; }
+.new-form { margin-top: 36px; }
+.field-label { display: block; font-weight: 720; font-size: 13px; color: #435460; margin-bottom: 10px; }
+.input { width: 100%; background: #fff; padding: 14px 16px; font-size: 14px; color: var(--ink); border: 1px solid #dbe4e4; border-radius: 9px; transition: border-color .1s ease; }
+.input:focus { outline: 3px solid #d6e7ee; border-color: #7fa7bc; }
+.input::placeholder { color: #a5aeb1; }
+.input-textarea { resize: vertical; min-height: 152px; line-height: 1.7; }
+.form-meta { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #98a4a9; margin-top: 10px; }
+.inline-link { border: 0; background: transparent; color: #487a92; font-weight: 720; padding: 3px 0; font-size: 12px; }
+.new-form .button-wide { margin-top: 22px; }
+.new-aside { border: 1px solid #e7ebeb; border-radius: 13px; background: white; padding: 29px 30px; margin-top: 41px; }
+.aside-icon { background: #eaf2f2; border-radius: 10px; color: #5a8590; width: 47px; height: 47px; display: grid; place-items: center; }
+.new-aside h2 { font-size: 17px; margin: 22px 0 8px; }
+.new-aside p { font-size: 13px; color: #788993; line-height: 1.75; margin: 0; }
+.aside-rule { height: 1px; background: var(--line); margin: 23px 0; }
+.privacy-inline { display: flex; align-items: start; gap: 11px; }
+.privacy-inline svg { margin-top: 4px; color: #6a8997; flex: none; }
+.privacy-inline p { font-size: 12px; }
+.small-reset { border: 0; padding: 0; background: transparent; color: #7a8a93; font-size: 12px; font-weight: 650; text-decoration: underline; text-underline-offset: 4px; margin-top: 20px; }
+.workspace-page { background: #f8f9f7; padding-top: 38px; padding-bottom: 60px; min-height: calc(100vh - 79px); }
+.workspace-head { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.workspace-title-group h1 { font-size: 28px; font-weight: 700; letter-spacing: -.8px; margin: 12px 0 5px; }
+.workspace-title-group p { margin: 0; color: #87949b; font-size: 12px; }
+.exit-link { display: flex; align-items: center; gap: 7px; padding: 9px 12px; color: #89979c; font-size: 12px; font-weight: 650; }
+.exit-link:hover { color: #415968; }
+.progress-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-top: 31px; margin-bottom: 25px; }
+.progress-step { display: flex; align-items: center; gap: 11px; padding: 14px 16px; background: #f0f3f1; border: 1px solid #ecf0ec; border-radius: 9px; color: #9aabad; font-size: 12px; font-weight: 680; }
+.progress-step.active { background: #e6f0f2; border-color: #d6e5e9; color: #34647a; }
+.progress-step.complete { background: #eaf3ed; border-color: #dfede5; color: #40806a; }
+.progress-bullet { flex: none; width: 24px; height: 24px; display: grid; place-items: center; background: #e2e9e8; color: #87969a; border-radius: 50%; font-size: 11px; }
+.active .progress-bullet { background: #3a6c81; color: white; }
+.complete .progress-bullet { background: #75a78e; color: white; }
+.workspace-grid { display: grid; grid-template-columns: minmax(0, 1.88fr) minmax(270px, 1fr); align-items: start; gap: 23px; }
+.work-panel, .side-panel { background: white; border: 1px solid #e8eded; border-radius: 13px; }
+.work-panel { box-shadow: 0 14px 35px rgba(48,66,68,.03); overflow: hidden; }
+.panel-intro { padding: 34px 37px 29px; }
+.panel-intro h2 { font-family: Georgia, serif; font-weight: 500; font-size: 30px; line-height: 1.22; letter-spacing: -.6px; margin: 14px 0 12px; }
+.panel-intro p { color: #7b8c93; font-size: 13px; line-height: 1.75; max-width: 600px; margin: 0; }
+.panel-rule { height: 1px; background: #e8eeee; }
+.scope-content { padding: 39px 37px 36px; min-height: 332px; }
+.question-count { font-size: 11px; font-weight: 820; color: #5b8491; letter-spacing: 1.1px; }
+.scope-content h3 { font-size: 21px; font-weight: 630; letter-spacing: -.4px; line-height: 1.35; margin: 17px 0 26px; }
+.answer-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; }
+.answer-option { display: flex; align-items: center; gap: 10px; min-height: 63px; text-align: left; padding: 13px 15px; color: #60727b; font-size: 13px; font-weight: 670; background: #fff; border: 1px solid #dfe7e7; border-radius: 9px; }
+.answer-option:hover { background: #f5f9f9; border-color: #b9cfd7; }
+.answer-option.selected { background: #edf5f7; border-color: #6d9bad; color: #2e5970; }
+.answer-radio { flex: none; width: 16px; height: 16px; border: 1.5px solid #bbc9ce; border-radius: 50%; }
+.answer-option.selected .answer-radio { border: 5px solid #467b94; background: white; }
+.why-disclosure { border-top: 1px solid #edf1f1; margin-top: 34px; padding-top: 18px; color: #6f8290; font-size: 12px; }
+.why-disclosure summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; font-weight: 700; }
+.why-disclosure summary::-webkit-details-marker { display: none; }
+.why-disclosure[open] summary svg { transform: rotate(180deg); }
+.why-disclosure p { line-height: 1.7; max-width: 540px; }
+.panel-bottom { padding: 19px 37px; border-top: 1px solid #e9eeec; background: #fcfdfc; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.side-panel { padding: 25px 24px; margin-bottom: 17px; }
+.side-heading { display: flex; gap: 10px; align-items: center; margin-bottom: 24px; }
+.side-heading h2 { font-size: 13px; letter-spacing: -.1px; margin: 0; }
+.side-icon { background: #eaf1f2; color: #517c8d; border-radius: 8px; height: 34px; width: 34px; flex: none; display: grid; place-items: center; }
+.fact-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid #eef1f0; padding: 13px 0; font-size: 11px; }
+.fact-row:first-child { padding-top: 0; }
+.fact-row span { color: #91a0a7; }
+.fact-row strong { color: #546a75; max-width: 60%; text-align: right; font-weight: 720; overflow-wrap: anywhere; }
+.tiny-status { display: inline-flex; align-items: center; gap: 5px; margin-top: 17px; border-radius: 6px; background: #f1f4f3; color: #7d8e94; font-size: 10px; font-weight: 750; padding: 7px 9px; }
+.tiny-status.good { color: #3d8664; background: #e9f4eb; }
+.side-checklist { margin: 0; padding: 0; list-style: none; }
+.side-checklist li { display: flex; align-items: center; gap: 11px; font-size: 11px; line-height: 1.55; font-weight: 650; color: #657882; margin-bottom: 17px; }
+.side-checklist li:last-child { margin-bottom: 0; }
+.side-check { display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid #e4eae8; background: #f4f6f5; border-radius: 50%; color: #95a1a6; flex: none; }
+.side-check.done { background: #e5f3e8; border-color: #d9ecdf; color: var(--green); }
+.side-footnote { display: flex; gap: 11px; padding: 15px 16px; color: #8d9a9f; font-size: 11px; line-height: 1.7; }
+.side-footnote svg { color: #73929a; flex: none; margin-top: 2px; }
+.below-workspace { text-align: right; }
+.intake-form { padding: 30px 37px 0; }
+.field-block { margin-bottom: 21px; }
+.field-help { display: block; font-size: 11px; color: #8c9da3; margin-top: 8px; line-height: 1.6; }
+.error-text { color: #b0483a; display: block; font-size: 11px; margin-top: 7px; }
+.input.has-error { border-color: #be786b; }
+.date-input { max-width: 300px; min-height: 47px; }
+.consent-row { display: flex; gap: 11px; align-items: flex-start; margin: 24px 0 25px; color: #667f88; font-size: 12px; line-height: 1.65; cursor: pointer; }
+.consent-row input { accent-color: #426c82; margin-top: 4px; }
+.form-bottom { margin: 0 -37px; }
+.message-box { display: flex; align-items: flex-start; gap: 12px; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.7; margin-top: 23px; }
+.message-box svg { flex: none; margin-top: 2px; }
+.message-box p { margin: 5px 0 0; }
+.message-box strong { font-weight: 760; }
+.message-box.warning { background: var(--warning-bg); border: 1px solid #f4dec8; color: #945d39; }
+.message-box.notice { background: #f0f6f8; border: 1px solid #d9e9ed; color: #517386; }
+.checklist-list { padding: 10px 36px 5px; }
+.checklist-item { display: flex; gap: 16px; align-items: flex-start; padding: 24px 0; border-bottom: 1px solid #edf1ee; }
+.checklist-item:last-child { border-bottom: none; }
+.checklist-number { flex: none; width: 32px; height: 32px; border: 1px solid #e0e9e9; border-radius: 50%; display: grid; place-items: center; color: #8fa3a9; font-size: 11px; font-weight: 740; }
+.checklist-number.done { border-color: #cde5d6; background: #eaf4ee; color: #3b845f; }
+.checklist-detail { flex: 1; min-width: 0; }
+.checklist-top { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; }
+.checklist-top h3 { margin: 4px 0 7px; font-size: 13px; }
+.checklist-detail p { font-size: 12px; line-height: 1.7; margin: 0; color: #7b8d95; }
+.checklist-tag { flex: none; border-radius: 6px; background: #f0f3f3; padding: 6px 9px; color: #7b8c93; font-weight: 700; font-size: 9px; }
+.checklist-tag.done { background: #e8f4ea; color: #41825c; }
+.source-link { color: #376e89; font-weight: 720; font-size: 12px; display: inline-flex; align-items: center; gap: 8px; margin-top: 13px; text-decoration: underline; text-underline-offset: 3px; }
+.source-link:hover { color: #254b68; }
+.checklist-notice { margin: 15px 36px 26px; }
+.review-shell { max-width: 1100px; }
+.review-header { max-width: 750px; margin-bottom: 32px; }
+.review-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.review-card { background: white; border: 1px solid #e7ecec; border-radius: 13px; padding: 25px 28px 30px; }
+.review-card-header { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.review-card-header h2 { font-size: 16px; margin: 0; flex: 1; }
+.review-card-header .tiny-status { margin: 0; }
+.review-facts { margin: 24px 0; }
+.review-facts > div { padding: 13px 0; display: flex; justify-content: space-between; gap: 18px; border-bottom: 1px solid #ecf0ed; }
+.review-facts dt { color: #7e8f97; font-size: 12px; }
+.review-facts dd { color: #314953; font-weight: 730; font-size: 12px; margin: 0; text-align: right; overflow-wrap: anywhere; }
+.review-next { margin: 27px 0; padding-left: 21px; }
+.review-next li { line-height: 1.8; font-size: 13px; color: #667e88; padding-left: 8px; margin-bottom: 12px; }
+.review-warning { margin-top: 25px; }
+.review-actions { display: flex; justify-content: flex-start; margin-top: 27px; }
+@media (max-width: 980px) {
+  .home-hero { grid-template-columns: 1fr 1fr; gap: 5px; }
+  .hero-copy h1 { font-size: 49px; }
+  .floating-note { left: -14px; }
+  .workspace-grid { grid-template-columns: minmax(0, 1.4fr) minmax(240px, 1fr); gap: 14px; }
+  .panel-intro, .scope-content { padding-left: 26px; padding-right: 26px; }
+  .panel-bottom { padding-left: 26px; padding-right: 26px; }
+  .intake-form { padding-left: 26px; padding-right: 26px; }
+  .form-bottom { margin-left: -26px; margin-right: -26px; }
+  .checklist-list { padding-left: 26px; padding-right: 26px; }
+  .checklist-notice { margin-left: 26px; margin-right: 26px; }
+}
+@media (max-width: 760px) {
+  .container { width: min(100% - 36px, 560px); }
+  .header-inner { height: 68px; }
+  .brand-mark { width: 32px; height: 32px; font-size: 22px; }
+  .brand-name { font-size: 19px; }
+  .header-nav { gap: 10px; }
+  .header-nav .nav-link { display: none; }
+  .home-hero { display: flex; flex-direction: column; align-items: stretch; padding-top: 66px; padding-bottom: 54px; gap: 20px; }
+  .hero-copy h1 { font-size: clamp(40px, 9vw, 56px); letter-spacing: -2.3px; }
+  .hero-visual { height: 405px; }
+  .hero-visual:before { width: 310px; height: 310px; }
+  .floating-note { bottom: 0; left: 6px; }
+  .sample-card { max-width: 350px; padding: 22px; }
+  .how-section { padding: 66px 0 58px; }
+  .feature-grid { grid-template-columns: 1fr; gap: 12px; }
+  .feature { min-height: 0; }
+  .site-footer { flex-direction: column; gap: 5px; }
+  .new-grid, .review-grid { grid-template-columns: 1fr; gap: 20px; }
+  .new-aside { margin-top: 0; }
+  .subpage-background { padding-top: 22px; }
+  .back-link { margin-bottom: 25px; }
+  .workspace-page { padding-top: 24px; }
+  .workspace-head { align-items: flex-start; }
+  .workspace-title-group h1 { font-size: 24px; }
+  .exit-link { margin-top: 6px; }
+  .progress-strip { gap: 5px; margin-top: 24px; margin-bottom: 15px; }
+  .progress-step { padding: 12px 7px; display: flex; flex-direction: column; text-align: center; justify-content: center; font-size: 10px; gap: 8px; }
+  .workspace-grid { grid-template-columns: 1fr; }
+  .case-sidebar { display: grid; grid-template-columns: 1fr; }
+  .work-panel { order: 0; }
+  .case-sidebar { order: 1; }
+  .side-panel { margin-bottom: 13px; }
+  .scope-content { min-height: 260px; }
+  .scope-content h3 { font-size: 19px; }
+}
+@media (max-width: 450px) {
+  .container { width: calc(100% - 28px); }
+  .brand-name { font-size: 18px; }
+  .hero-actions { align-items: stretch; }
+  .hero-actions .button-primary { width: 100%; }
+  .hero-visual { height: 350px; }
+  .hero-visual:before { width: 270px; height: 270px; }
+  .sample-card { max-width: 300px; padding: 18px; }
+  .sample-card h2 { font-size: 23px; }
+  .floating-note { left: 0; bottom: -4px; }
+  .answer-grid { grid-template-columns: 1fr; gap: 8px; }
+  .answer-option { min-height: 48px; }
+  .panel-intro { padding-top: 25px; }
+  .panel-intro h2 { font-size: 26px; }
+  .scope-content { padding-top: 26px; }
+  .panel-bottom .button { padding: 11px 11px; min-height: 45px; font-size: 12px; }
+  .checklist-top { flex-direction: column; gap: 7px; }
+  .checklist-item { gap: 10px; }
+  .review-facts > div { flex-direction: column; gap: 6px; }
+  .review-facts dd { text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *:before, *:after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
+
+.link-button{background:transparent;border:0;font:inherit;cursor:pointer;}.link-button.brand{padding:0;}.feature-icon{font-size:24px;}
+</style></head><body><div id="preview-app"></div><script>// This standalone HTML preview intentionally has no server or dependency.
+// It reflects the prototype's deterministic demo flow, not official rules.
+const app = document.getElementById('preview-app');
+const Q = [
+  'Were you already registered as a resident in Milan?',
+  'Is your new address also in Milan?',
+  'Are you applying only for yourself?',
+  'Are you joining an existing registered household?',
+  'Are you renting your new home?',
+];
+const EXPECTED = ['yes', 'yes', 'yes', 'no', 'yes'];
+const S = { page:'welcome', goal:'', i:0, answers:[null,null,null,null,null], old:'', next:'', date:'', confirmed:false, acknowledged:false, errors:false };
+const icon = (n) => ({arrow:'→',back:'←',check:'✓',close:'×'}[n] ?? '');
+const esc = v => String(v ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
+const btn = (label,action,cls='button-primary',disabled=false) => `<button type="button" class="button ${cls}" data-act="${action}" ${disabled?'disabled':''}>${label}</button>`;
+const screen = () => {
+  if (S.page === 'welcome') return `<main><section class="home-hero container"><div class="hero-copy"><div class="eyebrow"><span class="eyebrow-line"></span>PAPERWORK, WITH A PLAN</div><h1>Italian paperwork,<br/><em>made easier to navigate.</em></h1><p class="lead hero-lead">Find the right starting point, organize what you know, and understand what to prepare before using the official government service.</p><div class="hero-actions">${btn('Start a residence-change case &nbsp; →','new')}<button class="button button-text" data-act="how">See how it works →</button></div><p class="hero-smallprint">Independent guidance, not a government service. You make the official submission yourself.</p></div><div class="hero-visual"><div class="visual-grid-decor"></div><div class="sample-card"><div class="sample-card-top"><span class="tiny-eyebrow">YOUR CASE, ORGANIZED</span><span class="status-dot"></span></div><h2>Moving within Milan</h2><div class="sample-status"><span class="sample-pulse"></span> Demo preparation</div><div class="sample-progress"><span></span></div><div class="sample-row"><span class="sample-number complete">01</span><span>Confirm your situation</span><strong>✓</strong></div><div class="sample-row"><span class="sample-number current">02</span><span>Collect information</span><strong>⋯</strong></div><div class="sample-row dim"><span class="sample-number">03</span><span>Review next steps</span>○</div><div class="sample-footer">Synthetic example · no official application prepared.</div></div><div class="floating-note"><span class="floating-icon">▤</span><span>Comune di Milano<br/><strong>Official guidance linked</strong></span></div></div></section><section id="how-it-works" class="how-section"><div class="container"><span class="tiny-eyebrow">HOW PRACTICAMIA WORKS</span><h2>From an open question to a clear next step.</h2><div class="feature-grid"><article class="feature"><span class="feature-number">01</span><div class="feature-icon">✎</div><h3>Tell us what changed</h3><p>Start with a simple description of your situation.</p></article><article class="feature"><span class="feature-number">02</span><div class="feature-icon">☷</div><h3>Answer focused questions</h3><p>Understand which information matters for your case.</p></article><article class="feature"><span class="feature-number">03</span><div class="feature-icon">✓</div><h3>Review a transparent checklist</h3><p>See what is known, what remains uncertain, and where official guidance lives.</p></article></div><div class="how-footer">One narrow workflow first: individual address changes within Milan.</div></div></section></main>`;
+  if (S.page === 'new') return `<main class="subpage-background"><div class="container new-case-shell"><button class="back-link link-button" data-act="welcome">← &nbsp; Back</button><div class="new-grid"><section class="new-main"><span class="tiny-eyebrow">NEW DEMO CASE</span><h1 class="subpage-title">What do you need help with?</h1><p class="lead">Tell PracticaMIA your goal. This prototype demonstrates a fixed Milan residence-change workflow; it does not interpret arbitrary requests using AI.</p><div class="new-form"><label class="field-label" for="preview-goal">Describe your situation</label><textarea id="preview-goal" class="input input-textarea" placeholder="I moved to another apartment in Milan and need to update my registered address." rows="5">${esc(S.goal)}</textarea><div class="form-meta"><button type="button" class="inline-link" data-act="example">Use example</button><span>Demo only</span></div>${btn('Continue to guided questions &nbsp; →','start','button-primary button-wide',!S.goal.trim())}</div></section><aside class="new-aside"><div class="aside-icon">⌂</div><h2>What this demo covers</h2><p>One adult already registered in Milan who is moving alone into a rented home elsewhere in Milan.</p><div class="aside-rule"></div><div class="privacy-inline"><p>There is no account or server. Do not enter real personal information; refreshing resets the demo.</p></div></aside></div></div></main>`;
+  if (S.page === 'review') return `<main class="subpage-background"><div class="container review-shell"><button class="back-link link-button" data-act="checklist">← Return to case</button><div class="review-header"><span class="tiny-eyebrow">REVIEW PREVIEW</span><h1 class="subpage-title">Your case at a glance</h1><p class="lead">The example information below has only been confirmed by you inside this prototype. It has not been checked against government records.</p></div><div class="review-grid"><section class="review-card"><div class="review-card-header"><h2>Information entered</h2><span class="tiny-status good">✓ Confirmed for demo</span></div><dl class="review-facts"><div><dt>Previous address</dt><dd>${esc(S.old)}</dd></div><div><dt>New address</dt><dd>${esc(S.next)}</dd></div><div><dt>Move date</dt><dd>${esc(S.date)}</dd></div><div><dt>Demo scope</dt><dd>Provisionally within scope</dd></div></dl>${btn('Edit the information','edit','button-outline')}</section><section class="review-card"><div class="review-card-header"><h2>What remains before a real submission?</h2></div><ol class="review-next"><li>Verify the applicant-specific administrative requirements.</li><li>Review any required supporting documents.</li><li>Complete authentication and submission yourself on the official service.</li></ol><a href="https://www.comune.milano.it/servizi/anagrafe/cambio-di-residenza" target="_blank" rel="noopener noreferrer" class="source-link">Read Milan’s official guidance ↗</a></section></div><div class="message-box warning review-warning">Not submission-ready: this is a product prototype, not an application package.</div></div></main>`;
+  const step = S.page === 'scope' ? 1 : S.page === 'intake' ? 2 : 3;
+  let contents = '';
+  if (S.page === 'scope') {
+    const a = S.answers[S.i], status = a==='unsure'?'unknown':a && a!==EXPECTED[S.i]?'unsupported':'ok';
+    contents = `<div class="panel-intro"><span class="tiny-eyebrow">STEP 1 OF 3 · SCOPE CHECK</span><h2>First, a few quick questions.</h2><p>These questions only check whether your situation matches this prototype. They are not an official eligibility decision.</p></div><div class="panel-rule"></div><div class="scope-content"><span class="question-count">QUESTION ${S.i+1} / 5</span><h3>${Q[S.i]}</h3><div class="answer-grid">${['yes','no','unsure'].map(v=>`<button class="answer-option ${a===v?'selected':''}" data-act="answer" data-value="${v}"><span class="answer-radio"></span>${v==='yes'?'Yes':v==='no'?'No':'Not sure'}</button>`).join('')}</div>${status==='unsupported'?`<div class="message-box warning"><div><strong>Outside this demonstration</strong><p>This scenario is not supported by the prototype. That does not determine official eligibility.</p></div></div>`:status==='unknown'?`<div class="message-box notice"><div><strong>We need this information first</strong><p>Choose a definite answer to proceed with the prototype.</p></div></div>`:''}<details class="why-disclosure"><summary>Why we ask <span>⌄</span></summary><p>To distinguish the simple demo from situations requiring separate official research.</p></details></div><div class="panel-bottom">${btn('← &nbsp; Back','previous','button-outline')}${btn('Continue &nbsp; →','next','button-primary',!a||status!=='ok')}</div>`;
+  } else if (S.page === 'intake') {
+    const empty = !S.old.trim()||!S.next.trim()||!S.date; const same = S.old.trim().toLowerCase()===S.next.trim().toLowerCase() && !!S.old.trim();
+    contents = `<div class="panel-intro"><span class="tiny-eyebrow">STEP 2 OF 3 · INTAKE</span><h2>Let’s organize the key details.</h2><p>Use made-up information. These fields are proposed product inputs, not a verified list of ANPR fields.</p></div><div class="panel-rule"></div><div class="intake-form"><div class="field-block"><label class="field-label" for="old">Previous address in Milan</label><input id="old" class="input" value="${esc(S.old)}" placeholder="Via Esempio 12, Milano" autocomplete="off"/></div><div class="field-block"><label class="field-label" for="next">New address in Milan</label><input id="next" class="input" value="${esc(S.next)}" placeholder="Via Dimostrazione 8, Milano" autocomplete="off"/></div><div class="field-block"><label class="field-label" for="date">Date you moved</label><input id="date" type="date" class="input date-input" value="${esc(S.date)}"/><small class="field-help">No legal deadlines are calculated in this prototype.</small></div>${S.errors&&empty?'<div class="message-box warning">Please complete all fields.</div>':''}${S.errors&&same?'<div class="message-box warning">The addresses appear identical. Please correct them.</div>':''}<label class="consent-row"><input id="ack" type="checkbox" ${S.acknowledged?'checked':''}/><span>I reviewed these example values for this demonstration.</span></label><div class="panel-bottom form-bottom">${btn('← &nbsp; Back','scopeBack','button-outline')}${btn('Confirm demo details &nbsp; →','confirm')}</div></div>`;
+  } else {
+    const items=[['Confirm the scenario','Your answers match this prototype’s narrow scenario, not a legal eligibility judgment.',true],['Review case information','Previous address, new address, and move date were checked by you for the demo.',S.confirmed],['Verify supporting documents','The correct list depends on official, reviewed rules and is not generated in this prototype.',false],['Read official submission guidance','The municipality explains how to access the official ANPR residence-change service.',false]];
+    contents = `<div class="panel-intro"><span class="tiny-eyebrow">STEP 3 OF 3 · CHECKLIST</span><h2>Here’s your preparation overview.</h2><p>This checklist is illustrative. Real documentary obligations remain pending official-source review.</p></div><div class="panel-rule"></div><div class="checklist-list">${items.map(([a,b,done],i)=>`<div class="checklist-item"><span class="checklist-number ${done?'done':''}">${done?'✓':String(i+1).padStart(2,'0')}</span><div class="checklist-detail"><div class="checklist-top"><h3>${a}</h3><span class="checklist-tag ${done?'done':''}">${done?'Completed for demo':'Not yet verified'}</span></div><p>${b}</p>${i===3?'<a class="source-link" href="https://www.comune.milano.it/servizi/anagrafe/cambio-di-residenza" target="_blank" rel="noopener noreferrer">Comune di Milano · Official guidance ↗</a>':''}</div></div>`).join('')}</div><div class="message-box notice checklist-notice">Synthetic example · no official application has been prepared or submitted.</div><div class="panel-bottom">${btn('Edit case details','edit','button-outline')}${btn('View preparation summary &nbsp; →','review')}</div>`;
+  }
+  return `<main class="workspace-page"><div class="container workspace-head"><div class="workspace-title-group"><span class="tiny-eyebrow">INTERACTIVE PROTOTYPE</span><h1>Milan residence change</h1><p>Guided preparation · Demonstration case</p></div><button class="exit-link link-button" data-act="welcome">× &nbsp; Exit demo</button></div><div class="container progress-strip">${['Confirm your situation','Collect information','Review your checklist'].map((t,i)=>`<div class="progress-step ${step===i+1?'active':step>i+1?'complete':''}"><span class="progress-bullet">${step>i+1?'✓':i+1}</span><span>${t}</span></div>`).join('')}</div><div class="container workspace-grid"><section class="work-panel">${contents}</section><aside class="case-sidebar"><section class="side-panel"><div class="side-heading"><span class="side-icon">⌂</span><h2>Case details</h2></div><div class="fact-list"><div class="fact-row"><span>Previous address</span><strong>${esc(S.old)||'Not collected yet'}</strong></div><div class="fact-row"><span>New address</span><strong>${esc(S.next)||'Not collected yet'}</strong></div><div class="fact-row"><span>Move date</span><strong>${esc(S.date)||'Not collected yet'}</strong></div></div><span class="tiny-status ${S.confirmed?'good':''}">${S.confirmed?'✓ Confirmed for demo':'Needs confirmation'}</span></section><section class="side-panel"><div class="side-heading"><span class="side-icon">☷</span><h2>Preparation checklist</h2></div><ul class="side-checklist"><li><span class="side-check ${step>1?'done':''}">${step>1?'✓':'◷'}</span>Scenario matches the demonstration</li><li><span class="side-check ${S.confirmed?'done':''}">${S.confirmed?'✓':'◷'}</span>Demo details reviewed</li><li><span class="side-check">◷</span>Document requirements pending research</li></ul></section><div class="side-footnote">Synthetic example · no official application has been prepared or submitted.</div></aside></div></main>`;
+};
+const render = () => { app.innerHTML = `<header class="site-header"><div class="container header-inner"><button class="brand link-button" data-act="welcome"><span class="brand-mark">M<span>.</span></span><span class="brand-name">practica<span>mia</span></span></button><nav class="header-nav"><button class="nav-link link-button" data-act="how">How it works</button><button class="nav-link link-button" data-act="new">Start a case</button><span class="language-toggle">EN · demo</span></nav></div></header>${screen()}`; window.scrollTo({top:0,behavior:'instant'}); };
+app.addEventListener('input', e => { if(e.target.id==='preview-goal'){S.goal=e.target.value;const x=app.querySelector('[data-act="start"]');if(x)x.disabled=!S.goal.trim();}if(e.target.id==='old')S.old=e.target.value;if(e.target.id==='next')S.next=e.target.value;if(e.target.id==='date')S.date=e.target.value;if(e.target.id==='ack')S.acknowledged=e.target.checked; });
+app.addEventListener('change', e => { if(e.target.id==='ack')S.acknowledged=e.target.checked; });
+app.addEventListener('click', e => {
+  const el=e.target.closest('[data-act]');if(!el)return;const a=el.dataset.act;
+  if(a==='how'){if(S.page!=='welcome'){S.page='welcome';render();}requestAnimationFrame(()=>document.getElementById('how-it-works')?.scrollIntoView({behavior:'smooth'}));return;}
+  if(a==='welcome')S.page='welcome';
+  else if(a==='new')S.page='new';
+  else if(a==='example'){S.goal='I moved to another apartment in Milan and need to update my registered address.';}
+  else if(a==='start' && S.goal.trim()){S.page='scope';S.i=0;}
+  else if(a==='answer'){const value=el.dataset.value;if(S.answers[S.i]!==value){S.answers=S.answers.map((v,i)=>i>S.i?null:v);S.confirmed=false;}S.answers[S.i]=value;}
+  else if(a==='next'){if(S.answers[S.i]===EXPECTED[S.i]){if(S.i===4)S.page='intake';else S.i++;}}
+  else if(a==='previous'){if(S.i>0)S.i--;else S.page='new';}
+  else if(a==='scopeBack'){S.page='scope';S.i=4;}
+  else if(a==='confirm'){S.errors=true;if(S.old.trim()&&S.next.trim()&&S.date&&S.old.trim().toLowerCase()!==S.next.trim().toLowerCase()&&S.acknowledged){S.confirmed=true;S.page='checklist';}}
+  else if(a==='edit'){S.page='intake';S.acknowledged=false;S.confirmed=false;S.errors=false;}
+  else if(a==='review' && S.confirmed)S.page='review';
+  else if(a==='checklist')S.page='checklist';
+  render();
+});
+render();
+</script></body></html>
