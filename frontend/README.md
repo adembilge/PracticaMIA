@@ -4,11 +4,11 @@ A responsive **Next.js + TypeScript** frontend prototype for the first PracticaM
 
 ## Run locally
 
-Requirements: Node.js 20+ and npm with access to the npm registry.
+Requirements: Node.js 22 and npm with access to the npm registry. Dependencies are locked in `package-lock.json`.
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -49,7 +49,7 @@ Open `preview.html` in a browser. This is a self-contained **English-only intera
 
 ## Prototype checks
 
-Seven tests in `tests/flow.test.mjs` cover matching scenario, missing information, unsupported paths, date/address intake validation and duplicate-address detection.
+Eight tests in `tests/flow.test.mjs` cover matching scenario, missing information, unsupported paths, date/address intake validation and duplicate-address detection.
 
 ## Sources
 
