@@ -15,6 +15,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api.state.settings = settings
     if settings.enable_knowledge_catalog_api and not settings.enable_demo_case_api:
         raise ValueError("Knowledge catalog requires the authenticated case API")
+    if settings.enable_knowledge_review_api:
+        if not settings.enable_knowledge_catalog_api or not settings.enable_demo_case_api:
+            raise ValueError("Knowledge review requires the authenticated knowledge catalog")
+        if not settings.knowledge_reviewer_subjects:
+            raise ValueError("Knowledge review requires an explicit reviewer subject allowlist")
+        if any(not subject.strip() or len(subject) > 255
+               for subject in settings.knowledge_reviewer_subjects):
+            raise ValueError("Reviewer subject identifiers must be valid")
 
     @api.get("/health", tags=["health"])
     def health() -> dict[str, str]:
@@ -33,6 +41,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if settings.enable_knowledge_catalog_api:
             from app.knowledge.router import router as knowledge_router
             api.include_router(knowledge_router)
+            if settings.enable_knowledge_review_api:
+                from app.knowledge.review_router import router as review_router
+                api.include_router(review_router)
 
     return api
 

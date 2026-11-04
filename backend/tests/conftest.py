@@ -10,6 +10,7 @@ from jwt import PyJWKClient
 
 from app.cases import model  # noqa: F401 - register SQLAlchemy models
 from app.knowledge import snapshot_model  # noqa: F401 - provenance tables
+from app.knowledge import review_model  # noqa: F401 - audit tables
 from app.config import Settings
 from app.database import Base
 from app.main import create_app
@@ -66,6 +67,8 @@ def client(tmp_path, token_factory):
             database_url=db_url,
             enable_demo_case_api=True,
             enable_knowledge_catalog_api=True,
+            enable_knowledge_review_api=True,
+            knowledge_reviewer_subjects=frozenset({"alice"}),
             auth_issuer=ISSUER,
             auth_audience=AUDIENCE,
             auth_jwks_url=JWKS_URL,

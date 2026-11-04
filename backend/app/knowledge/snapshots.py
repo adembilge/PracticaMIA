@@ -17,6 +17,7 @@ from app.knowledge.html_extraction import (
     EXTRACTION_VERSION, MAX_HTML_BYTES, extract_html,
 )
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
+from app.knowledge.review_model import KnowledgeReviewEvent
 from app.knowledge.snapshot_model import KnowledgePassage, KnowledgeSnapshot
 
 
@@ -36,6 +37,9 @@ def ingest_snapshot(
     *, media_type: str = "text/html", retrieved_at: datetime | None = None,
 ) -> IngestionResult:
     """Call inside an explicit DB transaction. Raises rather than saving partial data."""
+    # Lock the source before comparing revisions: approval and ingestion must
+    # serialize on the same row in PostgreSQL.
+    db.refresh(source, with_for_update=True)
     validate_official_url(source.official_url)
     if media_type not in MEDIA_TYPES:
         raise ValueError("Unsupported snapshot media type")
@@ -66,9 +70,23 @@ def ingest_snapshot(
         source.status == "approved" or source.active_version_id is not None
     )
     if previously_approved:
-        # A new version requires review; old approval remains in the audit trail.
+        # A content change revokes trust immediately, but preserves history.
+        # Keep an auditable record of the previous active source version.
+        old_status = source.status
+        active = db.get(KnowledgeSourceVersion, source.active_version_id) \
+            if source.active_version_id else last
+        if active is None or active.source_id != source.id:
+            raise ValueError("Approved source has no verifiable active version")
         source.status = "candidate"
         source.active_version_id = None
+        db.add(KnowledgeReviewEvent(
+            source_id=source.id, version_id=active.id,
+            action="source_changed", actor_subject="system:ingestion",
+            reason=f"Content change detected; new source SHA-256 {content_hash}",
+            content_sha256=active.content_sha256,
+            old_source_status=old_status, new_source_status="candidate",
+            old_version_status=active.status, new_version_status=active.status,
+        ))
 
     db.add(KnowledgeSourceVersion(
         id=new_id, source_id=source.id, revision=revision,
@@ -107,15 +125,31 @@ def verify_snapshot(db: Session, version: KnowledgeSourceVersion) -> bool:
             or snapshot.size_bytes != len(snapshot.raw_body)
             or snapshot.extraction_version != EXTRACTION_VERSION):
         return False
+    # Provenance includes the extracted text, not just raw HTML bytes.
+    # Re-extraction prevents a modified normalized_text/passage pair from
+    # passing a superficial offset-only integrity check.
+    try:
+        extracted = extract_html(snapshot.raw_body)
+    except ValueError:
+        return False
+    if snapshot.normalized_text != extracted.normalized_text:
+        return False
     passages = db.scalars(
         select(KnowledgePassage)
         .where(KnowledgePassage.version_id == version.id)
         .order_by(KnowledgePassage.ordinal)
     ).all()
-    if not passages:
+    if not passages or len(passages) != len(extracted.passages):
         return False
     for i, passage in enumerate(passages):
-        if (passage.ordinal != i or passage.start_offset < 0
+        expected = extracted.passages[i]
+        if (passage.ordinal != i
+                or passage.section_path != expected.section_path
+                or passage.start_offset != expected.start_offset
+                or passage.end_offset != expected.end_offset
+                or passage.content != expected.content
+                or passage.content_sha256 != expected.content_sha256
+                or passage.start_offset < 0
                 or passage.end_offset > len(snapshot.normalized_text)
                 or snapshot.normalized_text[passage.start_offset:passage.end_offset]
                 != passage.content

@@ -92,4 +92,4 @@ GitHub CI runs unit tests with synthetic HTML and a mocked network transport, in
 
 ## Next milestone
 
-Build an authenticated reviewer-only approval/revocation service with audit events and a hash-bound manual review step, then implement review-filtered lexical retrieval and vector embeddings with evaluation fixtures. No verified administrative requirement or government decision can be inferred merely from extracted text.
+Review and merge the [reviewer-only approval and audit feature](KNOWLEDGE_REVIEW_WORKFLOW.md), then implement review-filtered lexical retrieval and vector embeddings with evaluation fixtures. No verified administrative requirement or government decision can be inferred merely from extracted text.
