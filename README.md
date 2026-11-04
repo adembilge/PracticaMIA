@@ -6,7 +6,8 @@ PracticaMIA is a planned English–Italian administrative guidance application, 
 
 - **Implemented:** Frontend-only Next.js demonstration, guided intake, illustrative checklist, bilingual UI and flow tests, based on synthetic data.
 - **Documented:** Initial procedure research, first user journey, UX interface specification.
-- **Not implemented:** Backend, authentication, persistence, LangGraph agent, RAG, OCR, real application preparation, government submission.
+- **In development (not deployed):** FastAPI backend and SQLAlchemy persistence for synthetic scope answers only, with PostgreSQL migration and API tests.
+- **Not implemented:** Authentication, real personal-data case storage, frontend-backend integration, LangGraph agent, RAG, OCR, real application preparation, government submission.
 - **Administrative requirements:** Research is a draft and **must be reviewed** before being used as production rules.
 
 ## Start the frontend
@@ -27,6 +28,10 @@ Source code is maintained in GitHub. Work on a feature branch, open a pull reque
 - [Vercel production site](https://practicamia.vercel.app)
 - GitHub Actions checks are informative until repository branch protection or a ruleset makes them required.
 - Frontend dependencies are pinned through `frontend/package-lock.json`; CI uses `npm ci`.
+
+## Backend foundation (in development)
+
+The first FastAPI and SQLAlchemy case persistence slice is available on a development branch. It uses PostgreSQL migrations and synthetic scope answers only. The API is disabled by default and is **not deployed** or connected to the Vercel frontend. See [backend/README.md](backend/README.md) for local setup and safety limits.
 
 ## Documentation
 
