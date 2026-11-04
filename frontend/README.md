@@ -22,7 +22,7 @@ npm run typecheck
 npm run build
 ```
 
-> The authoring environment could not access npm, so dependency installation and a full Next.js build could **not** be executed here. The six Node.js flow tests were executed successfully. Run the remaining checks after installation.
+> Vercel successfully built the Next.js application from GitHub commit `8edb961` on 4 November 2026. The build included type validation and static generation. Run `npm test`, `npm run typecheck`, and `npm run build` locally when developing; pull requests also run these commands via GitHub Actions.
 
 ## Standalone browser preview
 

@@ -97,7 +97,7 @@ a:hover { text-decoration: none; }
 .subpage-background { background: #f8f9f7; min-height: calc(100vh - 80px); padding: 40px 0 80px; }
 .new-case-shell { max-width: 1050px; }
 .back-link { display: inline-flex; gap: 10px; align-items: center; color: #778893; font-weight: 650; font-size: 12px; margin: 4px 0 42px; }
-.new-grid { display: grid; grid-template-columns: 1.55fr 1fr; gap: 60px; align-items: start; }
+.new-grid { display: grid; grid-template-columns: 1.55fr 1fr; gap: 60px; align-items: flex-start; }
 .new-main { max-width: 595px; }
 .subpage-title { margin: 18px 0 17px; font-family: Georgia, serif; font-size: clamp(36px, 3.5vw, 49px); letter-spacing: -1.5px; font-weight: 500; line-height: 1.17; }
 .new-main .lead { max-width: 560px; }
@@ -115,7 +115,7 @@ a:hover { text-decoration: none; }
 .new-aside h2 { font-size: 17px; margin: 22px 0 8px; }
 .new-aside p { font-size: 13px; color: #788993; line-height: 1.75; margin: 0; }
 .aside-rule { height: 1px; background: var(--line); margin: 23px 0; }
-.privacy-inline { display: flex; align-items: start; gap: 11px; }
+.privacy-inline { display: flex; align-items: flex-start; gap: 11px; }
 .privacy-inline svg { margin-top: 4px; color: #6a8997; flex: none; }
 .privacy-inline p { font-size: 12px; }
 .small-reset { border: 0; padding: 0; background: transparent; color: #7a8a93; font-size: 12px; font-weight: 650; text-decoration: underline; text-underline-offset: 4px; margin-top: 20px; }
@@ -132,7 +132,7 @@ a:hover { text-decoration: none; }
 .progress-bullet { flex: none; width: 24px; height: 24px; display: grid; place-items: center; background: #e2e9e8; color: #87969a; border-radius: 50%; font-size: 11px; }
 .active .progress-bullet { background: #3a6c81; color: white; }
 .complete .progress-bullet { background: #75a78e; color: white; }
-.workspace-grid { display: grid; grid-template-columns: minmax(0, 1.88fr) minmax(270px, 1fr); align-items: start; gap: 23px; }
+.workspace-grid { display: grid; grid-template-columns: minmax(0, 1.88fr) minmax(270px, 1fr); align-items: flex-start; gap: 23px; }
 .work-panel, .side-panel { background: white; border: 1px solid #e8eded; border-radius: 13px; }
 .work-panel { box-shadow: 0 14px 35px rgba(48,66,68,.03); overflow: hidden; }
 .panel-intro { padding: 34px 37px 29px; }

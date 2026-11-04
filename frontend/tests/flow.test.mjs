@@ -36,3 +36,8 @@ test('same entered addresses are flagged for review', () => {
 test('impossible calendar date is rejected', () => {
   assert.deepEqual(validateIntake({ previousAddress: 'A', newAddress: 'B', movedOn: '2026-02-30' }), { movedOn: 'invalid' });
 });
+
+test('valid leap day is accepted, invalid leap day is rejected', () => {
+  assert.deepEqual(validateIntake({ previousAddress: 'A', newAddress: 'B', movedOn: '2024-02-29' }), {});
+  assert.deepEqual(validateIntake({ previousAddress: 'A', newAddress: 'B', movedOn: '2025-02-29' }), { movedOn: 'invalid' });
+});
