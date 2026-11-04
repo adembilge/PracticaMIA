@@ -16,6 +16,7 @@ export function SiteHeader() {
       <nav className="header-nav" aria-label="Main navigation">
         <Link href="/#how-it-works" className="nav-link">{t.navHow}</Link>
         <Link href="/cases/new" className="nav-link">{t.navStart}</Link>
+        <Link href="/account" className="nav-link">{t.navAccount}</Link>
         <button type="button" className="language-toggle" onClick={toggleLocale} aria-label={locale === 'en' ? 'Switch to Italian' : 'Passa alla lingua inglese'}><Icon name="globe" size={16}/><span>{locale.toUpperCase()}</span><Icon name="chevronDown" size={12}/></button>
       </nav>
     </div>

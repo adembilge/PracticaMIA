@@ -288,3 +288,15 @@ a:hover { text-decoration: none; }
   .review-facts dd { text-align: left; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *:before, *:after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
+
+/* Account and synthetic saved-cases development screens */
+.account-shell { padding: 55px 0 80px; max-width: 760px; }
+.account-shell h1 { margin: 0 0 24px; }
+.account-panel { background: white; border: 1px solid var(--line); border-radius: 14px; padding: 28px; margin-bottom: 22px; }
+.account-panel p { font-size: 15px; line-height: 1.65; }
+.account-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 24px; }
+.account-footnote { color: var(--muted); font-size: 13px; line-height: 1.7; margin: 24px 0; }
+.saved-case-list { list-style: none; padding: 0; margin: 24px 0; }
+.saved-case-list li { padding: 14px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 16px; }
+.saved-case-list code { font-size: 12px; }
+@media (max-width: 600px) { .account-shell { padding-top: 35px; } .account-panel { padding: 20px; } }
