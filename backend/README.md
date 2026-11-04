@@ -1,6 +1,6 @@
 # PracticaMIA — Authenticated Case API (development)
 
-**Status:** Milestone 3.2, code and CI only. Not publicly deployed or connected to the Vercel frontend.
+**Status:** Deployed synthetic-case API on Vercel. Auth0 JWT verification and owner-scoped Neon PostgreSQL persistence are active in production; never send real personal information.
 
 The FastAPI case API now requires **signed JWT access tokens** and isolates stored cases by their verified owner. It handles **synthetic scope answers only**, with no names, addresses, documents or real administrative data. It does not determine official eligibility.
 
@@ -14,7 +14,7 @@ The FastAPI case API now requires **signed JWT access tokens** and isolates stor
 - Previous anonymous demo records have NULL owners after migration and cannot be accessed through the API; decide retention and cleanup before production.
 - The owner identifier is omitted from API responses. Case IDs are not proof of ownership.
 
-**Important:** The repository does not yet include a working identity provider, browser login, secure session management, rate limiting, CORS policy, auditing, monitoring, backup or production hosting. Keep the API private until those components are implemented and reviewed.
+**Important:** Auth0 is now configured for the production Next.js frontend; Vercel hosts the FastAPI API and Neon stores synthetic demo records. Rate limiting, audit events, documented retention and deletion policies, backup/restore exercises and production privacy review remain outstanding. Do not store real personal data.
 
 ## Local PostgreSQL development
 
@@ -62,9 +62,10 @@ python -m pytest -q
 
 Tests generate ephemeral RSA keys and locally signed tokens, requiring no external provider. They verify invalid/missing credentials, expiration, signatures, issuer, audience, ownership isolation and persistence. GitHub Actions migrates PostgreSQL from `20261104_0001` to `20261104_0002`, checks that legacy anonymous cases stay inaccessible, and tests authenticated CRUD.
 
-## Decisions pending
+## Next milestones
 
-1. Choose and configure an OIDC identity provider for frontend login and API access tokens.
-2. Implement frontend login, safe token transport, sign-out and session lifecycle.
-3. Define data retention, audit logging without token disclosure, abuse protection and production deployment boundaries.
-4. Only after authenticated frontend/backend connectivity, extend facts and provenance for reviewed administrative requirements.
+1. Connect the guided, synthetic scope questionnaire to saved cases through same-origin Next.js server routes (see `docs/CASE_WORKSPACE.md`).
+2. Add audit events, rate limiting, retention and deletion rules, and separate production user-isolation smoke tests.
+3. Review official Milan/ANPR sources before making any legal requirements executable; keep all user inputs synthetic until a privacy assessment is complete.
+
+Production configuration is managed in Vercel, not committed to Git. Required backend keys: `DATABASE_URL`, `ENABLE_DEMO_CASE_API=1`, `AUTH_ISSUER`, `AUTH_AUDIENCE`, and `AUTH_JWKS_URL`.

@@ -1,6 +1,6 @@
 # PracticaMIA — Auth0 Login and Server-side Case Bridge
 
-**Status:** Implemented as an optional integration scaffold; no Auth0 account, credentials or public backend is connected. The anonymous demonstration remains unchanged.
+**Status:** Auth0 user login, the Next.js server-side case bridge, FastAPI and Neon PostgreSQL are deployed for synthetic cases. The anonymous demonstration remains separate. The persistent saved-case workspace is in a feature PR pending review.
 
 ## Chosen architecture
 
@@ -19,7 +19,7 @@
 4. Set Allowed Logout URLs to `http://localhost:3000` and the corresponding approved production URL.
 5. Do not automatically authorize every temporary Vercel preview callback. Either leave authentication disabled on previews or use a separately controlled development app/domain.
 6. Generate a new 32-byte random secret as 64 hexadecimal characters (for example via `openssl rand -hex 32`). Do not commit, paste into a public issue, or print the actual secret.
-7. Store variables from `frontend/.env.example` in your **local `.env.local`**, and in Vercel's encrypted server-side environment settings when ready.
+7. Store variables from `frontend/.env.example` in your **local `.env.local`** and in Vercel's encrypted server-side environment settings. The production variables are already configured; never print or commit secrets.
 
 ## Required Next.js variables
 
@@ -40,15 +40,18 @@
 - `AUTH_AUDIENCE=<AUTH0_AUDIENCE>`.
 - `DATABASE_URL` for persistent PostgreSQL and `ENABLE_DEMO_CASE_API=1` only after confirming JWT validation and backend network boundaries.
 
-**A signed-in browser session does not prove that the backend is deployed or connected.** The account page reports separate sign-in and backend availability states.
+**A signed-in browser session alone does not prove that the backend is operational.** The account page reports configuration state; verify authenticated case CRUD and database persistence separately.
 
 ## User-visible pages
 
 | Path | Behavior |
 | --- | --- |
 | `/account` | Explains disabled login, or shows sign-in/sign-out when Auth0 configured |
-| `/cases/saved` | Requires session and backend config; lists only synthetic cases and permits creating an empty synthetic case |
-| `/api/cases` | Same-origin BFF GET and CSRF-protected POST. Returns 503 until fully configured, 401 for signed-out users, and never returns access tokens |
+| `/cases/saved` | Lists synthetic cases, creates a case, and opens a saved case workspace |
+| `/cases/{id}` | Authenticated synthetic scope questionnaire, persistence, review and deletion; no real personal data |
+| `/api/cases` | Same-origin BFF GET and CSRF-protected POST. Returns 503 if unconfigured and 401 if signed out; never exposes access tokens |
+| `/api/cases/{id}` | GET an owner-scoped case or DELETE it with Origin protection |
+| `/api/cases/{id}/scope` | Origin-protected PATCH for a validated prefix of synthetic scope answers |
 | `/cases/new` and `/cases/demo` | Existing anonymous in-memory demo, unchanged |
 
 Auth0 routes `/auth/login`, `/auth/logout`, and `/auth/callback` are mounted by SDK middleware only when configured. Browser navigation to login/logout uses normal anchors, not client-side prefetch.
@@ -58,12 +61,13 @@ Auth0 routes `/auth/login`, `/auth/logout`, and `/auth/callback` are mounted by 
 - `cd frontend && npm ci && npm test && npm run typecheck && npm run build`.
 - Tests cover missing/partial server configuration, backend URL allowlisting, and POST Origin validation.
 - GitHub Actions and Vercel check the unconfigured build, ensuring the anonymous demo remains available.
-- **Not yet tested end-to-end:** Real Auth0 login, cookie renewal, custom API token issuance, live FastAPI connectivity. This requires an Auth0 tenant plus a private, authenticated backend.
+- **Verified in production (November 2026):** Auth0 login and custom API token issuance; Next.js server proxy, FastAPI case creation/listing, Neon persistence for synthetic records.
+- **Still not tested live:** refresh-token lifecycle, two separate real Auth0 accounts, and full browser update/delete/resumption across a signed-out session. The feature branch adds automated validation but requires manual review.
 
 ## Security and deployment limitations
 
 - Do not collect real personal addresses or documents through these endpoints. Only empty synthetic case records are supported.
-- The backend is not deployed. Do not configure `BACKEND_API_URL` to a public unauthenticated service.
+- The backend is publicly reachable but all case routes require verified bearer tokens; keep strict JWT validation, ownership checks, rate limiting and network boundaries.
 - Add API rate limiting, monitoring and non-sensitive audit events, retention/deletion rules, secure networking, and end-to-end tests before handling real records.
 - Once FastAPI is deployed, do not assume browser CORS is the only authorization layer: verify JWTs and per-user owner checks on every backend request.
 
