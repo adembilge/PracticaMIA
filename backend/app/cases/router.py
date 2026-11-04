@@ -1,42 +1,84 @@
-"""Explicitly opt-in, unauthenticated synthetic-demo endpoints."""
+"""Authenticated, owner-scoped synthetic-demo case routes."""
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.auth.tokens import Principal, get_principal
 from app.cases.model import CaseRecord
 from app.cases.schemas import CaseOut, CreateCase, ScopeUpdate
 from app.cases.scope import classify_scope
 from app.database import get_session
 
-router = APIRouter(prefix="/api/v1/cases", tags=["demo-cases"])
+router = APIRouter(
+    prefix="/api/v1/cases",
+    tags=["demo-cases"],
+    dependencies=[Depends(get_principal)],
+)
 
 
-def get_case(db: Session, case_id: UUID) -> CaseRecord:
-    record = db.get(CaseRecord, str(case_id))
+def get_case(db: Session, case_id: UUID, owner: str) -> CaseRecord:
+    record = db.scalar(
+        select(CaseRecord).where(
+            CaseRecord.id == str(case_id),
+            CaseRecord.owner_subject == owner,
+        )
+    )
     if record is None:
+        # Do not reveal existence of another user's (or ownerless) case.
         raise HTTPException(status_code=404, detail="Case not found")
     return record
 
 
 @router.post("", response_model=CaseOut, status_code=status.HTTP_201_CREATED)
-def create_case(payload: CreateCase, db: Session = Depends(get_session)):
-    record = CaseRecord(id=str(uuid4()), procedure=payload.procedure)
+def create_case(
+    payload: CreateCase,
+    db: Session = Depends(get_session),
+    principal: Principal = Depends(get_principal),
+):
+    record = CaseRecord(
+        id=str(uuid4()),
+        procedure=payload.procedure,
+        owner_subject=principal.subject,
+    )
     db.add(record)
     db.commit()
     db.refresh(record)
     return record
 
 
+@router.get("", response_model=list[CaseOut])
+def list_cases(
+    db: Session = Depends(get_session),
+    principal: Principal = Depends(get_principal),
+):
+    return db.scalars(
+        select(CaseRecord)
+        .where(CaseRecord.owner_subject == principal.subject)
+        .order_by(CaseRecord.created_at.desc(), CaseRecord.id.desc())
+        .limit(50)
+    ).all()
+
+
 @router.get("/{case_id}", response_model=CaseOut)
-def read_case(case_id: UUID, db: Session = Depends(get_session)):
-    return get_case(db, case_id)
+def read_case(
+    case_id: UUID,
+    db: Session = Depends(get_session),
+    principal: Principal = Depends(get_principal),
+):
+    return get_case(db, case_id, principal.subject)
 
 
 @router.patch("/{case_id}/scope", response_model=CaseOut)
-def update_scope(case_id: UUID, payload: ScopeUpdate, db: Session = Depends(get_session)):
-    record = get_case(db, case_id)
+def update_scope(
+    case_id: UUID,
+    payload: ScopeUpdate,
+    db: Session = Depends(get_session),
+    principal: Principal = Depends(get_principal),
+):
+    record = get_case(db, case_id, principal.subject)
     record.scope_answers = list(payload.answers)
     record.status = classify_scope(record.scope_answers)
     record.updated_at = datetime.now(timezone.utc)
@@ -46,6 +88,10 @@ def update_scope(case_id: UUID, payload: ScopeUpdate, db: Session = Depends(get_
 
 
 @router.delete("/{case_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_case(case_id: UUID, db: Session = Depends(get_session)):
-    db.delete(get_case(db, case_id))
+def delete_case(
+    case_id: UUID,
+    db: Session = Depends(get_session),
+    principal: Principal = Depends(get_principal),
+):
+    db.delete(get_case(db, case_id, principal.subject))
     db.commit()

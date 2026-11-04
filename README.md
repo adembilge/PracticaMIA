@@ -7,7 +7,8 @@ PracticaMIA is a planned English–Italian administrative guidance application, 
 - **Implemented:** Frontend-only Next.js demonstration, guided intake, illustrative checklist, bilingual UI and flow tests, based on synthetic data.
 - **Documented:** Initial procedure research, first user journey, UX interface specification.
 - **In development (not deployed):** FastAPI backend and SQLAlchemy persistence for synthetic scope answers only, with PostgreSQL migration and API tests.
-- **Not implemented:** Authentication, real personal-data case storage, frontend-backend integration, LangGraph agent, RAG, OCR, real application preparation, government submission.
+- **In development:** Signed-token authentication and per-user ownership of synthetic cases (no login provider configured).
+- **Not implemented:** Real user login, production auth integration, personal-data storage, frontend-backend integration, LangGraph agent, RAG, OCR, real application preparation, government submission.
 - **Administrative requirements:** Research is a draft and **must be reviewed** before being used as production rules.
 
 ## Start the frontend
@@ -26,12 +27,12 @@ Source code is maintained in GitHub. Work on a feature branch, open a pull reque
 
 - [Development workflow](docs/DEVELOPMENT_WORKFLOW.md)
 - [Vercel production site](https://practicamia.vercel.app)
-- GitHub Actions checks are informative until repository branch protection or a ruleset makes them required.
+- The active `Protect main` ruleset requires pull requests and the `Tests, types, and build` check. Consider additionally requiring `Backend tests and PostgreSQL migration` after this milestone is merged.
 - Frontend dependencies are pinned through `frontend/package-lock.json`; CI uses `npm ci`.
 
 ## Backend foundation (in development)
 
-The first FastAPI and SQLAlchemy case persistence slice is available on a development branch. It uses PostgreSQL migrations and synthetic scope answers only. The API is disabled by default and is **not deployed** or connected to the Vercel frontend. See [backend/README.md](backend/README.md) for local setup and safety limits.
+The FastAPI and SQLAlchemy case persistence foundation is in `main`; authenticated case ownership is under development on a feature branch. It uses PostgreSQL migrations and synthetic scope answers only. The API is disabled by default and is **not deployed** or connected to the Vercel frontend. See [backend/README.md](backend/README.md) for local setup and safety limits.
 
 ## Documentation
 

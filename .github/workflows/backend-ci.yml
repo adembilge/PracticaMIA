@@ -3,14 +3,8 @@ name: Backend CI
 on:
   pull_request:
     branches: [main]
-    paths:
-      - "backend/**"
-      - ".github/workflows/backend-ci.yml"
   push:
     branches: [main]
-    paths:
-      - "backend/**"
-      - ".github/workflows/backend-ci.yml"
   workflow_dispatch:
 
 permissions:
@@ -51,25 +45,29 @@ jobs:
           python-version: "3.12"
       - name: Install backend and test dependencies
         run: python -m pip install -e ".[dev]"
-      - name: Run API and domain tests
+      - name: Run API and authentication tests
         run: python -m pytest -q
-      - name: Upgrade PostgreSQL schema
-        run: python -m alembic -c alembic.ini upgrade head
-      - name: PostgreSQL persistence smoke test
+      - name: Create legacy PostgreSQL schema and seed anonymous case
         run: |
+          python -m alembic -c alembic.ini upgrade 20261104_0001
           python - <<'PY'
           import os
-          from fastapi.testclient import TestClient
-          from app.config import Settings
-          from app.main import create_app
-          api = create_app(Settings(database_url=os.environ["DATABASE_URL"], enable_demo_case_api=True))
-          with TestClient(api) as client:
-              created = client.post("/api/v1/cases", json={})
-              assert created.status_code == 201, created.text
-              case_id = created.json()["id"]
-              updated = client.patch(f"/api/v1/cases/{case_id}/scope", json={"answers": ["yes", "yes", "yes", "no", "yes"]})
-              assert updated.status_code == 200, updated.text
-              assert updated.json()["status"] == "provisionally_in_scope"
-              assert client.get(f"/api/v1/cases/{case_id}").status_code == 200
-              assert client.delete(f"/api/v1/cases/{case_id}").status_code == 204
+          from sqlalchemy import create_engine, text
+          engine = create_engine(os.environ["DATABASE_URL"])
+          with engine.begin() as conn:
+              conn.execute(text("""
+                  INSERT INTO cases
+                    (id, procedure, status, scope_answers, created_at, updated_at)
+                  VALUES
+                    ('00000000-0000-0000-0000-000000000001',
+                     'milan_residence_change', 'draft', '[]',
+                     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+              """))
+          engine.dispose()
           PY
+      - name: Upgrade PostgreSQL to owner-scoped schema
+        run: python -m alembic -c alembic.ini upgrade head
+      - name: Verify PostgreSQL ownership and legacy case isolation
+        env:
+          RUN_POSTGRES_SMOKE: "1"
+        run: python -m pytest -q tests/test_postgres_smoke.py
