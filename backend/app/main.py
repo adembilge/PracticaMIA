@@ -1,7 +1,4 @@
-"""App factory for local-only milestone 3 development.
-
-Do not enable unauthenticated demo endpoints on any public deployment.
-"""
+"""App factory for development-only authenticated, synthetic case persistence."""
 from fastapi import FastAPI
 
 from app.config import Settings
@@ -13,7 +10,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api = FastAPI(
         title="PracticaMIA Backend",
         description="Development-only API. No official eligibility or submission.",
-        version="0.1.0",
+        version="0.2.0",
     )
     api.state.settings = settings
 
@@ -22,8 +19,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "ok", "service": "practicamia-backend"}
 
     if settings.enable_demo_case_api:
+        # Fail closed at startup rather than exposing anonymous case routes.
+        from app.auth.tokens import TokenVerifier
         from app.cases.router import router
 
+        api.state.token_verifier = TokenVerifier(settings)
         engine, session_factory = configure_database(settings.database_url)
         api.state.engine = engine
         api.state.session_factory = session_factory

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "practicamia-backend"
-version = "0.1.0"
-description = "Development-only case persistence API for PracticaMIA"
+version = "0.2.0"
+description = "Development-only authenticated case persistence API for PracticaMIA"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115,<1",
@@ -13,6 +13,7 @@ dependencies = [
     "SQLAlchemy>=2.0,<2.1",
     "psycopg[binary]>=3.2,<4",
     "alembic>=1.14,<2",
+    "PyJWT[crypto]>=2.13,<3",
 ]
 
 [project.optional-dependencies]
