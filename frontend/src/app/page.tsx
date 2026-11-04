@@ -6,7 +6,7 @@ import { useDemo } from '@/components/DemoProvider';
 
 export default function WelcomePage() {
   const { t } = useDemo();
-  return <main>
+  return <main id="main-content" tabIndex={-1}>
     <section className="home-hero container">
       <div className="hero-copy">
         <div className="eyebrow"><span className="eyebrow-line" />{t.homeKicker}</div>

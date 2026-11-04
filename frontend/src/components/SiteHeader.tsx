@@ -10,7 +10,7 @@ export function Brand() {
 
 export function SiteHeader() {
   const { locale, toggleLocale, t } = useDemo();
-  return <header className="site-header">
+  return <><a className="skip-link" href="#main-content">{t.skipToMain}</a><header className="site-header">
     <div className="container header-inner">
       <Brand />
       <nav className="header-nav" aria-label="Main navigation">
@@ -19,5 +19,5 @@ export function SiteHeader() {
         <button type="button" className="language-toggle" onClick={toggleLocale} aria-label={locale === 'en' ? 'Switch to Italian' : 'Passa alla lingua inglese'}><Icon name="globe" size={16}/><span>{locale.toUpperCase()}</span><Icon name="chevronDown" size={12}/></button>
       </nav>
     </div>
-  </header>;
+  </header></>;
 }

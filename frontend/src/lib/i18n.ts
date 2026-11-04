@@ -2,7 +2,7 @@ export type Locale = 'en' | 'it';
 
 export const messages = {
   en: {
-    navHow: 'How it works', navStart: 'Start a case', demo: 'INTERACTIVE PROTOTYPE',
+    navHow: 'How it works', navStart: 'Start a case', skipToMain: 'Skip to main content', demo: 'INTERACTIVE PROTOTYPE',
     brandTag: 'Clearer steps through Italian administration',
     homeKicker: 'PAPERWORK, WITH A PLAN',
     homeTitle1: 'Italian paperwork,', homeTitle2: 'made easier to navigate.',
@@ -79,7 +79,7 @@ export const messages = {
     reviewBack: 'Return to case', footer: 'PracticaMIA is an independent prototype. No government affiliation.',
   },
   it: {
-    navHow: 'Come funziona', navStart: 'Inizia una pratica', demo: 'PROTOTIPO INTERATTIVO',
+    navHow: 'Come funziona', navStart: 'Inizia una pratica', skipToMain: 'Vai al contenuto principale', demo: 'PROTOTIPO INTERATTIVO',
     brandTag: 'Passaggi più chiari nella burocrazia italiana',
     homeKicker: 'DOCUMENTI, CON UN PIANO',
     homeTitle1: 'La burocrazia italiana,', homeTitle2: 'più facile da affrontare.',
