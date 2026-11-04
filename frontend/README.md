@@ -65,3 +65,7 @@ https://www.comune.milano.it/servizi/anagrafe/cambio-di-residenza
 ## Next engineering milestone
 
 Review usability, validate applicant-specific administrative requirements, then implement case persistence and a deterministic requirements engine before introducing LangGraph.
+
+## Optional authentication scaffolding
+
+The Account and Saved Demo Cases pages use a server-side Auth0 session when configured, but are **disabled by default**. See [authentication integration](../docs/AUTHENTICATION_INTEGRATION.md). The public guided demonstration does not save information and does not require login.

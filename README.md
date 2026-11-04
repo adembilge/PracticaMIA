@@ -46,3 +46,7 @@ The complete original specification is reference material; its original 94-task 
 This repository was refreshed from the PracticaMIA Google Drive project with a history-preserving commit. Previous iterations remain visible in Git history.
 
 PracticaMIA is not affiliated with the Italian government and does not submit applications on the user's behalf.
+
+## Authentication integration (in development)
+
+An optional Auth0-backed account and saved-cases interface is being developed on a feature branch. The public demo remains anonymous and independent; **no real login provider or public case backend is configured yet**. See [authentication integration](docs/AUTHENTICATION_INTEGRATION.md) and [backend security](backend/README.md).
