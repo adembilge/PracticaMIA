@@ -6,7 +6,8 @@ PracticaMIA is a planned English–Italian administrative guidance application, 
 
 - **Implemented:** Frontend-only Next.js demonstration, guided intake, illustrative checklist, bilingual UI and flow tests, based on synthetic data.
 - **Documented:** Initial procedure research, first user journey, UX interface specification.
-- **Not implemented:** Backend, authentication, persistence, LangGraph agent, RAG, OCR, real application preparation, government submission.
+- **In development (not deployed):** FastAPI backend and SQLAlchemy persistence for synthetic scope answers only, with PostgreSQL migration and API tests.
+- **Not implemented:** Authentication, real personal-data case storage, frontend-backend integration, LangGraph agent, RAG, OCR, real application preparation, government submission.
 - **Administrative requirements:** Research is a draft and **must be reviewed** before being used as production rules.
 
 ## Start the frontend
