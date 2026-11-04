@@ -11,6 +11,9 @@ from app.knowledge.catalog import (
     candidate_sources, register_candidates, validate_candidate,
 )
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
+from app.knowledge.html_extraction import extract_html, EXTRACTION_VERSION
+from app.knowledge.snapshot_model import KnowledgeSnapshot, KnowledgePassage
+from hashlib import sha256
 from app.main import create_app
 from conftest import AUDIENCE, ISSUER, JWKS_URL
 
@@ -71,6 +74,9 @@ def test_catalog_requires_login_and_contains_no_pending_sources(client, auth_hea
 
 def test_only_approved_active_hash_bound_versions_are_visible(client, auth_headers):
     now = datetime.now(timezone.utc)
+    html = b'<html><body><main><h1>Sample procedure</h1><p>Official-like synthetic test text.</p></main></body></html>'
+    extracted = extract_html(html)
+    digest = sha256(html).hexdigest()
     sid = "milano-residence-change"
     vid = str(uuid4())
     factory = client.app.state.session_factory
@@ -81,9 +87,18 @@ def test_only_approved_active_hash_bound_versions_are_visible(client, auth_heade
         source.status = "approved"
         db.add(KnowledgeSourceVersion(
             id=vid, source_id=sid, revision=1,
-            content_sha256="a" * 64,
+            content_sha256=digest,
             retrieved_at=now, status="pending_review",
         ))
+        db.add(KnowledgeSnapshot(version_id=vid, fetched_url=source.official_url,
+                                 media_type="text/html", size_bytes=len(html),
+                                 extraction_version=EXTRACTION_VERSION,
+                                 raw_body=html, normalized_text=extracted.normalized_text))
+        for passage in extracted.passages:
+            db.add(KnowledgePassage(id=f"{vid}:{passage.ordinal:04d}", version_id=vid,
+                                    ordinal=passage.ordinal, section_path=passage.section_path,
+                                    start_offset=passage.start_offset, end_offset=passage.end_offset,
+                                    content=passage.content, content_sha256=passage.content_sha256))
     url = "/api/v1/knowledge/sources"
     headers = auth_headers()
     assert client.get(url, headers=headers).json()["sources"] == []
@@ -99,7 +114,7 @@ def test_only_approved_active_hash_bound_versions_are_visible(client, auth_heade
     assert len(payload["sources"]) == 1
     assert payload["sources"][0]["source_id"] == sid
     assert payload["sources"][0]["source_version_id"] == vid
-    assert payload["sources"][0]["content_sha256"] == "a" * 64
+    assert payload["sources"][0]["content_sha256"] == digest
     assert "reviewed_at" in payload["sources"][0]
 
     with factory.begin() as db:

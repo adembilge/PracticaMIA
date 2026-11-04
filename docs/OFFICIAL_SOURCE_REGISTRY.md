@@ -1,6 +1,6 @@
 # Official-source registry — milestone 44
 
-**Status:** Feature PR. The core registry is implemented behind a disabled-by-default feature flag. It is **not** a RAG system, approved requirements catalog, or government submission service.
+**Status:** Milestone 44 merged into main, but production migration and feature enabling are pending. The registry remains behind a disabled-by-default feature flag. It is **not** a RAG system, approved requirements catalog, or government submission service.
 
 ## Why this exists
 
@@ -34,7 +34,7 @@ A source is **never** eligible for trusted retrieval unless:
 4. both `reviewed_at` and `reviewed_by` are set;
 5. the snapshot hash is a lowercase 64-character SHA-256 digest.
 
-The registry currently has **no** user-facing approval operation, no automatic activation, and no text snapshots. Human review, snapshot immutability, approval authentication, content extraction, and provenance-preserving passage storage are deliberately deferred to subsequent PRs.
+The registry has **no** user-facing approval operation and no automatic activation. The follow-up [controlled HTML snapshots](CONTROLLED_SOURCE_SNAPSHOTS.md) PR adds raw snapshot storage, hashing, extraction and provenance-preserving passages, but they remain unreviewed; reviewer authentication and final source approval are future work.
 
 ## Safe migration / rollout
 
@@ -67,9 +67,8 @@ The feature flag defaults to **off**. Merging this code alone does not require a
 
 ## Next work
 
-1. Implement controlled manual acquisition with allowlisted domains, rate limits, and source-usage compliance.
-2. Create verifiable immutable HTML/PDF snapshots, extract passages and provenance, calculate hashes, and record changes.
-3. Create a reviewer-only approve/revoke workflow with audit records and stale-source invalidation.
+1. Review and merge controlled manual HTML acquisition, versioned snapshots and passage extraction (milestone 45.1–45.3). PDF support is not part of that milestone.
+2. Create a reviewer-only approve/revoke workflow with audit records and stale-source invalidation.
 4. Implement approved-passage indexing and hybrid lexical/vector retrieval, with deterministic tests.
 5. Establish linked, human-reviewed administrative rules and citation resolution; only then connect the knowledge tool to LangGraph.
 

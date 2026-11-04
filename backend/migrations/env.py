@@ -8,6 +8,7 @@ from sqlalchemy import create_engine, pool
 from app.database import Base
 from app.cases import model  # noqa: F401 - register the table on Base.metadata
 from app.knowledge import model as knowledge_model  # noqa: F401 - registry tables
+from app.knowledge import snapshot_model  # noqa: F401 - snapshot and passage tables
 
 config = context.config
 if config.config_file_name is not None:
