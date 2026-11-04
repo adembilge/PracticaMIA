@@ -16,6 +16,7 @@ PracticaMIA is an independent English–Italian administrative-guidance prototyp
 | Database | Deployed | Neon PostgreSQL, SQLAlchemy, Alembic schema at `20261104_0002` |
 | Frontend–backend bridge | Deployed | Same-origin Next.js routes fetch Auth0 access tokens server-side; browser never receives API tokens |
 | Saved-case workspace | In this milestone | Link to a saved case, answer five synthetic scope questions, save/resume, edit and delete |
+| Official-source registry | Feature PR pending review | Versioned municipal source candidates, approval-gated read API; no approved snapshots or RAG yet |
 | Official knowledge and rules | Research draft | No approved production eligibility rules or authoritative personalized checklist |
 | LangGraph/RAG | Not implemented | Planned bounded agent and reviewed-source retrieval |
 | Documents and submission | Not implemented | No real personal data, document uploads, ANPR login or government submission |
@@ -86,10 +87,11 @@ Review the Vercel preview deployment before merging. The saved-case milestone an
 - [UX interface specification](docs/UX_INTERFACE_SPEC.md)
 - [Authentication integration](docs/AUTHENTICATION_INTEGRATION.md)
 - [Case workspace milestone](docs/CASE_WORKSPACE.md)
+- [Official-source registry design](docs/OFFICIAL_SOURCE_REGISTRY.md)
 - [Development workflow](docs/DEVELOPMENT_WORKFLOW.md)
 - [Milan residence-change research](research/milan_residence_change.md)
 - [Complete original project specification](PracticaMIA_Complete_Project_Specification.md)
 
-The original specification's 94-task roadmap is reference material, **not** the current completion status. Subsequent milestones are approved official sources, a versioned knowledge registry, deterministic requirements, RAG, LangGraph orchestration, and reviewed application preparation. Security work still includes live multi-user isolation checks, audit/retention policies, rate limiting, monitoring and backups.
+The original specification's 94-task roadmap is reference material, **not** the current completion status. Subsequent milestones are reviewed, content-hashed official source snapshots, deterministic requirements, approved-passage retrieval, LangGraph orchestration, and reviewed application preparation. Security work still includes live multi-user isolation checks, audit/retention policies, rate limiting, monitoring and backups.
 
 **PracticaMIA does not represent or act on behalf of a municipality or the Italian government.**

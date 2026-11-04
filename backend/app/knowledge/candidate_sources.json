@@ -1,0 +1,42 @@
+[
+  {
+    "id": "milano-residence-change",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "title": "Cambio di residenza",
+    "official_url": "https://www.comune.milano.it/servizi/anagrafe/cambio-di-residenza",
+    "document_type": "service_page"
+  },
+  {
+    "id": "milano-residence-faq",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "title": "Come chiedere/cambiare residenza?",
+    "official_url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00330/",
+    "document_type": "faq"
+  },
+  {
+    "id": "milano-foreign-rental-documents",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "title": "Documenti immobile per stranieri in affitto",
+    "official_url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00329/Residenza-stranieri-in-affitto-documenti-immobile",
+    "document_type": "faq"
+  },
+  {
+    "id": "milano-foreign-resident-change",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "title": "Cambio residenza per stranieri già in Italia",
+    "official_url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00597/Cambio-residenza-per-stranieri-gia-in-Italia",
+    "document_type": "faq"
+  }
+]

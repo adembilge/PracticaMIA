@@ -26,5 +26,8 @@ dev = [
 where = ["."]
 include = ["app*"]
 
+[tool.setuptools.package-data]
+"app.knowledge" = ["candidate_sources.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

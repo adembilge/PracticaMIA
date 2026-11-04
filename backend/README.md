@@ -69,3 +69,9 @@ Tests generate ephemeral RSA keys and locally signed tokens, requiring no extern
 3. Review official Milan/ANPR sources before making any legal requirements executable; keep all user inputs synthetic until a privacy assessment is complete.
 
 Production configuration is managed in Vercel, not committed to Git. Required backend keys: `DATABASE_URL`, `ENABLE_DEMO_CASE_API=1`, `AUTH_ISSUER`, `AUTH_AUDIENCE`, and `AUTH_JWKS_URL`.
+
+## Official government source registry (feature milestone)
+
+A new read-only, authenticated knowledge catalog is staged behind `ENABLE_KNOWLEDGE_CATALOG_API=0` by default. Revision `20261104_0003` introduces official-source and source-version metadata tables **without altering existing cases**. No automatic source approval or legal rules exist. Review [the source registry design](../docs/OFFICIAL_SOURCE_REGISTRY.md) before migrating or enabling this API.
+
+After the migration has been reviewed and applied in the target database, source candidates can be validated with `python -m app.knowledge.seed_candidates` or inserted with explicit `--apply`. Import only creates pending candidate metadata; it never activates an approved source. Once the schema exists, enabling `ENABLE_KNOWLEDGE_CATALOG_API=1` exposes `GET /api/v1/knowledge/sources` to authenticated callers; an empty, unreviewed registry deliberately returns `insufficient_evidence`.
