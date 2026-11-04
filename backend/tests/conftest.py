@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 from jwt import PyJWKClient
 
 from app.cases import model  # noqa: F401 - register SQLAlchemy models
+from app.knowledge import snapshot_model  # noqa: F401 - provenance tables
 from app.config import Settings
 from app.database import Base
 from app.main import create_app

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.auth.tokens import get_principal
 from app.database import get_session
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
+from app.knowledge.snapshots import verify_snapshot
 
 
 class ApprovedSource(BaseModel):
@@ -57,7 +58,8 @@ def approved_sources(db: Session = Depends(get_session)) -> SourceCatalog:
     visible = []
     for source, version in db.execute(query).all():
         if (not version.reviewed_by or len(version.content_sha256) != 64
-            or any(c not in "0123456789abcdef" for c in version.content_sha256)):
+            or any(c not in "0123456789abcdef" for c in version.content_sha256)
+            or not verify_snapshot(db, version)):
             continue
         visible.append(ApprovedSource(
             source_id=source.id, source_version_id=version.id,
