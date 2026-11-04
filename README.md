@@ -19,6 +19,15 @@ npm run dev
 
 Open http://localhost:3000. A standalone `frontend/preview.html` is also provided.
 
+## Development and preview deployments
+
+Source code is maintained in GitHub. Work on a feature branch, open a pull request, wait for the **Frontend CI** result and the Vercel Preview Deployment, then review before merging into `main`.
+
+- [Development workflow](docs/DEVELOPMENT_WORKFLOW.md)
+- [Vercel production site](https://practicamia.vercel.app)
+- GitHub Actions checks are informative until repository branch protection or a ruleset makes them required.
+- The frontend currently has no committed npm lockfile; CI uses `npm install`. Add a reviewed lockfile before expecting reproducible dependency installs.
+
 ## Documentation
 
 - [Initial procedure research](research/milan_residence_change.md)
