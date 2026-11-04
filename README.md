@@ -13,7 +13,7 @@ PracticaMIA is a planned English–Italian administrative guidance application, 
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
@@ -26,7 +26,7 @@ Source code is maintained in GitHub. Work on a feature branch, open a pull reque
 - [Development workflow](docs/DEVELOPMENT_WORKFLOW.md)
 - [Vercel production site](https://practicamia.vercel.app)
 - GitHub Actions checks are informative until repository branch protection or a ruleset makes them required.
-- The frontend currently has no committed npm lockfile; CI uses `npm install`. Add a reviewed lockfile before expecting reproducible dependency installs.
+- Frontend dependencies are pinned through `frontend/package-lock.json`; CI uses `npm ci`.
 
 ## Documentation
 

@@ -13,7 +13,7 @@
 ## Before merging
 
 1. Describe the change and expected behavior in the pull request.
-2. Confirm GitHub Actions **Frontend CI** completed: `npm test`, `npm run typecheck`, `npm run build`.
+2. Confirm GitHub Actions **Frontend CI** completed: `npm ci`, `npm test`, `npm run typecheck`, `npm run build`.
 3. Open the Vercel preview and check navigation, desktop/mobile layout, language toggle, and relevant user flows.
 4. Check that the application still distinguishes *demo-scope matching* from real administrative eligibility and does not claim a case has been submitted.
 5. Merge to `main` only after reviewing the preview; check the production deployment afterward.
@@ -22,14 +22,14 @@
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm test
 npm run typecheck
 npm run build
 npm run dev
 ```
 
-**Current reproducibility limitation:** There is no committed `package-lock.json`; the workflow uses `npm install` rather than `npm ci`. The dependency resolution can change over time. Generate and review a lockfile in a future dependency-maintenance PR, then change CI to `npm ci`.
+****Reproducible installs:** `frontend/package-lock.json` is committed; use `npm ci` locally and in CI. Update dependencies with `npm install` and commit both `package.json` and `package-lock.json` in the same PR.
 
 ## Protection and approvals
 
