@@ -64,6 +64,7 @@ def client(tmp_path, token_factory):
         Settings(
             database_url=db_url,
             enable_demo_case_api=True,
+            enable_knowledge_catalog_api=True,
             auth_issuer=ISSUER,
             auth_audience=AUDIENCE,
             auth_jwks_url=JWKS_URL,

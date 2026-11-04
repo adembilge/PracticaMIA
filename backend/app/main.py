@@ -13,6 +13,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         version="0.2.0",
     )
     api.state.settings = settings
+    if settings.enable_knowledge_catalog_api and not settings.enable_demo_case_api:
+        raise ValueError("Knowledge catalog requires the authenticated case API")
 
     @api.get("/health", tags=["health"])
     def health() -> dict[str, str]:
@@ -28,6 +30,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         api.state.engine = engine
         api.state.session_factory = session_factory
         api.include_router(router)
+        if settings.enable_knowledge_catalog_api:
+            from app.knowledge.router import router as knowledge_router
+            api.include_router(knowledge_router)
 
     return api
 

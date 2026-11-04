@@ -7,6 +7,7 @@ from os import environ
 class Settings:
     database_url: str = ""
     enable_demo_case_api: bool = False
+    enable_knowledge_catalog_api: bool = False
     auth_issuer: str = ""
     auth_audience: str = ""
     auth_jwks_url: str = ""
@@ -16,6 +17,8 @@ class Settings:
         return cls(
             database_url=environ.get("DATABASE_URL", ""),
             enable_demo_case_api=environ.get("ENABLE_DEMO_CASE_API", "").lower()
+            in {"1", "true", "yes"},
+            enable_knowledge_catalog_api=environ.get("ENABLE_KNOWLEDGE_CATALOG_API", "").lower()
             in {"1", "true", "yes"},
             auth_issuer=environ.get("AUTH_ISSUER", ""),
             auth_audience=environ.get("AUTH_AUDIENCE", ""),
