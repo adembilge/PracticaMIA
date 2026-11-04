@@ -28,6 +28,10 @@ Source code is maintained in GitHub. Work on a feature branch, open a pull reque
 - GitHub Actions checks are informative until repository branch protection or a ruleset makes them required.
 - Frontend dependencies are pinned through `frontend/package-lock.json`; CI uses `npm ci`.
 
+## Backend foundation (in development)
+
+The first FastAPI and SQLAlchemy case persistence slice is available on a development branch. It uses PostgreSQL migrations and synthetic scope answers only. The API is disabled by default and is **not deployed** or connected to the Vercel frontend. See [backend/README.md](backend/README.md) for local setup and safety limits.
+
 ## Documentation
 
 - [Initial procedure research](research/milan_residence_change.md)
