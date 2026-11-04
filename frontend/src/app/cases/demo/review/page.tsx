@@ -11,7 +11,7 @@ export default function ReviewPage() {
   const router = useRouter();
   const { t, data, setPhase } = useDemo();
   const readyForDemoReview = data.factsConfirmed && data.phase === 'checklist';
-  return <main className="subpage-background"><div className="container review-shell">
+  return <main id="main-content" tabIndex={-1} className="subpage-background"><div className="container review-shell">
     <Link href="/cases/demo" className="back-link"><Icon name="arrowLeft" size={17}/>{t.reviewBack}</Link>
     <div className="review-header"><span className="tiny-eyebrow">{t.reviewEyebrow}</span><h1 className="subpage-title">{t.reviewTitle}</h1><p className="lead">{t.reviewLead}</p></div>
     {!readyForDemoReview ? <div className="message-box notice"><Icon name="info" size={21}/><div><p>{t.emptyReview}</p><Link className="source-link" href="/cases/demo">{t.reviewBack}<Icon name="arrowRight" size={14}/></Link></div></div> : <div className="review-grid">

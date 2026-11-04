@@ -14,7 +14,7 @@ export default function NewCasePage() {
     if (!data.goal.trim()) return;
     router.push('/cases/demo');
   }
-  return <main className="subpage-background"><div className="container new-case-shell">
+  return <main id="main-content" tabIndex={-1} className="subpage-background"><div className="container new-case-shell">
     <Link href="/" className="back-link"><Icon name="arrowLeft" size={16}/>{t.back}</Link>
     <div className="new-grid">
       <section className="new-main">
