@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useDemo } from '@/components/DemoProvider';
 
@@ -14,6 +15,7 @@ type Props = {
 
 export function SavedCasesView({ configured, signedIn, backendConfigured }: Props) {
   const { t } = useDemo();
+  const router = useRouter();
   const [cases, setCases] = useState<SavedCase[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -50,7 +52,9 @@ export function SavedCasesView({ configured, signedIn, backendConfigured }: Prop
         credentials: 'same-origin',
       });
       if (!response.ok) throw new Error('HTTP ' + response.status);
+      const created = (await response.json()) as SavedCase;
       await refresh();
+      router.push('/cases/' + encodeURIComponent(created.id));
     } catch {
       setError(t.savedCreateError);
     } finally {
@@ -83,6 +87,9 @@ export function SavedCasesView({ configured, signedIn, backendConfigured }: Prop
                   <li key={item.id}>
                     <span>{t.savedDraft}: {item.status}</span>
                     <code>{item.id.slice(0, 8)}</code>
+                    <Link href={'/cases/' + encodeURIComponent(item.id)} className="inline-link">
+                      {t.savedResume}
+                    </Link>
                   </li>
                 ))}
               </ul>
