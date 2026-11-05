@@ -4,6 +4,7 @@ from hashlib import sha256
 import httpx
 from app.knowledge.audit_web_sources import audit_sources
 from app.knowledge.catalog import candidate_sources
+from app.knowledge.batch_import import prepare_directory
 
 
 def _subset(ids):
@@ -33,6 +34,9 @@ def test_saves_exact_original_html_bytes_and_metadata(tmp_path):
     assert denied["reason"] == "HTTP 403"
     assert not (tmp_path / "output" / "originals" / "milano-residence-faq.html").exists()
     assert '"originals_captured": 1' in (tmp_path / "output" / "manifest.json").read_text()
+    prepared = prepare_directory(tmp_path / "output" / "originals")
+    assert len(prepared) == 1
+    assert prepared[0].sha256 == sha256(original).hexdigest()
 
 
 def test_rejects_redirect_invalid_media_and_non_original_content(tmp_path):
