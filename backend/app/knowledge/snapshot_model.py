@@ -16,6 +16,8 @@ class KnowledgeSnapshot(Base):
     __tablename__ = "knowledge_source_snapshots"
     __table_args__ = (
         CheckConstraint("size_bytes > 0", name="ck_snapshot_positive_size"),
+        CheckConstraint("capture_method IN ('original_http','browser_rendered_text')",
+                        name="ck_snapshot_capture_method"),
     )
 
     version_id: Mapped[str] = mapped_column(
@@ -27,6 +29,12 @@ class KnowledgeSnapshot(Base):
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     extraction_version: Mapped[str] = mapped_column(String(24), nullable=False)
     raw_body: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    capture_method: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="original_http", server_default="original_http"
+    )
+    observed_url: Mapped[str | None] = mapped_column(String(700))
+    observed_title: Mapped[str | None] = mapped_column(String(300))
+    observed_last_updated: Mapped[str | None] = mapped_column(String(10))
     normalized_text: Mapped[str] = mapped_column(Text, nullable=False)
 
 

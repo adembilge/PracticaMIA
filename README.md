@@ -102,6 +102,7 @@ Review the Vercel preview deployment before merging. The saved-case milestone an
 - [Verified 5 November 2026 release and evidence blockers](docs/RELEASE_BLOCKERS_2026_11_05.md)
 - [Official-source acquisition queue, validated batch import and review](docs/OFFICIAL_SOURCE_INTAKE.md)
 - [5 November 2026: 14 official webpage requests, all HTTP 403](docs/OFFICIAL_HTML_ACCESS_AUDIT_2026_11_05.md)
+- [Browser-rendered municipal pages: labeled provenance and human review](docs/BROWSER_CAPTURE_EVIDENCE.md)
 - [Knowledge staging migration and source acquisition report](docs/KNOWLEDGE_STAGING_ROLLOUT.md)
 - [Milan official-source acquisition inventory (17 unapproved candidates)](docs/MILAN_OFFICIAL_SOURCE_ACQUISITION.md)
 - [Manual PDF and HTML source ingestion](docs/PDF_SOURCE_INGESTION.md)

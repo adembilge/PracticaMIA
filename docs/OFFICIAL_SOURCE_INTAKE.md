@@ -38,6 +38,14 @@ redirect to a canonical URL. **Never silently follow redirects:** inspect
 the destination, then propose any curated URL change separately. Registered
 URLs and content are deliberately reviewed independently.
 
+## Browser-visible official content
+
+If the official website remains inaccessible to automated HTTP fetches but
+is readable in a normal browser, its substantive **rendered Italian article**
+can be retained using the separately labeled
+[browser capture review pipeline](BROWSER_CAPTURE_EVIDENCE.md).
+It is never stored as original HTTP HTML or automatically approved.
+
 ## 1. View the acquisition queue
 
 Run from `backend/`:
@@ -108,7 +116,7 @@ python -m app.knowledge.batch_import \
 ```
 
 The CLI requires the explicit staging designation, rejects Vercel
-production, requires PostgreSQL schema revision `20261105_0008`,
+production, requires PostgreSQL schema revision `20261105_0009`,
 requires registered DB URLs to match the curated catalogue and processes
 all validated originals inside **one transaction**. No partial import
 is retained if any source fails. A changed version is marked

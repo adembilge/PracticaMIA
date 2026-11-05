@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.knowledge.acquisition import validate_official_url
+from app.knowledge.browser_capture import validate_browser_metadata
 from app.knowledge.document_extraction import extract_document, EXTRACTION_VERSIONS
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
 from app.knowledge.review_model import KnowledgeReviewEvent
@@ -33,12 +34,31 @@ class IngestionResult:
 def ingest_snapshot(
     db: Session, source: KnowledgeSource, body: bytes,
     *, media_type: str = "text/html", retrieved_at: datetime | None = None,
+    capture_method: str = "original_http",
+    observed_url: str | None = None,
+    observed_title: str | None = None,
+    observed_last_updated: str | None = None,
 ) -> IngestionResult:
     """Call inside an explicit DB transaction. Raises rather than saving partial data."""
     # Lock the source before comparing revisions: approval and ingestion must
     # serialize on the same row in PostgreSQL.
     db.refresh(source, with_for_update=True)
     validate_official_url(source.official_url)
+    if capture_method == "browser_rendered_text":
+        if media_type != "text/plain":
+            raise ValueError("Browser captures require explicit text/plain media type")
+        validate_browser_metadata(
+            source, observed_url=observed_url,
+            observed_title=observed_title,
+            observed_last_updated=observed_last_updated,
+        )
+    elif capture_method == "original_http":
+        if media_type == "text/plain" or any((
+            observed_url, observed_title, observed_last_updated,
+        )):
+            raise ValueError("Original server bytes cannot carry browser capture metadata")
+    else:
+        raise ValueError("Unknown source capture method")
     if media_type not in EXTRACTION_VERSIONS:
         raise ValueError("Unsupported snapshot media type")
     if retrieved_at is None:
@@ -54,7 +74,13 @@ def ingest_snapshot(
         .where(KnowledgeSourceVersion.source_id == source.id)
         .order_by(KnowledgeSourceVersion.revision.desc()).limit(1)
     )
-    if last and last.content_sha256 == content_hash:
+    last_snapshot = db.get(KnowledgeSnapshot, last.id) if last else None
+    if (last and last.content_sha256 == content_hash
+            and last_snapshot is not None
+            and last_snapshot.capture_method == capture_method
+            and last_snapshot.observed_url == observed_url
+            and last_snapshot.observed_title == observed_title
+            and last_snapshot.observed_last_updated == observed_last_updated):
         return IngestionResult(
             "unchanged", source.id, last.revision, last.id,
             content_hash, len(text.passages), False,
@@ -92,7 +118,9 @@ def ingest_snapshot(
     db.add(KnowledgeSnapshot(
         version_id=new_id, fetched_url=source.official_url,
         media_type=media_type, size_bytes=len(body),
-        extraction_version=extraction_version,
+        extraction_version=extraction_version, capture_method=capture_method,
+        observed_url=observed_url, observed_title=observed_title,
+        observed_last_updated=observed_last_updated,
         raw_body=body, normalized_text=text.normalized_text,
     ))
     for passage in text.passages:
@@ -116,6 +144,28 @@ def verify_snapshot(db: Session, version: KnowledgeSourceVersion) -> bool:
     """Check snapshot byte hash and all provenance offsets before trusting it."""
     snapshot = db.get(KnowledgeSnapshot, version.id)
     if snapshot is None:
+        return False
+    source = db.get(KnowledgeSource, version.source_id)
+    if source is None or snapshot.fetched_url != source.official_url:
+        return False
+    if snapshot.capture_method == "browser_rendered_text":
+        if snapshot.media_type != "text/plain":
+            return False
+        try:
+            validate_browser_metadata(
+                source, observed_url=snapshot.observed_url,
+                observed_title=snapshot.observed_title,
+                observed_last_updated=snapshot.observed_last_updated,
+            )
+        except ValueError:
+            return False
+    elif snapshot.capture_method == "original_http":
+        if snapshot.media_type == "text/plain" or any((
+            snapshot.observed_url, snapshot.observed_title,
+            snapshot.observed_last_updated,
+        )):
+            return False
+    else:
         return False
     if (sha256(snapshot.raw_body).hexdigest() != version.content_sha256
             or snapshot.size_bytes != len(snapshot.raw_body)
