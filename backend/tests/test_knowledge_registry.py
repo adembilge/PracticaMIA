@@ -21,7 +21,7 @@ from conftest import AUDIENCE, ISSUER, JWKS_URL
 
 def test_bundled_sources_are_only_candidates():
     sources = candidate_sources()
-    assert len(sources) == 4
+    assert len(sources) >= 12
     assert len(set(item["id"] for item in sources)) == len(sources)
     assert all(item["jurisdiction"] == "IT-MI-MILANO" for item in sources)
     assert all(item["official_url"].startswith("https://") for item in sources)
@@ -54,12 +54,12 @@ def test_candidate_schema_rejects_jurisdiction_and_undocumented_fields():
 def test_candidate_registration_is_idempotent_and_cannot_promote(client):
     factory = client.app.state.session_factory
     with factory.begin() as db:
-        assert register_candidates(db) == 4
+        assert register_candidates(db) == len(candidate_sources())
     with factory.begin() as db:
         assert register_candidates(db) == 0
     with factory() as db:
         sources = db.scalars(select(KnowledgeSource)).all()
-        assert len(sources) == 4
+        assert len(sources) == len(candidate_sources())
         assert all(s.status == "candidate" and not s.active_version_id
                    for s in sources)
 
