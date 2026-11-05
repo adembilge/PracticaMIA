@@ -150,6 +150,12 @@ def main():
         results.append(item)
         print(f"{name}: {item['verdict']} HTTP {status} "
               f"({item['elapsed_ms']} ms)", flush=True)
+        if "document_checks" in item:
+            print("  HTML structure: " + json.dumps(item["document_checks"]),
+                  flush=True)
+        if "security_headers" in item:
+            print("  Header presence: " + json.dumps(item["security_headers"]),
+                  flush=True)
     summary = {
         "utc": datetime.now(timezone.utc).isoformat(),
         "mode": "read_only_anonymous_get_no_rate_load",
