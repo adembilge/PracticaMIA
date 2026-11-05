@@ -31,9 +31,8 @@ def _safe_error(exc: Exception) -> str:
     message = str(exc)
     if isinstance(exc, ValueError):
         if "HTTP " in message:
-            return message.split("HTTP ", 1)[-1].split()[0].strip()[:3].join(
-                ["HTTP ", ""]
-            )
+            code = message.split("HTTP ", 1)[-1].split()[0][:3]
+            return "HTTP " + code if code.isdigit() else "HTTP_error"
         if "redirect" in message.lower():
             return "redirect_not_followed"
         if "media type" in message.lower():
