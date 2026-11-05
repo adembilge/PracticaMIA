@@ -102,11 +102,19 @@ test('production-mode HTTP: public demo pages work and assistant stays hidden', 
     assert.equal(unauthenticated.status, 503, 'API must fail closed without Auth0 config');
     const csrf = await fetch(origin + '/api/cases', { method: 'POST' });
     assert.equal(csrf.status, 403, 'missing Origin must fail the CSRF gate');
+    // Simulate a browser reaching "localhost" through the 127.0.0.1
+    // loopback socket. Host and Origin must be exactly consistent.
+    const browserOrigin = origin.replace('127.0.0.1', 'localhost');
+    const browserHost = new URL(browserOrigin).host;
     const safeCreate = await fetch(origin + '/api/cases', {
-      method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' },
+      method: 'POST', headers: {
+        Origin: browserOrigin, Host: browserHost,
+        'Content-Type': 'application/json',
+      },
       body: '{}',
     });
-    assert.equal(safeCreate.status, 503, 'no unauthenticated case creation');
+    assert.equal(safeCreate.status, 503,
+      'a correctly matched Host and Origin must reach the auth fail-closed gate');
   });
 });
 
@@ -127,8 +135,14 @@ test('preview-mode HTTP: interface renders but input and authentication gates ho
     });
     assert.equal(crossOrigin.status, 403, 'cross-origin request must fail');
 
+    const browserOrigin = origin.replace('127.0.0.1', 'localhost');
+    const browserHost = new URL(browserOrigin).host;
+    const sameOriginHeaders = {
+      Origin: browserOrigin, Host: browserHost,
+      'Content-Type': 'application/json',
+    };
     const badPayload = await fetch(endpoint, {
-      method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' },
+      method: 'POST', headers: sameOriginHeaders,
       body: JSON.stringify({ question: 'residenza', language: 'it',
         jurisdiction: 'IT-RM-ROMA' }),
     });
@@ -136,14 +150,14 @@ test('preview-mode HTTP: interface renders but input and authentication gates ho
 
     const unknown = await fetch(
       origin + '/api/cases/not-a-uuid/assistant/ask', {
-        method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' },
+        method: 'POST', headers: sameOriginHeaders,
         body: safePayload,
       },
     );
     assert.equal(unknown.status, 404, 'invalid case ID must fail');
 
     const noAuth = await fetch(endpoint, {
-      method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' },
+      method: 'POST', headers: sameOriginHeaders,
       body: safePayload,
     });
     assert.equal(noAuth.status, 503, 'preview cannot bypass absent Auth0 configuration');
