@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
 from app.knowledge.review_model import KnowledgeReviewEvent
+from app.knowledge.document_extraction import EXTRACTION_VERSIONS
 from app.knowledge.snapshot_model import KnowledgePassage, KnowledgeSnapshot
 from app.knowledge.snapshots import verify_snapshot
 
@@ -110,7 +111,7 @@ def trusted_active_version(
         and approved_event
         and snapshot is not None
         and snapshot.fetched_url == source.official_url
-        and snapshot.media_type in ("text/html", "application/xhtml+xml")
+        and snapshot.media_type in EXTRACTION_VERSIONS
         and verify_snapshot(db, version)
     )
     checked[version.id] = accepted

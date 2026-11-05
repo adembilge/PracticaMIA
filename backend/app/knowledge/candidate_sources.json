@@ -38,5 +38,115 @@
     "title": "Cambio residenza per stranieri già in Italia",
     "official_url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00597/Cambio-residenza-per-stranieri-gia-in-Italia",
     "document_type": "faq"
+  },
+  {
+    "id": "milano-italian-residence-change",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "document_type": "faq",
+    "title": "Cambio residenza per cittadine e cittadini italiani già in Italia",
+    "official_url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00371/"
+  },
+  {
+    "id": "milano-hospitality-consent",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "document_type": "faq",
+    "title": "Residenza presso ospite: assenso dell'affittuario o proprietario",
+    "official_url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00367/Residenza-per-italiani-ospiti-documenti-immobile"
+  },
+  {
+    "id": "milano-free-loan-home",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "document_type": "faq",
+    "title": "Residenza in comodato gratuito: documentazione immobile",
+    "official_url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00428/Residenza-in-comodato-gratuito-documenti-immobile"
+  },
+  {
+    "id": "milano-foreign-homeowner",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "document_type": "faq",
+    "title": "Residenza cittadino straniero proprietario: documenti immobile",
+    "official_url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00429/Residenza-stranieri-proprietari-documenti-immobile"
+  },
+  {
+    "id": "milano-valid-residence-permit",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "document_type": "faq",
+    "title": "Documenti per residenza con titolo di soggiorno valido",
+    "official_url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00598/"
+  },
+  {
+    "id": "milano-renewing-residence-permit",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "document_type": "faq",
+    "title": "Documenti per residenza con permesso di soggiorno in rinnovo",
+    "official_url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00370/Residenza-con-permesso-di-soggiorno-in-rinnovo"
+  },
+  {
+    "id": "milano-eu-not-working",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "document_type": "faq",
+    "title": "Documenti per residenza cittadino comunitario non lavoratore",
+    "official_url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00491/"
+  },
+  {
+    "id": "milano-residence-application-status",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "document_type": "faq",
+    "title": "Verifica stato pratica di residenza",
+    "official_url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00325/Verifica-stato-pratica-di-residenza"
+  },
+  {
+    "id": "milano-residence-form-allegato-1",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "title": "Dichiarazione di residenza — Allegato 1 (PDF)",
+    "official_url": "https://www.comune.milano.it/documents/20126/526597/dichiarazione%2Bdi%2Bresidenza.pdf/cb7c0558-d61b-1968-7143-b549f0ab337d",
+    "document_type": "official_document"
+  },
+  {
+    "id": "milano-residence-non-eu-allegato-a",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "title": "Dichiarazione di residenza — Allegato A, cittadini non UE (PDF)",
+    "official_url": "https://www.comune.milano.it/documents/20126/526418/documentazione_cittadini_extra_u.e2.pdf/ba348f98-86db-faaf-7a96-852530d4be73",
+    "document_type": "official_document"
+  },
+  {
+    "id": "milano-residence-eu-allegato-b",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "title": "Dichiarazione di residenza — Allegato B, cittadini UE (PDF)",
+    "official_url": "https://www.comune.milano.it/documents/20126/526418/documentazione_per_cittadini_u.e..pdf/59339837-24ec-09ac-3352-0bd9d9c97599",
+    "document_type": "official_document"
   }
 ]
