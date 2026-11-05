@@ -29,6 +29,7 @@ class KnowledgeSnapshot(Base):
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     extraction_version: Mapped[str] = mapped_column(String(24), nullable=False)
     raw_body: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    metadata_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     capture_method: Mapped[str] = mapped_column(
         String(32), nullable=False, default="original_http", server_default="original_http"
     )
