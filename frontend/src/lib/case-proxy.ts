@@ -17,7 +17,7 @@ export function rejectCrossOrigin(request: NextRequest) {
 }
 
 /** Never expose Auth0 API tokens to the browser. All backend requests run on the server. */
-export async function proxyCaseRequest(method: CaseMethod, path: string, payload?: unknown) {
+export async function proxyCaseRequest(method: CaseMethod, path: string, payload?: unknown, timeoutMs = 8000) {
   if (!auth0) return caseError('Service not configured', 503);
   const backend = backendOrigin(process.env.BACKEND_API_URL, process.env.NODE_ENV);
   if (!backend) return caseError('Service not configured', 503);
@@ -43,7 +43,7 @@ export async function proxyCaseRequest(method: CaseMethod, path: string, payload
       },
       ...(payload !== undefined ? { body: JSON.stringify(payload) } : {}),
       cache: 'no-store',
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     return new NextResponse(response.status === 204 ? null : await response.text(), {
       status: response.status,
