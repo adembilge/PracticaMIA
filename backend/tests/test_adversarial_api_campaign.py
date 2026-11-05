@@ -8,7 +8,6 @@ from itertools import product
 from uuid import uuid4
 
 import pytest
-import httpx
 
 from app.cases.scope import classify_scope
 
@@ -117,8 +116,11 @@ def test_path_object_and_injection_strings_never_expose_case_details(
 ):
     owner = auth_headers("alice")
     if unsafe_value == chr(0):
-        with pytest.raises(httpx.InvalidURL):
+        with pytest.raises(Exception) as failure:
             client.get(SCOPE_PATH + "/" + unsafe_value, headers=owner)
+        # Modern Starlette uses the independent httpx2 transport; catching
+        # only httpx.InvalidURL would miss its equivalent parser error.
+        assert type(failure.value).__name__ == "InvalidURL"
         return
     response = client.get(SCOPE_PATH + "/" + unsafe_value, headers=owner)
     assert response.status_code in (404, 422), response.text
