@@ -3,7 +3,7 @@
 Dry-run from backend/:
   python -m app.knowledge.ingest_source --source-id milano-residence-change --file original.html
 
-Only on an isolated migrated staging database, after inspecting the original:
+Only on an isolated migrated staging database (explicit staging marker required), after inspecting the original:
   python -m app.knowledge.ingest_source --source-id <registered-id> --file original.pdf --apply
 
 Live acquisition via --fetch is opt-in and refuses HTTP 403 and redirects.
@@ -22,6 +22,7 @@ from app.knowledge.document_extraction import (
 )
 from app.knowledge.model import KnowledgeSource
 from app.knowledge.snapshots import ingest_snapshot
+from app.knowledge.staging_guard import require_staging_database, require_staging_intent
 
 
 def _read_original_file(path: Path) -> tuple[bytes, str]:
@@ -76,9 +77,11 @@ def main() -> None:
     db_url = environ.get("DATABASE_URL")
     if not db_url:
         parser.error("DATABASE_URL is required with --apply")
+    require_staging_intent()
     engine, factory = configure_database(db_url)
     try:
         with factory.begin() as db:
+            require_staging_database(db)
             source = db.get(KnowledgeSource, args.source_id)
             if source is None:
                 raise ValueError("Register the candidate source before ingestion")
