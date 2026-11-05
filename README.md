@@ -22,7 +22,7 @@ PracticaMIA is an independent English–Italian administrative-guidance prototyp
 | Approved passage lexical search | Merged, production-disabled | PostgreSQL full-text ranking, jurisdiction/procedure filters, versioned citations and integrity gates |
 | Neon knowledge staging | Isolated, validated | Branch `staging-knowledge-0003-0006-2026-11-05` migrated to `0006`; 17 unapproved source URLs, one historical Allegato A snapshot pending review, zero approved sources |
 | Official knowledge and rules | Research draft | No approved production eligibility rules or authoritative personalized checklist |
-| LangChain/RAG | Not implemented | Planned citation-grounded LangChain retrieval and generation, without LangGraph orchestration |
+| LangChain/RAG foundation | Development code, disabled in production | Approved-only pgvector hybrid retrieval and LangChain two-step answer tests; no public RAG endpoint or configured model |
 | Documents and submission | Not implemented | No real personal data, document uploads, ANPR login or government submission |
 
 The current scope check is **only a synthetic product filter**, not a determination of legal eligibility. Do not enter real names, addresses, identity documents, or SPID/CIE credentials.
@@ -96,6 +96,7 @@ Review the Vercel preview deployment before merging. The saved-case milestone an
 - [Knowledge review and audit workflow](docs/KNOWLEDGE_REVIEW_WORKFLOW.md)
 - [Approved passage lexical search](docs/APPROVED_PASSAGE_SEARCH.md)
 - [Synthetic retrieval evaluation and quality gates](docs/RETRIEVAL_EVALUATION.md)
+- [LangChain + pgvector development foundation](docs/LANGCHAIN_PGVECTOR_FOUNDATION.md)
 - [Knowledge staging migration and source acquisition report](docs/KNOWLEDGE_STAGING_ROLLOUT.md)
 - [Milan official-source acquisition inventory (17 unapproved candidates)](docs/MILAN_OFFICIAL_SOURCE_ACQUISITION.md)
 - [Manual PDF and HTML source ingestion](docs/PDF_SOURCE_INGESTION.md)
@@ -105,6 +106,6 @@ Review the Vercel preview deployment before merging. The saved-case milestone an
 - [Milan residence-change research](research/milan_residence_change.md)
 - [Complete original project specification](PracticaMIA_Complete_Project_Specification.md)
 
-Production Neon is intentionally at migration `20261104_0002`; a separate staging branch has migrated to `20261105_0006`. The backend's Production and staging Preview `DATABASE_URL` variables are now separated; staging credentials are restricted to the trusted `feature/knowledge-staging-rollout` preview branch, so other previews receive no database URL. The original specification's 94-task roadmap is reference material, **not** the current completion status. Next milestones are authentic reviewed-source acquisition, representative retrieval relevance evaluation (a synthetic lexical regression benchmark now exists), vector embeddings and hybrid fusion, deterministic administrative rules, and LangChain RAG. Security work still includes live multi-user isolation checks, audit/retention policies, rate limiting, monitoring and backups.
+Production Neon is intentionally at migration `20261104_0002`; a separate staging branch has migrated to `20261105_0006`. The backend's Production and staging Preview `DATABASE_URL` variables are now separated; staging credentials are restricted to the trusted `feature/knowledge-staging-rollout` preview branch, so other previews receive no database URL. The original specification's 94-task roadmap is reference material, **not** the current completion status. Next milestones are authentic reviewed-source acquisition, representative hybrid retrieval evaluation, controlled embedding-model selection, deterministic administrative rules, and an authenticated, evidence-gated LangChain RAG endpoint. Security work still includes live multi-user isolation checks, audit/retention policies, rate limiting, monitoring and backups.
 
 **PracticaMIA does not represent or act on behalf of a municipality or the Italian government.**
