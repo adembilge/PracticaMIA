@@ -109,7 +109,7 @@ def ask_case_question(
             citation_id=item.citation_id, source_id=item.source_id,
             source_version_id=item.source_version_id, title=item.title,
             official_url=item.official_url, section_path=item.section_path,
-            excerpt=item.content[:600],
+            excerpt=item.content[:1200],
         )
         for item in passages
     ]
