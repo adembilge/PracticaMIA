@@ -1,6 +1,6 @@
 # Approved passage lexical retrieval — milestone 50.4 foundation
 
-**Status:** Feature PR. Backend-only search and citation resolution. No AI-generated legal guidance, embeddings or production knowledge rollout.
+**Status:** Merged backend-only search and citation resolution. Production feature remains disabled. No AI-generated legal guidance, embeddings or production knowledge rollout.
 
 ## Contract
 
@@ -82,4 +82,4 @@ Production Neon remains at `20261104_0002`. A separate staging Neon branch was m
 5. Test `401`, `insufficient_evidence`, scope mismatch, citation resolution, revocation and source-change invalidation.
 6. Enable no user-facing AI guidance until source provenance and relevance fixtures have been reviewed.
 
-**Next:** Retrieval evaluation fixtures (MRR, Recall@K, citation correctness), embeddings/pgvector hybrid fusion, explicit freshness policies and deterministic administrative rules, followed by a bounded LangGraph agent.
+**Next:** A synthetic retrieval benchmark now covers Recall@K, MRR, abstention and citation resolution (see [Retrieval Evaluation](RETRIEVAL_EVALUATION.md)). Human-reviewed real-source benchmarks, embeddings/pgvector hybrid fusion, explicit freshness policies and deterministic administrative rules are still required before a bounded LangGraph agent.
