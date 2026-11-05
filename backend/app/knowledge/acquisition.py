@@ -1,14 +1,14 @@
-"""Manual one-source acquisition from a fixed official-host allowlist.
+"""Conservative single-URL acquisition from explicitly approved official hosts.
 
-No user-facing endpoint, crawling, redirects, external proxy variables or
-automatic retries. Use only when source terms and access rules permit it.
+No crawling, proxy configuration, redirect following, retries or login bypass.
+An HTTP block remains a block; only original response bytes are admissible.
 """
 from urllib.parse import urlsplit
 
 import httpx
 
 from app.knowledge.catalog import ALLOWED_HOSTS
-from app.knowledge.html_extraction import MAX_HTML_BYTES
+from app.knowledge.document_extraction import MEDIA_LIMITS
 
 MEDIA_TYPES = frozenset({"text/html", "application/xhtml+xml"})
 
@@ -21,15 +21,7 @@ def validate_official_url(url: str) -> None:
         raise ValueError("Source URL must use an approved official HTTPS host")
 
 
-def _media_type(value: str) -> str:
-    media = value.split(";", 1)[0].strip().lower()
-    if media not in MEDIA_TYPES:
-        raise ValueError("Only HTML pages are supported in this milestone")
-    return media
-
-
-def fetch_official_html(url: str, *, transport=None) -> tuple[bytes, str]:
-    """Fetch a single registered HTML URL. Refuse every HTTP redirect."""
+def _fetch(url: str, *, transport=None, allowed: frozenset[str]) -> tuple[bytes, str]:
     validate_official_url(url)
     with httpx.Client(
         follow_redirects=False,
@@ -38,7 +30,7 @@ def fetch_official_html(url: str, *, transport=None) -> tuple[bytes, str]:
         transport=transport,
         headers={
             "User-Agent": "PracticaMIA-Research/0.1 (manual, one URL)",
-            "Accept": "text/html, application/xhtml+xml",
+            "Accept": ", ".join(sorted(allowed)),
         },
     ) as client:
         with client.stream("GET", url) as response:
@@ -48,21 +40,35 @@ def fetch_official_html(url: str, *, transport=None) -> tuple[bytes, str]:
                 raise ValueError(f"Source retrieval failed with HTTP {response.status_code}")
             if str(response.url) != url:
                 raise ValueError("Fetched URL does not match registered source")
-            media = _media_type(response.headers.get("content-type", ""))
+            media = response.headers.get("content-type", "").split(";", 1)[0].strip().lower()
+            if media not in allowed:
+                raise ValueError("Official source returned an unsupported media type")
+            limit = MEDIA_LIMITS[media]
             header_size = response.headers.get("content-length")
             if header_size:
                 try:
-                    if int(header_size) > MAX_HTML_BYTES:
-                        raise ValueError("HTML response exceeds size limit")
+                    size = int(header_size)
                 except ValueError as exc:
-                    raise ValueError("Invalid or oversized Content-Length") from exc
+                    raise ValueError("Invalid Content-Length") from exc
+                if size < 0 or size > limit:
+                    raise ValueError("Official source response exceeds size limit")
             parts, length = [], 0
             for chunk in response.iter_bytes(chunk_size=16384):
                 length += len(chunk)
-                if length > MAX_HTML_BYTES:
-                    raise ValueError("HTML response exceeds size limit")
+                if length > limit:
+                    raise ValueError("Official source response exceeds size limit")
                 parts.append(chunk)
             raw = b"".join(parts)
     if not raw:
-        raise ValueError("Official HTML response is empty")
+        raise ValueError("Official source response is empty")
     return raw, media
+
+
+def fetch_official_html(url: str, *, transport=None) -> tuple[bytes, str]:
+    """Backwards-compatible strict HTML-only acquisition."""
+    return _fetch(url, transport=transport, allowed=MEDIA_TYPES)
+
+
+def fetch_official_document(url: str, *, transport=None) -> tuple[bytes, str]:
+    """Fetch only HTML or PDF, preserving original bytes; no redirect fallback."""
+    return _fetch(url, transport=transport, allowed=frozenset(MEDIA_LIMITS))
