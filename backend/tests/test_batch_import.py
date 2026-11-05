@@ -38,9 +38,11 @@ def test_queue_has_exact_registered_sources_and_explicit_unreviewed_status():
 
 
 def test_prepare_offline_bytes_and_save_only_pending_review(tmp_path, client):
-    _file(tmp_path)
-    _file(tmp_path, source=B, content=ORIGINAL.replace(b"residenza", b"indirizzo"))
-    originals = prepare_directory(tmp_path)
+    originals_dir = tmp_path / "originals"
+    originals_dir.mkdir()
+    _file(originals_dir)
+    _file(originals_dir, source=B, content=ORIGINAL.replace(b"residenza", b"indirizzo"))
+    originals = prepare_directory(originals_dir)
     assert [o.source_id for o in originals] == [B, A]  # deterministic filename order
     assert all(o.media_type == "text/html" for o in originals)
     assert originals[1].sha256 == sha256(ORIGINAL).hexdigest()
@@ -105,9 +107,11 @@ def test_preparation_rejects_unknown_duplicates_symlinks_and_wrong_media(tmp_pat
 
 
 def test_batch_rolls_back_when_a_source_id_is_missing(tmp_path, client):
-    _file(tmp_path)
-    _file(tmp_path, source=B)
-    originals = prepare_directory(tmp_path)
+    originals_dir = tmp_path / "originals"
+    originals_dir.mkdir()
+    _file(originals_dir)
+    _file(originals_dir, source=B)
+    originals = prepare_directory(originals_dir)
     factory = client.app.state.session_factory
     with factory.begin() as db:
         register_candidates(db)
@@ -120,8 +124,10 @@ def test_batch_rolls_back_when_a_source_id_is_missing(tmp_path, client):
 
 
 def test_database_url_mismatch_rejects_entire_batch(tmp_path, client):
-    _file(tmp_path)
-    originals = prepare_directory(tmp_path)
+    originals_dir = tmp_path / "originals"
+    originals_dir.mkdir()
+    _file(originals_dir)
+    originals = prepare_directory(originals_dir)
     factory = client.app.state.session_factory
     with factory.begin() as db:
         register_candidates(db)
@@ -136,7 +142,9 @@ def test_database_url_mismatch_rejects_entire_batch(tmp_path, client):
 
 
 def test_empty_directory_never_ingests(tmp_path, client):
-    assert prepare_directory(tmp_path) == ()
+    originals_dir = tmp_path / "originals"
+    originals_dir.mkdir()
+    assert prepare_directory(originals_dir) == ()
     with pytest.raises(ValueError, match="No original"):
         with client.app.state.session_factory.begin() as db:
             ingest_prepared(db, ())
