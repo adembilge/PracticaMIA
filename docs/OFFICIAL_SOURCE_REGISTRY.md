@@ -34,7 +34,7 @@ A source is **never** eligible for trusted retrieval unless:
 4. both `reviewed_at` and `reviewed_by` are set;
 5. the snapshot hash is a lowercase 64-character SHA-256 digest.
 
-The registry has **no** user-facing approval operation and no automatic activation. The follow-up [controlled HTML snapshots](CONTROLLED_SOURCE_SNAPSHOTS.md) PR adds raw snapshot storage, hashing, extraction and provenance-preserving passages, but they remain unreviewed; reviewer authentication and final source approval are future work.
+The registry still has no public/user-facing approval operation or automatic activation. The follow-up [controlled HTML snapshots](CONTROLLED_SOURCE_SNAPSHOTS.md) PR adds raw snapshot storage, hashing, extraction and provenance-preserving passages, but they remain unreviewed; reviewer authentication and final source approval are future work.
 
 ## Safe migration / rollout
 
@@ -68,7 +68,7 @@ The feature flag defaults to **off**. Merging this code alone does not require a
 ## Next work
 
 1. Review and merge controlled manual HTML acquisition, versioned snapshots and passage extraction (milestone 45.1–45.3). PDF support is not part of that milestone.
-2. Create a reviewer-only approve/revoke workflow with audit records and stale-source invalidation.
+2. Review and merge the [reviewer-only approval and audit workflow](KNOWLEDGE_REVIEW_WORKFLOW.md), including exact-hash human approval and revocation.
 4. Implement approved-passage indexing and hybrid lexical/vector retrieval, with deterministic tests.
 5. Establish linked, human-reviewed administrative rules and citation resolution; only then connect the knowledge tool to LangGraph.
 

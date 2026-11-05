@@ -17,7 +17,8 @@ PracticaMIA is an independent English–Italian administrative-guidance prototyp
 | Frontend–backend bridge | Deployed | Same-origin Next.js routes fetch Auth0 access tokens server-side; browser never receives API tokens |
 | Saved-case workspace | Implemented and deployed | Link to a saved case, answer five synthetic scope questions, save/resume, edit and delete |
 | Official-source registry | Merged, disabled pending migration | Versioned municipal source candidates, approval-gated read API; no approved evidence yet |
-| Official HTML snapshots | Feature PR pending review | Controlled acquisition, immutable-intended source versions, hash-linked passages; not yet production-enabled |
+| Official HTML snapshots | Merged, not production-migrated | Controlled HTML acquisition, versioned snapshots and hash-linked passages |
+| Reviewer-only source approval | Feature PR pending review | Verified reviewer allowlist, hash-confirmed approval/revocation and append-only audit records |
 | Official knowledge and rules | Research draft | No approved production eligibility rules or authoritative personalized checklist |
 | LangGraph/RAG | Not implemented | Planned bounded agent and reviewed-source retrieval |
 | Documents and submission | Not implemented | No real personal data, document uploads, ANPR login or government submission |
@@ -90,10 +91,11 @@ Review the Vercel preview deployment before merging. The saved-case milestone an
 - [Case workspace milestone](docs/CASE_WORKSPACE.md)
 - [Official-source registry design](docs/OFFICIAL_SOURCE_REGISTRY.md)
 - [Controlled official HTML snapshots](docs/CONTROLLED_SOURCE_SNAPSHOTS.md)
+- [Knowledge review and audit workflow](docs/KNOWLEDGE_REVIEW_WORKFLOW.md)
 - [Development workflow](docs/DEVELOPMENT_WORKFLOW.md)
 - [Milan residence-change research](research/milan_residence_change.md)
 - [Complete original project specification](PracticaMIA_Complete_Project_Specification.md)
 
-The original specification's 94-task roadmap is reference material, **not** the current completion status. Next milestones are a reviewer-authenticated source approval workflow, review-filtered retrieval and embeddings, deterministic requirements, LangGraph orchestration, and reviewed application preparation. Security work still includes live multi-user isolation checks, audit/retention policies, rate limiting, monitoring and backups.
+The original specification's 94-task roadmap is reference material, **not** the current completion status. Next milestones are production rollout of reviewed sources, approved-passage retrieval and evaluations, deterministic rules, LangGraph orchestration, and reviewed application preparation. Security work still includes live multi-user isolation checks, audit/retention policies, rate limiting, monitoring and backups.
 
 **PracticaMIA does not represent or act on behalf of a municipality or the Italian government.**

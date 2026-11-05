@@ -76,8 +76,14 @@ A new read-only, authenticated knowledge catalog is staged behind `ENABLE_KNOWLE
 
 After the migration has been reviewed and applied in the target database, source candidates can be validated with `python -m app.knowledge.seed_candidates` or inserted with explicit `--apply`. Import only creates pending candidate metadata; it never activates an approved source. Once the schema exists, enabling `ENABLE_KNOWLEDGE_CATALOG_API=1` exposes `GET /api/v1/knowledge/sources` to authenticated callers; an empty, unreviewed registry deliberately returns `insufficient_evidence`.
 
-## Controlled official HTML snapshots (feature PR)
+## Controlled official HTML snapshots (merged foundation)
 
-The pending source ingestion milestone adds revision `20261105_0004` with two additional tables for bounded HTML snapshots and exact-offset, content-hashed passages. No automated crawling, approval, or public ingest API is enabled. `httpx` supports explicit operator-only single-URL fetching with HTTPS host allowlisting and redirect refusal. A changed source is returned to `candidate` state and its active approval is cleared until separately reviewed.
+The source ingestion milestone adds revision `20261105_0004` with two additional tables for bounded HTML snapshots and exact-offset, content-hashed passages. No automated crawling, approval, or public ingest API is enabled. `httpx` supports explicit operator-only single-URL fetching with HTTPS host allowlisting and redirect refusal. A changed source is returned to `candidate` state and its active approval is cleared until separately reviewed.
 
 See [controlled source snapshots](../docs/CONTROLLED_SOURCE_SNAPSHOTS.md) for dry-run commands, a local HTML ingestion example, security boundaries and migration prerequisites. Production Neon is currently at migration `20261104_0002`; PRs 9 and the snapshot PR require separate review of additive migrations `0003` and `0004` before any knowledge-API flag is enabled.
+
+## Reviewer-only knowledge source approval (feature PR)
+
+Milestone 45.4 adds authenticated reviewer operations and append-only audit events. The review API is **disabled by default** and requires `ENABLE_KNOWLEDGE_REVIEW_API=1`, `ENABLE_KNOWLEDGE_CATALOG_API=1`, and a non-empty server-side `KNOWLEDGE_REVIEWER_SUBJECTS` allowlist of exact Auth0 subject IDs. Requests must use valid bearer access tokens; normal signed-in users are **not** reviewers. See [reviewer permissions, approvals and audit](../docs/KNOWLEDGE_REVIEW_WORKFLOW.md).
+
+New additive migration: `20261105_0005`, on top of `20261105_0004`. No reviewer API or knowledge source is activated by merging. Do **not** apply production migrations or enable flags without reviewing backups, database target and source provenance. A hash-matched reviewed snapshot can be approved or revoked atomically, with a recorded actor and reason. Source changes invalidate active approval and append a system audit event.
