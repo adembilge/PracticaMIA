@@ -198,6 +198,119 @@ def revoke(
     )
 
 
+class BrowserQueueItem(BaseModel):
+    source_id: str
+    title: str
+    version_id: str
+    content_sha256: str
+    official_url: str
+    observed_url: str
+    observed_last_updated: str
+    captured_text_preview: str
+    integrity_verified: bool
+
+
+class BrowserBatchApprovalItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source_id: str = Field(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$", max_length=96)
+    version_id: UUID
+    expected_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class BrowserBatchDecision(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[BrowserBatchApprovalItem] = Field(min_length=1, max_length=15)
+    review_note: str = Field(min_length=30, max_length=500)
+    confirmed_source_review: bool
+
+
+@router.get("/browser-queue", response_model=list[BrowserQueueItem])
+def browser_review_queue(
+    db: Session = Depends(get_session),
+) -> list[BrowserQueueItem]:
+    """Reviewer-only mobile-friendly summaries; no PDF can appear here."""
+    rows = db.execute(
+        select(KnowledgeSource, KnowledgeSourceVersion, KnowledgeSnapshot)
+        .join(KnowledgeSourceVersion,
+              KnowledgeSource.id == KnowledgeSourceVersion.source_id)
+        .join(KnowledgeSnapshot,
+              KnowledgeSnapshot.version_id == KnowledgeSourceVersion.id)
+        .where(KnowledgeSource.status == "candidate")
+        .where(KnowledgeSourceVersion.status == "pending_review")
+        .where(KnowledgeSnapshot.capture_method == "browser_rendered_text")
+        .order_by(KnowledgeSource.title.asc(), KnowledgeSourceVersion.id.asc())
+        .limit(50)
+    ).all()
+    return [
+        BrowserQueueItem(
+            source_id=source.id, title=source.title,
+            version_id=version.id, content_sha256=version.content_sha256,
+            official_url=source.official_url,
+            observed_url=snapshot.observed_url or "",
+            observed_last_updated=snapshot.observed_last_updated or "",
+            captured_text_preview=snapshot.normalized_text[:500],
+            integrity_verified=verify_snapshot(db, version),
+        )
+        for source, version, snapshot in rows
+    ]
+
+
+@router.post(
+    "/approve-browser-batch", response_model=list[ReviewDecisionResponse],
+)
+def approve_browser_batch(
+    payload: BrowserBatchDecision,
+    request: Request,
+    principal: Principal = Depends(require_reviewer),
+    db: Session = Depends(get_session),
+) -> list[ReviewDecisionResponse]:
+    """Atomic reviewer-authenticated approval for explicitly examined articles.
+
+    Only available in preview/development, never production; requires the
+    same verified JWT and server-side reviewer allowlist as individual review.
+    Does not allow historical PDF versions or uninspected source substitutions.
+    A failed version/hash leaves ALL earlier approvals rolled back.
+    """
+    if request.app.state.settings.deployment_environment == "production":
+        raise HTTPException(404, "Not found")
+    if not payload.confirmed_source_review:
+        raise HTTPException(422, "Explicit source review attestation required")
+    if len(payload.review_note.strip()) < 30:
+        raise HTTPException(422, "A meaningful review note is required")
+    source_ids = [item.source_id for item in payload.items]
+    version_ids = [str(item.version_id) for item in payload.items]
+    if len(set(source_ids)) != len(source_ids) or len(set(version_ids)) != len(version_ids):
+        raise HTTPException(422, "Duplicate source or version in approval batch")
+
+    try:
+        with db.begin():
+            results = []
+            # Lock in stable source-ID order and approve within one transaction.
+            for item in sorted(payload.items, key=lambda x: x.source_id):
+                version = db.get(KnowledgeSourceVersion, str(item.version_id))
+                if version is None or version.source_id != item.source_id:
+                    raise ReviewNotFound()
+                snapshot = db.get(KnowledgeSnapshot, version.id)
+                if (snapshot is None or snapshot.capture_method != "browser_rendered_text"
+                        or snapshot.media_type != "text/plain"
+                        or snapshot.observed_last_updated is None):
+                    raise ReviewConflict("Batch review accepts browser article text only")
+                result = approve_version(
+                    db, version_id=version.id,
+                    expected_digest=item.expected_sha256,
+                    actor_subject=principal.subject,
+                    reason="Batch browser-source review: " + payload.review_note.strip(),
+                )
+                results.append(ReviewDecisionResponse(**result.__dict__))
+    except ReviewNotFound:
+        raise HTTPException(404, "Source version not found") from None
+    except ReviewConflict as exc:
+        raise HTTPException(409, str(exc)) from None
+    return results
+
+
 @router.get("/sources/{source_id}/history", response_model=list[AuditEventView])
 def review_history(
     source_id: str = Path(pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$", max_length=96),
