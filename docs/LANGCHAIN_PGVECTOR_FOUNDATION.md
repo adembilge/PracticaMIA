@@ -93,6 +93,16 @@ guidance or production-quality embeddings.
 - No actual embeddings have been generated for the existing approved
   knowledge base, which is still empty.
 
+## Verified isolated staging rollout (5 November 2026)
+
+After PR #18 was merged, the PostgreSQL-only migration `20261105_0007`
+was applied transactionally to Neon staging
+`staging-knowledge-0003-0006-2026-11-05` (the existing branch name is
+unchanged). Direct read-only verification confirmed pgvector **0.8.0**,
+`ix_knowledge_embedding_cosine`, one `pending_review` original PDF
+version with three extracted passages, **zero approved versions** and
+**zero embeddings**. Production remains on `20261104_0002`.
+
 ## Validation
 
 GitHub Actions uses a disposable `pgvector/pgvector:pg17` PostgreSQL
@@ -104,7 +114,7 @@ invariants, **not** retrieval accuracy on real Milan government documents.
 ## Rollout sequence
 
 1. Merge only after backend/frontend CI and Vercel previews pass.
-2. Apply migration `20261105_0007` to **isolated staging** first. Do not
+2. Migration `20261105_0007` has been applied to **isolated staging**. Do not
    update production schema in this release.
 3. Obtain and independently approve current government evidence; maintain
    exclusion for the historic 2013 PDF.
