@@ -10,6 +10,7 @@ from app.cases import model  # noqa: F401 - register the table on Base.metadata
 from app.knowledge import model as knowledge_model  # noqa: F401 - registry tables
 from app.knowledge import snapshot_model  # noqa: F401 - snapshot and passage tables
 from app.knowledge import review_model  # noqa: F401 - source review audit records
+from app.knowledge import usage_model  # noqa: F401 - daily AI usage accounting
 
 config = context.config
 if config.config_file_name is not None:
