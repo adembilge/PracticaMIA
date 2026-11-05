@@ -101,7 +101,7 @@ was applied transactionally to Neon staging
 unchanged). Direct read-only verification confirmed pgvector **0.8.0**,
 `ix_knowledge_embedding_cosine`, one `pending_review` original PDF
 version with three extracted passages, **zero approved versions** and
-**zero embeddings**. Production remains on `20261104_0002`.
+**zero embeddings**. Production remains on `20261104_0002`. A subsequent audited change applied migration `20261105_0008` to the same isolated staging branch for a shared, pseudonymous assistant model-call quota; no source approvals or embeddings were added.
 
 ## Validation
 
