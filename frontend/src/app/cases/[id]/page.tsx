@@ -1,5 +1,6 @@
 import { auth0 } from '@/lib/auth0';
 import { backendOrigin } from '@/lib/auth-configuration.js';
+import { assistantPreviewEnabled } from '@/lib/assistant-preview.js';
 import { SavedCaseWorkspace } from '@/components/SavedCaseWorkspace';
 
 export const dynamic = 'force-dynamic';
@@ -10,6 +11,7 @@ export default async function SavedCasePage({ params }: { params: Promise<{ id: 
   return <SavedCaseWorkspace
     caseId={id}
     signedIn={Boolean(session)}
+    assistantEnabled={assistantPreviewEnabled(process.env)}
     configured={Boolean(auth0 && backendOrigin(process.env.BACKEND_API_URL, process.env.NODE_ENV))}
   />;
 }

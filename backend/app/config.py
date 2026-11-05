@@ -10,6 +10,10 @@ class Settings:
     enable_knowledge_catalog_api: bool = False
     enable_knowledge_review_api: bool = False
     enable_knowledge_search_api: bool = False
+    enable_assistant_api: bool = False
+    deployment_environment: str = ""
+    assistant_chat_model: str = ""
+    assistant_openai_api_key: str = ""
     knowledge_reviewer_subjects: frozenset[str] = frozenset()
     auth_issuer: str = ""
     auth_audience: str = ""
@@ -27,6 +31,11 @@ class Settings:
             in {"1", "true", "yes"},
             enable_knowledge_search_api=environ.get("ENABLE_KNOWLEDGE_SEARCH_API", "").lower()
             in {"1", "true", "yes"},
+            enable_assistant_api=environ.get("ENABLE_ASSISTANT_API", "").lower()
+            in {"1", "true", "yes"},
+            deployment_environment=environ.get("VERCEL_ENV", ""),
+            assistant_chat_model=environ.get("ASSISTANT_CHAT_MODEL", "").strip(),
+            assistant_openai_api_key=environ.get("OPENAI_API_KEY", ""),
             knowledge_reviewer_subjects=frozenset(
                 value.strip()
                 for value in environ.get("KNOWLEDGE_REVIEWER_SUBJECTS", "").split(",")

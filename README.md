@@ -23,6 +23,7 @@ PracticaMIA is an independent English–Italian administrative-guidance prototyp
 | Neon knowledge staging | Isolated, validated | Branch `staging-knowledge-0003-0006-2026-11-05` migrated to `0007` with pgvector 0.8.0; 17 source candidates, one historical PDF pending review, zero approved sources or embeddings |
 | Official knowledge and rules | Research draft | No approved production eligibility rules or authoritative personalized checklist |
 | LangChain/RAG foundation | Development code, disabled in production | Approved-only pgvector hybrid retrieval and LangChain two-step answer tests; no public RAG endpoint or configured model |
+| Authenticated assistant Q&A preview | Implemented, disabled by default | Case-bound FastAPI route and Next.js preview UI; requires verified evidence and explicit feature flags; no model configured |
 | Documents and submission | Not implemented | No real personal data, document uploads, ANPR login or government submission |
 
 The current scope check is **only a synthetic product filter**, not a determination of legal eligibility. Do not enter real names, addresses, identity documents, or SPID/CIE credentials.
@@ -97,6 +98,7 @@ Review the Vercel preview deployment before merging. The saved-case milestone an
 - [Approved passage lexical search](docs/APPROVED_PASSAGE_SEARCH.md)
 - [Synthetic retrieval evaluation and quality gates](docs/RETRIEVAL_EVALUATION.md)
 - [LangChain + pgvector development foundation](docs/LANGCHAIN_PGVECTOR_FOUNDATION.md)
+- [Authenticated RAG Q&A preview, controls and release gates](docs/AUTHENTICATED_RAG_PREVIEW.md)
 - [Knowledge staging migration and source acquisition report](docs/KNOWLEDGE_STAGING_ROLLOUT.md)
 - [Milan official-source acquisition inventory (17 unapproved candidates)](docs/MILAN_OFFICIAL_SOURCE_ACQUISITION.md)
 - [Manual PDF and HTML source ingestion](docs/PDF_SOURCE_INGESTION.md)
