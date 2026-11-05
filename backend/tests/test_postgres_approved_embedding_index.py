@@ -12,7 +12,6 @@ from sqlalchemy.orm import sessionmaker
 from app.knowledge.approved_embedding_index import (
     MODEL_ID, plan_approved_unindexed, prepare_vectors, save_vectors,
 )
-from app.knowledge.catalog import register_candidates
 from app.knowledge.model import KnowledgeSource
 from app.knowledge.review_service import approve_version, revoke_version
 from app.knowledge.snapshots import ingest_snapshot
@@ -28,6 +27,21 @@ SCOPE = {
     "procedure_id": "milan_residence_change",
     "language": "it",
 }
+
+
+def synthetic_source(db, suffix):
+    source_id = "ci-approved-vector-" + suffix
+    source = KnowledgeSource(
+        id=source_id, institution="Synthetic CI municipality fixture",
+        jurisdiction=SCOPE["jurisdiction"], procedure_id=SCOPE["procedure_id"],
+        language=SCOPE["language"],
+        title="Synthetic document for approved-only indexing",
+        official_url="https://www.comune.milano.it/servizi/anagrafe/" + source_id,
+        document_type="service_page", status="candidate",
+    )
+    db.add(source)
+    db.flush()
+    return source
 
 
 class FakeEmbeddingProvider:
@@ -46,10 +60,7 @@ def test_approved_only_plan_vector_index_and_revocation():
             sessions = sessionmaker(bind=conn, expire_on_commit=False)
             try:
                 with sessions.begin() as db:
-                    register_candidates(db)
-                    source = db.get(
-                        KnowledgeSource, "milano-residence-change",
-                    )
+                    source = synthetic_source(db, "first")
                     fixture = ingest_snapshot(
                         db, source,
                         b"<main><p>Synthetic source: reviewed passage for vector lookup.</p></main>",
@@ -67,7 +78,7 @@ def test_approved_only_plan_vector_index_and_revocation():
                 with sessions() as db:
                     tasks = plan_approved_unindexed(db)
                     assert len(tasks) == 1
-                    assert tasks[0].source_id == "milano-residence-change"
+                    assert tasks[0].source_id == "ci-approved-vector-first"
                     assert tasks[0].citation_id == fixture.version_id + ":0000"
                     with pytest.raises(ValueError, match="budget"):
                         plan_approved_unindexed(db, max_passages=0)
@@ -119,8 +130,7 @@ def test_provider_vectors_are_withheld_if_approval_is_revoked_during_call():
             sessions = sessionmaker(bind=conn, expire_on_commit=False)
             try:
                 with sessions.begin() as db:
-                    register_candidates(db)
-                    source = db.get(KnowledgeSource, "milano-residence-minor-documents")
+                    source = synthetic_source(db, "second")
                     doc = ingest_snapshot(
                         db, source,
                         b"<main><p>Invented synthetic passage before revocation.</p></main>",
