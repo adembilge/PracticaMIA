@@ -14,6 +14,7 @@ from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
 from app.knowledge.review_model import KnowledgeReviewEvent
 from app.knowledge.html_extraction import extract_html, EXTRACTION_VERSION
 from app.knowledge.snapshot_model import KnowledgeSnapshot, KnowledgePassage
+from app.knowledge.provenance_digest import metadata_sha256
 from hashlib import sha256
 from app.main import create_app
 from conftest import AUDIENCE, ISSUER, JWKS_URL
@@ -94,7 +95,12 @@ def test_only_approved_active_hash_bound_versions_are_visible(client, auth_heade
         db.add(KnowledgeSnapshot(version_id=vid, fetched_url=source.official_url,
                                  media_type="text/html", size_bytes=len(html),
                                  extraction_version=EXTRACTION_VERSION,
-                                 raw_body=html, normalized_text=extracted.normalized_text))
+                                 raw_body=html, normalized_text=extracted.normalized_text,
+                                 metadata_sha256=metadata_sha256(
+                                     fetched_url=source.official_url,
+                                     media_type="text/html",
+                                     capture_method="original_http",
+                                 )))
         for passage in extracted.passages:
             db.add(KnowledgePassage(id=f"{vid}:{passage.ordinal:04d}", version_id=vid,
                                     ordinal=passage.ordinal, section_path=passage.section_path,
