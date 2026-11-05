@@ -222,7 +222,7 @@ class BrowserBatchDecision(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     items: list[BrowserBatchApprovalItem] = Field(min_length=1, max_length=15)
-    review_note: str = Field(min_length=30, max_length=500)
+    review_note: str = Field(min_length=30, max_length=450)
     confirmed_source_review: bool
 
 
