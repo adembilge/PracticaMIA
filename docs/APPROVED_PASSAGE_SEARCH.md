@@ -73,7 +73,7 @@ A bounded, exact-token **SQLite fallback** exists solely for isolated unit tests
 
 ## Deployment and acceptance
 
-Production Neon is currently at `20261104_0002`, and existing knowledge flags remain disabled. **Merging this code is not permission to migrate or enable the knowledge API.**
+Production Neon remains at `20261104_0002`. A separate staging Neon branch was migrated to `20261105_0006` and has four pending candidate records. Production knowledge flags remain disabled. **Merging this code is not permission to migrate or enable the knowledge API.**
 
 1. Review the PR and CI results.
 2. Confirm Neon backup/restore, create a disposable branch and test migrations `0003` through `0006`.
