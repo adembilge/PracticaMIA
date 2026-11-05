@@ -19,6 +19,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         settings.enable_demo_case_api and settings.enable_knowledge_catalog_api
     ):
         raise ValueError("Knowledge search requires the authenticated knowledge catalog")
+    if settings.enable_assistant_api:
+        if settings.deployment_environment == "production":
+            raise ValueError("The RAG preview cannot be enabled in production")
+        if not (settings.enable_demo_case_api and settings.enable_knowledge_catalog_api
+                and settings.enable_knowledge_search_api):
+            raise ValueError("Assistant requires authenticated case and knowledge search APIs")
     if settings.enable_knowledge_review_api:
         if not settings.enable_knowledge_catalog_api or not settings.enable_demo_case_api:
             raise ValueError("Knowledge review requires the authenticated knowledge catalog")
@@ -48,6 +54,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if settings.enable_knowledge_search_api:
                 from app.knowledge.search_router import router as search_router
                 api.include_router(search_router)
+            if settings.enable_assistant_api:
+                from app.knowledge.assistant_router import router as assistant_router
+                api.include_router(assistant_router)
             if settings.enable_knowledge_review_api:
                 from app.knowledge.review_router import router as review_router
                 api.include_router(review_router)
