@@ -39,13 +39,13 @@ def test_pgvector_approved_only_semantic_hybrid_and_revocation():
     engine = create_engine(os.environ["DATABASE_URL"])
     try:
         with engine.connect() as conn:
+            trans = conn.begin()
             assert conn.execute(text(
                 "SELECT to_regclass('knowledge_passage_embeddings')"
             )).scalar() == "knowledge_passage_embeddings"
             assert conn.execute(text(
                 "SELECT to_regclass('ix_knowledge_embedding_cosine')"
             )).scalar() == "ix_knowledge_embedding_cosine"
-            trans = conn.begin()
             factory = sessionmaker(bind=conn, expire_on_commit=False)
             try:
                 with factory.begin() as db:
