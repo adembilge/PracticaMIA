@@ -1,0 +1,64 @@
+{
+  "dataset": "PracticaMIA synthetic lexical retrieval benchmark v1",
+  "notice": "All HTML is invented and used only on disposable test databases. No source is official, approved for production, or evidence of an administrative requirement.",
+  "scope": {
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it"
+  },
+  "corpus": [
+    {
+      "source_id": "milano-residence-change",
+      "html": "<html><body><h1>Documento fittizio A</h1><p>residenza esempio didattico con parole inventate per verificare la ricerca.</p><h2>Sezione affitto</h2><p>locazione prova artificiale senza informazioni amministrative.</p></body></html>"
+    },
+    {
+      "source_id": "milano-residence-faq",
+      "html": "<html><body><h1>Documento fittizio B</h1><p>residenza contenuto dimostrativo distinto dal primo testo.</p><h2>Sezione contatto</h2><p>sportello verifica sperimentale senza istruzioni governative.</p></body></html>"
+    }
+  ],
+  "cases": [
+    {
+      "id": "residence-two-relevant-passages",
+      "query": "residenza",
+      "expected": [
+        {
+          "source_id": "milano-residence-change",
+          "ordinal": 0
+        },
+        {
+          "source_id": "milano-residence-faq",
+          "ordinal": 0
+        }
+      ],
+      "k": 5
+    },
+    {
+      "id": "lease-exact-lexical-match",
+      "query": "locazione",
+      "expected": [
+        {
+          "source_id": "milano-residence-change",
+          "ordinal": 1
+        }
+      ],
+      "k": 5
+    },
+    {
+      "id": "contact-exact-lexical-match",
+      "query": "sportello",
+      "expected": [
+        {
+          "source_id": "milano-residence-faq",
+          "ordinal": 1
+        }
+      ],
+      "k": 5
+    },
+    {
+      "id": "unknown-term-must-abstain",
+      "query": "inesistenteparola",
+      "expected": [],
+      "k": 5
+    }
+  ]
+}
