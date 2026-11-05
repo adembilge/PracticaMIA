@@ -1,14 +1,8 @@
 name: Official municipal HTML original-byte audit
 
+# Never auto-fetch government pages after a code push. The operator must
+# explicitly request each future acquisition, respecting any HTTP 403.
 on:
-  push:
-    branches: [feature/official-html-acquisition-audit]
-    paths:
-      - ".github/workflows/official-html-audit.yml"
-      - "backend/app/knowledge/audit_web_sources.py"
-      - "backend/app/knowledge/acquisition.py"
-      - "backend/app/knowledge/candidate_sources.json"
-      - "backend/tests/test_official_html_audit.py"
   workflow_dispatch:
 
 permissions:
