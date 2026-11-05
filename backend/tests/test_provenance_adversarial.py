@@ -33,7 +33,7 @@ def make_snapshot(client):
         result = ingest_snapshot(
             db, src, BODY, media_type="text/plain",
             capture_method="browser_rendered_text",
-            observed_url=OBS,
+            observed_url=OBSERVED,
             observed_title=TITLE,
             observed_last_updated="23/07/2026",
         )
@@ -80,7 +80,7 @@ def test_metadata_and_source_bytes_have_independent_digests(client):
         new = ingest_snapshot(
             db, source, BODY, media_type="text/plain",
             capture_method="browser_rendered_text",
-            observed_url=OBS, observed_title=TITLE,
+            observed_url=OBSERVED, observed_title=TITLE,
             observed_last_updated="24/07/2026",
         )
         assert new.revision == result.revision + 1
