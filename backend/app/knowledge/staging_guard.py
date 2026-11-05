@@ -6,7 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 
-STAGING_REVISION = "20261105_0009"
+STAGING_REVISION = "20261106_0010"
 
 
 def require_staging_intent(environment: Mapping[str, str] | None = None) -> None:
