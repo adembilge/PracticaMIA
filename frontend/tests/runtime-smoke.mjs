@@ -34,6 +34,7 @@ async function withServer(overrides, fn) {
       NODE_ENV: 'production',
       VERCEL_ENV: 'production',
       ENABLE_ASSISTANT_UI: '1',
+      ENABLE_REVIEW_UI: '1',
       AUTH0_DOMAIN: '',
       AUTH0_CLIENT_ID: '',
       AUTH0_CLIENT_SECRET: '',
@@ -98,6 +99,11 @@ test('production-mode HTTP: public demo pages work and assistant stays hidden', 
     );
     assert.equal(hiddenApi.status, 404, 'preview proxy must remain disabled');
 
+    const hiddenReviewer = await fetch(origin + '/knowledge/review');
+    assert.equal(hiddenReviewer.status, 404, 'reviewer interface must stay hidden in production');
+    const hiddenReviewApi = await fetch(origin + '/api/knowledge/review/browser-queue');
+    assert.equal(hiddenReviewApi.status, 404, 'reviewer proxy must stay hidden in production');
+
     const unauthenticated = await fetch(origin + '/api/cases');
     assert.equal(unauthenticated.status, 503, 'API must fail closed without Auth0 config');
     const csrf = await fetch(origin + '/api/cases', { method: 'POST' });
@@ -161,5 +167,37 @@ test('preview-mode HTTP: interface renders but input and authentication gates ho
       body: safePayload,
     });
     assert.equal(noAuth.status, 503, 'preview cannot bypass absent Auth0 configuration');
+
+    const reviewPage = await fetch(origin + '/knowledge/review');
+    assert.equal(reviewPage.status, 200, 'preview reviewer interface should render');
+    assert.match(await reviewPage.text(), /Official-source review/);
+    const queue = await fetch(origin + '/api/knowledge/review/browser-queue');
+    assert.equal(queue.status, 503, 'review queue cannot bypass absent Auth0');
+    const approvalEndpoint = origin + '/api/knowledge/review/approve-browser-batch';
+    const reviewPayload = JSON.stringify({
+      items: [{
+        source_id: 'milano-residence-faq',
+        version_id: SAMPLE_ID,
+        expected_sha256: 'a'.repeat(64),
+      }],
+      review_note: 'Reviewed each captured official page and its applicability carefully.',
+      confirmed_source_review: true,
+    });
+    const denied = await fetch(approvalEndpoint, {
+      method: 'POST',
+      headers: { Origin: 'https://untrusted.example', 'Content-Type': 'application/json' },
+      body: reviewPayload,
+    });
+    assert.equal(denied.status, 403, 'review mutations reject cross-origin requests');
+    const malformed = await fetch(approvalEndpoint, {
+      method: 'POST', headers: sameOriginHeaders,
+      body: JSON.stringify({ status: 'approved', actor_subject: 'forged' }),
+    });
+    assert.equal(malformed.status, 422, 'reviewer cannot forge status or identity');
+    const unauthenticatedReview = await fetch(approvalEndpoint, {
+      method: 'POST', headers: sameOriginHeaders, body: reviewPayload,
+    });
+    assert.equal(unauthenticatedReview.status, 503,
+      'review approval must fail closed without Auth0 credentials');
   });
 });

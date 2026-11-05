@@ -92,3 +92,10 @@ The two previously observed pages `milano-residence-change` and
 `milano-residence-faq` were **not open** in the browser when the other
 12 capture records were prepared. A prior research summary is not a full
 article capture; neither should be manufactured from memory.
+
+## Authenticated mobile review
+
+A preview-only, mobile-friendly [batch review screen](MOBILE_BROWSER_SOURCE_REVIEW.md)
+can approve inspected browser-rendered source versions with their exact hashes
+through a verified allowlisted Auth0 reviewer. The older historical PDF is
+explicitly excluded; no database direct-approval shortcuts are permitted.
