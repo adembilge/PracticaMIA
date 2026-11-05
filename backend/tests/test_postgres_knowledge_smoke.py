@@ -2,7 +2,7 @@
 import os
 
 import pytest
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine, inspect, text
 
 pytestmark = pytest.mark.skipif(
     os.getenv("RUN_POSTGRES_SMOKE") != "1",
@@ -33,5 +33,9 @@ def test_knowledge_schema_exists_after_migration():
         audit_cols = {c["name"] for c in inspector.get_columns("knowledge_review_events")}
         assert {"id", "source_id", "version_id", "action", "actor_subject",
                 "reason", "content_sha256", "occurred_at"}.issubset(audit_cols)
+        with engine.connect() as connection:
+            assert connection.execute(
+                text("SELECT to_regclass('ix_knowledge_passages_fts_simple')")
+            ).scalar() == "ix_knowledge_passages_fts_simple"
     finally:
         engine.dispose()

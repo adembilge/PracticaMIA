@@ -11,6 +11,7 @@ from app.knowledge.catalog import (
     candidate_sources, register_candidates, validate_candidate,
 )
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
+from app.knowledge.review_model import KnowledgeReviewEvent
 from app.knowledge.html_extraction import extract_html, EXTRACTION_VERSION
 from app.knowledge.snapshot_model import KnowledgeSnapshot, KnowledgePassage
 from hashlib import sha256
@@ -107,6 +108,14 @@ def test_only_approved_active_hash_bound_versions_are_visible(client, auth_heade
         version.status = "approved"
         version.reviewed_at = now
         version.reviewed_by = "authorized-reviewer"
+        db.add(KnowledgeReviewEvent(
+            source_id=sid, version_id=vid,
+            action="approved", actor_subject="authorized-reviewer",
+            reason="Verified synthetic example and approved sample source.",
+            content_sha256=digest, old_source_status="candidate",
+            new_source_status="approved", old_version_status="pending_review",
+            new_version_status="approved",
+        ))
     response = client.get(url, headers=headers)
     assert response.status_code == 200
     payload = response.json()

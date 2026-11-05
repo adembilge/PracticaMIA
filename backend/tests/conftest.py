@@ -68,6 +68,7 @@ def client(tmp_path, token_factory):
             enable_demo_case_api=True,
             enable_knowledge_catalog_api=True,
             enable_knowledge_review_api=True,
+            enable_knowledge_search_api=True,
             knowledge_reviewer_subjects=frozenset({"alice"}),
             auth_issuer=ISSUER,
             auth_audience=AUDIENCE,

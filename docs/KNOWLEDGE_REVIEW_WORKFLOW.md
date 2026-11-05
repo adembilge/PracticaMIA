@@ -1,6 +1,6 @@
 # Reviewer-only government source approval — milestone 45.4
 
-**Status:** Feature branch; deployment and enabling require explicit review.
+**Status:** Merged into main; production migration and activation still require explicit review.
 **Scope:** Human-controlled approval and revocation of one exact source snapshot version.
 **Not in scope:** Automated legal decisions, end-user reviewer UI, government submission, vector search, ingestion of real identity documents.
 
@@ -89,4 +89,4 @@ Do not run migrations or enable reviewer endpoints in production as part of merg
 
 ## Follow-up
 
-The next task is **approved-passage retrieval**, initially using indexed PostgreSQL full-text search, jurisdiction/procedure/version filters and exact citation IDs. pgvector and hybrid retrieval can follow once human-reviewed evidence fixtures and retrieval evaluations exist.
+The follow-up [approved-passage lexical search](APPROVED_PASSAGE_SEARCH.md) adds PostgreSQL full-text indexing, jurisdiction/procedure/version filters and exact resolvable citation IDs. pgvector and hybrid retrieval can follow once human-reviewed evidence fixtures and retrieval evaluations exist.
