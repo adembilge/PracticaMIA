@@ -9,11 +9,11 @@
 | Neon `practicamia` branch `main` | Production | `20261104_0002`, unchanged |
 | Neon branch `staging-knowledge-0003-0006-2026-11-05` | Staging | `20261105_0006`, five knowledge tables and PostgreSQL GIN index present |
 | Vercel backend `DATABASE_URL` | Production | Production-only secret |
-| Vercel backend `DATABASE_URL` | Preview | Separate sensitive secret for Neon staging branch |
+| Vercel backend `DATABASE_URL` | Trusted staging preview branch only | Separate, branch-scoped sensitive Neon staging credential; other preview branches have no database URL |
 | Vercel backend branch `feature/knowledge-staging-rollout` | Preview | Case API, knowledge catalog and search enabled with verified Auth0 JWT checks |
 | Review/approval API | All previews | Disabled unless explicitly configured; do not enable without a reviewer authorization test |
 
-The Neon staging branch was cloned from production, retaining two existing **synthetic** case records. Do not treat its contents as fresh anonymous test data or publish its connection credentials. Do not direct production traffic to this branch.
+The Neon staging branch was cloned from production, retaining two existing **synthetic** case records and their authenticated owner identifiers. Because the cloned branch is not an empty test fixture, its database credential is scoped only to the trusted `feature/knowledge-staging-rollout` preview branch, not all pull-request previews. Do not treat its contents as fresh anonymous test data or publish its connection credentials. Do not direct production traffic to this branch.
 
 ## Migration evidence
 
