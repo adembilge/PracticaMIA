@@ -29,7 +29,8 @@ def test_knowledge_schema_exists_after_migration():
         snapshot_cols = {c["name"] for c in inspector.get_columns("knowledge_source_snapshots")}
         passage_cols = {c["name"] for c in inspector.get_columns("knowledge_source_passages")}
         assert {"version_id", "raw_body", "normalized_text", "extraction_version",
-                "capture_method", "observed_url", "observed_last_updated"}.issubset(snapshot_cols)
+                "capture_method", "observed_url", "observed_last_updated",
+                "metadata_sha256"}.issubset(snapshot_cols)
         assert {"version_id", "ordinal", "section_path", "start_offset", "end_offset"}.issubset(passage_cols)
         audit_cols = {c["name"] for c in inspector.get_columns("knowledge_review_events")}
         assert {"id", "source_id", "version_id", "action", "actor_subject",

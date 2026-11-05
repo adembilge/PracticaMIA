@@ -89,6 +89,10 @@ test('production-mode HTTP: public demo pages work and assistant stays hidden', 
       const response = await fetch(origin + pathname);
       assert.equal(response.status, 200, pathname);
       assert.match(response.headers.get('content-type') || '', /text\/html/);
+      assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+      assert.equal(response.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
+      assert.equal(response.headers.get('x-frame-options'), 'DENY');
+      assert.match(response.headers.get('permissions-policy') || '', /geolocation=\(\)/);
     }
     const hidden = await fetch(origin + '/cases/' + SAMPLE_ID + '/assistant');
     assert.equal(hidden.status, 404, 'preview UI must not be available in production');
@@ -103,6 +107,11 @@ test('production-mode HTTP: public demo pages work and assistant stays hidden', 
     assert.equal(hiddenReviewer.status, 404, 'reviewer interface must stay hidden in production');
     const hiddenReviewApi = await fetch(origin + '/api/knowledge/review/browser-queue');
     assert.equal(hiddenReviewApi.status, 404, 'reviewer proxy must stay hidden in production');
+    const hiddenFullReview = await fetch(
+      origin + '/api/knowledge/review/versions/' + SAMPLE_ID,
+    );
+    assert.equal(hiddenFullReview.status, 404,
+      'full reviewer evidence must not be public in production');
 
     const unauthenticated = await fetch(origin + '/api/cases');
     assert.equal(unauthenticated.status, 503, 'API must fail closed without Auth0 config');
@@ -173,6 +182,16 @@ test('preview-mode HTTP: interface renders but input and authentication gates ho
     assert.match(await reviewPage.text(), /Official-source review/);
     const queue = await fetch(origin + '/api/knowledge/review/browser-queue');
     assert.equal(queue.status, 503, 'review queue cannot bypass absent Auth0');
+    const full = await fetch(
+      origin + '/api/knowledge/review/versions/' + SAMPLE_ID,
+    );
+    assert.equal(full.status, 503,
+      'entire article capture cannot bypass missing Auth0 configuration');
+    const pathTraversal = await fetch(
+      origin + '/api/knowledge/review/versions/not-a-uuid',
+    );
+    assert.equal(pathTraversal.status, 404,
+      'reviewer evidence proxy must reject invalid version IDs');
     const approvalEndpoint = origin + '/api/knowledge/review/approve-browser-batch';
     const reviewPayload = JSON.stringify({
       items: [{

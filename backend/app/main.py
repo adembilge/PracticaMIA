@@ -13,6 +13,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         version="0.2.0",
     )
     api.state.settings = settings
+
+    @api.middleware("http")
+    async def basic_security_headers(request, call_next):
+        # API JSON responses do not require Next.js inline-script CSP policy.
+        # These headers apply even to rejected and unexpected routes.
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault(
+            "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
+        )
+        return response
     if settings.enable_knowledge_catalog_api and not settings.enable_demo_case_api:
         raise ValueError("Knowledge catalog requires the authenticated case API")
     if settings.enable_knowledge_search_api and not (

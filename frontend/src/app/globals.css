@@ -331,3 +331,9 @@ a:hover { text-decoration: none; }
   .review-queue-toolbar .button { width: 100%; }
   .review-queue-item { padding: 1rem; }
 }
+
+/* Reviewer may not attest based on a 500-character excerpt: show full text. */
+.review-full-text { border: 1px solid var(--line); background: var(--cream); border-radius: 10px; padding: 1rem; margin: .8rem 0; }
+.review-full-text h3 { margin: 0 0 .65rem; font-size: 1rem; }
+.review-full-text pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .9rem; font-family: inherit; line-height: 1.55; max-height: 55vh; overflow-y: auto; }
+.review-full-text p { color: var(--muted); font-size: .85rem; }

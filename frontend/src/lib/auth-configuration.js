@@ -27,7 +27,8 @@ export function sameOrigin(requestUrl, origin) {
   try {
     const destination = new URL(requestUrl);
     const supplied = new URL(origin);
-    return destination.origin === supplied.origin &&
+    return !supplied.username && !supplied.password &&
+      destination.origin === supplied.origin &&
       supplied.pathname === '/' && !supplied.search && !supplied.hash;
   } catch {
     return false;
