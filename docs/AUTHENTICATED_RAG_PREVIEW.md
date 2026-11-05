@@ -19,10 +19,13 @@ RAG endpoint or official administrative advice is enabled.
   calls**. With no configured model and some approved evidence ->
   `model_not_configured`. Provider failures -> `generation_unavailable`.
 - When approved evidence **and** an explicitly configured model are available,
-  LangChain calls ChatOpenAI with short output and timeout limits. Responses
-  without valid in-bundle citation IDs are withheld as
-  `unverified_answer`. This mechanical filter **does not verify that each
-  generated factual claim is supported**; further evaluation is required.
+  LangChain calls ChatOpenAI with short output and timeout limits. Generated
+  output must consist entirely of 1–4 exact text quotations, each containing
+  the correct approved passage citation ID and no additional prose. An invented
+  requirement with a legitimate citation ID now returns `unverified_answer`.
+  This is **verbatim substring provenance checking**, not semantic entailment:
+  quotations may still be irrelevant or obsolete without a human applicability
+  review.
 - A bilingual, case-linked preview page under
   `/cases/{case_id}/assistant`, plus an authenticated same-origin Next.js
   proxy. User input is not saved as chat history.
@@ -52,6 +55,10 @@ Backend **preview/development only**:
 - `ENABLE_KNOWLEDGE_SEARCH_API=1`
 - `ENABLE_ASSISTANT_API=1`
 - `DATABASE_URL` pointing **only to the migrated, isolated staging branch**
+  (migration `20261105_0008` required for quota tracking)
+- `ASSISTANT_USAGE_HASH_KEY`: a separate randomly generated secret with
+  at least 32 characters, unique to the preview environment
+- `ASSISTANT_DAILY_LIMIT`: integer 1–50, default 10
 - Trusted `AUTH_ISSUER`, `AUTH_AUDIENCE`, `AUTH_JWKS_URL`
 
 Frontend **preview/development only**:
@@ -68,8 +75,11 @@ The backend refuses startup when `ENABLE_ASSISTANT_API=1` and
 *only after approved evidence is retrieved*. Both must be provided securely
 by the operator. Neither is set by this PR. ChatOpenAI uses a 15-second
 timeout, no retry, and at most 500 generated tokens. Do not enable external
-model calls until a provider privacy review, safety evaluation, usage
-monitoring and per-user rate limits exist. Never commit credentials.
+model calls until a provider privacy review, safety evaluation and usage
+monitoring exist. The per-user model-call budget is stored in shared SQL,
+reserved atomically before a provider call, and keyed with an HMAC so that
+raw Auth0 subject strings are not stored. Quota data older than 30 days is
+purged when requests are processed. Do not commit credentials.
 
 ## Current staging reality
 
@@ -89,8 +99,10 @@ Never approve the historical PDF merely to make a demo answer appear.
 3. Add multilingual retrieval evaluation for English questions against
    Italian documents; the first endpoint currently searches Italian text
    using keyword matching.
-4. Add rigorous claim-level citation verification, prompt injection
-   evaluation, privacy controls and distributed per-user rate limiting.
+4. The strict quotation gate and an atomic shared daily quota now exist.
+   Validate quotation relevance, semantic sufficiency, prompt injection
+   resistance, privacy/retention compliance and distributed abuse controls
+   before treating this as user-facing administrative advice.
 5. Test authenticated case UI through a real preview browser with configured
    Auth0 and staging backend; unit/CI success alone does not establish that
    live end-to-end authentication is operational.

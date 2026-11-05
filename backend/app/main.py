@@ -22,6 +22,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if settings.enable_assistant_api:
         if settings.deployment_environment == "production":
             raise ValueError("The RAG preview cannot be enabled in production")
+        if len(settings.assistant_usage_hash_key) < 32:
+            raise ValueError("Assistant requires a dedicated usage HMAC key")
+        if not 1 <= settings.assistant_daily_limit <= 50:
+            raise ValueError("Assistant daily limit must be between 1 and 50")
         if not (settings.enable_demo_case_api and settings.enable_knowledge_catalog_api
                 and settings.enable_knowledge_search_api):
             raise ValueError("Assistant requires authenticated case and knowledge search APIs")

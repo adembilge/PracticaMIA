@@ -4,7 +4,6 @@ No production route, no document ingestion and no auto-approval. A user can
 query only an owned synthetic case and only against active, approved official
 passages. The model is never called if the review gate yields no evidence.
 """
-import re
 from typing import Literal
 from uuid import UUID
 
@@ -17,17 +16,14 @@ from app.auth.tokens import Principal, get_principal
 from app.cases.router import get_case
 from app.database import get_session
 from app.knowledge.rag_chain import answer_from_passages
+from app.knowledge.quote_verification import verify_exact_quotations
 from app.knowledge.search import normalize_query
+from app.knowledge.usage_model import AssistantDailyUsage  # noqa: F401 - register table
+from app.knowledge.usage_limit import reserve_daily_model_call
 from app.knowledge.vector_search import search_approved_hybrid
 
 JURISDICTION = "IT-MI-MILANO"
 PROCEDURE = "milan_residence_change"
-CITATION_PATTERN = re.compile(
-    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-"
-    r"[0-9a-f]{12}:[0-9]{4}$"
-)
-BRACKET_PATTERN = re.compile(r"\[([^\]\n]{1,100})\]")
-
 router = APIRouter(
     prefix="/api/v1/cases",
     tags=["assistant-preview"],
@@ -83,17 +79,6 @@ def _model_for_preview(request: Request) -> Runnable | None:
     )
 
 
-def _cites_only_supplied_passages(answer: str, allowed: set[str]) -> bool:
-    """Small mechanical citation gate; this is not factual entailment testing."""
-    if not answer.strip() or len(answer) > 3500:
-        return False
-    tokens = BRACKET_PATTERN.findall(answer)
-    return bool(tokens) and all(
-        CITATION_PATTERN.fullmatch(token) and token in allowed
-        for token in tokens
-    )
-
-
 @router.post("/{case_id}/assistant/ask", response_model=AskAnswer)
 def ask_case_question(
     case_id: UUID, payload: AskQuestion, request: Request,
@@ -124,7 +109,7 @@ def ask_case_question(
             citation_id=item.citation_id, source_id=item.source_id,
             source_version_id=item.source_version_id, title=item.title,
             official_url=item.official_url, section_path=item.section_path,
-            excerpt=item.content[:600],
+            excerpt=item.content[:1200],
         )
         for item in passages
     ]
@@ -138,6 +123,13 @@ def ask_case_question(
     if model is None:
         return AskAnswer(status="model_not_configured", sources=sources)
 
+    settings = request.app.state.settings
+    if not reserve_daily_model_call(
+        db, subject=principal.subject, hash_key=settings.assistant_usage_hash_key,
+        daily_limit=settings.assistant_daily_limit,
+    ):
+        raise HTTPException(status_code=429, detail="Daily assistant limit reached")
+
     try:
         generated = answer_from_passages(
             question=payload.question, passages=passages, chat_model=model,
@@ -145,13 +137,13 @@ def ask_case_question(
     except Exception:
         return AskAnswer(status="generation_unavailable", sources=sources)
 
-    if generated.answer is None or not _cites_only_supplied_passages(
-        generated.answer, {item.citation_id for item in passages},
+    if generated.answer is None or not verify_exact_quotations(
+        generated.answer, {item.citation_id: item.content for item in passages},
     ):
         return AskAnswer(status="unverified_answer", sources=sources)
 
-    # Citations are evidence candidates, not verification of each claim.
-    # The generated answer remains a preview that requires human review.
+    # Every line is a verified exact quote. Applicability, relevance, and
+    # source freshness still require human review and separate evaluation.
     return AskAnswer(
         status="answer_generated", answer=generated.answer, sources=sources,
     )

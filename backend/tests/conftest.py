@@ -11,6 +11,7 @@ from jwt import PyJWKClient
 from app.cases import model  # noqa: F401 - register SQLAlchemy models
 from app.knowledge import snapshot_model  # noqa: F401 - provenance tables
 from app.knowledge import review_model  # noqa: F401 - audit tables
+from app.knowledge import usage_model  # noqa: F401 - model usage table
 from app.config import Settings
 from app.database import Base
 from app.main import create_app

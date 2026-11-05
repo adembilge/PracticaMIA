@@ -27,6 +27,7 @@ def assistant_client(tmp_path, token_factory):
         database_url=f"sqlite+pysqlite:///{tmp_path / 'assistant.sqlite3'}",
         enable_demo_case_api=True, enable_knowledge_catalog_api=True,
         enable_knowledge_search_api=True, enable_assistant_api=True,
+        assistant_usage_hash_key="synthetic-test-daily-usage-hmac-key-32-chars",
         auth_issuer="https://identity.example.test/",
         auth_audience="https://api.practicamia.example.test",
         auth_jwks_url="https://identity.example.test/.well-known/jwks.json",
@@ -135,7 +136,10 @@ def test_generated_response_requires_exact_citations_then_revocation_abstains(
         prompt_text = prompt.to_messages()[-1].content
         citation = re.search(r"\[([0-9a-f-]{36}:[0-9]{4})\]", prompt_text)
         assert citation is not None
-        return AIMessage(content="Risposta sintetica " + citation.group(0))
+        return AIMessage(
+            content=citation.group(0)
+            + ' "Test sintetico: la parola residenza appare qui."'
+        )
 
     assistant_client.app.state.assistant_model_factory = lambda: RunnableLambda(fake_llm)
     response = post(assistant_client, owned, auth_headers())
@@ -145,6 +149,15 @@ def test_generated_response_requires_exact_citations_then_revocation_abstains(
     assert payload["is_demo"] is True
     assert payload["sources"][0]["citation_id"] in payload["answer"]
     assert len(calls) == 1
+
+    # A valid citation ID cannot legitimize an invented government rule.
+    assistant_client.app.state.assistant_model_factory = lambda: RunnableLambda(
+        lambda _: AIMessage(
+            content=f'[{payload["sources"][0]["citation_id"]}] '
+            '"An invented residency rule or tax is now mandatory."'
+        )
+    )
+    assert post(assistant_client, owned, auth_headers()).json()["status"] == "unverified_answer"
 
     assistant_client.app.state.assistant_model_factory = lambda: RunnableLambda(
         lambda _: AIMessage(content="Uncited assertion")
@@ -190,3 +203,45 @@ def test_model_failure_is_sanitized(assistant_client, auth_headers):
     result = post(assistant_client, owned, auth_headers())
     assert result.json()["status"] == "generation_unavailable"
     assert "secrets" not in result.text
+
+
+def test_shared_daily_model_limit_is_enforced_across_cases(
+    assistant_client, auth_headers,
+):
+    from dataclasses import replace
+
+    owned = case_id(assistant_client, auth_headers("alice"))
+    another = case_id(assistant_client, auth_headers("alice"))
+    item = index_synthetic(assistant_client)
+    with assistant_client.app.state.session_factory.begin() as db:
+        approve_version(
+            db, version_id=item.version_id, expected_digest=item.sha256,
+            actor_subject="synthetic-ci-reviewer",
+            reason="Approve only a synthetic quota test fixture.",
+        )
+    # Lower the quota without changing global environment settings.
+    assistant_client.app.state.settings = replace(
+        assistant_client.app.state.settings, assistant_daily_limit=2,
+    )
+    calls = []
+    def fake(prompt):
+        calls.append(prompt)
+        citation = re.search(
+            r"\[([0-9a-f-]{36}:[0-9]{4})\]",
+            prompt.to_messages()[-1].content,
+        )
+        assert citation is not None
+        return AIMessage(
+            content=citation.group(0)
+            + ' "Test sintetico: la parola residenza appare qui."'
+        )
+    assistant_client.app.state.assistant_model_factory = lambda: RunnableLambda(fake)
+    assert post(assistant_client, owned, auth_headers("alice")).json()["status"] == "answer_generated"
+    assert post(assistant_client, another, auth_headers("alice")).json()["status"] == "answer_generated"
+    limited = post(assistant_client, owned, auth_headers("alice"))
+    assert limited.status_code == 429
+    assert len(calls) == 2
+    # Another user has an independent budget; no cross-user quota collisions.
+    bob = case_id(assistant_client, auth_headers("bob"))
+    assert post(assistant_client, bob, auth_headers("bob")).status_code == 200
+    assert len(calls) == 3

@@ -14,6 +14,8 @@ class Settings:
     deployment_environment: str = ""
     assistant_chat_model: str = ""
     assistant_openai_api_key: str = ""
+    assistant_usage_hash_key: str = ""
+    assistant_daily_limit: int = 10
     knowledge_reviewer_subjects: frozenset[str] = frozenset()
     auth_issuer: str = ""
     auth_audience: str = ""
@@ -36,6 +38,8 @@ class Settings:
             deployment_environment=environ.get("VERCEL_ENV", ""),
             assistant_chat_model=environ.get("ASSISTANT_CHAT_MODEL", "").strip(),
             assistant_openai_api_key=environ.get("OPENAI_API_KEY", ""),
+            assistant_usage_hash_key=environ.get("ASSISTANT_USAGE_HASH_KEY", ""),
+            assistant_daily_limit=int(environ.get("ASSISTANT_DAILY_LIMIT", "10")),
             knowledge_reviewer_subjects=frozenset(
                 value.strip()
                 for value in environ.get("KNOWLEDGE_REVIEWER_SUBJECTS", "").split(",")
