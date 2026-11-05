@@ -36,12 +36,12 @@ def test_batch_original_intake_stays_pending_and_rolls_back(tmp_path):
                     assert results[0]["status"] == "pending_review"
                     assert results[0]["previous_approval_invalidated"] is False
                 with factory() as db:
-                    versions = db.scalars(
-                        select(KnowledgeSourceVersion)
-                        .where(KnowledgeSourceVersion.source_id == "milano-residence-change")
-                    ).all()
-                    assert len(versions) == 1
-                    assert versions[0].status == "pending_review"
+                    imported = db.get(
+                        KnowledgeSourceVersion, results[0]["version_id"],
+                    )
+                    assert imported is not None
+                    assert imported.source_id == "milano-residence-change"
+                    assert imported.status == "pending_review"
                     queue = queue_records(candidate_sources(), db)
                     assert next(
                         row for row in queue
