@@ -16,8 +16,9 @@ snapshot or evidence of successful ingestion**.
 
 Neon staging `staging-knowledge-0003-0006-2026-11-05` now has **17**
 candidate source records, up from four. All remain `candidate`, with no active
-version. The database has **zero** source versions, raw HTML/PDF snapshots,
-extracted passages and approval events. Production remains on Alembic
+version. On 5 November 2026, one user-uploaded 2013 Allegato A PDF was
+stored as a **pending-review** version and raw snapshot with **three** extracted
+passages; **zero** approval events. See [Allegato A import](ALLEGATO_A_STAGING_INGESTION.md). Production remains on Alembic
 `20261104_0002` without the knowledge tables.
 
 The thirteen new source records (ten service/FAQ pages and three PDF leads) are version-controlled in
@@ -91,12 +92,14 @@ The municipality also publishes document links for
 [Dichiarazione di residenza (Allegato 1)](https://www.comune.milano.it/documents/20126/526597/dichiarazione%2Bdi%2Bresidenza.pdf/cb7c0558-d61b-1968-7143-b549f0ab337d),
 [non-EU document list (Allegato A)](https://www.comune.milano.it/documents/20126/526418/documentazione_cittadini_extra_u.e2.pdf/ba348f98-86db-faaf-7a96-852530d4be73),
 and [EU document list (Allegato B)](https://www.comune.milano.it/documents/20126/526418/documentazione_per_cittadini_u.e..pdf/59339837-24ec-09ac-3352-0bd9d9c97599).
-**These are leads, not current approved templates.** The exact original PDF
-bytes, canonical redirect targets, applicable revisions and currency have
-not been validated. Some web-indexed variants contain historical figures,
+**These are leads, not current approved templates.** A user-supplied original
+of the non-EU Allegato A PDF is now stored **pending review**, with a 2013
+creation date. Its publisher-hosted byte identity, validity, and scope are
+not yet independently verified. Other original PDFs remain unobtained. Some web-indexed variants contain historical figures,
 so avoid deriving current thresholds from them. The ingestion pipeline
-now supports bounded original-PDF ingestion, but original bytes remain
-unavailable in this environment. See [PDF Source Ingestion](PDF_SOURCE_INGESTION.md).
+now supports bounded original-PDF ingestion; only the user-uploaded historical
+Allegato A has been imported. Other originals remain unavailable in this
+environment. See [PDF Source Ingestion](PDF_SOURCE_INGESTION.md).
 
 Two additional conditional FAQ candidates were identified: [documents for a minor's residence change](https://servizicrm.comune.milano.it/centro-supporto/KA-00434/Documenti-necessari-per-cambio-residenza-minori) and [a foreign worker staying with a property owner/tenant](https://servizicrm.comune.milano.it/centro-supporto/KA-00594/). They remain unapproved. An additional [download queue](OFFICIAL_DOCUMENT_DOWNLOAD_QUEUE.md) tracks landlord consent, two minor-related municipal forms, and the national ANPR guide. These are research leads, not stored documents.
 
