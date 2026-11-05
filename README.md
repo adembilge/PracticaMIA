@@ -96,6 +96,7 @@ Review the Vercel preview deployment before merging. The saved-case milestone an
 - [Knowledge review and audit workflow](docs/KNOWLEDGE_REVIEW_WORKFLOW.md)
 - [Approved passage lexical search](docs/APPROVED_PASSAGE_SEARCH.md)
 - [Knowledge staging migration and source acquisition report](docs/KNOWLEDGE_STAGING_ROLLOUT.md)
+- [Milan official-source acquisition inventory (12 unapproved candidates)](docs/MILAN_OFFICIAL_SOURCE_ACQUISITION.md)
 - [Development workflow](docs/DEVELOPMENT_WORKFLOW.md)
 - [Milan residence-change research](research/milan_residence_change.md)
 - [Complete original project specification](PracticaMIA_Complete_Project_Specification.md)
