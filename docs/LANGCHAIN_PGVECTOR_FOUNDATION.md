@@ -41,6 +41,7 @@ foundation rather than a tool-using autonomous agent.
 - `search_approved_hybrid(db, query=..., query_embedding=..., model_id=..., jurisdiction=..., procedure_id=..., language=...)`
   fuses that result with existing lexical evidence. If the query embedding
   and model ID are omitted, it stays lexical-only.
+- `answer_reviewed_question(db, question=..., jurisdiction=..., procedure_id=..., language=..., chat_model=..., query_embedding=..., model_id=...)` is the combined two-step service entry point: approved retrieval and automatic abstention before any generation.
 - `answer_from_passages(question=..., passages=..., chat_model=...)`
   creates a LangChain evidence prompt and calls a supplied model; it does
   not itself fetch or verify documents. Always call it with trusted results
