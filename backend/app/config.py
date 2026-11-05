@@ -9,6 +9,7 @@ class Settings:
     enable_demo_case_api: bool = False
     enable_knowledge_catalog_api: bool = False
     enable_knowledge_review_api: bool = False
+    enable_knowledge_search_api: bool = False
     knowledge_reviewer_subjects: frozenset[str] = frozenset()
     auth_issuer: str = ""
     auth_audience: str = ""
@@ -23,6 +24,8 @@ class Settings:
             enable_knowledge_catalog_api=environ.get("ENABLE_KNOWLEDGE_CATALOG_API", "").lower()
             in {"1", "true", "yes"},
             enable_knowledge_review_api=environ.get("ENABLE_KNOWLEDGE_REVIEW_API", "").lower()
+            in {"1", "true", "yes"},
+            enable_knowledge_search_api=environ.get("ENABLE_KNOWLEDGE_SEARCH_API", "").lower()
             in {"1", "true", "yes"},
             knowledge_reviewer_subjects=frozenset(
                 value.strip()

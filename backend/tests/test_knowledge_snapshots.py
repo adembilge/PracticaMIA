@@ -13,6 +13,7 @@ from app.knowledge.html_extraction import (
     MAX_HTML_BYTES, EXTRACTION_VERSION, extract_html,
 )
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
+from app.knowledge.review_service import approve_version
 from app.knowledge.snapshot_model import KnowledgePassage, KnowledgeSnapshot
 from app.knowledge.snapshots import ingest_snapshot, verify_snapshot
 
@@ -128,13 +129,11 @@ def test_new_content_invalidates_prior_approval_without_mutating_old_snapshot(
         source = db.get(KnowledgeSource, "milano-residence-change")
         old = ingest_snapshot(db, source, HTML)
     with client.app.state.session_factory.begin() as db:
-        source = db.get(KnowledgeSource, "milano-residence-change")
-        version = db.get(KnowledgeSourceVersion, old.version_id)
-        source.status = "approved"
-        source.active_version_id = old.version_id
-        version.status = "approved"
-        version.reviewed_by = "synthetic-reviewer"
-        version.reviewed_at = datetime.now(timezone.utc)
+        approve_version(
+            db, version_id=old.version_id, expected_digest=old.sha256,
+            actor_subject="synthetic-reviewer",
+            reason="Confirmed source provenance in a synthetic test fixture.",
+        )
     url = "/api/v1/knowledge/sources"
     assert len(client.get(url, headers=auth_headers()).json()["sources"]) == 1
     changed = HTML.replace(b"First", b"Updated")
@@ -159,12 +158,12 @@ def test_tampered_snapshot_or_passage_disqualifies_approved_source(client, auth_
         register_candidates(db)
         source = db.get(KnowledgeSource, "milano-residence-change")
         created = ingest_snapshot(db, source, HTML)
-        source.status = "approved"
-        source.active_version_id = created.version_id
-        version = db.get(KnowledgeSourceVersion, created.version_id)
-        version.status = "approved"
-        version.reviewed_by = "synthetic-reviewer"
-        version.reviewed_at = datetime.now(timezone.utc)
+    with client.app.state.session_factory.begin() as db:
+        approve_version(
+            db, version_id=created.version_id, expected_digest=created.sha256,
+            actor_subject="synthetic-reviewer",
+            reason="Confirmed source provenance in a synthetic test fixture.",
+        )
     url = "/api/v1/knowledge/sources"
     assert len(client.get(url, headers=auth_headers()).json()["sources"]) == 1
     with client.app.state.session_factory.begin() as db:

@@ -82,8 +82,14 @@ The source ingestion milestone adds revision `20261105_0004` with two additional
 
 See [controlled source snapshots](../docs/CONTROLLED_SOURCE_SNAPSHOTS.md) for dry-run commands, a local HTML ingestion example, security boundaries and migration prerequisites. Production Neon is currently at migration `20261104_0002`; PRs 9 and the snapshot PR require separate review of additive migrations `0003` and `0004` before any knowledge-API flag is enabled.
 
-## Reviewer-only knowledge source approval (feature PR)
+## Reviewer-only knowledge source approval (merged foundation)
 
 Milestone 45.4 adds authenticated reviewer operations and append-only audit events. The review API is **disabled by default** and requires `ENABLE_KNOWLEDGE_REVIEW_API=1`, `ENABLE_KNOWLEDGE_CATALOG_API=1`, and a non-empty server-side `KNOWLEDGE_REVIEWER_SUBJECTS` allowlist of exact Auth0 subject IDs. Requests must use valid bearer access tokens; normal signed-in users are **not** reviewers. See [reviewer permissions, approvals and audit](../docs/KNOWLEDGE_REVIEW_WORKFLOW.md).
 
 New additive migration: `20261105_0005`, on top of `20261105_0004`. No reviewer API or knowledge source is activated by merging. Do **not** apply production migrations or enable flags without reviewing backups, database target and source provenance. A hash-matched reviewed snapshot can be approved or revoked atomically, with a recorded actor and reason. Source changes invalidate active approval and append a system audit event.
+
+## Approved-passage lexical search (feature PR)
+
+Milestone 50.4 foundation adds feature-gated `GET /api/v1/knowledge/search` and `GET /api/v1/knowledge/passages/{citation_id}`. Query inputs must include verified jurisdiction, procedure and language; only latest, active, hash-verified and reviewed passages with a matching approval audit event are returned. Missing evidence explicitly returns `insufficient_evidence`; changed or revoked citations return `404`. Query syntax is normalized to plain words and bounded to a maximum of 10 passages. This feature does **not** provide RAG/embeddings, administrative rule evaluation or government submission.
+
+The new migration `20261105_0006` creates a PostgreSQL GIN index on `to_tsvector('simple', content)`. Search is **disabled by default** with `ENABLE_KNOWLEDGE_SEARCH_API=0`; enable only after the source registry is migrated and a reviewed corpus is available. `ENABLE_KNOWLEDGE_CATALOG_API=1` and the existing authenticated case API are required. See [approved-passage search contracts and tests](../docs/APPROVED_PASSAGE_SEARCH.md). **Production Neon remains at `20261104_0002` until a reviewed knowledge rollout.**
