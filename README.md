@@ -1,4 +1,6 @@
 # PracticaMIA
+> **Independent system audit (6 November 2026):** [production GET smoke, adversarial authorization, provenance integrity, quota concurrency, and release blockers](docs/audits/INDEPENDENT_SYSTEM_AUDIT_2026_11_06.md). Experimental demo only; not yet suitable for public administrative advice.
+
 
 PracticaMIA is an independent English–Italian administrative-guidance prototype, initially focused on selected individual changes of registered residence within Milan (`cambio di residenza`). It helps users organize preparation steps; **it is not a government service and cannot submit an official application**.
 
