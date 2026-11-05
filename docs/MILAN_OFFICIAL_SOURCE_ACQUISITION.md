@@ -14,13 +14,13 @@ the available retrieval service failed with **HTTP 403**. The search index can
 help discover and triage pages, but **cannot be treated as an original HTML
 snapshot or evidence of successful ingestion**.
 
-Neon staging `staging-knowledge-0003-0006-2026-11-05` now has **12**
+Neon staging `staging-knowledge-0003-0006-2026-11-05` now has **15**
 candidate source records, up from four. All remain `candidate`, with no active
-version. The database has **zero** source versions, raw HTML snapshots,
+version. The database has **zero** source versions, raw HTML/PDF snapshots,
 extracted passages and approval events. Production remains on Alembic
 `20261104_0002` without the knowledge tables.
 
-The eight new source records are version-controlled in
+The eleven new source records (eight service/FAQ pages and three PDF leads) are version-controlled in
 `backend/app/knowledge/candidate_sources.json`. The existing four records
 are unchanged. Candidate metadata is *not* trusted evidence; only
 reviewed, hash-bound snapshots can enter approved retrieval.
@@ -95,20 +95,20 @@ and [EU document list (Allegato B)](https://www.comune.milano.it/documents/20126
 bytes, canonical redirect targets, applicable revisions and currency have
 not been validated. Some web-indexed variants contain historical figures,
 so avoid deriving current thresholds from them. The ingestion pipeline
-currently accepts **HTML only**; PDF support requires a separate verified
-implementation.
+now supports bounded original-PDF ingestion, but original bytes remain
+unavailable in this environment. See [PDF Source Ingestion](PDF_SOURCE_INGESTION.md).
 
 ## Safe acquisition and review procedure
 
 1. In a normal browser, inspect an official candidate URL, identify the
    canonical page and any date/version notices, and check its reuse terms.
-2. Obtain permitted *original* HTML bytes. Do **not** reconstruct HTML
+2. Obtain permitted *original* HTML or PDF bytes. Do **not** reconstruct content
    from a search preview, translation, OCR or AI-generated summary.
-3. Verify source identity, redirects, UTF-8 encoding and the extraction
+3. Verify source identity, redirects, declared media type and the extraction
    against the live official display. An inaccessible page stays a candidate.
 4. On a local machine with a credential for **the isolated staging branch**,
    run a dry-run from `backend/`:
-   `python -m app.knowledge.ingest_source --source-id <id> --file <original.html>`.
+   `python -m app.knowledge.ingest_source --source-id <id> --file <original.html-or.pdf>`.
    Only after inspection run the same command with `--apply`.
 5. Record exact SHA-256, the pending version, source URL and passages.
    Compare complex lists, tables, footnotes, and any caveats manually.
