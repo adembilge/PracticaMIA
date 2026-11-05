@@ -86,13 +86,12 @@ def test_preparation_rejects_unknown_duplicates_symlinks_and_wrong_media(tmp_pat
         prepare_directory(tmp_path)
 
     (tmp_path / f"{A}.htm").unlink()
-    with pytest.raises(ValueError, match="type differs"):
-        prepare_directory(tmp_path, candidates=[
-            item for item in candidate_sources()
-            if item["id"] == "milano-residence-form-allegato-1"
-        ])
-
     (tmp_path / f"{A}.html").unlink()
+    _file(tmp_path, source="milano-residence-form-allegato-1")
+    with pytest.raises(ValueError, match="type differs"):
+        prepare_directory(tmp_path)
+
+    (tmp_path / "milano-residence-form-allegato-1.html").unlink()
     _file(tmp_path, source="milano-residence-form-allegato-1",
           content=b"<html><body>Not a PDF</body></html>", suffix=".pdf")
     with pytest.raises(ValueError):
