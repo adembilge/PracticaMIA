@@ -89,6 +89,10 @@ test('production-mode HTTP: public demo pages work and assistant stays hidden', 
       const response = await fetch(origin + pathname);
       assert.equal(response.status, 200, pathname);
       assert.match(response.headers.get('content-type') || '', /text\/html/);
+      assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+      assert.equal(response.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
+      assert.equal(response.headers.get('x-frame-options'), 'DENY');
+      assert.match(response.headers.get('permissions-policy') || '', /geolocation=\(\)/);
     }
     const hidden = await fetch(origin + '/cases/' + SAMPLE_ID + '/assistant');
     assert.equal(hidden.status, 404, 'preview UI must not be available in production');
