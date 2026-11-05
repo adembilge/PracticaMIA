@@ -207,6 +207,12 @@ def main() -> None:
 
     if not db_url:
         parser.error("DATABASE_URL is required for --apply")
+    if environ.get("PRACTICAMIA_KNOWLEDGE_TARGET") != "staging":
+        parser.error(
+            "Set PRACTICAMIA_KNOWLEDGE_TARGET=staging explicitly for --apply"
+        )
+    if environ.get("VERCEL_ENV") == "production":
+        parser.error("Batch imports are prohibited in Vercel production")
     engine, factory = configure_database(db_url)
     try:
         with factory.begin() as db:
