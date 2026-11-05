@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.knowledge.acquisition import validate_official_url
 from app.knowledge.browser_capture import validate_browser_metadata
+from app.knowledge.provenance_digest import metadata_sha256
 from app.knowledge.document_extraction import extract_document, EXTRACTION_VERSIONS
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
 from app.knowledge.review_model import KnowledgeReviewEvent
@@ -119,6 +120,12 @@ def ingest_snapshot(
         version_id=new_id, fetched_url=source.official_url,
         media_type=media_type, size_bytes=len(body),
         extraction_version=extraction_version, capture_method=capture_method,
+        metadata_sha256=metadata_sha256(
+            fetched_url=source.official_url, media_type=media_type,
+            capture_method=capture_method, observed_url=observed_url,
+            observed_title=observed_title,
+            observed_last_updated=observed_last_updated,
+        ),
         observed_url=observed_url, observed_title=observed_title,
         observed_last_updated=observed_last_updated,
         raw_body=body, normalized_text=text.normalized_text,
@@ -147,6 +154,14 @@ def verify_snapshot(db: Session, version: KnowledgeSourceVersion) -> bool:
         return False
     source = db.get(KnowledgeSource, version.source_id)
     if source is None or snapshot.fetched_url != source.official_url:
+        return False
+    if snapshot.metadata_sha256 != metadata_sha256(
+        fetched_url=snapshot.fetched_url, media_type=snapshot.media_type,
+        capture_method=snapshot.capture_method,
+        observed_url=snapshot.observed_url,
+        observed_title=snapshot.observed_title,
+        observed_last_updated=snapshot.observed_last_updated,
+    ):
         return False
     if snapshot.capture_method == "browser_rendered_text":
         if snapshot.media_type != "text/plain":
