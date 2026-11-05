@@ -27,6 +27,7 @@ def assistant_client(tmp_path, token_factory):
         database_url=f"sqlite+pysqlite:///{tmp_path / 'assistant.sqlite3'}",
         enable_demo_case_api=True, enable_knowledge_catalog_api=True,
         enable_knowledge_search_api=True, enable_assistant_api=True,
+        assistant_usage_hash_key="synthetic-test-daily-usage-hmac-key-32-chars",
         auth_issuer="https://identity.example.test/",
         auth_audience="https://api.practicamia.example.test",
         auth_jwks_url="https://identity.example.test/.well-known/jwks.json",
@@ -135,7 +136,10 @@ def test_generated_response_requires_exact_citations_then_revocation_abstains(
         prompt_text = prompt.to_messages()[-1].content
         citation = re.search(r"\[([0-9a-f-]{36}:[0-9]{4})\]", prompt_text)
         assert citation is not None
-        return AIMessage(content="Risposta sintetica " + citation.group(0))
+        return AIMessage(
+            content=citation.group(0)
+            + ' "Test sintetico: la parola residenza appare qui."'
+        )
 
     assistant_client.app.state.assistant_model_factory = lambda: RunnableLambda(fake_llm)
     response = post(assistant_client, owned, auth_headers())
