@@ -18,6 +18,8 @@ from app.database import get_session
 from app.knowledge.rag_chain import answer_from_passages
 from app.knowledge.quote_verification import verify_exact_quotations
 from app.knowledge.search import normalize_query
+from app.knowledge.usage_model import AssistantDailyUsage  # noqa: F401 - register table
+from app.knowledge.usage_limit import reserve_daily_model_call
 from app.knowledge.vector_search import search_approved_hybrid
 
 JURISDICTION = "IT-MI-MILANO"
@@ -120,6 +122,13 @@ def ask_case_question(
         return AskAnswer(status="generation_unavailable", sources=sources)
     if model is None:
         return AskAnswer(status="model_not_configured", sources=sources)
+
+    settings = request.app.state.settings
+    if not reserve_daily_model_call(
+        db, subject=principal.subject, hash_key=settings.assistant_usage_hash_key,
+        daily_limit=settings.assistant_daily_limit,
+    ):
+        raise HTTPException(status_code=429, detail="Daily assistant limit reached")
 
     try:
         generated = answer_from_passages(
