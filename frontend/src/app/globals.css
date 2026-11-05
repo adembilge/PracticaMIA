@@ -313,3 +313,21 @@ a:hover { text-decoration: none; }
 .assistant-source-list li p { line-height: 1.6; margin: 0; }
 .assistant-source-list li code { font-size: 11px; color: var(--muted); }
 .assistant-source-list li a { font-weight: 650; text-decoration: underline; color: var(--blue); }
+
+
+/* Mobile-first source reviewer. No raw HTML is rendered from municipal pages. */
+.review-queue-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
+.review-queue-list { display: grid; gap: .9rem; margin: 1rem 0 1.6rem; }
+.review-queue-item { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 1.15rem; overflow-wrap: anywhere; }
+.review-queue-item > p { color: var(--ink-2); white-space: pre-line; line-height: 1.55; }
+.review-check { display: flex; align-items: flex-start; gap: .85rem; cursor: pointer; }
+.review-check input, .review-attestation input { width: 20px; height: 20px; flex: 0 0 20px; margin-top: 2px; accent-color: var(--green); }
+.review-check span { display: grid; gap: .35rem; }
+.review-check small { font-size: .8rem; color: var(--muted); }
+.review-metadata { font-size: .75rem; line-height: 1.65; color: var(--muted); word-break: break-word; }
+.review-attestation { display: flex; align-items: flex-start; gap: .8rem; margin: 1.25rem 0; line-height: 1.5; cursor: pointer; }
+@media (max-width: 640px) {
+  .review-queue-toolbar { align-items: stretch; flex-direction: column; }
+  .review-queue-toolbar .button { width: 100%; }
+  .review-queue-item { padding: 1rem; }
+}
