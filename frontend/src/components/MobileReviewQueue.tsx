@@ -25,6 +25,9 @@ export function MobileReviewQueue({ configured, signedIn }: Props) {
   const [loading, setLoading] = useState(Boolean(configured && signedIn));
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [details, setDetails] = useState<Record<string, string>>({});
+  const [reading, setReading] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState('');
 
   useEffect(() => {
     if (!configured || !signedIn) return;
@@ -55,11 +58,49 @@ export function MobileReviewQueue({ configured, signedIn }: Props) {
     return () => controller.abort();
   }, [configured, signedIn]);
 
-  const ready = items.filter((item) => item.integrity_verified);
+  // Metadata integrity alone is insufficient: expose every full capture
+  // before it becomes selectable for reviewer attestation.
+  const ready = items.filter((item) =>
+    item.integrity_verified && typeof details[item.version_id] === 'string');
   const canSubmit = selected.length > 0 && selected.length <= 15 && attested &&
     reviewNote.trim().length >= 30 && reviewNote.length <= 450 && !pending;
 
+  async function inspectVersion(item: BrowserQueueItem) {
+    if (details[item.version_id] !== undefined || reading) return;
+    setReading(item.version_id);
+    setDetailError('');
+    try {
+      const response = await fetch(
+        '/api/knowledge/review/versions/' + encodeURIComponent(item.version_id),
+        { credentials: 'same-origin', cache: 'no-store' },
+      );
+      if (!response.ok) throw new Error('Preview unavailable');
+      const result: unknown = await response.json();
+      if (!result || typeof result !== 'object') throw new Error('Unexpected preview');
+      const preview = result as {
+        version_id?: unknown; content_sha256?: unknown;
+        integrity_verified?: unknown; normalized_text?: unknown;
+      };
+      if (preview.version_id !== item.version_id ||
+          preview.content_sha256 !== item.content_sha256 ||
+          preview.integrity_verified !== true ||
+          typeof preview.normalized_text !== 'string' ||
+          preview.normalized_text.length < 1 ||
+          preview.normalized_text.length > 70000) {
+        throw new Error('Review version changed');
+      }
+      setDetails((previous) => ({
+        ...previous, [item.version_id]: preview.normalized_text as string,
+      }));
+    } catch {
+      setDetailError('Full article inspection could not be loaded. This source cannot be selected.');
+    } finally {
+      setReading(null);
+    }
+  }
+
   function toggle(id: string, value: boolean) {
+    if (value && details[id] === undefined) return;
     setSelected((previous) => value
       ? [...previous.filter((entry) => entry !== id), id]
       : previous.filter((entry) => entry !== id));
@@ -133,14 +174,14 @@ export function MobileReviewQueue({ configured, signedIn }: Props) {
               <p role="status">No pending browser-rendered articles need review.</p>}
             <form onSubmit={(event) => void submit(event)}>
               <div className="review-queue-toolbar">
-                <strong>{ready.length} verifiable browser articles</strong>
+                <strong>{ready.length} articles fully inspectable and selectable</strong>
                 <button type="button" className="button button-secondary"
                   disabled={pending || ready.length === 0 || ready.length > 15}
                   onClick={() => {
                     setSelected(ready.map((item) => item.version_id));
                     setAttested(false);
                   }}>
-                  Select all for review
+                  Select inspected articles
                 </button>
               </div>
               <div className="review-queue-list">
@@ -148,13 +189,29 @@ export function MobileReviewQueue({ configured, signedIn }: Props) {
                   <label className="review-check">
                     <input type="checkbox"
                       checked={selected.includes(item.version_id)}
-                      disabled={pending || !item.integrity_verified}
+                      disabled={pending || !item.integrity_verified ||
+                        details[item.version_id] === undefined}
                       onChange={(event) => toggle(item.version_id, event.target.checked)} />
                     <span><strong>{item.title}</strong>
                       <small>Last updated: {item.observed_last_updated}</small>
                     </span>
                   </label>
                   <p>{item.captured_text_preview}</p>
+                  <button type="button" className="button button-secondary"
+                    disabled={pending || !item.integrity_verified || reading !== null}
+                    onClick={() => void inspectVersion(item)}>
+                    {reading === item.version_id ? 'Loading entire capture…'
+                      : details[item.version_id] !== undefined
+                        ? 'Full captured text displayed below'
+                        : 'Inspect full captured text'}
+                  </button>
+                  {details[item.version_id] !== undefined &&
+                    <section className="review-full-text" aria-label={'Full article: ' + item.title}>
+                      <h3>Full stored municipal article</h3>
+                      <pre>{details[item.version_id]}</pre>
+                      <p>Compare the entire text and its exceptions against the
+                        linked official page before selecting this version.</p>
+                    </section>}
                   <a href={item.observed_url} target="_blank" rel="noopener noreferrer">
                     Check municipality page
                   </a>
@@ -186,6 +243,7 @@ export function MobileReviewQueue({ configured, signedIn }: Props) {
                 </button>
               </>}
             </form>
+            {detailError && <p role="alert" className="error-text">{detailError}</p>}
             {error && <p role="alert" className="error-text">{error}</p>}
             {success && <p role="status" className="message-box notice">{success}</p>}
           </section>}
