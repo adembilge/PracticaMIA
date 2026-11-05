@@ -8,6 +8,7 @@ from itertools import product
 from uuid import uuid4
 
 import pytest
+import httpx
 
 from app.cases.scope import classify_scope
 
@@ -115,6 +116,10 @@ def test_path_object_and_injection_strings_never_expose_case_details(
     client, auth_headers, unsafe_value,
 ):
     owner = auth_headers("alice")
+    if unsafe_value == "\\x00":
+        with pytest.raises(httpx.InvalidURL):
+            client.get(SCOPE_PATH + "/" + unsafe_value, headers=owner)
+        return
     response = client.get(SCOPE_PATH + "/" + unsafe_value, headers=owner)
     assert response.status_code in (404, 422), response.text
     assert "owner_subject" not in response.text
