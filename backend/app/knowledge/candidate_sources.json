@@ -118,5 +118,35 @@
     "document_type": "faq",
     "title": "Verifica stato pratica di residenza",
     "official_url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00325/Verifica-stato-pratica-di-residenza"
+  },
+  {
+    "id": "milano-residence-form-allegato-1",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "title": "Dichiarazione di residenza — Allegato 1 (PDF)",
+    "official_url": "https://www.comune.milano.it/documents/20126/526597/dichiarazione%2Bdi%2Bresidenza.pdf/cb7c0558-d61b-1968-7143-b549f0ab337d",
+    "document_type": "official_document"
+  },
+  {
+    "id": "milano-residence-non-eu-allegato-a",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "title": "Dichiarazione di residenza — Allegato A, cittadini non UE (PDF)",
+    "official_url": "https://www.comune.milano.it/documents/20126/526418/documentazione_cittadini_extra_u.e2.pdf/ba348f98-86db-faaf-7a96-852530d4be73",
+    "document_type": "official_document"
+  },
+  {
+    "id": "milano-residence-eu-allegato-b",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "title": "Dichiarazione di residenza — Allegato B, cittadini UE (PDF)",
+    "official_url": "https://www.comune.milano.it/documents/20126/526418/documentazione_per_cittadini_u.e..pdf/59339837-24ec-09ac-3352-0bd9d9c97599",
+    "document_type": "official_document"
   }
 ]
