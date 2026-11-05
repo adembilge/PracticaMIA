@@ -14,13 +14,13 @@ the available retrieval service failed with **HTTP 403**. The search index can
 help discover and triage pages, but **cannot be treated as an original HTML
 snapshot or evidence of successful ingestion**.
 
-Neon staging `staging-knowledge-0003-0006-2026-11-05` now has **15**
+Neon staging `staging-knowledge-0003-0006-2026-11-05` now has **17**
 candidate source records, up from four. All remain `candidate`, with no active
 version. The database has **zero** source versions, raw HTML/PDF snapshots,
 extracted passages and approval events. Production remains on Alembic
 `20261104_0002` without the knowledge tables.
 
-The eleven new source records (eight service/FAQ pages and three PDF leads) are version-controlled in
+The thirteen new source records (ten service/FAQ pages and three PDF leads) are version-controlled in
 `backend/app/knowledge/candidate_sources.json`. The existing four records
 are unchanged. Candidate metadata is *not* trusted evidence; only
 reviewed, hash-bound snapshots can enter approved retrieval.
@@ -97,6 +97,8 @@ not been validated. Some web-indexed variants contain historical figures,
 so avoid deriving current thresholds from them. The ingestion pipeline
 now supports bounded original-PDF ingestion, but original bytes remain
 unavailable in this environment. See [PDF Source Ingestion](PDF_SOURCE_INGESTION.md).
+
+Two additional conditional FAQ candidates were identified: [documents for a minor's residence change](https://servizicrm.comune.milano.it/centro-supporto/KA-00434/Documenti-necessari-per-cambio-residenza-minori) and [a foreign worker staying with a property owner/tenant](https://servizicrm.comune.milano.it/centro-supporto/KA-00594/). They remain unapproved. An additional [download queue](OFFICIAL_DOCUMENT_DOWNLOAD_QUEUE.md) tracks landlord consent, two minor-related municipal forms, and the national ANPR guide. These are research leads, not stored documents.
 
 ## Safe acquisition and review procedure
 

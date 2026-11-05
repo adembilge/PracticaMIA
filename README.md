@@ -17,10 +17,10 @@ PracticaMIA is an independent English–Italian administrative-guidance prototyp
 | Frontend–backend bridge | Deployed | Same-origin Next.js routes fetch Auth0 access tokens server-side; browser never receives API tokens |
 | Saved-case workspace | Implemented and deployed | Link to a saved case, answer five synthetic scope questions, save/resume, edit and delete |
 | Official-source registry | Merged, disabled pending migration | Versioned municipal source candidates, approval-gated read API; no approved evidence yet |
-| Official HTML and PDF snapshots | PDF support in PR #15, production-disabled | Controlled original-byte acquisition, versioned snapshots and hash-linked passages |
+| Official HTML and PDF snapshots | PDF support merged, production-disabled | Controlled original-byte acquisition, versioned snapshots and hash-linked passages |
 | Reviewer-only source approval | Merged, not production-enabled | Verified reviewer allowlist, hash-confirmed approval/revocation and audit records |
 | Approved passage lexical search | Merged, production-disabled | PostgreSQL full-text ranking, jurisdiction/procedure filters, versioned citations and integrity gates |
-| Neon knowledge staging | Isolated, validated | Branch `staging-knowledge-0003-0006-2026-11-05` migrated to `0006`; 15 pending candidate URLs, zero approved sources |
+| Neon knowledge staging | Isolated, validated | Branch `staging-knowledge-0003-0006-2026-11-05` migrated to `0006`; 17 pending candidate URLs, zero approved sources |
 | Official knowledge and rules | Research draft | No approved production eligibility rules or authoritative personalized checklist |
 | LangChain/RAG | Not implemented | Planned citation-grounded LangChain retrieval and generation, without LangGraph orchestration |
 | Documents and submission | Not implemented | No real personal data, document uploads, ANPR login or government submission |
@@ -97,8 +97,9 @@ Review the Vercel preview deployment before merging. The saved-case milestone an
 - [Approved passage lexical search](docs/APPROVED_PASSAGE_SEARCH.md)
 - [Synthetic retrieval evaluation and quality gates](docs/RETRIEVAL_EVALUATION.md)
 - [Knowledge staging migration and source acquisition report](docs/KNOWLEDGE_STAGING_ROLLOUT.md)
-- [Milan official-source acquisition inventory (15 unapproved candidates)](docs/MILAN_OFFICIAL_SOURCE_ACQUISITION.md)
+- [Milan official-source acquisition inventory (17 unapproved candidates)](docs/MILAN_OFFICIAL_SOURCE_ACQUISITION.md)
 - [Manual PDF and HTML source ingestion](docs/PDF_SOURCE_INGESTION.md)
+- [New original-file download leads and acquisition queue](docs/OFFICIAL_DOCUMENT_DOWNLOAD_QUEUE.md)
 - [Development workflow](docs/DEVELOPMENT_WORKFLOW.md)
 - [Milan residence-change research](research/milan_residence_change.md)
 - [Complete original project specification](PracticaMIA_Complete_Project_Specification.md)

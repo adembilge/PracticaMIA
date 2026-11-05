@@ -148,5 +148,25 @@
     "title": "Dichiarazione di residenza — Allegato B, cittadini UE (PDF)",
     "official_url": "https://www.comune.milano.it/documents/20126/526418/documentazione_per_cittadini_u.e..pdf/59339837-24ec-09ac-3352-0bd9d9c97599",
     "document_type": "official_document"
+  },
+  {
+    "id": "milano-residence-minor-documents",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "document_type": "faq",
+    "title": "Documentazione per il cambio di residenza di una persona minorenne",
+    "official_url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00434/Documenti-necessari-per-cambio-residenza-minori"
+  },
+  {
+    "id": "milano-foreign-live-in-worker",
+    "institution": "Comune di Milano",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "document_type": "faq",
+    "title": "Documentazione abitativa per lavoratori presso proprietario o affittuario",
+    "official_url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00594/"
   }
 ]
