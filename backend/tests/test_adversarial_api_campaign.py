@@ -116,7 +116,7 @@ def test_path_object_and_injection_strings_never_expose_case_details(
     client, auth_headers, unsafe_value,
 ):
     owner = auth_headers("alice")
-    if unsafe_value == "\\x00":
+    if unsafe_value == chr(0):
         with pytest.raises(httpx.InvalidURL):
             client.get(SCOPE_PATH + "/" + unsafe_value, headers=owner)
         return
