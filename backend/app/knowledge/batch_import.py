@@ -17,7 +17,7 @@ import json
 from os import environ
 from pathlib import Path
 
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import configure_database
@@ -26,6 +26,7 @@ from app.knowledge.document_extraction import extract_document
 from app.knowledge.ingest_source import _read_original_file
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
 from app.knowledge.snapshots import ingest_snapshot
+from app.knowledge.staging_guard import require_staging_database, require_staging_intent
 
 
 @dataclass(frozen=True)
@@ -142,17 +143,6 @@ def ingest_prepared(
     return results
 
 
-def require_staging_database(db: Session) -> None:
-    """Conservative hard gate: production is not on this migration."""
-    if db.get_bind().dialect.name != "postgresql":
-        raise ValueError("Manual batch writes require PostgreSQL staging")
-    revision = db.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-    if revision != "20261105_0008":
-        raise ValueError(
-            "Batch importer requires knowledge staging at migration 20261105_0008"
-        )
-
-
 def _summary(original: PreparedOriginal) -> dict[str, str | int]:
     return {
         "source_id": original.source_id,
@@ -207,12 +197,7 @@ def main() -> None:
 
     if not db_url:
         parser.error("DATABASE_URL is required for --apply")
-    if environ.get("PRACTICAMIA_KNOWLEDGE_TARGET") != "staging":
-        parser.error(
-            "Set PRACTICAMIA_KNOWLEDGE_TARGET=staging explicitly for --apply"
-        )
-    if environ.get("VERCEL_ENV") == "production":
-        parser.error("Batch imports are prohibited in Vercel production")
+    require_staging_intent()
     engine, factory = configure_database(db_url)
     try:
         with factory.begin() as db:
