@@ -83,3 +83,63 @@ def test_embedding_encoding_rejects_invalid_shape_numbers_and_model_ids():
     for name in ("", "; DROP TABLE sources;", " "):
         with pytest.raises(ValueError):
             _model_id(name)
+
+
+def test_end_to_end_two_step_rag_never_calls_model_without_review(client):
+    from app.knowledge.catalog import register_candidates
+    from app.knowledge.model import KnowledgeSource
+    from app.knowledge.review_service import approve_version, revoke_version
+    from app.knowledge.rag_service import answer_reviewed_question
+    from app.knowledge.snapshots import ingest_snapshot
+
+    calls = []
+    def fake_model(prompt):
+        calls.append(prompt)
+        return AIMessage(content="Synthetic answer with citations")
+    model = RunnableLambda(fake_model)
+    scope = {
+        "jurisdiction": "IT-MI-MILANO",
+        "procedure_id": "milan_residence_change",
+        "language": "it",
+    }
+    factory = client.app.state.session_factory
+    with factory.begin() as db:
+        register_candidates(db)
+        src = db.get(KnowledgeSource, "milano-residence-change")
+        doc = ingest_snapshot(
+            db, src, b"<p>Procedura sintetica di prova non ufficiale.</p>",
+        )
+
+    with factory() as db:
+        result = answer_reviewed_question(
+            db, question="sintetica", chat_model=model, **scope,
+        )
+        assert result.status == "insufficient_evidence"
+        assert calls == []
+
+    with factory.begin() as db:
+        approve_version(
+            db, version_id=doc.version_id, expected_digest=doc.sha256,
+            actor_subject="test-reviewer",
+            reason="Synthetic evidence fixture in an isolated test.",
+        )
+    with factory() as db:
+        result = answer_reviewed_question(
+            db, question="sintetica", chat_model=model, **scope,
+        )
+        assert result.status == "answer_generated"
+        assert len(result.citations) == 1
+        assert len(calls) == 1
+
+    with factory.begin() as db:
+        revoke_version(
+            db, version_id=doc.version_id, expected_digest=doc.sha256,
+            actor_subject="test-reviewer",
+            reason="Revoke synthetic fixture before final query.",
+        )
+    with factory() as db:
+        result = answer_reviewed_question(
+            db, question="sintetica", chat_model=model, **scope,
+        )
+        assert result.status == "insufficient_evidence"
+        assert len(calls) == 1
