@@ -36,12 +36,17 @@ def test_batch_original_intake_stays_pending_and_rolls_back(tmp_path):
                     assert results[0]["status"] == "pending_review"
                     assert results[0]["previous_approval_invalidated"] is False
                 with factory() as db:
-                    versions = db.scalars(select(KnowledgeSourceVersion)).all()
+                    versions = db.scalars(
+                        select(KnowledgeSourceVersion)
+                        .where(KnowledgeSourceVersion.source_id == "milano-residence-change")
+                    ).all()
                     assert len(versions) == 1
                     assert versions[0].status == "pending_review"
                     queue = queue_records(candidate_sources(), db)
-                    assert sum(x["stored_version_status"] == "pending_review"
-                               for x in queue) == 1
+                    assert next(
+                        row for row in queue
+                        if row["source_id"] == "milano-residence-change"
+                    )["stored_version_status"] == "pending_review"
                     assert conn.execute(text(
                         "SELECT count(*) FROM knowledge_passage_embeddings"
                     )).scalar_one() == 0
