@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
 from app.knowledge.review_model import KnowledgeReviewEvent
+from app.knowledge.document_extraction import EXTRACTION_VERSIONS
 from app.knowledge.snapshot_model import KnowledgeSnapshot
 from app.knowledge.snapshots import verify_snapshot
 
@@ -99,7 +100,7 @@ def approve_version(
         raise ReviewConflict("This source revision is not pending review")
     snapshot = db.get(KnowledgeSnapshot, version.id)
     if (snapshot is None or snapshot.fetched_url != source.official_url
-            or snapshot.media_type not in ("text/html", "application/xhtml+xml")
+            or snapshot.media_type not in EXTRACTION_VERSIONS
             or not verify_snapshot(db, version)):
         raise ReviewConflict("Snapshot integrity or official URL verification failed")
 
