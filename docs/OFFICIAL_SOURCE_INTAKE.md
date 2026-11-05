@@ -4,6 +4,23 @@
 government knowledge base. A source URL is not equivalent to an ingested,
 reviewed, current document.
 
+## Last automated acquisition attempt (5 November 2026)
+
+A controlled GitHub Actions job attempted all 14 registered HTML URLs
+exactly once. **All 14 returned HTTP 403**, so none were imported.
+The result and per-source URLs are recorded in
+[the official HTML access audit](OFFICIAL_HTML_ACCESS_AUDIT_2026_11_05.md).
+
+When run from an authorized local network, the same byte-preserving collector is:
+
+```sh
+python -m app.knowledge.audit_web_sources --output-dir ./official-audit
+```
+
+Only files that pass original-response and extraction checks may be used as
+input to the existing `batch_import` workflow. A 403 means no source
+file was obtained, not that a snapshot should be reconstructed.
+
 ## Current constraints
 
 At the time of this change, staging contains 17 registered source URLs,
