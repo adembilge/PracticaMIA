@@ -20,7 +20,7 @@ PracticaMIA is an independent English–Italian administrative-guidance prototyp
 | Official HTML and PDF snapshots | PDF support merged, production-disabled | Controlled original-byte acquisition, versioned snapshots and hash-linked passages |
 | Reviewer-only source approval | Merged, not production-enabled | Verified reviewer allowlist, hash-confirmed approval/revocation and audit records |
 | Approved passage lexical search | Merged, production-disabled | PostgreSQL full-text ranking, jurisdiction/procedure filters, versioned citations and integrity gates |
-| Neon knowledge staging | Isolated, validated | Branch `staging-knowledge-0003-0006-2026-11-05` migrated to `0006`; 17 pending candidate URLs, zero approved sources |
+| Neon knowledge staging | Isolated, validated | Branch `staging-knowledge-0003-0006-2026-11-05` migrated to `0006`; 17 unapproved source URLs, one historical Allegato A snapshot pending review, zero approved sources |
 | Official knowledge and rules | Research draft | No approved production eligibility rules or authoritative personalized checklist |
 | LangChain/RAG | Not implemented | Planned citation-grounded LangChain retrieval and generation, without LangGraph orchestration |
 | Documents and submission | Not implemented | No real personal data, document uploads, ANPR login or government submission |
@@ -99,6 +99,7 @@ Review the Vercel preview deployment before merging. The saved-case milestone an
 - [Knowledge staging migration and source acquisition report](docs/KNOWLEDGE_STAGING_ROLLOUT.md)
 - [Milan official-source acquisition inventory (17 unapproved candidates)](docs/MILAN_OFFICIAL_SOURCE_ACQUISITION.md)
 - [Manual PDF and HTML source ingestion](docs/PDF_SOURCE_INGESTION.md)
+- [User-uploaded non-EU Allegato A: staging import and review caveats](docs/ALLEGATO_A_STAGING_INGESTION.md)
 - [New original-file download leads and acquisition queue](docs/OFFICIAL_DOCUMENT_DOWNLOAD_QUEUE.md)
 - [Development workflow](docs/DEVELOPMENT_WORKFLOW.md)
 - [Milan residence-change research](research/milan_residence_change.md)

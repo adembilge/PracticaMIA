@@ -1,8 +1,9 @@
 # Residence-change official document acquisition queue (5 November 2026)
 
-**Status: candidate links / download requests only.** No original HTML/PDF
-bytes were acquired in this investigation, no hashes were computed for original
-documents, and no source was ingested or approved. This queue is **not** a
+**Status:** Candidate link research remains unapproved. On 5 November 2026,
+a user-uploaded copy of non-EU Allegato A was stored in isolated Neon staging
+as one **pending-review** snapshot (not approved). Other original HTML/PDF
+sources have not been ingested. See [staging import record](ALLEGATO_A_STAGING_INGESTION.md). This queue is **not** a
 mandatory document checklist or a substitute for official instructions.
 
 ## Scope and current portal
@@ -49,7 +50,7 @@ not all applicant pathways require downloading it.
 
 | Source | Status |
 | --- | --- |
-| [Non-EU documentation, Allegato A (PDF)](https://fareimpresa.comune.milano.it/documents/20126/526418/documentazione_cittadini_extra_u.e2.pdf/ba348f98-86db-faaf-7a96-852530d4be73?t=1649410999191) | User reports **successful local download**. The original file has **not been uploaded into this conversation** and is **not in Neon**. Verify revision and scope first. |
+| [Non-EU documentation, Allegato A (PDF)](https://fareimpresa.comune.milano.it/documents/20126/526418/documentazione_cittadini_extra_u.e2.pdf/ba348f98-86db-faaf-7a96-852530d4be73?t=1649410999191) | User uploaded the original PDF; its exact 7,739 bytes and three text passages are stored in isolated Neon staging as **pending_review**. PDF CreationDate **2013-10-09**; current scope and validity are unverified. [Import report](ALLEGATO_A_STAGING_INGESTION.md). |
 | [EU documentation, Allegato B (PDF)](https://www.comune.milano.it/documents/20126/526418/documentazione_per_cittadini_u.e..pdf/59339837-24ec-09ac-3352-0bd9d9c97599?t=1649410999191) | User could not download. Indexed copy quotes **2012** financial figures; mark historical, do not use for current thresholds. |
 | [Residence declaration, Allegato 1 (PDF)](https://www.comune.milano.it/documents/20126/526597/dichiarazione%2Bdi%2Bresidenza.pdf/cb7c0558-d61b-1968-7143-b549f0ab337d?t=1560355046111) | User could not download. Older paper form, not proof this is the current ANPR pathway. |
 
@@ -77,8 +78,7 @@ presented as an original.
    ANPR GitHub repository returned no usable binary content. Screenshots
    of some indexed PDFs were unavailable; the ANPR guide's first page
    could be inspected.
-3. Therefore, **zero** original sources were stored in Neon. Do not claim
-   that an indexed PDF text excerpt is a source snapshot.
+3. At the time of this acquisition search, **zero** original sources were stored. Subsequently, the owner uploaded the non-EU Allegato A original and it was saved in Neon staging as **one pending-review snapshot**. No other original documents are stored and no approvals exist.
 4. An intact user-downloaded original (no print-to-PDF, OCR, rewriting or
    translation) can be supplied through a trusted file attachment.
 5. On the isolated staging database, the existing importer is designed to
@@ -91,9 +91,9 @@ presented as an original.
 
 ## Operational next step
 
-Ask for the user's locally downloaded **Allegato A** PDF and, if accessible,
-the **owner/tenant assent**, **minor consent**, **absent-parent particulars**
-and **ANPR guide** PDFs above. Confirm canonical publisher and validity
+The Allegato A PDF is now stored pending review. Ask for the still-missing
+**owner/tenant assent**, **minor consent**, **absent-parent particulars**
+and **ANPR guide** originals. Do not approve the 2013 PDF as current guidance without publisher and scope verification. Confirm canonical publisher and validity
 before registering any further PDF URLs: the imported files currently
 require exact catalog URL matching, which some cache-parameterized or
 redirecting public links do not satisfy. Keep production disabled.

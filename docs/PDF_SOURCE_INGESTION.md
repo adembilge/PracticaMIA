@@ -1,9 +1,11 @@
 # Official Milan PDF ingestion — safe manual source workflow
 
-**Status:** Code support added in PR #15; original official PDF bytes have **not**
-been acquired, ingested, approved or released. The 15 source registry records
-are still unapproved candidates on isolated Neon staging. Production is
-unchanged.
+**Status:** PDF support merged. On 5 November 2026, one user-uploaded
+non-EU Allegato A PDF was saved to isolated Neon staging as `pending_review`;
+its PDF metadata dates to 2013 and current applicability is unverified.
+The other 16 source records remain link-only candidates. All 17 sources
+remain unapproved, and production is unchanged.
+See [Allegato A import record](ALLEGATO_A_STAGING_INGESTION.md).
 
 ## What the importer now supports
 
