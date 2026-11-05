@@ -20,6 +20,7 @@ PracticaMIA is an independent English–Italian administrative-guidance prototyp
 | Official HTML snapshots | Merged, not production-migrated | Controlled HTML acquisition, versioned snapshots and hash-linked passages |
 | Reviewer-only source approval | Merged, not production-enabled | Verified reviewer allowlist, hash-confirmed approval/revocation and audit records |
 | Approved passage lexical search | Feature PR pending review | PostgreSQL full-text ranking, jurisdiction/procedure filters, versioned citations and integrity gates |
+| Neon knowledge staging | Isolated, validated | Branch `staging-knowledge-0003-0006-2026-11-05` migrated to `0006`; four pending candidate URLs, zero approved sources |
 | Official knowledge and rules | Research draft | No approved production eligibility rules or authoritative personalized checklist |
 | LangGraph/RAG | Not implemented | Planned bounded agent and reviewed-source retrieval |
 | Documents and submission | Not implemented | No real personal data, document uploads, ANPR login or government submission |
@@ -94,10 +95,11 @@ Review the Vercel preview deployment before merging. The saved-case milestone an
 - [Controlled official HTML snapshots](docs/CONTROLLED_SOURCE_SNAPSHOTS.md)
 - [Knowledge review and audit workflow](docs/KNOWLEDGE_REVIEW_WORKFLOW.md)
 - [Approved passage lexical search](docs/APPROVED_PASSAGE_SEARCH.md)
+- [Knowledge staging migration and source acquisition report](docs/KNOWLEDGE_STAGING_ROLLOUT.md)
 - [Development workflow](docs/DEVELOPMENT_WORKFLOW.md)
 - [Milan residence-change research](research/milan_residence_change.md)
 - [Complete original project specification](PracticaMIA_Complete_Project_Specification.md)
 
-The original specification's 94-task roadmap is reference material, **not** the current completion status. Next milestones are reviewed-source rollout, retrieval relevance evaluations, vector embeddings and hybrid fusion, deterministic administrative rules, and LangGraph orchestration. Security work still includes live multi-user isolation checks, audit/retention policies, rate limiting, monitoring and backups.
+Production Neon is intentionally at migration `20261104_0002`; a separate staging branch has migrated to `20261105_0006`. The backend's Production and staging Preview `DATABASE_URL` variables are now separated; staging credentials are restricted to the trusted `feature/knowledge-staging-rollout` preview branch, so other previews receive no database URL. The original specification's 94-task roadmap is reference material, **not** the current completion status. Next milestones are reviewed-source rollout, retrieval relevance evaluations, vector embeddings and hybrid fusion, deterministic administrative rules, and LangGraph orchestration. Security work still includes live multi-user isolation checks, audit/retention policies, rate limiting, monitoring and backups.
 
 **PracticaMIA does not represent or act on behalf of a municipality or the Italian government.**
