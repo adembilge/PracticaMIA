@@ -47,4 +47,4 @@ jobs:
         run: npm run build
 
       - name: Smoke-test built Next.js server over real localhost HTTP
-        run: node --test tests/runtime-smoke.test.mjs
+        run: node --test tests/runtime-smoke.mjs
