@@ -1,6 +1,6 @@
 """Transactional, append-only snapshot ingestion with approval invalidation.
 
-The only sanctioned write is pending_review. A changed HTML body invalidates
+The only sanctioned write is pending_review. A changed source body invalidates
 an older active approval immediately, without mutating the historical content.
 No reviewed version or extracted passage is edited in place.
 """
@@ -12,10 +12,8 @@ from uuid import uuid4
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.knowledge.acquisition import MEDIA_TYPES, validate_official_url
-from app.knowledge.html_extraction import (
-    EXTRACTION_VERSION, MAX_HTML_BYTES, extract_html,
-)
+from app.knowledge.acquisition import validate_official_url
+from app.knowledge.document_extraction import extract_document, EXTRACTION_VERSIONS
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
 from app.knowledge.review_model import KnowledgeReviewEvent
 from app.knowledge.snapshot_model import KnowledgePassage, KnowledgeSnapshot
@@ -41,18 +39,16 @@ def ingest_snapshot(
     # serialize on the same row in PostgreSQL.
     db.refresh(source, with_for_update=True)
     validate_official_url(source.official_url)
-    if media_type not in MEDIA_TYPES:
+    if media_type not in EXTRACTION_VERSIONS:
         raise ValueError("Unsupported snapshot media type")
     if retrieved_at is None:
         retrieved_at = datetime.now(timezone.utc)
     if retrieved_at.tzinfo is None:
         raise ValueError("Retrieval time must be timezone aware")
 
-    # Validate size, UTF-8 and extraction from the exact body being stored.
-    if not body or len(body) > MAX_HTML_BYTES:
-        raise ValueError("HTML snapshot is empty or exceeds size limit")
+    # Verify original bytes before saving anything; no inferred or generated text.
+    text, extraction_version = extract_document(body, media_type)
     content_hash = sha256(body).hexdigest()
-    text = extract_html(body)
     last = db.scalar(
         select(KnowledgeSourceVersion)
         .where(KnowledgeSourceVersion.source_id == source.id)
@@ -96,7 +92,7 @@ def ingest_snapshot(
     db.add(KnowledgeSnapshot(
         version_id=new_id, fetched_url=source.official_url,
         media_type=media_type, size_bytes=len(body),
-        extraction_version=EXTRACTION_VERSION,
+        extraction_version=extraction_version,
         raw_body=body, normalized_text=text.normalized_text,
     ))
     for passage in text.passages:
@@ -123,13 +119,13 @@ def verify_snapshot(db: Session, version: KnowledgeSourceVersion) -> bool:
         return False
     if (sha256(snapshot.raw_body).hexdigest() != version.content_sha256
             or snapshot.size_bytes != len(snapshot.raw_body)
-            or snapshot.extraction_version != EXTRACTION_VERSION):
+            or snapshot.extraction_version != EXTRACTION_VERSIONS.get(snapshot.media_type)):
         return False
     # Provenance includes the extracted text, not just raw HTML bytes.
     # Re-extraction prevents a modified normalized_text/passage pair from
     # passing a superficial offset-only integrity check.
     try:
-        extracted = extract_html(snapshot.raw_body)
+        extracted, _ = extract_document(snapshot.raw_body, snapshot.media_type)
     except ValueError:
         return False
     if snapshot.normalized_text != extracted.normalized_text:
