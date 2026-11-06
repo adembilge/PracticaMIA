@@ -1,0 +1,10 @@
+{
+  "version": "pending-human-review",
+  "status": "pending_review",
+  "jurisdiction": "IT-MI-MILANO",
+  "procedure_id": "milan_residence_change",
+  "approved_by": null,
+  "approved_at": null,
+  "complete_scenario_coverage": false,
+  "rules": []
+}
