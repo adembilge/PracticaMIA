@@ -95,7 +95,7 @@ def login(context, base: str, auth0_host: str, email: str, password: str):
 
 
 def run_checks(base: str, auth0_host: str, env: dict[str, str]) -> dict[str, object]:
-    from playwright.sync_api import sync_playwright
+    from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
     completed: list[str] = []
     created: list[tuple[object, str]] = []
@@ -139,8 +139,11 @@ def run_checks(base: str, auth0_host: str, env: dict[str, str]) -> dict[str, obj
                 completed.append("bidirectional tenant isolation")
 
                 page_a.goto(base + "/cases/saved", wait_until="domcontentloaded")
-                page_a.locator(".saved-case-list li").filter(has_text=id_a[:8]).locator("a").first.click(timeout=15000)
-                page_a.wait_for_url(base + f"/cases/{id_a}", timeout=15000)
+                try:
+                    page_a.locator(".saved-case-list li").filter(has_text=id_a[:8]).locator("a").first.click(timeout=15000)
+                    page_a.wait_for_url(base + f"/cases/{id_a}", timeout=15000)
+                except PlaywrightTimeoutError as exc:
+                    raise Failed("Owned case was not navigable from the saved-case browser UI") from exc
                 page_a.reload(wait_until="domcontentloaded")
                 status_is(a.request.get(base + f"/api/cases/{id_a}"), 200, "case persists after reload")
                 completed.append("browser reload and saved-case resumption")
@@ -201,8 +204,8 @@ def main() -> int:
         return_code = 1
     except Exception:
         # No credentials, callback URLs, response data or tokens in errors.
-        summary.update(verdict="blocked", reason="Browser or external identity flow failed")
-        return_code = 2
+        summary.update(verdict="fail", reason="Unexpected browser or test-runner failure")
+        return_code = 1
     path = Path("audit/results/authenticated_preview_e2e.json")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
