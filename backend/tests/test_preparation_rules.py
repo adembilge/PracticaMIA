@@ -9,6 +9,9 @@ from app.preparation.crypto import decrypt_blob, encrypt_blob
 from app.preparation.extract import DocumentRejected, extract_document, validate_document
 from app.preparation.workflow import assess_preparation
 from app.rules.engine import evaluate_condition, evaluate_rules, load_catalog, InvalidCatalog
+from app.rules.approval import canonical_approval_payload, has_valid_human_review_signature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives import serialization
 
 
 def synthetic_catalog():
@@ -190,3 +193,21 @@ def test_rejects_mismatched_signature_and_malicious_pdf_marker():
         validate_document(b"%PDF-1.7\n/JavaScript\n%%EOF", "application/pdf")
     with pytest.raises(DocumentRejected):
         validate_document(b"abc", "image/png")
+
+
+def test_real_catalog_activation_requires_human_signature_and_detects_tamper():
+    catalog = synthetic_catalog()
+    key = Ed25519PrivateKey.generate()
+    pub = key.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    public_base64 = b64encode(pub).decode("ascii")
+    assert not has_valid_human_review_signature(catalog, public_base64)
+    assert not has_valid_human_review_signature(catalog, "")
+    catalog["review_signature"] = b64encode(
+        key.sign(canonical_approval_payload(catalog))
+    ).decode("ascii")
+    assert has_valid_human_review_signature(catalog, public_base64)
+    catalog["rules"][1]["result"]["description"] += " modified without review"
+    assert not has_valid_human_review_signature(catalog, public_base64)
