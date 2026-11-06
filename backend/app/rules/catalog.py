@@ -1,0 +1,28 @@
+"""Read a versioned ruleset; resolve citations again on every request.
+
+No admin API changes rule status, no LLM can edit this file. Real approval
+requires a human-reviewed PR and individually approved source snapshots.
+"""
+from functools import lru_cache
+from pathlib import Path
+
+from sqlalchemy.orm import Session
+
+from app.rules.engine import JURISDICTION, PROCEDURE, evaluate_rules, load_catalog
+from app.knowledge.search import resolve_approved_passage
+
+CATALOG_PATH = Path(__file__).with_name("catalog.json")
+
+
+@lru_cache(maxsize=1)
+def current_catalog() -> dict:
+    return load_catalog(CATALOG_PATH.read_text(encoding="utf-8"))
+
+
+def evaluate_case_rules(db: Session, confirmed_facts: dict):
+    def evidence_is_approved(citation_id: str) -> bool:
+        return resolve_approved_passage(
+            db, citation_id=citation_id, jurisdiction=JURISDICTION,
+            procedure_id=PROCEDURE, language="it",
+        ) is not None
+    return evaluate_rules(current_catalog(), confirmed_facts, evidence_is_approved)
