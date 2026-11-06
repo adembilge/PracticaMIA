@@ -7,6 +7,7 @@ from sqlalchemy import create_engine, pool
 
 from app.database import Base
 from app.cases import model  # noqa: F401 - register the table on Base.metadata
+from app.preparation import models as preparation_models  # noqa: F401 - opt-in preview tables
 from app.knowledge import model as knowledge_model  # noqa: F401 - registry tables
 from app.knowledge import snapshot_model  # noqa: F401 - snapshot and passage tables
 from app.knowledge import review_model  # noqa: F401 - source review audit records
