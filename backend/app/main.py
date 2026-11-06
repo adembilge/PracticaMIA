@@ -31,6 +31,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # privacy, malware, retention, and legal review gates are complete.
         if settings.deployment_environment == "production":
             raise ValueError("Preparation preview must never be enabled in production")
+        if settings.preparation_target != "isolated_staging":
+            raise ValueError("Preparation requires explicit isolated staging target")
         if not (settings.enable_demo_case_api and settings.enable_knowledge_catalog_api):
             raise ValueError("Preparation requires authenticated cases and source registry")
         from app.preparation.crypto import decode_key
