@@ -35,6 +35,7 @@ def test_migration_includes_preparation_tables_and_real_cascading_delete(auth_he
         enable_knowledge_catalog_api=True,
         enable_preparation_api=True,
         deployment_environment="preview",
+        preparation_target="isolated_staging",
         preparation_document_key=base64.b64encode(bytes(range(32))).decode(),
         auth_issuer=ISSUER, auth_audience=AUDIENCE, auth_jwks_url=JWKS_URL,
     ))
