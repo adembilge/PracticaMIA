@@ -37,6 +37,7 @@ def preparation_client(tmp_path):
         enable_knowledge_catalog_api=True,
         enable_preparation_api=True,
         deployment_environment="preview",
+        preparation_target="isolated_staging",
         preparation_document_key=base64.b64encode(bytes(range(32))).decode(),
         auth_issuer=ISSUER, auth_audience=AUDIENCE, auth_jwks_url=JWKS_URL,
     )
@@ -59,6 +60,7 @@ def test_preparation_fails_closed_without_key():
             enable_preparation_api=True, enable_demo_case_api=True,
             enable_knowledge_catalog_api=True,
             deployment_environment="preview",
+            preparation_target="isolated_staging",
         ))
 
 
