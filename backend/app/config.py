@@ -14,6 +14,7 @@ class Settings:
     enable_preparation_api: bool = False
     preparation_document_key: str = ""
     preparation_target: str = ""
+    preparation_database_fingerprint: str = ""
     deployment_environment: str = ""
     assistant_chat_model: str = ""
     assistant_openai_api_key: str = ""
@@ -42,6 +43,7 @@ class Settings:
             in {"1", "true", "yes"},
             preparation_document_key=environ.get("PREPARATION_DOCUMENT_KEY", ""),
             preparation_target=environ.get("PREPARATION_TARGET", ""),
+            preparation_database_fingerprint=environ.get("PREPARATION_DATABASE_FINGERPRINT", ""),
             deployment_environment=environ.get("VERCEL_ENV", ""),
             assistant_chat_model=environ.get("ASSISTANT_CHAT_MODEL", "").strip(),
             assistant_openai_api_key=environ.get("OPENAI_API_KEY", ""),
