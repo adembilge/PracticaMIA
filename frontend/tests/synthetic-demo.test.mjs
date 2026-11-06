@@ -121,6 +121,10 @@ test('fixture values are constrained; no free-form applicant or document uploads
                 /pre-approved fictional/);
   assert.throws(() => updateSyntheticFacts(current, { previous_registration_context: 'admin' }),
                 /pre-approved fictional/);
+  assert.throws(() => updateSyntheticFacts(current, { owner_subject: 'not permitted' }),
+                /pre-approved fictional/);
+  assert.throws(() => updateSyntheticFacts(current, { property_address: null }),
+                /pre-approved fictional/);
   assert.throws(() => createSyntheticCase('production'), /Unknown synthetic scenario/);
   assert.throws(() => confirmSyntheticDocumentField(current, FICTIONAL_ADDRESS),
                 /documented synthetic sample/);
@@ -136,4 +140,21 @@ test('mock source never claims official evidence or government action', () => {
   const packageData = buildSyntheticPackage(readyStandard());
   assert.equal(packageData.handoff, 'SIMULATED — no government portal connected');
   assert.equal(packageData.government_submission_status, 'NOT_SUBMITTED');
+});
+
+
+test('manipulated or incomplete scenario state fails closed', () => {
+  const state = confirmSyntheticFacts(createSyntheticCase());
+  const missing = {
+    ...state,
+    facts: { ...state.facts, household_context: undefined },
+  };
+  assert.equal(evaluateSyntheticCase(missing).status, 'needs_information');
+  assert.equal(buildSyntheticPackage(missing), null);
+  const invalidAddress = {
+    ...state,
+    facts: { ...state.facts, property_address: 'Actual resident address' },
+  };
+  assert.equal(evaluateSyntheticCase(invalidAddress).status, 'needs_information');
+  assert.equal(buildSyntheticPackage(invalidAddress), null);
 });
