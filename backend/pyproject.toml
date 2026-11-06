@@ -18,6 +18,11 @@ dependencies = [
     "pypdf>=5.9,<7",
     "langchain-core>=1.0,<2",
     "langchain-openai>=1.0,<2",
+    "langgraph>=1.0,<2",
+    "python-multipart>=0.0.20,<1",
+    "cryptography>=44,<47",
+    "Pillow>=11,<13",
+    "pytesseract>=0.3.13,<1",
 ]
 
 [project.optional-dependencies]
@@ -32,6 +37,7 @@ include = ["app*"]
 
 [tool.setuptools.package-data]
 "app.knowledge" = ["candidate_sources.json"]
+"app.rules" = ["catalog.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
