@@ -139,6 +139,8 @@ def run_checks(base: str, auth0_host: str, env: dict[str, str]) -> dict[str, obj
                 completed.append("bidirectional tenant isolation")
 
                 page_a.goto(base + "/cases/saved", wait_until="domcontentloaded")
+                page_a.locator(".saved-case-list li").filter(has_text=id_a[:8]).locator("a").first.click(timeout=15000)
+                page_a.wait_for_url(base + f"/cases/{id_a}", timeout=15000)
                 page_a.reload(wait_until="domcontentloaded")
                 status_is(a.request.get(base + f"/api/cases/{id_a}"), 200, "case persists after reload")
                 completed.append("browser reload and saved-case resumption")
