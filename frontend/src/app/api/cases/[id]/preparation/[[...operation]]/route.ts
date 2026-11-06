@@ -45,6 +45,9 @@ async function handle(request: NextRequest, context: Context, method: string) {
   if (method === 'GET' || method === 'DELETE') {
     return proxyCaseRequest(method, route.path);
   }
+  if (route.action === 'document/extract') {
+    return proxyCaseRequest('POST', route.path);
+  }
   const declaredLength = Number(request.headers.get('content-length'));
   if (!Number.isFinite(declaredLength) || declaredLength < 1 ||
       declaredLength > (route.action === 'documents' ? 2 * 1024 * 1024 + 16384 : 4096)) {
@@ -66,9 +69,6 @@ async function handle(request: NextRequest, context: Context, method: string) {
     safe.set('file', file, 'synthetic-upload');
     safe.set('document_type', documentType);
     return proxySyntheticDocumentUpload(route.path, safe);
-  }
-  if (route.action === 'document/extract') {
-    return proxyCaseRequest('POST', route.path);
   }
   const raw = await request.text().catch(() => '');
   if (raw.length > 4096 || !request.headers.get('content-type')?.startsWith('application/json')) {
