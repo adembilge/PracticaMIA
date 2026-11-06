@@ -55,3 +55,23 @@ The original authenticated synthetic-case and unrelated knowledge endpoints rema
 4. **Real Auth0 two-account browser E2E, privacy assessment, bilingual quality, and production/staging migration/release gating.** The new route is deliberately production-disabled.
 
 **Operational safety:** do not use real personal documents against this preview before explicit privacy, access-control and storage review. Do not point new endpoints at production Neon or deploy any migration without authorization. Project governance reconciliation remains open and historical task statuses should not be silently flipped to `completed`.
+
+## Subsequent controls and UI added in this PR
+
+- **Human review signature:** To activate any ruleset, a designated human reviewer must cryptographically sign the canonical catalog. The backend accepts only a valid Ed25519 signature (public verification key in `PREPARATION_RULE_REVIEW_PUBLIC_KEY`), plus a complete scenario-coverage declaration and separately approved current citations. Merely editing `approved_by` does not activate legal requirements.
+- **Database identity and schema:** Enabling the API additionally requires `PREPARATION_TARGET=isolated_staging` and, with PostgreSQL, an exact `PREPARATION_DATABASE_FINGERPRINT` SHA-256 checksum of the configured `DATABASE_URL`, and migration `20261106_0011`. A production environment always rejects the preview feature. Generate the fingerprint locally with `python -c 'import os,hashlib;print(hashlib.sha256(os.environ["DATABASE_URL"].encode()).hexdigest())'`. Never print or commit the DB URL.
+- **Next.js preview UI:** `ENABLE_PREPARATION_UI=1` exposes a synthetic test-only workspace at `/cases/{id}/preparation` and an authenticated server-side proxy. The UI flag is ineffective when `VERCEL_ENV=production`. Source/pending catalog status is visible, but it cannot be silently converted into a real user checklist or government submission.
+- **Verification:** The CI includes a disposable PostgreSQL migration and encrypted-state smoke check plus frontend production-gate and payload validation tests. Green unit tests do not imply human-approved rules, real Auth0 Preview E2E, anti-malware screening, installed Tesseract OCR, or a complete official form.
+- **Source research:** [6 November official review candidate dossier](research/P0_OFFICIAL_SOURCE_REVIEW_CANDIDATES_2026_11_06.md). All information in the dossier is **pending human review**, not trusted application guidance.
+
+### Additive backend Preview variables (all off by default)
+
+```env
+ENABLE_PREPARATION_API=0
+PREPARATION_TARGET=
+PREPARATION_DATABASE_FINGERPRINT=
+PREPARATION_DOCUMENT_KEY=
+PREPARATION_RULE_REVIEW_PUBLIC_KEY=
+```
+
+The signed catalog must be generated and reviewed outside the app; keep the Ed25519 private key offline. Neither setting these variables nor passing synthetic CI tests approves municipal law.
