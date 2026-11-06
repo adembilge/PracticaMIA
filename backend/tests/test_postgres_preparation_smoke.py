@@ -1,5 +1,6 @@
 """Disposable CI PostgreSQL smoke for additive preview-only preparation storage."""
 import base64
+from hashlib import sha256
 import os
 from hashlib import sha256
 
@@ -36,6 +37,7 @@ def test_migration_includes_preparation_tables_and_real_cascading_delete(auth_he
         enable_preparation_api=True,
         deployment_environment="preview",
         preparation_target="isolated_staging",
+        preparation_database_fingerprint=sha256(database.encode()).hexdigest(),
         preparation_document_key=base64.b64encode(bytes(range(32))).decode(),
         auth_issuer=ISSUER, auth_audience=AUDIENCE, auth_jwks_url=JWKS_URL,
     ))
