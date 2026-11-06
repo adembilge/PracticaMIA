@@ -29,6 +29,7 @@ def upgrade():
         sa.Column("id", sa.String(36), primary_key=True),
         sa.Column("case_id", sa.String(36), sa.ForeignKey("cases.id", ondelete="CASCADE"), nullable=False),
         sa.Column("owner_subject", sa.String(255), nullable=False),
+        sa.Column("document_type", sa.String(64), nullable=False),
         sa.Column("media_type", sa.String(40), nullable=False),
         sa.Column("content_sha256", sa.String(64), nullable=False),
         sa.Column("ciphertext", sa.LargeBinary(), nullable=False),
