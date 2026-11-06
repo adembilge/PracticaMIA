@@ -19,7 +19,7 @@ def upgrade():
         "case_preparations",
         sa.Column("case_id", sa.String(36), sa.ForeignKey("cases.id", ondelete="CASCADE"), primary_key=True),
         sa.Column("owner_subject", sa.String(255), nullable=False),
-        sa.Column("confirmed_facts", sa.JSON(), nullable=False),
+        sa.Column("facts_ciphertext", sa.LargeBinary(), nullable=False),
         sa.Column("review_digest", sa.String(64), nullable=True),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
     )
@@ -33,8 +33,7 @@ def upgrade():
         sa.Column("media_type", sa.String(40), nullable=False),
         sa.Column("content_sha256", sa.String(64), nullable=False),
         sa.Column("ciphertext", sa.LargeBinary(), nullable=False),
-        sa.Column("extraction", sa.JSON(), nullable=False),
-        sa.Column("confirmed_fields", sa.JSON(), nullable=False),
+        sa.Column("review_ciphertext", sa.LargeBinary(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
     op.create_index("ix_case_documents_case_id", "case_documents", ["case_id"])
