@@ -26,6 +26,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
         )
         return response
+    if settings.enable_preparation_api:
+        # No production access to personal-document processing until independent
+        # privacy, malware, retention, and legal review gates are complete.
+        if settings.deployment_environment == "production":
+            raise ValueError("Preparation preview must never be enabled in production")
+        if not (settings.enable_demo_case_api and settings.enable_knowledge_catalog_api):
+            raise ValueError("Preparation requires authenticated cases and source registry")
+        from app.preparation.crypto import decode_key
+        api.state.preparation_document_key = decode_key(settings.preparation_document_key)
     if settings.enable_knowledge_catalog_api and not settings.enable_demo_case_api:
         raise ValueError("Knowledge catalog requires the authenticated case API")
     if settings.enable_knowledge_search_api and not (
@@ -65,6 +74,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         api.state.engine = engine
         api.state.session_factory = session_factory
         api.include_router(router)
+        if settings.enable_preparation_api:
+            from app.preparation.router import router as preparation_router
+            api.include_router(preparation_router)
         if settings.enable_knowledge_catalog_api:
             from app.knowledge.router import router as knowledge_router
             api.include_router(knowledge_router)
