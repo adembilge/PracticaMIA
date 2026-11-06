@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-from sqlalchemy import DateTime, ForeignKey, Integer, LargeBinary, JSON, String
+from sqlalchemy import DateTime, ForeignKey, LargeBinary, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -19,7 +19,7 @@ class CasePreparation(Base):
         String(36), ForeignKey("cases.id", ondelete="CASCADE"), primary_key=True,
     )
     owner_subject: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    confirmed_facts: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    facts_ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False, default=lambda: b"")
     review_digest: Mapped[str | None] = mapped_column(String(64), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now,
@@ -40,8 +40,7 @@ class CaseDocument(Base):
     media_type: Mapped[str] = mapped_column(String(40), nullable=False)
     content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
-    extraction: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
-    confirmed_fields: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    review_ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False, default=lambda: b"")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now,
     )
