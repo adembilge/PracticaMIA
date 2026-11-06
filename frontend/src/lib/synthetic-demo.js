@@ -67,6 +67,10 @@ const VALID_REGISTRATIONS = new Set(['in_milan_example', 'unknown', 'arriving_ab
 const VALID_HOUSEHOLDS = new Set(['alone_example', 'joining_household_example']);
 const VALID_HOUSING = new Set(['fictional_rental', 'unknown']);
 const VALID_ADDRESSES = new Set([FICTIONAL_ADDRESS, OTHER_FICTIONAL_ADDRESS]);
+const ALLOWED_FACT_FIELDS = new Set([
+  'previous_registration_context', 'household_context', 'housing_arrangement',
+  'previous_address', 'property_address', 'moved_on',
+]);
 export const SYNTHETIC_FACT_OPTIONS = Object.freeze({
   registrations: ['in_milan_example', 'unknown', 'arriving_abroad_example'],
   households: ['alone_example', 'joining_household_example'],
@@ -112,6 +116,12 @@ function clearDownstream(state, changes) {
 }
 
 export function updateSyntheticFacts(state, fields) {
+  if (!fields || typeof fields !== 'object' || Array.isArray(fields) ||
+      Object.keys(fields).length === 0 ||
+      Object.entries(fields).some(([key, value]) =>
+        !ALLOWED_FACT_FIELDS.has(key) || typeof value !== 'string')) {
+    throw new Error('Demo only accepts pre-approved fictional example values');
+  }
   const next = { ...state.facts, ...fields };
   if (!VALID_REGISTRATIONS.has(next.previous_registration_context) ||
       !VALID_HOUSEHOLDS.has(next.household_context) ||
@@ -185,8 +195,22 @@ export function evaluateSyntheticCase(state) {
       blocking_issues: ['Scenario intentionally excluded from this fictional walkthrough'],
     };
   }
-  if (facts.previous_registration_context === 'unknown') missing.push('previous_registration_context');
-  if (facts.housing_arrangement === 'unknown') missing.push('housing_arrangement');
+  if (!VALID_REGISTRATIONS.has(facts.previous_registration_context) ||
+      facts.previous_registration_context === 'unknown') {
+    missing.push('previous_registration_context');
+  }
+  if (!VALID_HOUSEHOLDS.has(facts.household_context)) {
+    missing.push('household_context');
+  }
+  if (!VALID_HOUSING.has(facts.housing_arrangement) ||
+      facts.housing_arrangement === 'unknown') {
+    missing.push('housing_arrangement');
+  }
+  if (facts.previous_address !== PREVIOUS_FICTIONAL_ADDRESS ||
+      !VALID_ADDRESSES.has(facts.property_address) ||
+      facts.moved_on !== '2026-11-01') {
+    missing.push('synthetic_fixture_integrity');
+  }
   if (missing.length) {
     return {
       ...base, decision: 'needs_information', status: 'needs_information',
