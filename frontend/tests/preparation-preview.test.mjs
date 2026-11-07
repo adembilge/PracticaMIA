@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   preparationPreviewEnabled, isPreparationFactsPayload, isPreparationPayload,
-  serializeReviewedPreparationPackage,
+  serializeReviewedPreparationPackage, serializeSyntheticAnprDraft, serializeSyntheticAnprText,
 } from '../src/lib/preparation-preview.js';
 
 test('isolated UI is never enabled in Vercel production', () => {
@@ -74,4 +74,45 @@ test('reviewed synthetic preparation export remains a non-submitted user-control
   assert.throws(() => serializeReviewedPreparationPackage(
     { ...data, government_submission: 'approved' }, digest));
   assert.throws(() => serializeReviewedPreparationPackage(null, digest));
+});
+
+test('ANPR worksheet export never claims an approved form or submission', () => {
+  const demo = {
+    artifact_type: 'synthetic_anpr_field_transcription_draft',
+    simulation_only: true,
+    official_form: false,
+    government_submission_status: 'NOT_SUBMITTED',
+    source_currentness_verified: false,
+    state: 'field_transcription_complete',
+    sections: [{ id: 'housing', fields: [{key:'rental_registration_number',value:'TEST-0001'}]}],
+  };
+  const data = JSON.parse(serializeSyntheticAnprDraft(demo));
+  assert.equal(data.government_submission_status, 'NOT_SUBMITTED');
+  assert.equal(data.official_form, false);
+  assert.match(data.export_disclaimer, /not an official/i);
+  assert.equal(data.sections[0].fields[0].value, 'TEST-0001');
+  assert.throws(() => serializeSyntheticAnprDraft({...demo, official_form:true}));
+  assert.throws(() => serializeSyntheticAnprDraft({...demo, simulation_only:false}));
+  assert.throws(() => serializeSyntheticAnprDraft({...demo, government_submission_status:'SUBMITTED'}));
+});
+
+test('readable ANPR worksheet output is not a submission or official form', () => {
+  const demo = {
+    artifact_type: 'synthetic_anpr_field_transcription_draft',
+    simulation_only: true,
+    official_form: false,
+    government_submission_status: 'NOT_SUBMITTED',
+    source_currentness_verified: false,
+    state: 'needs_field_information',
+    sections: [{ id: 'housing', title_en: 'Registered rental', fields: [
+      {key:'rental_registration_number',label_en:'Registration number',value:'TEST-0001',valid:true},
+      {key:'rental_contract_date',label_en:'Contract date',value:'',valid:false},
+    ]}],
+  };
+  const txt = serializeSyntheticAnprText(demo);
+  assert.match(txt, /NOT SUBMITTED/);
+  assert.match(txt, /NOT AN OFFICIAL APPLICATION/);
+  assert.match(txt, /Registration number: TEST-0001/);
+  assert.match(txt, /Contract date: \[not confirmed\]/);
+  assert.throws(() => serializeSyntheticAnprText({ ...demo, official_form: true }));
 });

@@ -28,6 +28,7 @@ from app.preparation.extract import (
 )
 from app.preparation.models import CaseDocument, CasePreparation
 from app.preparation.intake import scope_intake, validate_scope_facts
+from app.preparation.anpr_draft import build_anpr_draft
 from app.preparation.agent import guide_case
 from app.preparation.workflow import assess_preparation
 from app.rules.catalog import current_catalog
@@ -234,6 +235,20 @@ def replace_facts(case_id: UUID, payload: FactsUpdate, request: Request,
     return {"status": "saved", "is_demo": True, "confirmed_fact_count": len(values)}
 
 
+
+
+@router.get("/{case_id}/preparation/anpr-draft")
+def read_anpr_draft(
+    case_id: UUID, request: Request,
+    db: Session = Depends(get_session),
+    principal: Principal = Depends(get_principal),
+):
+    """Owner-scoped saved-fact transcription; never an official application."""
+    _case(db, case_id, principal)
+    row = _preparation(db, str(case_id), principal.subject)
+    return build_anpr_draft(
+        _facts(request, row, str(case_id), principal.subject)
+    )
 
 
 @router.get("/{case_id}/preparation/reference-evidence")
