@@ -1,5 +1,5 @@
 {
-  "version": "milan_individual_registered_rental_anpr_field_map_v1_20261107",
+  "version": "milan_individual_registered_rental_anpr_field_map_v2_20261107",
   "status": "pending_review",
   "available_for_real_user_guidance": false,
   "scenario": "One adult Italian citizen already registered in Italy, changing their residence individually to Comune di Milano, not aggregating with an existing household, and holding a registered private rental agreement.",
@@ -65,13 +65,13 @@
       "step": "supporting_uploads",
       "label_it": "Allegati",
       "source_section": "1.1.4",
-      "note": "Guide describes supporting attachments as optional generally and exceptions for non-EU applicant categories; do not convert into universal mandatory uploads."
+      "note": "Guide describes supporting attachments as optional generally and exceptions for non-EU applicant categories; do not convert into universal mandatory uploads. Warning: the public-ANPR alternate guide labels attachments section 1.1.5, not 1.1.4; needs reviewer choice of exact authoritative PDF."
     },
     {
       "step": "additional_details",
       "label_it": "Dati aggiuntivi",
       "source_section": "1.1.5",
-      "note": "Contact details and time window; exact mandatory status to confirm."
+      "note": "Contact details and time window; exact mandatory status to confirm. Public-ANPR alternate guide labels contact details section 1.1.4; pending version reconciliation."
     },
     {
       "step": "final_review",
@@ -262,11 +262,31 @@
     "government_acceptance_claim": false
   },
   "release_gates": [
+    "Reconcile the published ANPR PDF variants and require an authentic original approved edition, including page screenshots for field and upload claims; no guess about which edition is live.",
     "Capture and hash original official ANPR guide; verify date and current ANPR UI field labels.",
     "Authorized reviewer signs off exact field mandatory status for registered private tenant.",
     "Confirm whether any conditional municipal uploads override generally optional ANPR supporting attachments.",
     "Record approved versioned PDF passages as citations and update rules with them.",
     "Approve exact ruleset completeness and sign using external human Ed25519 key.",
     "Verify all negative cases, stale source revocation and applicant-controlled handoff."
-  ]
+  ],
+  "known_guide_variants": [
+    {
+      "url": "https://sc.anpr.interno.it/serviziCittadino/dist/docs/guida_compilazione_cambio_residenza.pdf",
+      "origin": "ANPR Ministry-hosted guide; target PDF not retrievable in this environment (403)",
+      "section_contact": "1.1.5 Dati aggiuntivi (draft historical mapping; requires original confirmation)",
+      "section_attachments": "1.1.4 Allegati (draft historical mapping; requires original confirmation)",
+      "upload_limit_status": "An indexed excerpt says 1MB total; not approved, do not enforce.",
+      "registry_approved": false
+    },
+    {
+      "url": "https://public-anpr.github.io/anpr-docs-cittadino/src/docs/guide/guida_compilazione_cambio_residenza.pdf",
+      "origin": "Public ANPR documentation repository; original provenance and version date need independent review",
+      "section_contact": "1.1.4 Dati di contatto",
+      "section_attachments": "1.1.5 Allegati",
+      "upload_limit_status": "The guide says 1MB per attached file; do not enforce before currentness and PDF approval.",
+      "registry_approved": false
+    }
+  ],
+  "critical_version_conflict": "Two publicly available ANPR guide variants use different section numbering for contact and attachments, and describe upload limits differently (total versus per file). Neither variant has a verified current publication date and approved original PDF snapshot for this product. Do NOT treat either as an authoritative current technical constraint."
 }

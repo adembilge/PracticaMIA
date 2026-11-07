@@ -59,6 +59,17 @@ def test_pdf_rejects_corrupted_or_oversized_originals(invalid):
         extract_pdf(invalid)
 
 
+def test_original_guide_length_pdf_has_bounded_page_cap():
+    from app.knowledge.pdf_extraction import MAX_PDF_PAGES
+    assert MAX_PDF_PAGES == 40
+    accepted = extract_pdf(sample_pdf(
+        pages=("Synthetic guide page",) * MAX_PDF_PAGES))
+    assert len(accepted.passages) == MAX_PDF_PAGES
+    with pytest.raises(ValueError, match="page count"):
+        extract_pdf(sample_pdf(
+            pages=("Too long synthetic guide",) * (MAX_PDF_PAGES + 1)))
+
+
 def test_pdf_rejects_scanned_or_textless_pages():
     with pytest.raises(ValueError, match="no extractable text"):
         extract_pdf(sample_pdf(pages=("",)))

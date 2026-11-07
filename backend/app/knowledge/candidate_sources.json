@@ -168,5 +168,15 @@
     "document_type": "faq",
     "title": "Documentazione abitativa per lavoratori presso proprietario o affittuario",
     "official_url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00594/"
+  },
+  {
+    "id": "anpr-citizen-residence-guide",
+    "institution": "Ministero dell'Interno - ANPR",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "title": "ANPR — Guida compilazione della dichiarazione di cambio residenza (PDF)",
+    "official_url": "https://sc.anpr.interno.it/serviziCittadino/dist/docs/guida_compilazione_cambio_residenza.pdf",
+    "document_type": "official_document"
   }
 ]
