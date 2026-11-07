@@ -148,6 +148,96 @@ def run_checks(base: str, auth0_host: str, env: dict[str, str]) -> dict[str, obj
                 status_is(a.request.get(base + f"/api/cases/{id_a}"), 200, "case persists after reload")
                 completed.append("browser reload and saved-case resumption")
 
+                # The first real preparation integration uses a separate, isolated
+                # Preview-only backend. All inputs below are invented test fixtures.
+                preparation_url = base + f"/api/cases/{id_a}/preparation"
+                preparation = a.request.get(preparation_url)
+                if preparation.status == 404:
+                    raise Blocked("Authenticated preparation Preview route is not enabled")
+                status_is(preparation, 200, "owner reads preparation")
+                if not preparation.json().get("is_demo"):
+                    raise Failed("Preview preparation lacks synthetic-only marker")
+                status_is(b.request.get(preparation_url), 404,
+                          "B cannot read A preparation")
+                status_is(b.request.put(preparation_url + "/facts",
+                                        data={"confirmed_facts": {}},
+                                        headers=headers), 404,
+                          "B cannot update A preparation")
+                test_facts = {
+                    "synthetic_eligibility": "yes",
+                    "housing_arrangement": "fictional_rental",
+                    "property_address": "Synthetic Via 10 Milano",
+                }
+                status_is(a.request.put(preparation_url + "/facts",
+                                        data={"confirmed_facts": test_facts},
+                                        headers=headers), 200,
+                          "A saves synthetic preparation")
+                reloaded = a.request.get(preparation_url)
+                status_is(reloaded, 200, "A reloads preparation")
+                if reloaded.json().get("confirmed_facts") != test_facts:
+                    raise Failed("Saved preparation facts not retained")
+                if reloaded.json().get("workflow", {}).get("package") is not None:
+                    raise Failed("Pending rule catalog generated a package")
+                completed.append("isolated preparation persists and denies cross-user access")
+
+                from io import BytesIO
+                from reportlab.pdfgen import canvas
+                pdf_buffer = BytesIO()
+                pdf = canvas.Canvas(pdf_buffer)
+                pdf.drawString(25, 750,
+                               "Property address: Synthetic Via 10 Milano")
+                pdf.save()
+                fixture = {
+                    "document_type": "fictional_agreement",
+                    "file": {"name": "synthetic.pdf", "mimeType": "application/pdf",
+                             "buffer": pdf_buffer.getvalue()},
+                }
+                unacknowledged = a.request.post(
+                    preparation_url + "/documents", multipart=fixture,
+                    headers={"Origin": base})
+                status_is(unacknowledged, 403, "upload requires synthetic acknowledgment")
+                uploaded = a.request.post(
+                    preparation_url + "/documents", multipart=fixture,
+                    headers={"Origin": base, "X-PracticaMIA-Synthetic-Only": "YES"})
+                status_is(uploaded, 201, "A uploads synthetic PDF")
+                doc_id = str(UUID(uploaded.json()["id"]))
+                status_is(b.request.post(
+                    preparation_url + f"/documents/{doc_id}/extract",
+                    headers={"Origin": base}), 404,
+                    "B cannot extract A document")
+                extraction = a.request.post(
+                    preparation_url + f"/documents/{doc_id}/extract",
+                    headers={"Origin": base})
+                status_is(extraction, 200, "A extracts synthetic PDF")
+                candidates = extraction.json().get("candidates", [])
+                if not candidates:
+                    raise Failed("Synthetic PDF had no reviewable extracted field")
+                candidate = candidates[0]
+                confirmed = a.request.post(
+                    preparation_url + f"/documents/{doc_id}/confirm-fields",
+                    data={"field_name": candidate["field_name"],
+                          "raw_value": candidate["raw_value"],
+                          "confirmed_value": test_facts["property_address"],
+                          "page": candidate["page"]}, headers=headers)
+                status_is(confirmed, 200, "A confirms document field")
+                reviewed = a.request.post(
+                    preparation_url + f"/documents/{doc_id}/review",
+                    data={"confirm_document": True}, headers=headers)
+                status_is(reviewed, 200, "A reviews synthetic PDF")
+                status_is(b.request.delete(
+                    preparation_url + f"/documents/{doc_id}",
+                    headers={"Origin": base}), 404, "B cannot delete A document")
+                status_is(a.request.get(preparation_url + "/package"), 200,
+                          "A reads blocked preparation package")
+                if a.request.get(preparation_url + "/package").json().get("package") is not None:
+                    raise Failed("Unapproved rules unexpectedly allowed a package")
+                page_a.goto(base + f"/cases/{id_a}/preparation",
+                            wait_until="domcontentloaded")
+                if page_a.url.startswith(base + "/auth/"):
+                    raise Failed("Signed-in preparation page redirected to login")
+                completed.append("synthetic PDF upload, extraction, correction and review")
+                completed.append("pending rules block package after document confirmation")
+
                 # A must be allowlisted reviewer, B an ordinary test user.
                 review = a.request.get(base + "/api/knowledge/review/browser-queue")
                 if review.status == 404:
@@ -159,17 +249,18 @@ def run_checks(base: str, auth0_host: str, env: dict[str, str]) -> dict[str, obj
                 if not isinstance(queue, list):
                     raise Failed("Reviewer queue response has unexpected shape")
                 completed.append("reviewer-only queue access")
-                if not queue:
-                    raise Blocked("Reviewer queue is empty; full-text source review cannot be tested")
-                version_id = str(UUID(queue[0]["version_id"]))
-                preview = a.request.get(base + f"/api/knowledge/review/versions/{version_id}")
-                status_is(preview, 200, "reviewer full article")
-                captured = preview.json()
-                if not captured.get("integrity_verified") or not captured.get("normalized_text"):
-                    raise Failed("Full article missing or integrity verification false")
-                status_is(b.request.get(base + f"/api/knowledge/review/versions/{version_id}"),
-                          403, "ordinary account cannot inspect article")
-                completed.append("reviewer full captured article and integrity")
+                if queue:
+                    version_id = str(UUID(queue[0]["version_id"]))
+                    preview = a.request.get(base + f"/api/knowledge/review/versions/{version_id}")
+                    status_is(preview, 200, "reviewer full article")
+                    captured = preview.json()
+                    if not captured.get("integrity_verified") or not captured.get("normalized_text"):
+                        raise Failed("Full article missing or integrity verification false")
+                    status_is(b.request.get(base + f"/api/knowledge/review/versions/{version_id}"),
+                              403, "ordinary account cannot inspect article")
+                    completed.append("reviewer full captured article and integrity")
+                else:
+                    completed.append("empty pending-source review queue is valid")
             finally:
                 for owner, case_id in reversed(created):
                     cleanup = owner.request.delete(base + f"/api/cases/{case_id}", headers=headers)
