@@ -82,3 +82,24 @@ def test_no_unrecognized_or_unsupported_fields_enter_export():
     assert "DO-NOT-EXPORT" not in repr(result)
     assert "fake_admin_approval" not in repr(result)
     assert result["source_currentness_verified"] is False
+
+def test_inspected_edition_fingerprint_and_optional_field_transcription():
+    facts = {
+        **scope(), **complete_fields(), "localita": "Milano",
+        "scala_piano_interno": "Scala B, piano 2, interno 7",
+        "contact_phone_2": "+39 0234567890",
+    }
+    draft = build_anpr_draft(facts)
+    assert draft["state"] == "field_transcription_complete"
+    assert draft["source_registry_approved"] is False
+    assert draft["source_pdf_metadata_creation_date"] == "2025-04-08"
+    assert draft["source_pdf_sha256_inspected"] == (
+        "7ecc161913692a6d6102931c1b8cba368647a69ce664fd682785cdfd5fbadd81"
+    )
+    fields = {f["key"]: f for section in draft["sections"] for f in section["fields"]}
+    assert fields["localita"]["value"] == "Milano"
+    assert fields["scala_piano_interno"]["valid"] is True
+    assert fields["contact_phone_2"]["value"] == "+39 0234567890"
+    assert fields["contact_phone_2"]["required_in_inspected_guide"] is False
+    assert draft["official_form"] is False
+    assert draft["government_submission_status"] == "NOT_SUBMITTED"
