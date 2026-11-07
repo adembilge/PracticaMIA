@@ -56,8 +56,14 @@ It does **not** prove a live 2026 ANPR edition and is **not** an approved versio
 **Important operator warning:** the current source ID `anpr-citizen-residence-guide`
 is registered to the *different Ministry-hosted* `sc.anpr.interno.it` URL.
 Do **not** ingest this uploaded public-anpr.github.io PDF under that ID.
-A distinct provenance-correct source record and its explicit trusted publisher
-review are prerequisites if that archive is chosen as a source for live rules.
+A distinct curated candidate `anpr-public-docs-residence-guide` now points
+**only** to the public-anpr.github.io PDF, with an explicit *archive*
+attribution rather than a Ministry claim. The upload has not yet been ingested
+or authenticated as current authority. The owner's exact upload can now be
+imported as a **pending** source version under that separate ID on the
+isolated staging database (see the [uploaded-copy review record](ANPR_PUBLIC_GUIDE_UPLOAD_REVIEW_2026_11_07.md)),
+but an authenticated reviewer must still inspect and approve that version.
+
 Do not assign it the Ministry institution merely to satisfy the host allowlist.
 The review API approval must be performed by an authenticated person on a
 genuine, hash-checked stored snapshot; no review decision was made here.
