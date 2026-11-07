@@ -31,7 +31,7 @@
     {
       "id": "anpr_uploaded_public_guide_2025",
       "url": "https://public-anpr.github.io/anpr-docs-cittadino/src/docs/guide/guida_compilazione_cambio_residenza.pdf",
-      "source_status": "uploaded_user_copy_inspected_not_registered_or_approved",
+      "source_status": "uploaded_user_copy_inspected_not_ingested_or_approved",
       "artifact_filename": "guida_compilazione_cambio_residenza.pdf",
       "sha256": "7ecc161913692a6d6102931c1b8cba368647a69ce664fd682785cdfd5fbadd81",
       "size_bytes": 1502022,
@@ -40,7 +40,9 @@
       "pdf_metadata_title": "Dichiarazione Residenza - Modalità operative per il cittadino",
       "pdf_metadata_author": "ANPR",
       "publisher_provenance": "Public ANPR documentation repository at public-anpr.github.io; exact uploaded-byte equivalence to the online file and official currentness not independently established",
-      "scope": "Uploaded local PDF copy inspected in full; sections 1.1.1 Famiglia, 1.1.2 Residenza, 1.1.3 Immobile, 1.1.4 Dati di contatto, 1.1.5 Allegati, 1.1.6 Riepilogo"
+      "scope": "Uploaded local PDF copy inspected in full; sections 1.1.1 Famiglia, 1.1.2 Residenza, 1.1.3 Immobile, 1.1.4 Dati di contatto, 1.1.5 Allegati, 1.1.6 Riepilogo",
+      "curated_registry_candidate_id": "anpr-public-docs-residence-guide",
+      "curated_candidate_url": "https://public-anpr.github.io/anpr-docs-cittadino/src/docs/guide/guida_compilazione_cambio_residenza.pdf"
     }
   ],
   "supported_route_boundary": {

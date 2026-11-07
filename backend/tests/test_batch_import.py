@@ -30,7 +30,7 @@ def _file(directory, source=A, content=ORIGINAL, suffix=".html"):
 
 def test_queue_has_exact_registered_sources_and_explicit_unreviewed_status():
     queue = queue_records(candidate_sources())
-    assert len(queue) == 18
+    assert len(queue) == 19
     assert all(item["stored_version_status"] == "not_imported" for item in queue)
     assert all(item["action"] == "download_original_and_review" for item in queue)
     assert next(item for item in queue if item["source_id"] ==
@@ -66,7 +66,7 @@ def test_prepare_offline_bytes_and_save_only_pending_review(tmp_path, client):
         )
         queue = queue_records(candidate_sources(), db)
         assert sum(x["stored_version_status"] == "pending_review" for x in queue) == 2
-        assert len(queue) == 18
+        assert len(queue) == 19
 
     # Exact reimport is idempotent: no duplicate version and no auto-approval.
     with factory.begin() as db:

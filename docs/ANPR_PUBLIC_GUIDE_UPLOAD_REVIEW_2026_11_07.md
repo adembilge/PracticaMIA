@@ -53,6 +53,16 @@ This PDF's section order **differs** from indexed text of the Ministry-hosted do
 
 **The uploaded file has not been stored as a source snapshot version in the isolated Neon source registry,** and the source's publisher identity and **current 2026 ANPR live-portal correspondence are not yet independently attested.** The existing registered Ministry PDF candidate has *zero* source versions. Registration, source import, authenticated API approval, and final human-signed rules catalog are separate steps.
 
-Use a source candidate with the **real provenance URL** if the public documentation PDF is chosen for controlled staging evidence. Do not bypass `validate_candidate`, change the approved institutional attribution, or associate this upload with a Ministry-hosted canonical URL. The goal is an accurate MVP, not a green status obtained by inventing evidence.
+A separate source candidate `anpr-public-docs-residence-guide` is now curated with the **public-anpr.github.io** URL and a transparent archive-institution label. The URL is constrained to this exact PDF; the existing Ministry source `anpr-citizen-residence-guide` remains unchanged.
+
+On the owner's computer, from `backend/`, with this exact uploaded file available locally:
+
+```bash
+python -m app.knowledge.ingest_source \
+  --source-id anpr-public-docs-residence-guide \
+  --file /path/to/guida_compilazione_cambio_residenza.pdf
+```
+
+Confirm the dry-run SHA-256 matches the uploaded-copy hash above. On the confirmed isolated Neon staging branch only, set `PRACTICAMIA_KNOWLEDGE_TARGET=staging` and `DATABASE_URL` from the staging branch, then repeat the command with `--apply`. This produces a **pending_review** original PDF version. The PDF is not approved by running the importer; approval requires the existing restricted authenticated reviewer API. Do not bypass `validate_candidate` or associate this copy with a Ministry-hosted canonical URL.
 
 **No source review audit event, reviewer signature, real-data handling, or government submission has been performed here.**

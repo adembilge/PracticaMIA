@@ -7,7 +7,7 @@ from urllib.parse import urlsplit
 
 import httpx
 
-from app.knowledge.catalog import ALLOWED_HOSTS
+from app.knowledge.catalog import ALLOWED_HOSTS, PUBLIC_ANPR_GUIDE_URL
 from app.knowledge.document_extraction import MEDIA_LIMITS
 
 MEDIA_TYPES = frozenset({"text/html", "application/xhtml+xml"})
@@ -15,6 +15,8 @@ MEDIA_TYPES = frozenset({"text/html", "application/xhtml+xml"})
 
 def validate_official_url(url: str) -> None:
     parts = urlsplit(url)
+    if parts.hostname == "public-anpr.github.io" and url != PUBLIC_ANPR_GUIDE_URL:
+        raise ValueError("Only the provenance-bound ANPR public guide URL is allowed")
     if (parts.scheme != "https" or parts.hostname not in ALLOWED_HOSTS
             or parts.port is not None or parts.username or parts.password
             or not parts.path.startswith("/") or parts.query or parts.fragment):
