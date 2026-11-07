@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { PdfReviewPanel } from '@/components/PdfReviewPanel';
 import { useEffect, useState, type FormEvent } from 'react';
 
 type BrowserQueueItem = {
@@ -161,7 +162,8 @@ export function MobileReviewQueue({ configured, signedIn }: Props) {
         Browser-rendered articles are not original server-response HTML.
         A passed SHA-256 check proves capture integrity, not that the
         municipality’s requirements are currently applicable.
-        This page excludes all PDFs and does not generate embeddings.
+        PDFs are reviewed separately below, with a verified version inspection.
+        Neither flow generates embeddings or activates municipal rules.
       </p>
       {!configured ? <p className="message-box notice">Review is not configured in this environment.</p>
         : !signedIn ? <section className="account-panel">
@@ -247,6 +249,7 @@ export function MobileReviewQueue({ configured, signedIn }: Props) {
             {error && <p role="alert" className="error-text">{error}</p>}
             {success && <p role="status" className="message-box notice">{success}</p>}
           </section>}
+      <PdfReviewPanel signedIn={signedIn} configured={configured} />
       <p className="account-footnote">
         Reviewer actions require a verified Auth0 token and a server-side
         allowlist. No action is available in production.
