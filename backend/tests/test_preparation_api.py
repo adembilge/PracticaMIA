@@ -235,6 +235,7 @@ def test_guided_intake_is_owner_scoped_and_does_not_activate_real_rules(
         "registration_context": "already_registered_in_italy",
         "destination_municipality": "milano",
         "household_scope": "individual_no_aggregation",
+        "housing_basis": "registered_private_rental",
         "property_address": "Synthetic Via 10 Milano",
     }
     assert http.put(base + "/facts", json={"confirmed_facts": facts},

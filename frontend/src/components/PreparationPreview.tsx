@@ -42,7 +42,7 @@ type Assessment = {
   };
   package: PackageData | null;
 };
-type ScopeField = 'citizenship_class' | 'registration_context' | 'destination_municipality' | 'household_scope';
+type ScopeField = 'citizenship_class' | 'registration_context' | 'destination_municipality' | 'household_scope' | 'housing_basis';
 type ScopeQuestion = {
   field: ScopeField;
   label_en: string;
@@ -121,6 +121,7 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
     registration_context: '',
     destination_municipality: '',
     household_scope: '',
+    housing_basis: '',
     synthetic_eligibility: '',
     housing_arrangement: '',
     property_address: '',
@@ -164,6 +165,7 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
       registration_context: String(saved.confirmed_facts.registration_context ?? ''),
       destination_municipality: String(saved.confirmed_facts.destination_municipality ?? ''),
       household_scope: String(saved.confirmed_facts.household_scope ?? ''),
+      housing_basis: String(saved.confirmed_facts.housing_basis ?? ''),
       synthetic_eligibility: String(saved.confirmed_facts.synthetic_eligibility ?? ''),
       housing_arrangement: String(saved.confirmed_facts.housing_arrangement ?? ''),
       property_address: String(saved.confirmed_facts.property_address ?? ''),
@@ -233,7 +235,7 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
   async function resetScope() {
     const confirmed_facts = { ...(snapshot?.confirmed_facts ?? {}) };
     for (const field of ['citizenship_class', 'registration_context',
-      'destination_municipality', 'household_scope']) {
+      'destination_municipality', 'household_scope', 'housing_basis']) {
       delete confirmed_facts[field];
     }
     await mutate(base + '/facts', 'PUT', { confirmed_facts });
