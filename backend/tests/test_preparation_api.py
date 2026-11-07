@@ -214,3 +214,48 @@ def test_synthetic_private_journey_and_cross_user_protections(
         assert session.scalar(select(CaseDocument).where(
             CaseDocument.id == doc_id,
         )) is None
+
+
+
+def test_guided_intake_is_owner_scoped_and_does_not_activate_real_rules(
+    preparation_client, auth_headers,
+):
+    http = preparation_client
+    owner, other = auth_headers("alice"), auth_headers("bob")
+    created = http.post("/api/v1/cases", json={}, headers=owner)
+    assert created.status_code == 201
+    base = f"/api/v1/cases/{created.json()['id']}/preparation"
+    first = http.get(base, headers=owner).json()
+    assert first["intake"]["next_question"]["field"] == "citizenship_class"
+    assert first["intake"]["is_legal_assessment"] is False
+    assert http.get(base, headers=other).status_code == 404
+
+    facts = {
+        "citizenship_class": "italian",
+        "registration_context": "already_registered_in_italy",
+        "destination_municipality": "milano",
+        "household_scope": "individual_no_aggregation",
+        "property_address": "Synthetic Via 10 Milano",
+    }
+    assert http.put(base + "/facts", json={"confirmed_facts": facts},
+                    headers=owner).status_code == 200
+    complete = http.get(base, headers=owner).json()
+    assert complete["intake"]["status"] == "candidate_scope_complete"
+    assert complete["workflow"]["package"] is None
+    assert complete["workflow"]["rules"]["decision"] != "supported"
+
+    for bad in ("other", "unknown", "bogus"):
+        changed = {**facts, "destination_municipality": bad}
+        update = http.put(base + "/facts", json={"confirmed_facts": changed},
+                          headers=owner)
+        if bad == "bogus":
+            assert update.status_code == 422
+            continue
+        assert update.status_code == 200
+        state = http.get(base, headers=owner).json()
+        assert state["intake"]["status"] == (
+            "needs_information" if bad == "unknown" else "outside_first_candidate"
+        )
+        assert state["workflow"]["package"] is None
+    assert http.put(base + "/facts", json={"confirmed_facts": facts},
+                    headers=other).status_code == 404
