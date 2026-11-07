@@ -1,0 +1,121 @@
+{
+  "version": "italian_individual_candidate_v1_20261107",
+  "status": "pending_review",
+  "jurisdiction": "IT-MI-MILANO",
+  "procedure_id": "milan_residence_change",
+  "approved_by": null,
+  "approved_at": null,
+  "complete_scenario_coverage": false,
+  "proposal_only": true,
+  "scope_note": "Unapproved product-scoped route for one Italian adult already resident in Italy, moving to Milano without joining an existing household. Not a complete legal or ANPR document checklist.",
+  "rules": [
+    {
+      "id": "italian_individual_route",
+      "kind": "route",
+      "status": "active",
+      "condition": {
+        "all": [
+          {
+            "field": "citizenship_class",
+            "operator": "equals",
+            "value": "italian"
+          },
+          {
+            "field": "registration_context",
+            "operator": "equals",
+            "value": "already_registered_in_italy"
+          },
+          {
+            "field": "destination_municipality",
+            "operator": "equals",
+            "value": "milano"
+          },
+          {
+            "field": "household_scope",
+            "operator": "equals",
+            "value": "individual_no_aggregation"
+          }
+        ]
+      },
+      "result": {
+        "route": "supported_individual"
+      },
+      "evidence_refs": [
+        "e139e910-3a89-4994-b450-b5107d8db7dd:0000",
+        "e139e910-3a89-4994-b450-b5107d8db7dd:0003"
+      ]
+    },
+    {
+      "id": "italian_change_anpr_guidance",
+      "kind": "requirement",
+      "status": "active",
+      "condition": {
+        "all": [
+          {
+            "field": "citizenship_class",
+            "operator": "equals",
+            "value": "italian"
+          },
+          {
+            "field": "registration_context",
+            "operator": "equals",
+            "value": "already_registered_in_italy"
+          },
+          {
+            "field": "destination_municipality",
+            "operator": "equals",
+            "value": "milano"
+          },
+          {
+            "field": "household_scope",
+            "operator": "equals",
+            "value": "individual_no_aggregation"
+          }
+        ]
+      },
+      "result": {
+        "description": "Inform the Milan Registry Office via ANPR within 20 days of the move; verify the applicable official channel before submitting.",
+        "required_document_types": []
+      },
+      "evidence_refs": [
+        "e139e910-3a89-4994-b450-b5107d8db7dd:0000"
+      ]
+    },
+    {
+      "id": "italian_change_tari_followup",
+      "kind": "requirement",
+      "status": "active",
+      "condition": {
+        "all": [
+          {
+            "field": "citizenship_class",
+            "operator": "equals",
+            "value": "italian"
+          },
+          {
+            "field": "registration_context",
+            "operator": "equals",
+            "value": "already_registered_in_italy"
+          },
+          {
+            "field": "destination_municipality",
+            "operator": "equals",
+            "value": "milano"
+          },
+          {
+            "field": "household_scope",
+            "operator": "equals",
+            "value": "individual_no_aggregation"
+          }
+        ]
+      },
+      "result": {
+        "description": "Check the separate TARI declaration for the changed housing situation; this is not part of the residence application.",
+        "required_document_types": []
+      },
+      "evidence_refs": [
+        "e139e910-3a89-4994-b450-b5107d8db7dd:0005"
+      ]
+    }
+  ]
+}
