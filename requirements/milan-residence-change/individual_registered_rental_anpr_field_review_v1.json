@@ -1,0 +1,272 @@
+{
+  "version": "milan_individual_registered_rental_anpr_field_map_v1_20261107",
+  "status": "pending_review",
+  "available_for_real_user_guidance": false,
+  "scenario": "One adult Italian citizen already registered in Italy, changing their residence individually to Comune di Milano, not aggregating with an existing household, and holding a registered private rental agreement.",
+  "authoritative_rule_catalog": "pending_review",
+  "research_checked_at": "2026-11-07",
+  "source_records": [
+    {
+      "id": "milano_italian_residence_reviewed_passage",
+      "url": "https://servizicrm.comune.milano.it/centro-supporto/KA-00371/",
+      "registry_passages": [
+        "e139e910-3a89-4994-b450-b5107d8db7dd:0000",
+        "e139e910-3a89-4994-b450-b5107d8db7dd:0005"
+      ],
+      "source_status": "existing_approved_excerpts",
+      "scope": "Municipal timing, separate TARI, and household aggregation exception; not a full required fields/attachments inventory"
+    },
+    {
+      "id": "anpr_citizen_guide_candidate",
+      "url": "https://sc.anpr.interno.it/serviziCittadino/dist/docs/guida_compilazione_cambio_residenza.pdf",
+      "source_status": "not_approved_in_project_registry",
+      "scope": "ANPR guide (currently undated/possibly older); sections 1.1.1–1.1.6; currentness and original document snapshot require reviewer confirmation"
+    },
+    {
+      "id": "milano_service_page_candidate",
+      "url": "https://www.comune.milano.it/servizi/anagrafe/cambio-di-residenza",
+      "source_status": "candidate_not_approved_in_project_registry",
+      "scope": "Milan residence change service, SPID/CIE entry, 20 days and municipal follow-up. Must not be equated to source-review approval"
+    }
+  ],
+  "supported_route_boundary": {
+    "citizenship_class": "italian",
+    "registration_context": "already_registered_in_italy",
+    "destination_municipality": "milano",
+    "household_scope": "individual_no_aggregation",
+    "housing_basis": "registered_private_rental"
+  },
+  "guide_steps": [
+    {
+      "step": "new_residence",
+      "label_it": "Nuova residenza",
+      "source_section": "1.1",
+      "note": "This route is distinct from joining an existing family; household-joining approval is outside scope."
+    },
+    {
+      "step": "family",
+      "label_it": "Famiglia",
+      "source_section": "1.1.1",
+      "note": "ANPR shows pre-existing personal registry data; the applicant selects only themselves and confirms the requested family/driver/vehicle values."
+    },
+    {
+      "step": "residence_address",
+      "label_it": "Residenza",
+      "source_section": "1.1.2",
+      "note": "ANPR address fields entered for Milano."
+    },
+    {
+      "step": "housing_occupation",
+      "label_it": "Immobile",
+      "source_section": "1.1.3",
+      "note": "Registered-rental holder chooses title 2 and enters registration details."
+    },
+    {
+      "step": "supporting_uploads",
+      "label_it": "Allegati",
+      "source_section": "1.1.4",
+      "note": "Guide describes supporting attachments as optional generally and exceptions for non-EU applicant categories; do not convert into universal mandatory uploads."
+    },
+    {
+      "step": "additional_details",
+      "label_it": "Dati aggiuntivi",
+      "source_section": "1.1.5",
+      "note": "Contact details and time window; exact mandatory status to confirm."
+    },
+    {
+      "step": "final_review",
+      "label_it": "Riepilogo",
+      "source_section": "1.1.6",
+      "note": "Only the applicant reviews and submits on official ANPR, never PracticaMIA."
+    }
+  ],
+  "candidate_input_fields": [
+    {
+      "key": "select_applicant",
+      "section": "1.1.1",
+      "importance": "workflow_required",
+      "reason": "Select the individual applicant from pre-populated family members",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "family_relationship",
+      "section": "1.1.1",
+      "importance": "guide_required",
+      "reason": "Select relationship to the household sheet head; confirm precise UI behavior for sole applicant",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "driving_licence_yes_no",
+      "section": "1.1.1",
+      "importance": "guide_required",
+      "reason": "ANPR asks for a Yes/No selection",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "vehicles_yes_no",
+      "section": "1.1.1",
+      "importance": "guide_required",
+      "reason": "ANPR asks for a Yes/No selection",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "destination_province",
+      "section": "1.1.2",
+      "importance": "guide_required",
+      "reason": "Province of the destination, MI for Milan",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "destination_municipality",
+      "section": "1.1.2",
+      "importance": "guide_required",
+      "reason": "Comune di Milano",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "street_type",
+      "section": "1.1.2",
+      "importance": "guide_required",
+      "reason": "Via/Piazza species or ALTRO",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "street_type_other",
+      "section": "1.1.2",
+      "importance": "conditional",
+      "reason": "Required in the guide only when street_type is ALTRO",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "street_name",
+      "section": "1.1.2",
+      "importance": "guide_required",
+      "reason": "Destination toponym",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "civic_number",
+      "section": "1.1.2",
+      "importance": "guide_required",
+      "reason": "Destination street civic number",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "postal_code",
+      "section": "1.1.2",
+      "importance": "guide_required",
+      "reason": "Destination CAP",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "localita",
+      "section": "1.1.2",
+      "importance": "guide_optional",
+      "reason": "Optional within selected municipality",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "scala_piano_interno",
+      "section": "1.1.2",
+      "importance": "guide_optional",
+      "reason": "Optional address details grouped in guide",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "housing_title",
+      "section": "1.1.3",
+      "importance": "workflow_required",
+      "reason": "Select title 2 — holder of regularly registered private rental contract",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "rental_registration_office_municipality",
+      "section": "1.1.3",
+      "importance": "guide_required",
+      "reason": "Municipality of Agenzia delle Entrate office where lease registered",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "rental_registration_date",
+      "section": "1.1.3",
+      "importance": "guide_required",
+      "reason": "Guide refers to contract date; reviewer should validate precise date field label",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "rental_registration_number",
+      "section": "1.1.3",
+      "importance": "guide_required",
+      "reason": "Registration number of private rental agreement",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "contact_phone",
+      "section": "1.1.5",
+      "importance": "unspecified_mandatory",
+      "reason": "Contact information mentioned by guide; do not assert mandatory",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "inspection_availability",
+      "section": "1.1.5",
+      "importance": "unspecified_mandatory",
+      "reason": "Time range for registry officer visit; verify current UI validation",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "review_and_submit",
+      "section": "1.1.6",
+      "importance": "user_only",
+      "reason": "Applicant must review and confirm within ANPR; no proxy submission",
+      "source_id": "anpr_citizen_guide_candidate",
+      "review_status": "pending_independent_source_review"
+    }
+  ],
+  "attached_documents": {
+    "mandatory_for_this_scenario_under_anpr_guide": [],
+    "statement": "Section 1.1.4 of the available ANPR guide says supporting uploads generally are not mandatory, except for specified categories including non-EU residence permits. This does NOT independently prove current municipal requirements for an Italian registered tenant.",
+    "optional_evidence_examples": [
+      "rental_agreement",
+      "registration_receipt"
+    ],
+    "needs_human_review": true,
+    "implementation_status": "do_not_enforce_upload_or_current_anpr_size_cap_from_this_draft"
+  },
+  "legal_and_handoff_separation": {
+    "notify_within_days": 20,
+    "deadline_source_citation": "e139e910-3a89-4994-b450-b5107d8db7dd:0000",
+    "tari_is_separate": true,
+    "tari_source_citation": "e139e910-3a89-4994-b450-b5107d8db7dd:0005",
+    "identity_provider": "SPID/CIE via official ANPR service, operated by the user only",
+    "submitted_by_practicamia": false,
+    "government_acceptance_claim": false
+  },
+  "release_gates": [
+    "Capture and hash original official ANPR guide; verify date and current ANPR UI field labels.",
+    "Authorized reviewer signs off exact field mandatory status for registered private tenant.",
+    "Confirm whether any conditional municipal uploads override generally optional ANPR supporting attachments.",
+    "Record approved versioned PDF passages as citations and update rules with them.",
+    "Approve exact ruleset completeness and sign using external human Ed25519 key.",
+    "Verify all negative cases, stale source revocation and applicant-controlled handoff."
+  ]
+}
