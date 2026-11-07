@@ -81,7 +81,7 @@ def scope_intake(facts: dict[str, Any]) -> dict[str, Any]:
             "label_it": question["label_it"],
             "options": list(question["options"]),
         }
-        if value is None or value == "" or value == "unknown":
+        if question["field"] not in facts or value == "" or value == "unknown":
             return {
                 "status": "needs_information",
                 "answered_count": index,
