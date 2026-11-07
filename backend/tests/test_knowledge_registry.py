@@ -69,6 +69,41 @@ def test_anpr_ministry_pdf_is_registered_but_unapproved_and_publisher_bound():
         validate_candidate({**items[0], "official_url": national["official_url"]})
 
 
+
+def test_public_anpr_guide_uses_distinct_provenance_and_exact_host_path():
+    from app.knowledge.acquisition import validate_official_url
+    sources = candidate_sources()
+    public = next(item for item in sources if item["id"] ==
+                  "anpr-public-docs-residence-guide")
+    ministry = next(item for item in sources if item["id"] ==
+                    "anpr-citizen-residence-guide")
+    assert public["institution"] == "ANPR public documentation archive (GitHub Pages)"
+    assert public["document_type"] == "official_document"
+    assert public["official_url"].startswith("https://public-anpr.github.io/")
+    assert public["official_url"] != ministry["official_url"]
+    assert validate_candidate(public) == public
+    assert validate_official_url(public["official_url"]) is None
+    with pytest.raises(ValueError):
+        validate_candidate({**public, "official_url": (
+            "https://public-anpr.github.io/another-unreviewed.pdf"
+        )})
+    with pytest.raises(ValueError):
+        validate_candidate({**ministry, "official_url": public["official_url"]})
+    with pytest.raises(ValueError):
+        validate_official_url("https://public-anpr.github.io/unrelated-guide.pdf")
+
+
+def test_public_anpr_candidate_is_pending_without_imported_versions(client):
+    with client.app.state.session_factory.begin() as db:
+        register_candidates(db)
+    with client.app.state.session_factory() as db:
+        source = db.get(KnowledgeSource, "anpr-public-docs-residence-guide")
+        assert source.status == "candidate"
+        assert source.active_version_id is None
+        assert db.scalars(select(KnowledgeSourceVersion).where(
+            KnowledgeSourceVersion.source_id == source.id)).all() == []
+
+
 def test_anpr_candidate_is_not_automatically_approved(client):
     with client.app.state.session_factory.begin() as db:
         register_candidates(db)
