@@ -103,7 +103,7 @@ def test_uploaded_public_anpr_guide_fingerprint_and_section_provenance():
     records = {item["id"]: item for item in field_map["source_records"]}
     uploaded = records["anpr_uploaded_public_guide_2025"]
     assert uploaded["source_status"] == (
-        "uploaded_user_copy_inspected_not_registered_or_approved"
+        "uploaded_user_copy_inspected_not_ingested_or_approved"
     )
     assert uploaded["sha256"] == (
         "7ecc161913692a6d6102931c1b8cba368647a69ce664fd682785cdfd5fbadd81"
@@ -111,6 +111,7 @@ def test_uploaded_public_anpr_guide_fingerprint_and_section_provenance():
     assert uploaded["pages"] == 29
     assert uploaded["pdf_creation_date"] == "2025-04-08T13:45:45Z"
     assert uploaded["url"].startswith("https://public-anpr.github.io/")
+    assert uploaded["curated_registry_candidate_id"] == "anpr-public-docs-residence-guide"
     assert records["anpr_citizen_guide_candidate"]["url"].startswith(
         "https://sc.anpr.interno.it/"
     )
