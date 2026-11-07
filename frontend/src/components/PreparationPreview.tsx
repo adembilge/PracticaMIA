@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { useDemo } from '@/components/DemoProvider';
+import { serializeReviewedPreparationPackage } from '@/lib/preparation-preview';
 
 type ChecklistItem = {
   rule_id: string;
@@ -252,6 +253,42 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
       setMessage(success);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Preview operation failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function downloadReviewedPackage() {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      // Re-check current source approvals, review digest, and package state
+      // before exporting: cached UI data may have become invalid.
+      const response = await fetch(base, { cache: 'no-store' });
+      if (!response.ok) throw new Error('Review status unavailable');
+      const latest = await response.json() as Snapshot;
+      const prepared = latest.workflow?.package;
+      if (!latest.is_demo || !latest.user_reviewed ||
+          latest.workflow.status !== 'reviewable' || !prepared ||
+          prepared.review_digest !== snapshot?.workflow.package?.review_digest) {
+        throw new Error('This review is no longer current; reload and review again');
+      }
+      const serialized = serializeReviewedPreparationPackage(
+        prepared.data, prepared.review_digest,
+      );
+      const blob = new Blob([serialized], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'practicamia-synthetic-preparation-' + caseId + '.json';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Package export failed');
     } finally {
       setBusy(false);
     }
@@ -623,6 +660,12 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
               });
             }, it ? 'Fonti ufficiali disponibili.' : 'Official source links available.')}>
             {it ? 'Visualizza fonti per invio autonomo' : 'View user-only official handoff'}
+          </button>}
+          {snapshot.user_reviewed && <button className="button button-outline"
+            type="button" disabled={busy} style={{ marginLeft: 8 }}
+            onClick={() => void downloadReviewedPackage()}>
+            {it ? 'Scarica il riepilogo verificato (JSON)' :
+              'Download reviewed preparation summary (JSON)'}
           </button>}
           {handoff && <ul>{handoff.links.map(link => <li key={link.official_url}>
             <a href={link.official_url} target="_blank" rel="noopener noreferrer">

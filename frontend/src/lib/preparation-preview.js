@@ -47,3 +47,24 @@ export function isPreparationPayload(operation, data) {
   }
   return false;
 }
+
+/**
+ * User-reviewed, synthetic-only preparation artifact. Never represents an ANPR
+ * form, municipal acceptance, or completed government submission.
+ */
+export function serializeReviewedPreparationPackage(data, reviewDigest) {
+  if (!data || typeof data !== 'object' || Array.isArray(data) ||
+      data.government_submission !== 'user_only_not_submitted' ||
+      typeof reviewDigest !== 'string' || !/^[a-f0-9]{64}$/.test(reviewDigest)) {
+    throw new Error('A currently reviewed preparation package is required');
+  }
+  return JSON.stringify({
+    product: 'PracticaMIA',
+    artifact_type: 'reviewed_preparation_summary',
+    simulation_only: true,
+    official_application_form: false,
+    government_submission_status: 'NOT_SUBMITTED',
+    review_digest: reviewDigest,
+    package: data,
+  }, null, 2) + '\n';
+}
