@@ -12,7 +12,13 @@ HOST_INSTITUTIONS = {
     "www.comune.milano.it": "Comune di Milano",
     "servizicrm.comune.milano.it": "Comune di Milano",
     "sc.anpr.interno.it": "Ministero dell'Interno - ANPR",
+    "public-anpr.github.io": "ANPR public documentation archive (GitHub Pages)",
 }
+PUBLIC_ANPR_GUIDE_URL = (
+    "https://public-anpr.github.io/anpr-docs-cittadino/"
+    "src/docs/guide/guida_compilazione_cambio_residenza.pdf"
+)
+PUBLIC_ANPR_SOURCE_ID = "anpr-public-docs-residence-guide"
 ALLOWED_HOSTS = frozenset(HOST_INSTITUTIONS)
 FIELDS = frozenset({
     "id", "institution", "jurisdiction", "procedure_id", "language",
@@ -39,6 +45,13 @@ def validate_candidate(record: object) -> dict[str, str]:
     parts = urlsplit(record["official_url"])
     if record["institution"] != HOST_INSTITUTIONS.get(parts.hostname):
         raise ValueError("Official source publisher does not match allowlisted host")
+    # One precisely attributed public-documentation archive URL; never
+    # impersonate the Ministry-domain source or trust arbitrary GitHub Pages.
+    if parts.hostname == "public-anpr.github.io":
+        if (record["id"] != PUBLIC_ANPR_SOURCE_ID
+                or record["official_url"] != PUBLIC_ANPR_GUIDE_URL
+                or record["document_type"] != "official_document"):
+            raise ValueError("Unverified public ANPR archive URL or identity")
     if (parts.scheme != "https" or parts.hostname not in ALLOWED_HOSTS
         or parts.username or parts.password or parts.port is not None
         or not parts.path.startswith("/") or parts.query or parts.fragment):
