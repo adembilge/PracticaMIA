@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { useDemo } from '@/components/DemoProvider';
-import { serializeReviewedPreparationPackage } from '@/lib/preparation-preview';
+import { serializeReviewedPreparationPackage, serializeSyntheticAnprDraft } from '@/lib/preparation-preview';
 
 type ChecklistItem = {
   rule_id: string;
@@ -105,6 +105,19 @@ type ReferenceEvidence = {
     reviewed_at: string;
   }[];
 };
+type AnprDraftField = {
+  key: string; label_en: string; label_it: string; value: string;
+  required_in_inspected_guide: boolean; input_kind: string; valid: boolean; guide_page: string;
+};
+type AnprDraft = {
+  artifact_type: 'synthetic_anpr_field_transcription_draft';
+  simulation_only: true; official_form: false;
+  government_submission_status: 'NOT_SUBMITTED';
+  source_currentness_verified: false;
+  state: string; missing_fields: string[];
+  sections: { id: string; title_en: string; title_it: string; fields: AnprDraftField[] }[];
+  official_handoff: { title: string; url: string; user_only: true };
+};
 type Props = { caseId: string; signedIn: boolean; configured: boolean };
 
 export function PreparationPreview({ caseId, signedIn, configured }: Props) {
@@ -114,10 +127,11 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
   const [referenceEvidence, setReferenceEvidence] = useState<ReferenceEvidence | null>(null);
+  const [anprDraft, setAnprDraft] = useState<AnprDraft | null>(null);
   const [guideQuestion, setGuideQuestion] = useState('');
   const [guideResult, setGuideResult] = useState<GuideResult | null>(null);
   const [guideBusy, setGuideBusy] = useState(false);
-  const [facts, setFacts] = useState({
+  const [facts, setFacts] = useState<Record<string, string>>({
     citizenship_class: '',
     registration_context: '',
     destination_municipality: '',
@@ -137,10 +151,12 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
   const [handoff, setHandoff] = useState<{ links: { title: string; official_url: string }[] } | null>(null);
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
-    const [state, docs, sources] = await Promise.all([
+    const [state, docs, sources, anpr] = await Promise.all([
       fetch(base, { cache: 'no-store', signal }),
       fetch(base + '/documents', { cache: 'no-store', signal }),
       fetch(base + '/reference-evidence', { cache: 'no-store', signal })
+        .catch(() => null),
+      fetch(base + '/anpr-draft', { cache: 'no-store', signal })
         .catch(() => null),
     ]);
     if (!state.ok || !docs.ok) throw new Error('Preview service unavailable');
@@ -161,7 +177,19 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
     } else {
       setReferenceEvidence(null);
     }
-    setFacts({
+    let normalizedDraft: AnprDraft | null = null;
+    if (anpr?.ok) {
+      const candidate = await anpr.json() as AnprDraft;
+      if (candidate.artifact_type === 'synthetic_anpr_field_transcription_draft' &&
+          candidate.simulation_only === true && candidate.official_form === false &&
+          candidate.government_submission_status === 'NOT_SUBMITTED' &&
+          candidate.source_currentness_verified === false &&
+          Array.isArray(candidate.sections) && Array.isArray(candidate.missing_fields)) {
+        normalizedDraft = candidate;
+      }
+    }
+    setAnprDraft(normalizedDraft);
+    const savedFields: Record<string, string> = {
       citizenship_class: String(saved.confirmed_facts.citizenship_class ?? ''),
       registration_context: String(saved.confirmed_facts.registration_context ?? ''),
       destination_municipality: String(saved.confirmed_facts.destination_municipality ?? ''),
@@ -170,7 +198,13 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
       synthetic_eligibility: String(saved.confirmed_facts.synthetic_eligibility ?? ''),
       housing_arrangement: String(saved.confirmed_facts.housing_arrangement ?? ''),
       property_address: String(saved.confirmed_facts.property_address ?? ''),
-    });
+    };
+    for (const section of normalizedDraft?.sections ?? []) {
+      for (const field of section.fields) {
+        savedFields[field.key] = String(saved.confirmed_facts[field.key] ?? '');
+      }
+    }
+    setFacts(savedFields);
   }, [base]);
 
   useEffect(() => {
@@ -253,6 +287,31 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
       setMessage(success);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Preview operation failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function downloadAnprWorksheet() {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const response = await fetch(base + '/anpr-draft', { cache: 'no-store' });
+      if (!response.ok) throw new Error('ANPR worksheet unavailable');
+      const latest = await response.json() as AnprDraft;
+      const serialized = serializeSyntheticAnprDraft(latest);
+      const blob = new Blob([serialized], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'practicamia-anpr-worksheet-' + caseId + '.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Worksheet export failed');
     } finally {
       setBusy(false);
     }
@@ -417,6 +476,61 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
           </button>
         </div>
       </section>
+
+      {anprDraft && <section className="work-panel" style={{ padding: 24, marginTop: 20 }} aria-busy={busy}>
+        <h2>{it ? 'Scheda dati ANPR — bozza di preparazione' : 'ANPR field worksheet — preparation draft'}</h2>
+        <p>{it
+          ? 'Compila solo dati fittizi per questo ambiente. I campi sono tratti da una guida ANPR pubblica la cui corrispondenza con il portale attuale non è ancora confermata. Non è un modulo ufficiale.'
+          : 'Enter fictional test data only. Fields are based on a public ANPR guide that has not been verified against the current portal. This is not an official form.'}</p>
+        <p role="status">{it ? 'Stato scheda' : 'Worksheet status'}: <strong>{anprDraft.state.replaceAll('_', ' ')}</strong>
+          {' · '}{it ? 'Campi mancanti' : 'Missing fields'}: {anprDraft.missing_fields.length}</p>
+        {anprDraft.sections.map(section => <div key={section.id} style={{ marginTop: 16 }}>
+          <h3>{it ? section.title_it : section.title_en}</h3>
+          <div style={{ display: 'grid', gap: 12, maxWidth: 640 }}>
+            {section.fields.map(field => <label key={field.key}>
+              {it ? field.label_it : field.label_en}
+              {field.required_in_inspected_guide ? ' *' : ''}
+              {field.input_kind === 'yes_no' ? <select
+                value={facts[field.key] ?? ''}
+                onChange={e => setFacts(v => ({ ...v, [field.key]: e.target.value }))}
+                disabled={busy}
+                style={{ display: 'block', width: '100%', padding: 12, marginTop: 5 }}>
+                <option value="">{it ? 'Da confermare' : 'Not yet confirmed'}</option>
+                <option value="yes">{it ? 'Sì' : 'Yes'}</option>
+                <option value="no">{it ? 'No' : 'No'}</option>
+              </select> : <input
+                type={field.input_kind === 'date' ? 'date' : 'text'}
+                inputMode={field.input_kind === 'cap' ? 'numeric' : 'text'}
+                value={facts[field.key] ?? ''}
+                maxLength={180} disabled={busy}
+                onChange={e => setFacts(v => ({ ...v, [field.key]: e.target.value }))}
+                style={{ display: 'block', width: '100%', padding: 12, marginTop: 5 }}
+              />}
+              <small style={{ display: 'block', marginTop: 3 }}>
+                {it ? 'Guida pubblica ANPR' : 'Public ANPR guide'}: {field.guide_page}
+              </small>
+            </label>)}
+          </div>
+        </div>)}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 20 }}>
+          <button type="button" className="button button-primary" disabled={busy}
+            onClick={() => void run(saveFacts, it ? 'Campi salvati.' : 'Worksheet facts saved.')}>
+            {it ? 'Salva campi di preparazione' : 'Save preparation fields'}
+          </button>
+          <button type="button" className="button button-outline" disabled={busy}
+            onClick={() => void downloadAnprWorksheet()}>
+            {it ? 'Esporta la scheda (JSON)' : 'Export worksheet (JSON)'}
+          </button>
+        </div>
+        <p style={{ marginTop: 14 }}>
+          <a href={anprDraft.official_handoff.url} target="_blank" rel="noopener noreferrer">
+            {it ? 'Pagina ufficiale del Comune di Milano' : 'Official Comune di Milano residence-change page'}
+          </a>
+        </p>
+        <p className="message-box notice">{it
+          ? 'Il richiedente deve confermare i dati e inviare la domanda personalmente su ANPR. Non è stato effettuato alcun invio.'
+          : 'The applicant must confirm the information and submit personally through ANPR. No submission has occurred.'}</p>
+      </section>}
 
       <section className="work-panel" style={{ padding: 24, marginTop: 20 }}>
         <h2>{it ? '1a. Assistente guidato di prova' : '1a. Guided case assistant preview'}</h2>
