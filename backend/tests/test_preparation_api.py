@@ -345,3 +345,61 @@ def test_preview_case_guide_is_owner_scoped_and_never_approves_a_case(
 
     assert http.get(base.rsplit("/", 1)[0] + "/package",
                     headers=owner).json()["package"] is None
+
+
+def test_pending_municipal_rules_still_report_confirmed_document_discrepancy(
+    preparation_client, auth_headers,
+):
+    http = preparation_client
+    owner = auth_headers("alice")
+    created = http.post("/api/v1/cases", json={}, headers=owner)
+    assert created.status_code == 201
+    base = f"/api/v1/cases/{created.json()['id']}/preparation"
+    assert http.put(base + "/facts", json={"confirmed_facts": {
+        "property_address": "Synthetic Via 10 Milano",
+    }}, headers=owner).status_code == 200
+    uploaded = http.post(
+        base + "/documents",
+        headers={**owner, "X-PracticaMIA-Synthetic-Only": "YES"},
+        data={"document_type": "fictional_agreement"},
+        files={"file": ("synthetic.pdf", fixture_pdf(), "application/pdf")},
+    )
+    assert uploaded.status_code == 201
+    doc_id = uploaded.json()["id"]
+    extracted = http.post(
+        base + f"/documents/{doc_id}/extract", headers=owner,
+    )
+    assert extracted.status_code == 200
+    # A parser suggestion cannot independently establish a conflict.
+    preconfirmation = http.get(base, headers=owner).json()["workflow"]
+    assert preconfirmation["document_review"]["status"] == "needs_confirmation"
+    assert preconfirmation["document_review"]["conflicts"] == []
+    candidate = extracted.json()["candidates"][0]
+    corrected = http.post(
+        base + f"/documents/{doc_id}/confirm-fields",
+        json={
+            "field_name": candidate["field_name"],
+            "raw_value": candidate["raw_value"],
+            "page": candidate["page"],
+            "confirmed_value": "Synthetic Via 20 Milano",
+        }, headers=owner,
+    )
+    assert corrected.status_code == 200
+    review = http.get(base, headers=owner).json()["workflow"]
+    assert review["status"] == "blocked"
+    assert review["package"] is None
+    assert review["document_review"]["status"] == "conflict"
+    assert review["document_review"]["conflicts"][0]["field"] == "property_address"
+    assert review["next_action"] == "correct_documents"
+
+    # Fix the confirmed case fact: conflict clears but unsigned legal rules
+    # still block every package and government handoff.
+    assert http.put(base + "/facts", json={"confirmed_facts": {
+        "property_address": "Synthetic Via 20 Milano",
+    }}, headers=owner).status_code == 200
+    after = http.get(base, headers=owner).json()["workflow"]
+    assert after["document_review"]["conflicts"] == []
+    assert after["document_review"]["status"] == "needs_review"
+    assert after["status"] == "blocked"
+    assert after["package"] is None
+    assert http.get(base + "/handoff", headers=owner).status_code == 409
