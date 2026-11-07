@@ -26,6 +26,7 @@ from app.preparation.extract import (
     extract_document, validate_document, verify_confirmation,
 )
 from app.preparation.models import CaseDocument, CasePreparation
+from app.preparation.intake import scope_intake, validate_scope_facts
 from app.preparation.workflow import assess_preparation
 from app.rules.catalog import current_catalog
 from app.rules.engine import JURISDICTION, PROCEDURE
@@ -179,10 +180,12 @@ def read_preparation(case_id: UUID, request: Request,
     case_id_str = str(case_id)
     prep = _preparation(db, case_id_str, principal.subject)
     result = _assessment(db, request, case_id_str, principal.subject)
-    # Synthetic fixtures only, never an official case classification.
+    saved_facts = _facts(request, prep, case_id_str, principal.subject)
+    # Scope matching is neither legal eligibility nor an approved requirements check.
     return {
         "is_demo": True,
-        "confirmed_facts": _facts(request, prep, case_id_str, principal.subject),
+        "confirmed_facts": saved_facts,
+        "intake": scope_intake(saved_facts),
         "workflow": result,
         "user_reviewed": bool(
             result["package"] and prep and
@@ -197,7 +200,7 @@ def replace_facts(case_id: UUID, payload: FactsUpdate, request: Request,
                   principal: Principal = Depends(get_principal)):
     _case(db, case_id, principal)
     values = payload.confirmed_facts
-    if any(
+    if not validate_scope_facts(values) or any(
         not CATEGORY_RE.fullmatch(key) or
         (isinstance(value, str) and (not value.strip() or len(value) > 240))
         for key, value in values.items()
