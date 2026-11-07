@@ -77,6 +77,7 @@ export async function proxySyntheticDocumentUpload(path: string, form: FormData)
     if (!session) return caseError('Authentication required', 401);
     const credential = await auth0.getAccessToken();
     if (!credential.token) return caseError('Authentication needs renewal', 401);
+    const previewOidc = await previewIdentity(backend);
     const response = await fetch(backend + path, {
       method: 'POST',
       headers: {
