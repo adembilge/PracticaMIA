@@ -84,3 +84,29 @@ export function serializeSyntheticAnprDraft(draft) {
     export_disclaimer: 'Preparation worksheet only. Not an official ANPR form; never submitted.',
   }, null, 2) + '\n';
 }
+
+/** Readable offline worksheet for manually copying synthetic facts to ANPR. */
+export function serializeSyntheticAnprText(draft) {
+  serializeSyntheticAnprDraft(draft); // enforce the same non-submission contract
+  const lines = [
+    'PracticaMIA — ANPR preparation worksheet (synthetic only)',
+    'NOT AN OFFICIAL APPLICATION. NOT SUBMITTED.',
+    'Source guide currentness: UNVERIFIED',
+    'Worksheet state: ' + String(draft.state || 'unknown'),
+    '',
+  ];
+  const clean = value => String(value ?? '').replace(/[\r\n\t]+/g, ' ').slice(0, 240);
+  for (const section of draft.sections) {
+    if (!section || !Array.isArray(section.fields)) throw new Error('Invalid worksheet section');
+    lines.push(String(section.title_en || section.id || 'Section').slice(0, 100));
+    for (const field of section.fields) {
+      if (!field || typeof field.key !== 'string') throw new Error('Invalid worksheet field');
+      lines.push('  ' + clean(field.label_en || field.key) + ': ' +
+        (field.valid ? clean(field.value) : '[not confirmed]'));
+    }
+    lines.push('');
+  }
+  lines.push('Only you can log in, review and submit the official ANPR application.');
+  lines.push('Comune di Milano: https://www.comune.milano.it/servizi/anagrafe/cambio-di-residenza');
+  return lines.join('\n') + '\n';
+}
