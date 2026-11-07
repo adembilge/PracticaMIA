@@ -64,6 +64,18 @@ type DocumentSummary = {
   confirmed_fields: Record<string, string>;
   status: string;
 };
+type ReferenceEvidence = {
+  status: 'reference_only' | 'partial_or_unavailable';
+  personalized_requirements: false;
+  is_demo: true;
+  references: {
+    citation_id: string;
+    title: string;
+    official_url: string;
+    excerpt: string;
+    reviewed_at: string;
+  }[];
+};
 type Props = { caseId: string; signedIn: boolean; configured: boolean };
 
 export function PreparationPreview({ caseId, signedIn, configured }: Props) {
@@ -72,6 +84,7 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
   const base = '/api/cases/' + encodeURIComponent(caseId) + '/preparation';
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
+  const [referenceEvidence, setReferenceEvidence] = useState<ReferenceEvidence | null>(null);
   const [facts, setFacts] = useState({
     citizenship_class: '',
     registration_context: '',
@@ -91,9 +104,11 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
   const [handoff, setHandoff] = useState<{ links: { title: string; official_url: string }[] } | null>(null);
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
-    const [state, docs] = await Promise.all([
+    const [state, docs, sources] = await Promise.all([
       fetch(base, { cache: 'no-store', signal }),
       fetch(base + '/documents', { cache: 'no-store', signal }),
+      fetch(base + '/reference-evidence', { cache: 'no-store', signal })
+        .catch(() => null),
     ]);
     if (!state.ok || !docs.ok) throw new Error('Preview service unavailable');
     const saved = await state.json() as Snapshot;
@@ -102,6 +117,17 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
       !Array.isArray(list)) throw new Error('Invalid preview data');
     setSnapshot(saved);
     setDocuments(list);
+    // Reference evidence is optional; retrieval failures must not break
+    // the private case workspace or silently invent a citation.
+    if (sources?.ok) {
+      const evidence = await sources.json() as ReferenceEvidence;
+      setReferenceEvidence(
+        evidence?.is_demo && evidence.personalized_requirements === false &&
+        Array.isArray(evidence.references) ? evidence : null,
+      );
+    } else {
+      setReferenceEvidence(null);
+    }
     setFacts({
       citizenship_class: String(saved.confirmed_facts.citizenship_class ?? ''),
       registration_context: String(saved.confirmed_facts.registration_context ?? ''),
@@ -317,6 +343,34 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
           <p className="message-box notice" role="status">
             {it ? 'Blocchi' : 'Blockers'}: {snapshot?.workflow.blocking_issues.join(', ')}
           </p>}
+      </section>
+
+      <section className="work-panel" style={{ padding: 24, marginTop: 20 }}>
+        <h2>{it ? '2a. Fonti ufficiali di riferimento' : '2a. Official reference passages'}</h2>
+        <p>{it
+          ? 'Estratti da fonti approvate per il solo contesto generale. Non equivalgono a una lista personalizzata di obblighi.'
+          : 'Approved-source excerpts for general context only. These are not a personalized checklist or a legal eligibility decision.'}</p>
+        {!referenceEvidence || referenceEvidence.references.length === 0
+          ? <p className="message-box notice" role="status">{it
+            ? 'Nessuna fonte verificata disponibile al momento.'
+            : 'No currently verified reference passages are available.'}</p>
+          : <>
+            {referenceEvidence.status !== 'reference_only' &&
+              <p className="message-box notice">{it
+                ? 'Alcune fonti non sono disponibili o sono state revocate.'
+                : 'Some source passages are unavailable or have been revoked.'}</p>}
+            <ul>{referenceEvidence.references.map(ref => <li key={ref.citation_id}
+              style={{ marginTop: 14 }}>
+              <strong>{ref.title}</strong>
+              <p lang="it" style={{ whiteSpace: 'pre-wrap' }}>{ref.excerpt}</p>
+              <a href={ref.official_url} target="_blank" rel="noopener noreferrer">
+                {it ? 'Apri la fonte comunale' : 'Open official municipal source'}
+              </a>
+              <small style={{ display: 'block', marginTop: 4 }}>
+                {it ? 'Revisione' : 'Reviewed'}: {ref.reviewed_at} · {ref.citation_id}
+              </small>
+            </li>)}</ul>
+          </>}
       </section>
 
       <section className="work-panel" style={{ padding: 24, marginTop: 20 }}>

@@ -36,6 +36,13 @@ router = APIRouter(
     dependencies=[Depends(get_principal)],
 )
 CATEGORY_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
+# Exact, reviewed source-passage candidates for general background only.
+# These IDs never activate an administrative rule or a package.
+REFERENCE_PASSAGES = (
+    "e139e910-3a89-4994-b450-b5107d8db7dd:0000",
+    "e139e910-3a89-4994-b450-b5107d8db7dd:0003",
+    "e139e910-3a89-4994-b450-b5107d8db7dd:0005",
+)
 
 
 class FactsUpdate(BaseModel):
@@ -218,6 +225,40 @@ def replace_facts(case_id: UUID, payload: FactsUpdate, request: Request,
     db.commit()
     return {"status": "saved", "is_demo": True, "confirmed_fact_count": len(values)}
 
+
+
+
+@router.get("/{case_id}/preparation/reference-evidence")
+def read_reference_evidence(
+    case_id: UUID, request: Request,
+    db: Session = Depends(get_session),
+    principal: Principal = Depends(get_principal),
+):
+    """Owner-scoped excerpts, not unreviewed requirements or legal assessment."""
+    _case(db, case_id, principal)
+    references = []
+    for citation_id in REFERENCE_PASSAGES:
+        passage = resolve_approved_passage(
+            db, citation_id=citation_id, jurisdiction=JURISDICTION,
+            procedure_id=PROCEDURE, language="it",
+        )
+        if passage is None:
+            continue  # A changed or revoked source must disappear immediately.
+        reviewed = passage.reviewed_at
+        references.append({
+            "citation_id": citation_id,
+            "title": passage.title,
+            "official_url": passage.official_url,
+            "excerpt": passage.content[:1000],
+            "reviewed_at": reviewed.isoformat() if hasattr(reviewed, "isoformat") else str(reviewed),
+        })
+    return {
+        "status": "reference_only" if len(references) == len(REFERENCE_PASSAGES)
+                  else "partial_or_unavailable",
+        "references": references,
+        "personalized_requirements": False,
+        "is_demo": True,
+    }
 
 @router.get("/{case_id}/preparation/checklist")
 def read_checklist(case_id: UUID, request: Request,
