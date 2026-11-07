@@ -13,7 +13,7 @@ function routeFor(id: string, operation: string[], method: string) {
     return { path: path + (action ? '/' + action : ''), action };
   }
   if (method === 'PUT' && action === 'facts') return { path: path + '/facts', action };
-  if (method === 'POST' && (action === 'documents' || action === 'package/approve')) {
+  if (method === 'POST' && (action === 'documents' || action === 'package/approve' || action === 'guide')) {
     return { path: path + '/' + action, action };
   }
   const match = action.match(/^documents\/([0-9a-fA-F-]{36})(?:\/(extract|review|confirm-fields))?$/);

@@ -64,6 +64,18 @@ type DocumentSummary = {
   confirmed_fields: Record<string, string>;
   status: string;
 };
+type GuideResult = {
+  action: 'intake' | 'evidence' | 'case_status';
+  status: string;
+  message: string;
+  mode: 'model_selected' | 'guided_fallback';
+  next_question: ScopeQuestion | null;
+  references: ReferenceEvidence['references'];
+  blocking_issues?: string[];
+  is_demo: true;
+  is_legal_assessment: false;
+  government_submission_status: 'not_submitted';
+};
 type ReferenceEvidence = {
   status: 'reference_only' | 'partial_or_unavailable';
   personalized_requirements: false;
@@ -85,6 +97,9 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
   const [referenceEvidence, setReferenceEvidence] = useState<ReferenceEvidence | null>(null);
+  const [guideQuestion, setGuideQuestion] = useState('');
+  const [guideResult, setGuideResult] = useState<GuideResult | null>(null);
+  const [guideBusy, setGuideBusy] = useState(false);
   const [facts, setFacts] = useState({
     citizenship_class: '',
     registration_context: '',
@@ -162,6 +177,28 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
     if (!response.ok) throw new Error('Operation rejected: ' + response.status);
     if (response.status === 204) return null;
     return response.json() as Promise<unknown>;
+  }
+
+  async function askGuide() {
+    if (guideBusy || guideQuestion.trim().length < 2) return;
+    setGuideBusy(true);
+    setGuideResult(null);
+    setError('');
+    try {
+      const result = await mutate(base + '/guide', 'POST', {
+        question: guideQuestion.trim(),
+        language: locale,
+      }) as GuideResult;
+      if (result.is_demo !== true || result.is_legal_assessment !== false ||
+          result.government_submission_status !== 'not_submitted') {
+        throw new Error('Guide returned an unexpected response');
+      }
+      setGuideResult(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Guide request failed');
+    } finally {
+      setGuideBusy(false);
+    }
   }
 
   async function saveFacts() {
@@ -324,6 +361,51 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
             {it ? 'Conferma e salva' : 'Confirm and save'}
           </button>
         </div>
+      </section>
+
+      <section className="work-panel" style={{ padding: 24, marginTop: 20 }}>
+        <h2>{it ? '1a. Assistente guidato di prova' : '1a. Guided case assistant preview'}</h2>
+        <p>{it
+          ? 'Scrivi una domanda fittizia sul prossimo passo, sulle fonti o sullo stato della pratica. Il modello, quando configurato, può scegliere solo strumenti di lettura. Nessuna verifica legale o invio.'
+          : 'Ask a fictional question about your next step, official sources, or saved case status. When configured, the AI model can only select read-only tools. No legal decision or submission.'}</p>
+        <label style={{ display: 'block', marginTop: 12 }}>
+          {it ? 'Domanda fittizia' : 'Fictional question'}
+          <textarea rows={2} maxLength={180} value={guideQuestion}
+            placeholder={it ? 'Qual è il prossimo passo?' : 'What should I do next?'}
+            onChange={event => setGuideQuestion(event.target.value)}
+            disabled={guideBusy}
+            style={{ display: 'block', width: '100%', padding: 12, marginTop: 8 }} />
+        </label>
+        <button type="button" className="button button-outline" style={{ marginTop: 12 }}
+          disabled={guideBusy || guideQuestion.trim().length < 2}
+          onClick={() => void askGuide()}>
+          {guideBusy ? (it ? 'Controllo…' : 'Checking…') :
+            (it ? 'Chiedi all’assistente' : 'Ask the guide')}
+        </button>
+        {guideResult && <div className="message-box notice" role="status"
+          style={{ marginTop: 16 }}>
+          <p>{guideResult.message}</p>
+          <small>{guideResult.mode === 'model_selected'
+            ? (it ? 'Strumento scelto dal modello, dati verificati lato server' :
+              'Model selected the read-only tool; server verified the data')
+            : (it ? 'Guida deterministica: modello AI non configurato o non disponibile' :
+              'Deterministic guidance: AI model not configured or unavailable')}</small>
+          {guideResult.next_question && <p style={{ marginTop: 8 }}>
+            <strong>{it ? guideResult.next_question.label_it :
+              guideResult.next_question.label_en}</strong>
+          </p>}
+          {(guideResult.blocking_issues ?? []).length > 0 && <p>
+            {it ? 'Blocchi' : 'Blockers'}: {guideResult.blocking_issues?.join(', ')}
+          </p>}
+          {guideResult.references.length > 0 && <ul style={{ marginTop: 8 }}>
+            {guideResult.references.map(ref => <li key={ref.citation_id}>
+              <p lang="it">{ref.excerpt}</p>
+              <a href={ref.official_url} target="_blank" rel="noopener noreferrer">
+                {ref.title}
+              </a>
+            </li>)}
+          </ul>}
+        </div>}
       </section>
 
       <section className="work-panel" style={{ padding: 24, marginTop: 20 }}>

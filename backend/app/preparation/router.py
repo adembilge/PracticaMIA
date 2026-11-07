@@ -10,6 +10,7 @@ import json
 from hashlib import sha256
 import re
 from uuid import UUID, uuid4
+from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Request, UploadFile
 from pydantic import BaseModel, ConfigDict, Field
@@ -27,6 +28,7 @@ from app.preparation.extract import (
 )
 from app.preparation.models import CaseDocument, CasePreparation
 from app.preparation.intake import scope_intake, validate_scope_facts
+from app.preparation.agent import guide_case
 from app.preparation.workflow import assess_preparation
 from app.rules.catalog import current_catalog
 from app.rules.engine import JURISDICTION, PROCEDURE
@@ -43,6 +45,12 @@ REFERENCE_PASSAGES = (
     "e139e910-3a89-4994-b450-b5107d8db7dd:0003",
     "e139e910-3a89-4994-b450-b5107d8db7dd:0005",
 )
+
+
+class GuideRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    question: str = Field(min_length=2, max_length=180)
+    language: Literal["en", "it"] = "en"
 
 
 class FactsUpdate(BaseModel):
@@ -259,6 +267,52 @@ def read_reference_evidence(
         "personalized_requirements": False,
         "is_demo": True,
     }
+
+@router.post("/{case_id}/preparation/guide")
+def guide_case_preview(
+    case_id: UUID, payload: GuideRequest, request: Request,
+    db: Session = Depends(get_session),
+    principal: Principal = Depends(get_principal),
+):
+    """Bounded tool selection: model sees only the user's short fictional question.
+
+    Tool callbacks run with an authenticated owner and current source approvals.
+    An LLM cannot write case facts, activate rules or invent an application.
+    """
+    _case(db, case_id, principal)
+    settings = request.app.state.settings
+    model = None
+    if settings.enable_assistant_api:
+        # This flag enforces existing preview-only provider and usage controls.
+        from app.knowledge.assistant_router import _model_for_preview
+        from app.knowledge.usage_limit import reserve_daily_model_call
+        try:
+            model = _model_for_preview(request)
+        except Exception:
+            model = None
+        if model is not None and not reserve_daily_model_call(
+            db, subject=principal.subject,
+            hash_key=settings.assistant_usage_hash_key,
+            daily_limit=settings.assistant_daily_limit,
+        ):
+            raise HTTPException(429, "Daily preview model limit reached")
+
+    def evidence_tool() -> list[dict]:
+        # Reuse the approval-filtered, owner-scoped endpoint contract.
+        return read_reference_evidence(
+            case_id=case_id, request=request, db=db, principal=principal,
+        )["references"]
+
+    def status_tool() -> dict:
+        return _assessment(db, request, str(case_id), principal.subject)
+
+    prep = _preparation(db, str(case_id), principal.subject)
+    return guide_case(
+        question=payload.question, language=payload.language,
+        facts=_facts(request, prep, str(case_id), principal.subject),
+        evidence_tool=evidence_tool, status_tool=status_tool, model=model,
+    )
+
 
 @router.get("/{case_id}/preparation/checklist")
 def read_checklist(case_id: UUID, request: Request,

@@ -302,3 +302,46 @@ def test_reference_passages_only_show_currently_approved_owner_scoped_evidence(
                         lambda *args, **kwargs: None)
     revoked = http.get(base + "/reference-evidence", headers=owner)
     assert revoked.json()["references"] == []
+
+
+
+def test_preview_case_guide_is_owner_scoped_and_never_approves_a_case(
+    preparation_client, auth_headers, monkeypatch,
+):
+    http = preparation_client
+    owner, other = auth_headers("alice"), auth_headers("bob")
+    case = http.post("/api/v1/cases", json={}, headers=owner)
+    assert case.status_code == 201
+    base = f"/api/v1/cases/{case.json()['id']}/preparation/guide"
+
+    assert http.post(base, json={"question": "What comes next?"},
+                     headers=other).status_code == 404
+    assert http.post(base, json={"question": "x"}, headers=owner).status_code == 422
+    assert http.post(base, json={"question": "anything", "approve": True},
+                     headers=owner).status_code == 422
+
+    first = http.post(base, json={"question": "What comes next?",
+                                  "language": "en"}, headers=owner)
+    assert first.status_code == 200, first.text
+    data = first.json()
+    assert data["mode"] == "guided_fallback"
+    assert data["action"] == "intake"
+    assert data["next_question"]["field"] == "citizenship_class"
+    assert data["is_legal_assessment"] is False
+    assert data["government_submission_status"] == "not_submitted"
+
+    status = http.post(base, json={"question": "What is my case status?",
+                                   "language": "en"}, headers=owner)
+    assert status.status_code == 200
+    assert status.json()["action"] == "case_status"
+    assert status.json()["status"] == "blocked"
+
+    sources = http.post(base, json={"question": "What official ANPR sources?",
+                                    "language": "it"}, headers=owner)
+    assert sources.status_code == 200
+    assert sources.json()["action"] == "evidence"
+    assert sources.json()["is_legal_assessment"] is False
+    assert sources.json()["status"] == "insufficient_evidence"
+
+    assert http.get(base.rsplit("/", 1)[0] + "/package",
+                    headers=owner).json()["package"] is None
