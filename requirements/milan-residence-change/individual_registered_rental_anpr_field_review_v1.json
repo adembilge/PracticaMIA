@@ -1,5 +1,5 @@
 {
-  "version": "milan_individual_registered_rental_anpr_field_map_v2_20261107",
+  "version": "milan_individual_registered_rental_anpr_field_map_v3_uploaded_20261107",
   "status": "pending_review",
   "available_for_real_user_guidance": false,
   "scenario": "One adult Italian citizen already registered in Italy, changing their residence individually to Comune di Milano, not aggregating with an existing household, and holding a registered private rental agreement.",
@@ -27,6 +27,20 @@
       "url": "https://www.comune.milano.it/servizi/anagrafe/cambio-di-residenza",
       "source_status": "candidate_not_approved_in_project_registry",
       "scope": "Milan residence change service, SPID/CIE entry, 20 days and municipal follow-up. Must not be equated to source-review approval"
+    },
+    {
+      "id": "anpr_uploaded_public_guide_2025",
+      "url": "https://public-anpr.github.io/anpr-docs-cittadino/src/docs/guide/guida_compilazione_cambio_residenza.pdf",
+      "source_status": "uploaded_user_copy_inspected_not_registered_or_approved",
+      "artifact_filename": "guida_compilazione_cambio_residenza.pdf",
+      "sha256": "7ecc161913692a6d6102931c1b8cba368647a69ce664fd682785cdfd5fbadd81",
+      "size_bytes": 1502022,
+      "pages": 29,
+      "pdf_creation_date": "2025-04-08T13:45:45Z",
+      "pdf_metadata_title": "Dichiarazione Residenza - Modalità operative per il cittadino",
+      "pdf_metadata_author": "ANPR",
+      "publisher_provenance": "Public ANPR documentation repository at public-anpr.github.io; exact uploaded-byte equivalence to the online file and official currentness not independently established",
+      "scope": "Uploaded local PDF copy inspected in full; sections 1.1.1 Famiglia, 1.1.2 Residenza, 1.1.3 Immobile, 1.1.4 Dati di contatto, 1.1.5 Allegati, 1.1.6 Riepilogo"
     }
   ],
   "supported_route_boundary": {
@@ -53,25 +67,25 @@
       "step": "residence_address",
       "label_it": "Residenza",
       "source_section": "1.1.2",
-      "note": "ANPR address fields entered for Milano."
+      "note": "Uploaded edition printed page 8: Provincia, Comune, Indirizzo as one text field, Civico and CAP required; Località and Frazione/Scala/Piano/Interno/Esponente interno optional."
     },
     {
       "step": "housing_occupation",
       "label_it": "Immobile",
       "source_section": "1.1.3",
-      "note": "Registered-rental holder chooses title 2 and enters registration details."
+      "note": "Uploaded edition printed page 12: registered private rental is option 2, requiring Ufficio di, In data and Al numero; date described as contract date, not independently verified registration date."
     },
     {
       "step": "supporting_uploads",
       "label_it": "Allegati",
-      "source_section": "1.1.4",
-      "note": "Guide describes supporting attachments as optional generally and exceptions for non-EU applicant categories; do not convert into universal mandatory uploads. Warning: the public-ANPR alternate guide labels attachments section 1.1.5, not 1.1.4; needs reviewer choice of exact authoritative PDF."
+      "source_section": "1.1.5",
+      "note": "Uploaded 29-page public-ANPR edition, printed page 15, states supporting attachments generally optional and max 1 MB per file in that edition; non-EU permit exception is outside the Italian tenant route. This is not a current live-portal limit."
     },
     {
       "step": "additional_details",
-      "label_it": "Dati aggiuntivi",
-      "source_section": "1.1.5",
-      "note": "Contact details and time window; exact mandatory status to confirm. Public-ANPR alternate guide labels contact details section 1.1.4; pending version reconciliation."
+      "label_it": "Dati di contatto",
+      "source_section": "1.1.4",
+      "note": "Uploaded edition printed pages 14–15: up to two telephone contacts and availability for municipal address verification; current live-form mandatory status still unconfirmed."
     },
     {
       "step": "final_review",
@@ -86,7 +100,7 @@
       "section": "1.1.1",
       "importance": "workflow_required",
       "reason": "Select the individual applicant from pre-populated family members",
-      "source_id": "anpr_citizen_guide_candidate",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
@@ -94,7 +108,7 @@
       "section": "1.1.1",
       "importance": "guide_required",
       "reason": "Select relationship to the household sheet head; confirm precise UI behavior for sole applicant",
-      "source_id": "anpr_citizen_guide_candidate",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
@@ -102,7 +116,7 @@
       "section": "1.1.1",
       "importance": "guide_required",
       "reason": "ANPR asks for a Yes/No selection",
-      "source_id": "anpr_citizen_guide_candidate",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
@@ -110,7 +124,7 @@
       "section": "1.1.1",
       "importance": "guide_required",
       "reason": "ANPR asks for a Yes/No selection",
-      "source_id": "anpr_citizen_guide_candidate",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
@@ -118,7 +132,7 @@
       "section": "1.1.2",
       "importance": "guide_required",
       "reason": "Province of the destination, MI for Milan",
-      "source_id": "anpr_citizen_guide_candidate",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
@@ -126,31 +140,15 @@
       "section": "1.1.2",
       "importance": "guide_required",
       "reason": "Comune di Milano",
-      "source_id": "anpr_citizen_guide_candidate",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
-      "key": "street_type",
+      "key": "street_address",
       "section": "1.1.2",
       "importance": "guide_required",
-      "reason": "Via/Piazza species or ALTRO",
-      "source_id": "anpr_citizen_guide_candidate",
-      "review_status": "pending_independent_source_review"
-    },
-    {
-      "key": "street_type_other",
-      "section": "1.1.2",
-      "importance": "conditional",
-      "reason": "Required in the guide only when street_type is ALTRO",
-      "source_id": "anpr_citizen_guide_candidate",
-      "review_status": "pending_independent_source_review"
-    },
-    {
-      "key": "street_name",
-      "section": "1.1.2",
-      "importance": "guide_required",
-      "reason": "Destination toponym",
-      "source_id": "anpr_citizen_guide_candidate",
+      "reason": "The uploaded edition p. 8 explicitly has one 'Indirizzo' field such as 'Via Roma' or 'Piazza Giuseppe Garibaldi'; it does not list separate street type/name inputs.",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
@@ -158,7 +156,7 @@
       "section": "1.1.2",
       "importance": "guide_required",
       "reason": "Destination street civic number",
-      "source_id": "anpr_citizen_guide_candidate",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
@@ -166,23 +164,23 @@
       "section": "1.1.2",
       "importance": "guide_required",
       "reason": "Destination CAP",
-      "source_id": "anpr_citizen_guide_candidate",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
       "key": "localita",
       "section": "1.1.2",
       "importance": "guide_optional",
-      "reason": "Optional within selected municipality",
-      "source_id": "anpr_citizen_guide_candidate",
+      "reason": "Optional locality within selected municipality (uploaded edition printed page 8)",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
       "key": "scala_piano_interno",
       "section": "1.1.2",
       "importance": "guide_optional",
-      "reason": "Optional address details grouped in guide",
-      "source_id": "anpr_citizen_guide_candidate",
+      "reason": "Optional Frazione, Scala, Piano, Interno and Esponente interno grouped for worksheet; uploaded guide p. 8.",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
@@ -190,7 +188,7 @@
       "section": "1.1.3",
       "importance": "workflow_required",
       "reason": "Select title 2 — holder of regularly registered private rental contract",
-      "source_id": "anpr_citizen_guide_candidate",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
@@ -198,15 +196,15 @@
       "section": "1.1.3",
       "importance": "guide_required",
       "reason": "Municipality of Agenzia delle Entrate office where lease registered",
-      "source_id": "anpr_citizen_guide_candidate",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
-      "key": "rental_registration_date",
+      "key": "rental_contract_date",
       "section": "1.1.3",
       "importance": "guide_required",
-      "reason": "Guide refers to contract date; reviewer should validate precise date field label",
-      "source_id": "anpr_citizen_guide_candidate",
+      "reason": "Uploaded edition printed page 12 says 'la data del contratto di locazione'; UI caption 'In data', not necessarily registration date.",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
@@ -214,23 +212,31 @@
       "section": "1.1.3",
       "importance": "guide_required",
       "reason": "Registration number of private rental agreement",
-      "source_id": "anpr_citizen_guide_candidate",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
       "key": "contact_phone",
-      "section": "1.1.5",
+      "section": "1.1.4",
       "importance": "unspecified_mandatory",
-      "reason": "Contact information mentioned by guide; do not assert mandatory",
-      "source_id": "anpr_citizen_guide_candidate",
+      "reason": "Up to two contact numbers; saved contacts can be edited/deleted. The guide does not explicitly label them mandatory.",
+      "source_id": "anpr_uploaded_public_guide_2025",
+      "review_status": "pending_independent_source_review"
+    },
+    {
+      "key": "contact_phone_2",
+      "section": "1.1.4",
+      "importance": "guide_optional",
+      "reason": "Up to two telephone contacts in uploaded edition pp. 14–15.",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
       "key": "inspection_availability",
-      "section": "1.1.5",
+      "section": "1.1.4",
       "importance": "unspecified_mandatory",
-      "reason": "Time range for registry officer visit; verify current UI validation",
-      "source_id": "anpr_citizen_guide_candidate",
+      "reason": "A time window for municipal presence check is requested in uploaded guide p. 14; mandatory validation status in live UI unverified.",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     },
     {
@@ -238,19 +244,22 @@
       "section": "1.1.6",
       "importance": "user_only",
       "reason": "Applicant must review and confirm within ANPR; no proxy submission",
-      "source_id": "anpr_citizen_guide_candidate",
+      "source_id": "anpr_uploaded_public_guide_2025",
       "review_status": "pending_independent_source_review"
     }
   ],
   "attached_documents": {
     "mandatory_for_this_scenario_under_anpr_guide": [],
-    "statement": "Section 1.1.4 of the available ANPR guide says supporting uploads generally are not mandatory, except for specified categories including non-EU residence permits. This does NOT independently prove current municipal requirements for an Italian registered tenant.",
+    "statement": "Uploaded public-ANPR edition §1.1.5 printed pp. 15–16: attachments generally not mandatory; for non-EU citizens a residence permit is mandatory (out of this Italian-citizen route). PDF/JPG/PNG and max 1 MB per file are historical-edition constraints only; do not enforce as current without live authority review.",
     "optional_evidence_examples": [
       "rental_agreement",
       "registration_receipt"
     ],
     "needs_human_review": true,
-    "implementation_status": "do_not_enforce_upload_or_current_anpr_size_cap_from_this_draft"
+    "implementation_status": "do_not_make_tenant_upload_mandatory_or_enforce_historical_1_mb_limit",
+    "inspected_guide_section": "1.1.5",
+    "inspected_guide_max_attachment_bytes": 1000000,
+    "inspected_guide_limit_is_current": false
   },
   "legal_and_handoff_separation": {
     "notify_within_days": 20,
@@ -263,7 +272,7 @@
   },
   "release_gates": [
     "Reconcile the published ANPR PDF variants and require an authentic original approved edition, including page screenshots for field and upload claims; no guess about which edition is live.",
-    "Capture and hash original official ANPR guide; verify date and current ANPR UI field labels.",
+    "Uploaded public documentation copy is SHA-256 fingerprinted and page-reviewed, but the current authoritative Ministry edition and publisher provenance still need authenticated confirmation.",
     "Authorized reviewer signs off exact field mandatory status for registered private tenant.",
     "Confirm whether any conditional municipal uploads override generally optional ANPR supporting attachments.",
     "Record approved versioned PDF passages as citations and update rules with them.",
@@ -285,8 +294,11 @@
       "section_contact": "1.1.4 Dati di contatto",
       "section_attachments": "1.1.5 Allegati",
       "upload_limit_status": "The guide says 1MB per attached file; do not enforce before currentness and PDF approval.",
-      "registry_approved": false
+      "registry_approved": false,
+      "observed_uploaded_pdf_sha256": "7ecc161913692a6d6102931c1b8cba368647a69ce664fd682785cdfd5fbadd81",
+      "uploaded_metadata_creation_date": "2025-04-08",
+      "upload_source_provenance_verified": false
     }
   ],
-  "critical_version_conflict": "Two publicly available ANPR guide variants use different section numbering for contact and attachments, and describe upload limits differently (total versus per file). Neither variant has a verified current publication date and approved original PDF snapshot for this product. Do NOT treat either as an authoritative current technical constraint."
+  "critical_version_conflict": "User-uploaded public ANPR guide (29 pages, PDF-created 8 Apr 2025) has §1.1.4 Dati di contatto and §1.1.5 Allegati with 1 MB per file; indexed Ministry-guide text reportedly differs in section order and total limit. Exact live-portal equivalence and original Ministry PDF remain unverified. Do not substitute the public guide under the Ministry source ID."
 }
