@@ -52,6 +52,48 @@ def test_candidate_schema_rejects_jurisdiction_and_undocumented_fields():
         validate_candidate({**candidate, "unapproved_rule": "mandatory"})
 
 
+def test_anpr_ministry_pdf_is_registered_but_unapproved_and_publisher_bound():
+    items = candidate_sources()
+    national = next(item for item in items if item["id"] ==
+                    "anpr-citizen-residence-guide")
+    assert national["document_type"] == "official_document"
+    assert national["institution"] == "Ministero dell'Interno - ANPR"
+    assert national["official_url"] == (
+        "https://sc.anpr.interno.it/serviziCittadino/dist/docs/"
+        "guida_compilazione_cambio_residenza.pdf"
+    )
+    assert validate_candidate(national) == national
+    with pytest.raises(ValueError, match="publisher"):
+        validate_candidate({**national, "institution": "Comune di Milano"})
+    with pytest.raises(ValueError, match="publisher"):
+        validate_candidate({**items[0], "official_url": national["official_url"]})
+
+
+def test_anpr_candidate_is_not_automatically_approved(client):
+    with client.app.state.session_factory.begin() as db:
+        register_candidates(db)
+    with client.app.state.session_factory() as db:
+        source = db.get(KnowledgeSource, "anpr-citizen-residence-guide")
+        assert source.status == "candidate"
+        assert source.active_version_id is None
+        assert db.scalars(select(KnowledgeSourceVersion).where(
+            KnowledgeSourceVersion.source_id == source.id)).all() == []
+
+
+def test_official_anpr_pdf_url_403_is_not_bypassed():
+    import httpx
+    from app.knowledge.acquisition import fetch_official_document
+    url = next(item["official_url"] for item in candidate_sources()
+               if item["id"] == "anpr-citizen-residence-guide")
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(
+            403, headers={"content-type": "application/pdf"}, content=b"blocked",
+        )
+    )
+    with pytest.raises(ValueError, match="HTTP 403"):
+        fetch_official_document(url, transport=transport)
+
+
 def test_candidate_registration_is_idempotent_and_cannot_promote(client):
     factory = client.app.state.session_factory
     with factory.begin() as db:
