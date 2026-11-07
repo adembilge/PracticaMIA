@@ -26,9 +26,25 @@ type Assessment = {
   };
   package: PackageData | null;
 };
+type ScopeField = 'citizenship_class' | 'registration_context' | 'destination_municipality' | 'household_scope';
+type ScopeQuestion = {
+  field: ScopeField;
+  label_en: string;
+  label_it: string;
+  options: { value: string; label_en: string; label_it: string }[];
+};
+type ScopeIntake = {
+  status: 'needs_information' | 'invalid_input' | 'outside_first_candidate' | 'candidate_scope_complete';
+  answered_count: number;
+  total_questions: number;
+  next_question: ScopeQuestion | null;
+  excluded_by: string | null;
+  is_legal_assessment: false;
+};
 type Snapshot = {
   is_demo: true;
   confirmed_facts: Record<string, string | boolean | number>;
+  intake: ScopeIntake;
   workflow: Assessment;
   user_reviewed: boolean;
 };
@@ -57,6 +73,10 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
   const [facts, setFacts] = useState({
+    citizenship_class: '',
+    registration_context: '',
+    destination_municipality: '',
+    household_scope: '',
     synthetic_eligibility: '',
     housing_arrangement: '',
     property_address: '',
@@ -78,10 +98,15 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
     if (!state.ok || !docs.ok) throw new Error('Preview service unavailable');
     const saved = await state.json() as Snapshot;
     const list = await docs.json() as DocumentSummary[];
-    if (!saved.is_demo || !Array.isArray(list)) throw new Error('Invalid preview data');
+    if (!saved.is_demo || !saved.intake || saved.intake.is_legal_assessment !== false ||
+      !Array.isArray(list)) throw new Error('Invalid preview data');
     setSnapshot(saved);
     setDocuments(list);
     setFacts({
+      citizenship_class: String(saved.confirmed_facts.citizenship_class ?? ''),
+      registration_context: String(saved.confirmed_facts.registration_context ?? ''),
+      destination_municipality: String(saved.confirmed_facts.destination_municipality ?? ''),
+      household_scope: String(saved.confirmed_facts.household_scope ?? ''),
       synthetic_eligibility: String(saved.confirmed_facts.synthetic_eligibility ?? ''),
       housing_arrangement: String(saved.confirmed_facts.housing_arrangement ?? ''),
       property_address: String(saved.confirmed_facts.property_address ?? ''),
@@ -111,6 +136,19 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
     if (!response.ok) throw new Error('Operation rejected: ' + response.status);
     if (response.status === 204) return null;
     return response.json() as Promise<unknown>;
+  }
+
+  async function saveFacts() {
+    // Preserve other user-confirmed scalar fields when the guided form saves.
+    // Clearing a field explicitly removes the old answer.
+    const confirmed_facts: Record<string, string | number | boolean> = {
+      ...(snapshot?.confirmed_facts ?? {}),
+    };
+    for (const [key, value] of Object.entries(facts)) {
+      if (value.trim()) confirmed_facts[key] = value;
+      else delete confirmed_facts[key];
+    }
+    await mutate(base + '/facts', 'PUT', { confirmed_facts });
   }
 
   async function run(action: () => Promise<void>, success: string) {
@@ -163,6 +201,53 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
       {error && <p role="alert" className="error-text">{error}</p>}
 
       <section className="work-panel" style={{ padding: 24, marginTop: 20 }} aria-busy={busy}>
+        <h2>{it ? '0. Domande guidate per il caso' : '0. Guided case intake'}</h2>
+        <p>{it
+          ? 'Queste domande verificano soltanto se un caso fittizio corrisponde al primo scenario proposto. Non determinano diritti o requisiti legali.'
+          : 'These questions only check whether a fictional case matches the first proposed product scenario. They do not determine legal eligibility or requirements.'}</p>
+        {snapshot?.intake && <p aria-live="polite">
+          {it ? 'Risposte di inquadramento' : 'Scope answers'}: {snapshot.intake.answered_count} / {snapshot.intake.total_questions}
+        </p>}
+        {snapshot?.intake?.next_question ? <div style={{ display: 'grid', gap: 12, maxWidth: 620 }}>
+          <label>
+            {it ? snapshot.intake.next_question.label_it : snapshot.intake.next_question.label_en}
+            <select
+              value={facts[snapshot.intake.next_question.field]}
+              onChange={e => {
+                const field = snapshot.intake.next_question?.field;
+                if (field) setFacts(current => ({ ...current, [field]: e.target.value }));
+              }}
+              disabled={busy}
+              style={{ display: 'block', width: '100%', padding: 12, marginTop: 8 }}
+            >
+              <option value="">{it ? 'Seleziona una risposta' : 'Select an answer'}</option>
+              {snapshot.intake.next_question.options.map(option => <option
+                key={option.value} value={option.value}>
+                {it ? option.label_it : option.label_en}
+              </option>)}
+            </select>
+          </label>
+          <button type="button" className="button button-primary"
+            disabled={busy || !facts[snapshot.intake.next_question.field]}
+            onClick={() => void run(saveFacts, it ? 'Risposta salvata.' : 'Answer saved.')}>
+            {it ? 'Salva e continua' : 'Save and continue'}
+          </button>
+          {facts[snapshot.intake.next_question.field] === 'unknown' &&
+            <p className="message-box notice">{it
+              ? 'Puoi salvare «Non so», ma la domanda resterà aperta finché non fornisci un dato confermato.'
+              : 'You may save “Not known,” but this question remains open until you provide a confirmed answer.'}</p>}
+        </div> : snapshot?.intake?.status === 'outside_first_candidate' ?
+          <p className="message-box notice" role="status">{it
+            ? 'Questo esempio non rientra nel primo scenario proposto. Non significa che la persona non possa presentare una domanda al Comune.'
+            : 'This example is outside the first proposed product scenario. It does not mean the applicant is legally ineligible.'}</p> :
+          snapshot?.intake?.status === 'candidate_scope_complete' ?
+          <p className="message-box notice" role="status">{it
+            ? 'Le risposte corrispondono al primo scenario proposto, ma mancano ancora regole amministrative complete e approvate.'
+            : 'The answers match the first proposed scenario, but a complete approved administrative ruleset is still required.'}</p> :
+          <p>{it ? 'Caricamento delle domande…' : 'Loading guided questions…'}</p>}
+      </section>
+
+      <section className="work-panel" style={{ padding: 24, marginTop: 20 }} aria-busy={busy}>
         <h2>{it ? '1. Dati di prova confermati' : '1. Confirmed test facts'}</h2>
         <p>{it ? 'I campi seguenti sono inventati e non rappresentano criteri legali.' :
           'The following fields are fictional and do not represent legal eligibility conditions.'}</p>
@@ -195,12 +280,7 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
               disabled={busy} style={{ display: 'block', width: '100%', padding: 12 }} />
           </label>
           <button type="button" className="button button-primary" disabled={busy}
-            onClick={() => void run(async () => {
-              const confirmed_facts = Object.fromEntries(
-                Object.entries(facts).filter(([, value]) => value.trim().length > 0),
-              );
-              await mutate(base + '/facts', 'PUT', { confirmed_facts });
-            }, it ? 'Dati di prova salvati.' : 'Test facts saved.')}>
+            onClick={() => void run(saveFacts, it ? 'Dati di prova salvati.' : 'Test facts saved.')}>
             {it ? 'Conferma e salva' : 'Confirm and save'}
           </button>
         </div>
