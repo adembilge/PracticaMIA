@@ -38,3 +38,20 @@ export function isBrowserReviewBatchPayload(value) {
   }
   return true;
 }
+
+/** Human-authenticated review of one exact PDF version, never an auto approval. */
+export function isIndividualPdfReviewPayload(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const keys = Object.keys(value);
+  if (keys.length !== 3 ||
+      !['expected_sha256', 'review_note', 'confirmed_source_review']
+        .every((key) => keys.includes(key))) return false;
+  if (value.confirmed_source_review !== true) return false;
+  if (typeof value.expected_sha256 !== 'string' ||
+      !/^[0-9a-f]{64}$/.test(value.expected_sha256)) return false;
+  if (typeof value.review_note !== 'string' ||
+      value.review_note.trim().length < 30 || value.review_note.length > 450) {
+    return false;
+  }
+  return true;
+}

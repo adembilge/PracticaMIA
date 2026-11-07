@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  reviewerPreviewEnabled, isBrowserReviewBatchPayload,
+  reviewerPreviewEnabled, isBrowserReviewBatchPayload, isIndividualPdfReviewPayload,
 } from '../src/lib/reviewer-preview.js';
 
 const a = {
@@ -52,5 +52,25 @@ test('review API payload rejects forged status, reviewer and duplicate hashes', 
     { ...good, items: Array(16).fill(a) },
   ]) {
     assert.equal(isBrowserReviewBatchPayload(invalid), false);
+  }
+});
+
+test('individual PDF approval demands explicit human attestation and immutable digest', () => {
+  const good = {
+    expected_sha256: '7ecc161913692a6d6102931c1b8cba368647a69ce664fd682785cdfd5fbadd81',
+    review_note: 'I inspected the original 29-page public ANPR guide and documented its edition limits.',
+    confirmed_source_review: true,
+  };
+  assert.equal(isIndividualPdfReviewPayload(good), true);
+  for (const invalid of [
+    null, {}, [], { ...good, reviewer: 'fake-user' },
+    { ...good, status: 'approved' }, { ...good, confirmed_source_review: false },
+    { ...good, expected_sha256: 'wrong' },
+    { ...good, expected_sha256: good.expected_sha256.toUpperCase() },
+    { ...good, review_note: 'yes' }, { ...good, review_note: ' '.repeat(32) },
+    { ...good, review_note: 'x'.repeat(451) },
+    { expected_sha256: good.expected_sha256, review_note: good.review_note },
+  ]) {
+    assert.equal(isIndividualPdfReviewPayload(invalid), false);
   }
 });
