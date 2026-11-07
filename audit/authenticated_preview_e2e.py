@@ -183,6 +183,7 @@ def run_checks(base: str, auth0_host: str, env: dict[str, str]) -> dict[str, obj
                     "registration_context": "already_registered_in_italy",
                     "destination_municipality": "milano",
                     "household_scope": "individual_no_aggregation",
+                    "housing_basis": "registered_private_rental",
                     "synthetic_eligibility": "yes",
                     "housing_arrangement": "fictional_rental",
                     "property_address": "Synthetic Via 10 Milano",
