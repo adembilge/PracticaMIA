@@ -157,13 +157,32 @@ def run_checks(base: str, auth0_host: str, env: dict[str, str]) -> dict[str, obj
                 status_is(preparation, 200, "owner reads preparation")
                 if not preparation.json().get("is_demo"):
                     raise Failed("Preview preparation lacks synthetic-only marker")
+                intake = preparation.json().get("intake", {})
+                if intake.get("is_legal_assessment") is not False or (
+                    intake.get("next_question") or {}).get("field") != "citizenship_class":
+                    raise Failed("Guided intake must begin with a non-authoritative scope question")
                 status_is(b.request.get(preparation_url), 404,
                           "B cannot read A preparation")
                 status_is(b.request.put(preparation_url + "/facts",
                                         data={"confirmed_facts": {}},
                                         headers=headers), 404,
                           "B cannot update A preparation")
+                # A wrong branch remains a product-scope exclusion, never a
+                # legal ineligibility result. It cannot unlock any package.
+                excluded = {"citizenship_class": "non_italian"}
+                status_is(a.request.put(preparation_url + "/facts",
+                                        data={"confirmed_facts": excluded},
+                                        headers=headers), 200, "A saves excluded scope")
+                excluded_result = a.request.get(preparation_url).json()
+                if (excluded_result.get("intake", {}).get("status") !=
+                        "outside_first_candidate" or
+                        excluded_result.get("workflow", {}).get("package") is not None):
+                    raise Failed("Excluded candidate should not generate a package")
                 test_facts = {
+                    "citizenship_class": "italian",
+                    "registration_context": "already_registered_in_italy",
+                    "destination_municipality": "milano",
+                    "household_scope": "individual_no_aggregation",
                     "synthetic_eligibility": "yes",
                     "housing_arrangement": "fictional_rental",
                     "property_address": "Synthetic Via 10 Milano",
@@ -176,6 +195,8 @@ def run_checks(base: str, auth0_host: str, env: dict[str, str]) -> dict[str, obj
                 status_is(reloaded, 200, "A reloads preparation")
                 if reloaded.json().get("confirmed_facts") != test_facts:
                     raise Failed("Saved preparation facts not retained")
+                if reloaded.json().get("intake", {}).get("status") != "candidate_scope_complete":
+                    raise Failed("Complete synthetic scope did not resume")
                 if reloaded.json().get("workflow", {}).get("package") is not None:
                     raise Failed("Pending rule catalog generated a package")
                 completed.append("isolated preparation persists and denies cross-user access")
