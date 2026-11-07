@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { useDemo } from '@/components/DemoProvider';
-import { serializeReviewedPreparationPackage, serializeSyntheticAnprDraft } from '@/lib/preparation-preview';
+import { serializeReviewedPreparationPackage, serializeSyntheticAnprDraft, serializeSyntheticAnprText } from '@/lib/preparation-preview';
 
 type ChecklistItem = {
   rule_id: string;
@@ -292,7 +292,7 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
     }
   }
 
-  async function downloadAnprWorksheet() {
+  async function downloadAnprWorksheet(format: 'json' | 'txt' = 'json') {
     if (busy) return;
     setBusy(true);
     setError('');
@@ -300,12 +300,14 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
       const response = await fetch(base + '/anpr-draft', { cache: 'no-store' });
       if (!response.ok) throw new Error('ANPR worksheet unavailable');
       const latest = await response.json() as AnprDraft;
-      const serialized = serializeSyntheticAnprDraft(latest);
-      const blob = new Blob([serialized], { type: 'application/json;charset=utf-8' });
+      const serialized = format === 'txt' ? serializeSyntheticAnprText(latest) :
+        serializeSyntheticAnprDraft(latest);
+      const blob = new Blob([serialized], { type: format === 'txt' ?
+        'text/plain;charset=utf-8' : 'application/json;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'practicamia-anpr-worksheet-' + caseId + '.json';
+      a.download = 'practicamia-anpr-worksheet-' + caseId + '.' + format;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -519,7 +521,11 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
           </button>
           <button type="button" className="button button-outline" disabled={busy}
             onClick={() => void downloadAnprWorksheet()}>
-            {it ? 'Esporta la scheda (JSON)' : 'Export worksheet (JSON)'}
+            {it ? 'Esporta dati (JSON)' : 'Export data (JSON)'}
+          </button>
+          <button type="button" className="button button-outline" disabled={busy}
+            onClick={() => void downloadAnprWorksheet('txt')}>
+            {it ? 'Scarica riepilogo leggibile' : 'Download readable summary'}
           </button>
         </div>
         <p style={{ marginTop: 14 }}>
