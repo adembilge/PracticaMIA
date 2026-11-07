@@ -8,9 +8,12 @@ from sqlalchemy.orm import Session
 
 from app.knowledge.model import KnowledgeSource
 
-ALLOWED_HOSTS = frozenset({
-    "www.comune.milano.it", "servizicrm.comune.milano.it",
-})
+HOST_INSTITUTIONS = {
+    "www.comune.milano.it": "Comune di Milano",
+    "servizicrm.comune.milano.it": "Comune di Milano",
+    "sc.anpr.interno.it": "Ministero dell'Interno - ANPR",
+}
+ALLOWED_HOSTS = frozenset(HOST_INSTITUTIONS)
 FIELDS = frozenset({
     "id", "institution", "jurisdiction", "procedure_id", "language",
     "title", "official_url", "document_type",
@@ -31,11 +34,11 @@ def validate_candidate(record: object) -> dict[str, str]:
         raise ValueError("Unreviewed procedure")
     if record["language"] not in ("it", "en"):
         raise ValueError("Unsupported language")
-    if record["institution"] != "Comune di Milano":
-        raise ValueError("Unexpected publisher")
     if record["document_type"] not in ("faq", "service_page", "official_document"):
         raise ValueError("Unknown document type")
     parts = urlsplit(record["official_url"])
+    if record["institution"] != HOST_INSTITUTIONS.get(parts.hostname):
+        raise ValueError("Official source publisher does not match allowlisted host")
     if (parts.scheme != "https" or parts.hostname not in ALLOWED_HOSTS
         or parts.username or parts.password or parts.port is not None
         or not parts.path.startswith("/") or parts.query or parts.fragment):
