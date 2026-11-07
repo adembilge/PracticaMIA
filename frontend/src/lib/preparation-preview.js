@@ -20,6 +20,13 @@ export function isPreparationFactsPayload(value) {
 export function isPreparationPayload(operation, data) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
   if (operation === 'facts') return isPreparationFactsPayload(data);
+  if (operation === 'guide') {
+    return Object.keys(data).length === 2 &&
+      typeof data.question === 'string' &&
+      data.question.trim().length >= 2 &&
+      data.question.length <= 180 &&
+      (data.language === 'it' || data.language === 'en');
+  }
   if (operation === 'package/approve') {
     return Object.keys(data).length === 1 &&
       typeof data.review_digest === 'string' &&
