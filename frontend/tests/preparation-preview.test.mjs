@@ -37,3 +37,21 @@ test('document and package review payloads reject extra keys', () => {
     field_name: 'owner_subject', raw_value: 'x', confirmed_value: 'y', page: 1,
   }), false);
 });
+
+
+
+test('bounded guide questions permit only an English or Italian short question', () => {
+  assert.equal(isPreparationPayload('guide', {
+    question: 'What official sources exist?', language: 'en',
+  }), true);
+  assert.equal(isPreparationPayload('guide', {
+    question: 'Qual è il prossimo passo?', language: 'it',
+  }), true);
+  for (const bad of [
+    { question: 'x', language: 'en' },
+    { question: 'Valid?', language: 'fr' },
+    { question: 'x'.repeat(181), language: 'en' },
+    { question: 'Valid?', language: 'en', approve: true },
+    { question: ['not', 'a', 'string'], language: 'en' },
+  ]) assert.equal(isPreparationPayload('guide', bad), false);
+});
