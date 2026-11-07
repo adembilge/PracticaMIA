@@ -16,12 +16,11 @@ def complete_fields():
         "family_relationship": "intestatario scheda",
         "driving_licence_yes_no": "no",
         "vehicles_yes_no": "yes",
-        "street_type": "Via",
-        "street_name": "Synthetic Example",
+        "street_address": "Via Synthetic Example",
         "civic_number": "10",
         "postal_code": "20121",
         "rental_registration_office_municipality": "Milano",
-        "rental_registration_date": "2026-01-15",
+        "rental_contract_date": "2026-01-15",
         "rental_registration_number": "TEST-12345",
     }
 
@@ -38,7 +37,7 @@ def test_missing_scope_cannot_claim_complete_preparation():
 def test_complete_candidate_scope_requires_actual_manual_fields():
     result = build_anpr_draft(scope())
     assert result["state"] == "needs_field_information"
-    assert len(result["missing_fields"]) == 10
+    assert len(result["missing_fields"]) == 9
     assert result["confirmed_fixed_selections"]["destination_province"] == "MI"
     assert result["ruleset_activated"] is False
     assert result["source_currentness_verified"] is False
@@ -55,7 +54,7 @@ def test_field_transcription_complete_is_not_government_approval():
     assert result["official_handoff"]["user_only"] is True
     values = {f["key"]: f["value"] for s in result["sections"] for f in s["fields"]}
     assert values["postal_code"] == "20121"
-    assert values["rental_registration_date"] == "2026-01-15"
+    assert values["rental_contract_date"] == "2026-01-15"
     assert "citizenship_class" not in values
 
 
@@ -68,17 +67,17 @@ def test_out_of_scope_even_with_all_fields_never_claims_complete():
 
 def test_invalid_dates_and_cap_cannot_claim_field_transcription_complete():
     bad = {**scope(), **complete_fields(),
-           "postal_code": "2012", "rental_registration_date": "2026-02-30"}
+           "postal_code": "2012", "rental_contract_date": "2026-02-30"}
     result = build_anpr_draft(bad)
     assert result["state"] == "needs_field_information"
-    assert {"postal_code", "rental_registration_date"}.issubset(result["missing_fields"])
+    assert {"postal_code", "rental_contract_date"}.issubset(result["missing_fields"])
 
 
 def test_no_unrecognized_or_unsupported_fields_enter_export():
     facts = {**scope(), **complete_fields(),
              "fake_admin_approval": "yes",
              "personal_identifier": "DO-NOT-EXPORT",
-             "street_name": "Synthetic Example"}
+             "street_address": "Via Synthetic Example"}
     result = build_anpr_draft(facts)
     assert "DO-NOT-EXPORT" not in repr(result)
     assert "fake_admin_approval" not in repr(result)
