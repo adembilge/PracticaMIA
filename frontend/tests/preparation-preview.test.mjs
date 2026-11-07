@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   preparationPreviewEnabled, isPreparationFactsPayload, isPreparationPayload,
+  serializeReviewedPreparationPackage,
 } from '../src/lib/preparation-preview.js';
 
 test('isolated UI is never enabled in Vercel production', () => {
@@ -54,4 +55,23 @@ test('bounded guide questions permit only an English or Italian short question',
     { question: 'Valid?', language: 'en', approve: true },
     { question: ['not', 'a', 'string'], language: 'en' },
   ]) assert.equal(isPreparationPayload('guide', bad), false);
+});
+
+test('reviewed synthetic preparation export remains a non-submitted user-controlled artifact', () => {
+  const digest = 'a'.repeat(64);
+  const data = {
+    case_id: '00000000-0000-4000-8000-000000000001',
+    confirmed_facts: { property_address: 'Fictional Via 10 Milano' },
+    government_submission: 'user_only_not_submitted',
+  };
+  const exported = JSON.parse(serializeReviewedPreparationPackage(data, digest));
+  assert.equal(exported.simulation_only, true);
+  assert.equal(exported.official_application_form, false);
+  assert.equal(exported.government_submission_status, 'NOT_SUBMITTED');
+  assert.equal(exported.review_digest, digest);
+  assert.deepEqual(exported.package, data);
+  assert.throws(() => serializeReviewedPreparationPackage(data, 'short'));
+  assert.throws(() => serializeReviewedPreparationPackage(
+    { ...data, government_submission: 'approved' }, digest));
+  assert.throws(() => serializeReviewedPreparationPackage(null, digest));
 });
