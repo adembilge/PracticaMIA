@@ -14,10 +14,26 @@ type PackageData = {
   data: Record<string, unknown>;
   review_digest: string;
 };
+type DocumentValidation = {
+  status: 'no_documents' | 'needs_extraction' | 'needs_confirmation' |
+    'needs_review' | 'unreadable' | 'conflict' | 'verified';
+  document_count: number;
+  not_legal_validation: true;
+  conflicts: {
+    kind: 'case_document_mismatch' | 'cross_document_mismatch';
+    field: string;
+    document_ids: string[];
+  }[];
+  needs_extraction: string[];
+  needs_confirmation: string[];
+  needs_review: string[];
+  unreadable: string[];
+};
 type Assessment = {
   status: string;
   next_action: string;
   blocking_issues: string[];
+  document_review: DocumentValidation;
   rules: {
     decision: string;
     missing_fields: string[];
@@ -377,6 +393,42 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
         <h2>{it ? '3. Documenti sintetici' : '3. Synthetic documents'}</h2>
         <p>{it ? 'PDF o immagini fittizie, max 2 MiB. Le scansioni richiedono OCR disponibile.' :
           'Fictional PDFs or images, maximum 2 MiB. Scans require an available OCR service.'}</p>
+        {snapshot?.workflow.document_review?.not_legal_validation === true && <div
+          className="message-box notice" role="status" aria-live="polite">
+          <p><strong>{it ? 'Controllo dei documenti confermati' : 'Confirmed-document review'}</strong>
+            {' · '}{snapshot.workflow.document_review.document_count}
+            {' '}{it ? 'file' : 'files'}</p>
+          {snapshot.workflow.document_review.conflicts.length > 0 ? <>
+            <p>{it
+              ? 'Sono presenti dati confermati discordanti. Confronta i valori, correggi il campo nella pratica o nel documento e conferma di nuovo prima di procedere.'
+              : 'Confirmed values disagree. Compare them, correct either the saved case fact or the document field, and confirm again before continuing.'}</p>
+            <ul>{snapshot.workflow.document_review.conflicts.map((conflict, index) =>
+              <li key={conflict.kind + ':' + conflict.field + ':' + index}>
+                {conflict.kind === 'cross_document_mismatch'
+                  ? (it ? 'Differenza tra documenti' : 'Documents disagree')
+                  : (it ? 'Differenza tra pratica e documento' : 'Case and document disagree')}
+                {': '}{conflict.field.replaceAll('_', ' ')}
+              </li>)}</ul>
+          </> : snapshot.workflow.document_review.status === 'verified'
+            ? <p>{it
+              ? 'I dati confermati coincidono. Questo non equivale a un controllo dei requisiti amministrativi.'
+              : 'Confirmed fields agree. This is not a check of administrative requirements.'}</p>
+            : <p>{it
+              ? 'Il controllo dei dati confermati è indipendente dalle regole comunali, ancora soggette a revisione.'
+              : 'Confirmed-value checks are separate from municipal rules, which still require review.'}</p>}
+          {snapshot.workflow.document_review.unreadable.length > 0 &&
+            <p>{it ? 'Documenti illeggibili da sostituire:' : 'Unreadable documents to replace:'}
+              {' '}{snapshot.workflow.document_review.unreadable.length}</p>}
+          {snapshot.workflow.document_review.needs_extraction.length > 0 &&
+            <p>{it ? 'Documenti da estrarre:' : 'Documents needing extraction:'}
+              {' '}{snapshot.workflow.document_review.needs_extraction.length}</p>}
+          {snapshot.workflow.document_review.needs_confirmation.length > 0 &&
+            <p>{it ? 'Documenti con campi da confermare:' : 'Documents with unconfirmed fields:'}
+              {' '}{snapshot.workflow.document_review.needs_confirmation.length}</p>}
+          {snapshot.workflow.document_review.needs_review.length > 0 &&
+            <p>{it ? 'Documenti in attesa di revisione finale:' : 'Documents awaiting final review:'}
+              {' '}{snapshot.workflow.document_review.needs_review.length}</p>}
+        </div>}
         <div style={{ display: 'grid', gap: 12, maxWidth: 620 }}>
           <label>{it ? 'Categoria fittizia' : 'Fictional document category'}
             <input value={documentType} maxLength={64}
