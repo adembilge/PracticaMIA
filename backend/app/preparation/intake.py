@@ -55,6 +55,24 @@ QUESTIONS: tuple[dict[str, Any], ...] = (
             {"value": "unknown", "label_en": "Not known", "label_it": "Non so"},
         ),
     },
+    {
+        "field": "housing_basis",
+        "expected": "registered_private_rental",
+        "label_en": "What authorizes this fictional applicant to occupy the property?",
+        "label_it": "Quale titolo permette alla persona fittizia di occupare l'immobile?",
+        "options": (
+            {"value": "registered_private_rental",
+             "label_en": "I hold a registered private rental contract",
+             "label_it": "Sono intestatario di un contratto di locazione privato registrato"},
+            {"value": "owner", "label_en": "I own the property",
+             "label_it": "Sono proprietario dell'immobile"},
+            {"value": "guest", "label_en": "I am a guest of someone else",
+             "label_it": "Sono ospite di un'altra persona"},
+            {"value": "other", "label_en": "Another housing arrangement",
+             "label_it": "Un altro titolo di occupazione"},
+            {"value": "unknown", "label_en": "Not known", "label_it": "Non so"},
+        ),
+    },
 )
 
 
