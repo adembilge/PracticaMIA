@@ -13,6 +13,7 @@ from typing import Any, TypedDict
 from langgraph.graph import END, START, StateGraph
 
 from app.rules.engine import evaluate_rules
+from app.preparation.document_review import inspect_documents
 
 
 class PreparationState(TypedDict, total=False):
@@ -22,6 +23,7 @@ class PreparationState(TypedDict, total=False):
     citations_approved: Any
     documents: list[dict]
     rule_result: dict
+    document_review: dict
     blocking_issues: list[str]
     status: str
     package: dict | None
@@ -37,28 +39,32 @@ def _rules(state: PreparationState) -> dict:
 
 def _documents(state: PreparationState) -> dict:
     rule = state["rule_result"]
-    issues = list(state["blocking_issues"])
-    if rule["decision"] != "supported":
-        return {"status": rule["decision"], "blocking_issues": issues}
     documents = state.get("documents", [])
+    review = inspect_documents(facts=state["facts"], documents=documents)
+    issues = list(state["blocking_issues"])
+    # Always surface explicitly confirmed disagreements, even when
+    # administrative rules are pending; do NOT unlock the case.
+    for conflict in review["conflicts"]:
+        issues.append(f"document_conflict:{conflict['field']}")
+    if review["unreadable"]:
+        issues.append("document_unreadable")
+    if rule["decision"] != "supported":
+        return {
+            "status": rule["decision"],
+            "document_review": review,
+            "blocking_issues": sorted(set(issues)),
+        }
     required = set(rule["required_document_types"])
-    approved_types: set[str] = set()
-    for doc in documents:
-        if doc.get("status") == "confirmed":
-            approved_types.add(doc.get("document_type", ""))
-        elif doc.get("status") == "unreadable":
-            issues.append("document_unreadable")
-        for field, value in doc.get("confirmed_fields", {}).items():
-            if (field in state["facts"]
-                and isinstance(value, str)
-                and str(state["facts"][field]).strip().casefold() != value.strip().casefold()):
-                issues.append(f"document_conflict:{field}")
+    approved_types = {
+        doc.get("document_type") for doc in documents
+        if doc.get("status") == "confirmed"
+    }
     for category in sorted(required - approved_types):
         issues.append(f"missing_document:{category}")
     return {
-        "status": "needs_review" if any(s.startswith("document_conflict:")
-                                            for s in issues) else
+        "status": "needs_review" if review["conflicts"] else
                   "needs_documents" if issues else "reviewable",
+        "document_review": review,
         "blocking_issues": sorted(set(issues)),
     }
 
@@ -122,9 +128,11 @@ def assess_preparation(*, case_id: str, facts: dict, catalog: dict,
     return {
         "status": result["status"],
         "rules": result["rule_result"],
+        "document_review": result["document_review"],
         "blocking_issues": result["blocking_issues"],
         "package": result.get("package"),
         "next_action": (
+            "correct_documents" if result["document_review"]["status"] == "conflict" else
             "review_package" if result["status"] == "reviewable" else
             "correct_documents" if result["status"] == "needs_review" else
             "provide_documents" if result["status"] == "needs_documents" else
