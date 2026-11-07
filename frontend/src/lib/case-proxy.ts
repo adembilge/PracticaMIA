@@ -1,5 +1,6 @@
 import 'server-only';
 import { NextRequest, NextResponse } from 'next/server';
+import { headers as requestHeaders } from 'next/headers';
 import { auth0 } from '@/lib/auth0';
 import { backendOrigin, sameOrigin } from '@/lib/auth-configuration.js';
 
@@ -35,13 +36,22 @@ export async function proxyCaseRequest(method: CaseMethod, path: string, payload
       return caseError('Authentication needs renewal', 401);
     }
 
+    // Forward the Vercel-injected project identity only to the dedicated Preview API.
+    // Vercel validates its signature and the Preview-to-Preview trusted-source rule.
+    let previewOidc: string | null = null;
+    if (process.env.VERCEL_ENV === 'preview' && backend === 'https://practicamia-api-git-preview-auth-rev-599637-firatadembilge-4729.vercel.app') {
+      previewOidc = (await requestHeaders()).get('x-vercel-oidc-token');
+      if (!previewOidc) return caseError('Preview service identity unavailable', 503);
+    }
     const response = await fetch(backend + path, {
       method,
       headers: {
         Authorization: 'Bearer ' + token,
+        ...(previewOidc ? { 'x-vercel-trusted-oidc-idp-token': previewOidc } : {}),
         ...(payload !== undefined ? { 'Content-Type': 'application/json' } : {}),
       },
       ...(payload !== undefined ? { body: JSON.stringify(payload) } : {}),
+      redirect: 'manual',
       cache: 'no-store',
       signal: AbortSignal.timeout(timeoutMs),
     });
