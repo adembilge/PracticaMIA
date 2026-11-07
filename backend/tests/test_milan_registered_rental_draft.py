@@ -89,9 +89,44 @@ def test_field_map_classifies_guide_sources_and_never_invents_uploads():
                for field in proposal["candidate_input_fields"])
     mandatory_keys = {field["key"] for field in proposal["candidate_input_fields"]
                       if field["importance"] == "guide_required"}
-    assert {"destination_province", "destination_municipality", "street_type",
-            "street_name", "civic_number", "postal_code",
+    assert {"destination_province", "destination_municipality", "street_address",
+            "civic_number", "postal_code",
             "rental_registration_office_municipality",
-            "rental_registration_date",
+            "rental_contract_date",
             "rental_registration_number"}.issubset(mandatory_keys)
     assert proposal["release_gates"]
+
+def test_uploaded_public_anpr_guide_fingerprint_and_section_provenance():
+    """Trace field mapping to the exact uploaded edition, not the Ministry PDF."""
+    field_map = load(FIELD_MAP)
+    assert field_map["version"].endswith("v3_uploaded_20261107")
+    records = {item["id"]: item for item in field_map["source_records"]}
+    uploaded = records["anpr_uploaded_public_guide_2025"]
+    assert uploaded["source_status"] == (
+        "uploaded_user_copy_inspected_not_registered_or_approved"
+    )
+    assert uploaded["sha256"] == (
+        "7ecc161913692a6d6102931c1b8cba368647a69ce664fd682785cdfd5fbadd81"
+    )
+    assert uploaded["pages"] == 29
+    assert uploaded["pdf_creation_date"] == "2025-04-08T13:45:45Z"
+    assert uploaded["url"].startswith("https://public-anpr.github.io/")
+    assert records["anpr_citizen_guide_candidate"]["url"].startswith(
+        "https://sc.anpr.interno.it/"
+    )
+    steps = {step["step"]: step for step in field_map["guide_steps"]}
+    assert steps["additional_details"]["source_section"] == "1.1.4"
+    assert steps["supporting_uploads"]["source_section"] == "1.1.5"
+    fields = {f["key"]: f for f in field_map["candidate_input_fields"]}
+    assert "street_type" not in fields and "street_name" not in fields
+    assert "rental_registration_date" not in fields
+    assert fields["street_address"]["section"] == "1.1.2"
+    assert fields["rental_contract_date"]["section"] == "1.1.3"
+    assert fields["rental_contract_date"]["source_id"] == uploaded["id"]
+    assert fields["inspection_availability"]["section"] == "1.1.4"
+    attachments = field_map["attached_documents"]
+    assert attachments["inspected_guide_section"] == "1.1.5"
+    assert attachments["inspected_guide_max_attachment_bytes"] == 1000000
+    assert attachments["inspected_guide_limit_is_current"] is False
+    assert attachments["mandatory_for_this_scenario_under_anpr_guide"] == []
+    assert field_map["available_for_real_user_guidance"] is False
