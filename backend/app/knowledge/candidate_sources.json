@@ -178,5 +178,15 @@
     "title": "ANPR — Guida compilazione della dichiarazione di cambio residenza (PDF)",
     "official_url": "https://sc.anpr.interno.it/serviziCittadino/dist/docs/guida_compilazione_cambio_residenza.pdf",
     "document_type": "official_document"
+  },
+  {
+    "id": "anpr-public-docs-residence-guide",
+    "institution": "ANPR public documentation archive (GitHub Pages)",
+    "jurisdiction": "IT-MI-MILANO",
+    "procedure_id": "milan_residence_change",
+    "language": "it",
+    "title": "ANPR — Guida operativa per i cittadini (public documentation edition, PDF)",
+    "official_url": "https://public-anpr.github.io/anpr-docs-cittadino/src/docs/guide/guida_compilazione_cambio_residenza.pdf",
+    "document_type": "official_document"
   }
 ]
