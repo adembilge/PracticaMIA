@@ -151,6 +151,15 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
     await mutate(base + '/facts', 'PUT', { confirmed_facts });
   }
 
+  async function resetScope() {
+    const confirmed_facts = { ...(snapshot?.confirmed_facts ?? {}) };
+    for (const field of ['citizenship_class', 'registration_context',
+      'destination_municipality', 'household_scope']) {
+      delete confirmed_facts[field];
+    }
+    await mutate(base + '/facts', 'PUT', { confirmed_facts });
+  }
+
   async function run(action: () => Promise<void>, success: string) {
     setBusy(true);
     setError('');
@@ -245,6 +254,11 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
             ? 'Le risposte corrispondono al primo scenario proposto, ma mancano ancora regole amministrative complete e approvate.'
             : 'The answers match the first proposed scenario, but a complete approved administrative ruleset is still required.'}</p> :
           <p>{it ? 'Caricamento delle domande…' : 'Loading guided questions…'}</p>}
+        {snapshot?.intake && snapshot.intake.status !== 'needs_information' &&
+          <button type="button" className="button button-outline" disabled={busy}
+            onClick={() => void run(resetScope, it ? 'Domande reimpostate.' : 'Scope questions reset.')}>
+            {it ? 'Modifica le risposte di inquadramento' : 'Change scope answers'}
+          </button>}
       </section>
 
       <section className="work-panel" style={{ padding: 24, marginTop: 20 }} aria-busy={busy}>
