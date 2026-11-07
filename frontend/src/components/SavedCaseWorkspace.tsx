@@ -16,10 +16,10 @@ type StoredCase = {
   updated_at: string;
 };
 
-type Props = { caseId: string; configured: boolean; signedIn: boolean; assistantEnabled: boolean };
+type Props = { caseId: string; configured: boolean; signedIn: boolean; assistantEnabled: boolean; preparationEnabled: boolean };
 const ANSWERS: Answer[] = ['yes', 'no', 'unsure'];
 
-export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnabled }: Props) {
+export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnabled, preparationEnabled }: Props) {
   const router = useRouter();
   const { t, locale } = useDemo();
   const [record, setRecord] = useState<StoredCase | null>(null);
@@ -224,6 +224,11 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
             <div className="fact-row"><span>{t.savedCaseCode}</span><strong>{record.id.slice(0, 8)}</strong></div>
             <div className="fact-row"><span>{t.savedDraft}</span><strong>{record.status}</strong></div>
             <div className="fact-row"><span>{t.savedProgress}</span><strong>{record.scope_answers.length} / 5</strong></div>
+            {preparationEnabled && <Link
+              href={'/cases/' + encodeURIComponent(caseId) + '/preparation'}
+              className="button button-outline" style={{ marginTop: 18, display: 'inline-flex' }}>
+              {locale === 'it' ? 'Preparazione sintetica' : 'Synthetic preparation preview'}
+            </Link>}
             {assistantEnabled && <Link
               href={'/cases/' + encodeURIComponent(caseId) + '/assistant'}
               className="button button-outline" style={{ marginTop: 18, display: 'inline-flex' }}>

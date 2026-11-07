@@ -26,6 +26,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
         )
         return response
+    if settings.enable_preparation_api:
+        # No production access to personal-document processing until independent
+        # privacy, malware, retention, and legal review gates are complete.
+        if settings.deployment_environment == "production":
+            raise ValueError("Preparation preview must never be enabled in production")
+        if settings.preparation_target != "isolated_staging":
+            raise ValueError("Preparation requires explicit isolated staging target")
+        if not (settings.enable_demo_case_api and settings.enable_knowledge_catalog_api):
+            raise ValueError("Preparation requires authenticated cases and source registry")
+        from app.preparation.crypto import decode_key
+        api.state.preparation_document_key = decode_key(settings.preparation_document_key)
     if settings.enable_knowledge_catalog_api and not settings.enable_demo_case_api:
         raise ValueError("Knowledge catalog requires the authenticated case API")
     if settings.enable_knowledge_search_api and not (
@@ -62,9 +73,30 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
         api.state.token_verifier = TokenVerifier(settings)
         engine, session_factory = configure_database(settings.database_url)
+        if settings.enable_preparation_api and engine.dialect.name == "postgresql":
+            from hashlib import sha256
+            from hmac import compare_digest
+            expected = settings.preparation_database_fingerprint
+            actual = sha256(settings.database_url.encode("utf-8")).hexdigest()
+            if len(expected) != 64 or not compare_digest(expected, actual):
+                engine.dispose()
+                raise ValueError("Preparation requires explicit staging database fingerprint")
+            try:
+                with engine.connect() as connection:
+                    revision = connection.exec_driver_sql(
+                        "SELECT version_num FROM alembic_version"
+                    ).scalar_one()
+                if revision != "20261106_0011":
+                    raise ValueError("Preparation requires migrated isolated staging schema 0011")
+            except Exception:
+                engine.dispose()
+                raise
         api.state.engine = engine
         api.state.session_factory = session_factory
         api.include_router(router)
+        if settings.enable_preparation_api:
+            from app.preparation.router import router as preparation_router
+            api.include_router(preparation_router)
         if settings.enable_knowledge_catalog_api:
             from app.knowledge.router import router as knowledge_router
             api.include_router(knowledge_router)

@@ -2,8 +2,8 @@
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.auth.tokens import Principal, get_principal
@@ -90,8 +90,22 @@ def update_scope(
 @router.delete("/{case_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_case(
     case_id: UUID,
+    request: Request,
     db: Session = Depends(get_session),
     principal: Principal = Depends(get_principal),
 ):
-    db.delete(get_case(db, case_id, principal.subject))
+    record = get_case(db, case_id, principal.subject)
+    if request.app.state.settings.enable_preparation_api:
+        # Explicit cleanup also works in SQLite test fixtures with foreign
+        # keys disabled; Postgres additionally enforces ON DELETE CASCADE.
+        from app.preparation.models import CaseDocument, CasePreparation
+        db.execute(delete(CaseDocument).where(
+            CaseDocument.case_id == str(case_id),
+            CaseDocument.owner_subject == principal.subject,
+        ))
+        db.execute(delete(CasePreparation).where(
+            CasePreparation.case_id == str(case_id),
+            CasePreparation.owner_subject == principal.subject,
+        ))
+    db.delete(record)
     db.commit()

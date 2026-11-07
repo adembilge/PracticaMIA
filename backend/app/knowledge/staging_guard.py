@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 
 STAGING_REVISION = "20261106_0010"
+SUPPORTED_STAGING_REVISIONS = frozenset({STAGING_REVISION, "20261106_0011"})
 
 
 def require_staging_intent(environment: Mapping[str, str] | None = None) -> None:
@@ -29,7 +30,8 @@ def require_staging_database(db: Session) -> None:
     if db.get_bind().dialect.name != "postgresql":
         raise ValueError("Official-source imports require PostgreSQL staging")
     revision = db.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-    if revision != STAGING_REVISION:
+    if revision not in SUPPORTED_STAGING_REVISIONS:
         raise ValueError(
-            "Official-source imports require knowledge schema " + STAGING_REVISION
+            "Official-source imports require a reviewed staging schema " +
+            ", ".join(sorted(SUPPORTED_STAGING_REVISIONS))
         )
