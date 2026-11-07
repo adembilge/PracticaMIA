@@ -40,6 +40,28 @@ version, no legal checklist and no government submission permission.
 The imported PDF reader now accepts original PDFs of up to 40 pages with the
 existing 4 MiB file, 250,000-character and passage-count bounds.
 
+## Uploaded public-guide evidence update — 7 November 2026
+
+The project owner supplied a complete 29-page ANPR public-documentation guide.
+Its exact local SHA-256 is `7ecc161913692a6d6102931c1b8cba368647a69ce664fd682785cdfd5fbadd81`.
+See [the page-by-page review and metadata record](ANPR_PUBLIC_GUIDE_UPLOAD_REVIEW_2026_11_07.md).
+Its PDF metadata gives 8 April 2025 as the file creation date.
+
+This upload resolves **field transcription questions for that edition**, including
+single `Indirizzo` (not separately mandatory street-type/name), rental **contract date**
+(not proven registration date), `1.1.4 Dati di contatto`, `1.1.5 Allegati`,
+and optional supporting attachments for the defined Italian tenant scenario.
+It does **not** prove a live 2026 ANPR edition and is **not** an approved version in Neon.
+
+**Important operator warning:** the current source ID `anpr-citizen-residence-guide`
+is registered to the *different Ministry-hosted* `sc.anpr.interno.it` URL.
+Do **not** ingest this uploaded public-anpr.github.io PDF under that ID.
+A distinct provenance-correct source record and its explicit trusted publisher
+review are prerequisites if that archive is chosen as a source for live rules.
+Do not assign it the Ministry institution merely to satisfy the host allowlist.
+The review API approval must be performed by an authenticated person on a
+genuine, hash-checked stored snapshot; no review decision was made here.
+
 ## Exact steps to clear the technical gate
 
 ### A. Authorized reviewer: acquire and approve each exact source version
