@@ -170,7 +170,7 @@
         ]
       },
       "result": {
-        "description": "In the reviewed ANPR public-guide edition, choose registered private rental (title 2); prepare the Agenzia delle Entrate registration-office municipality, rental contract date, and contract registration number. Verify each against the live form.",
+        "description": "For registered private rental (title 2), prepare the Agenzia delle Entrate registration-office municipality, rental contract date and registration number. Confirm these fields against the current ANPR form.",
         "required_document_types": []
       },
       "evidence_refs": [
