@@ -259,3 +259,46 @@ def test_guided_intake_is_owner_scoped_and_does_not_activate_real_rules(
         assert state["workflow"]["package"] is None
     assert http.put(base + "/facts", json={"confirmed_facts": facts},
                     headers=other).status_code == 404
+
+
+
+def test_reference_passages_only_show_currently_approved_owner_scoped_evidence(
+    preparation_client, auth_headers, monkeypatch,
+):
+    http = preparation_client
+    owner, other = auth_headers("alice"), auth_headers("bob")
+    case = http.post("/api/v1/cases", json={}, headers=owner)
+    assert case.status_code == 201
+    base = f"/api/v1/cases/{case.json()['id']}/preparation"
+
+    assert http.get(base + "/reference-evidence", headers=other).status_code == 404
+    empty = http.get(base + "/reference-evidence", headers=owner)
+    assert empty.status_code == 200
+    assert empty.json()["references"] == []
+    assert empty.json()["status"] == "partial_or_unavailable"
+    assert empty.json()["personalized_requirements"] is False
+
+    approved_id = preparation_router.REFERENCE_PASSAGES[0]
+    def approved_only(*args, **kwargs):
+        if kwargs.get("citation_id") != approved_id:
+            return None
+        return SimpleNamespace(
+            title="Approved municipal sample",
+            official_url="https://example.test/municipal",
+            reviewed_at="synthetic-review-time",
+            content="Verified test passage, not an administrative requirement.",
+        )
+    monkeypatch.setattr(preparation_router, "resolve_approved_passage", approved_only)
+    result = http.get(base + "/reference-evidence", headers=owner)
+    assert result.status_code == 200
+    data = result.json()
+    assert data["status"] == "partial_or_unavailable"
+    assert len(data["references"]) == 1
+    assert data["references"][0]["citation_id"] == approved_id
+    assert data["personalized_requirements"] is False
+    assert http.get(base + "/package", headers=owner).json()["package"] is None
+
+    monkeypatch.setattr(preparation_router, "resolve_approved_passage",
+                        lambda *args, **kwargs: None)
+    revoked = http.get(base + "/reference-evidence", headers=owner)
+    assert revoked.json()["references"] == []
