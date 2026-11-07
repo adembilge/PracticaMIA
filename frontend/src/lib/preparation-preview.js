@@ -68,3 +68,19 @@ export function serializeReviewedPreparationPackage(data, reviewDigest) {
     package: data,
   }, null, 2) + '\n';
 }
+
+/** Export only the bounded, clearly labelled ANPR transcription draft. */
+export function serializeSyntheticAnprDraft(draft) {
+  if (!draft || typeof draft !== 'object' || Array.isArray(draft) ||
+      draft.artifact_type !== 'synthetic_anpr_field_transcription_draft' ||
+      draft.simulation_only !== true || draft.official_form !== false ||
+      draft.government_submission_status !== 'NOT_SUBMITTED' ||
+      draft.source_currentness_verified !== false ||
+      !Array.isArray(draft.sections)) {
+    throw new Error('Invalid ANPR draft; reload the preparation worksheet');
+  }
+  return JSON.stringify({
+    ...draft,
+    export_disclaimer: 'Preparation worksheet only. Not an official ANPR form; never submitted.',
+  }, null, 2) + '\n';
+}
