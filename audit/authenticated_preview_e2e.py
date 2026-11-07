@@ -231,8 +231,11 @@ def run_checks(base: str, auth0_host: str, env: dict[str, str]) -> dict[str, obj
                           "A reads blocked preparation package")
                 if a.request.get(preparation_url + "/package").json().get("package") is not None:
                     raise Failed("Unapproved rules unexpectedly allowed a package")
-                page_a.goto(base + f"/cases/{id_a}/preparation",
-                            wait_until="domcontentloaded")
+                page_response = page_a.goto(
+                    base + f"/cases/{id_a}/preparation",
+                    wait_until="domcontentloaded")
+                if page_response is None or page_response.status != 200:
+                    raise Blocked("Authenticated preparation page is unavailable")
                 if page_a.url.startswith(base + "/auth/"):
                     raise Failed("Signed-in preparation page redirected to login")
                 completed.append("synthetic PDF upload, extraction, correction and review")
