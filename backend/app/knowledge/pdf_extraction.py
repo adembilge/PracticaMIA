@@ -15,7 +15,7 @@ from app.knowledge.html_extraction import (
 
 PDF_EXTRACTION_VERSION = "pdf-v1"
 MAX_PDF_BYTES = 4 * 1024 * 1024
-MAX_PDF_PAGES = 20
+MAX_PDF_PAGES = 40
 MAX_PDF_TEXT_CHARS = 250000
 
 
