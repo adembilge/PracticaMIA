@@ -1,0 +1,290 @@
+{
+  "version": "italian_individual_registered_rental_candidate_v3_20261108",
+  "status": "pending_review",
+  "jurisdiction": "IT-MI-MILANO",
+  "procedure_id": "milan_residence_change",
+  "approved_by": null,
+  "approved_at": null,
+  "complete_scenario_coverage": false,
+  "proposal_only": true,
+  "scope_note": "Reviewer-ready candidate based on approved versioned Milan Italian-citizen FAQ and approved 29-page public ANPR documentation archive. Only one adult Italian citizen already registered in Italy, changing residence individually to Milan, as named holder of a registered private rental agreement. Source approval and proposal review are not ruleset signing; public archive edition does not establish all current live ANPR validations.",
+  "rules": [
+    {
+      "id": "italian_individual_route",
+      "kind": "route",
+      "status": "active",
+      "condition": {
+        "all": [
+          {
+            "field": "citizenship_class",
+            "operator": "equals",
+            "value": "italian"
+          },
+          {
+            "field": "registration_context",
+            "operator": "equals",
+            "value": "already_registered_in_italy"
+          },
+          {
+            "field": "destination_municipality",
+            "operator": "equals",
+            "value": "milano"
+          },
+          {
+            "field": "household_scope",
+            "operator": "equals",
+            "value": "individual_no_aggregation"
+          },
+          {
+            "field": "housing_basis",
+            "operator": "equals",
+            "value": "registered_private_rental"
+          }
+        ]
+      },
+      "result": {
+        "route": "supported_individual"
+      },
+      "evidence_refs": [
+        "e139e910-3a89-4994-b450-b5107d8db7dd:0000",
+        "e139e910-3a89-4994-b450-b5107d8db7dd:0003",
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0003",
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0006"
+      ]
+    },
+    {
+      "id": "italian_change_anpr_guidance",
+      "kind": "requirement",
+      "status": "active",
+      "condition": {
+        "all": [
+          {
+            "field": "citizenship_class",
+            "operator": "equals",
+            "value": "italian"
+          },
+          {
+            "field": "registration_context",
+            "operator": "equals",
+            "value": "already_registered_in_italy"
+          },
+          {
+            "field": "destination_municipality",
+            "operator": "equals",
+            "value": "milano"
+          },
+          {
+            "field": "household_scope",
+            "operator": "equals",
+            "value": "individual_no_aggregation"
+          },
+          {
+            "field": "housing_basis",
+            "operator": "equals",
+            "value": "registered_private_rental"
+          }
+        ]
+      },
+      "result": {
+        "description": "Inform the Milan Registry Office via ANPR within 20 days of the move; verify the applicable official channel before submitting.",
+        "required_document_types": []
+      },
+      "evidence_refs": [
+        "e139e910-3a89-4994-b450-b5107d8db7dd:0000",
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0021",
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0022"
+      ]
+    },
+    {
+      "id": "italian_change_tari_followup",
+      "kind": "requirement",
+      "status": "active",
+      "condition": {
+        "all": [
+          {
+            "field": "citizenship_class",
+            "operator": "equals",
+            "value": "italian"
+          },
+          {
+            "field": "registration_context",
+            "operator": "equals",
+            "value": "already_registered_in_italy"
+          },
+          {
+            "field": "destination_municipality",
+            "operator": "equals",
+            "value": "milano"
+          },
+          {
+            "field": "household_scope",
+            "operator": "equals",
+            "value": "individual_no_aggregation"
+          },
+          {
+            "field": "housing_basis",
+            "operator": "equals",
+            "value": "registered_private_rental"
+          }
+        ]
+      },
+      "result": {
+        "description": "Check the separate TARI declaration for the changed housing situation; this is not part of the residence application.",
+        "required_document_types": []
+      },
+      "evidence_refs": [
+        "e139e910-3a89-4994-b450-b5107d8db7dd:0005"
+      ]
+    },
+    {
+      "id": "registered_rental_anpr_fields",
+      "kind": "requirement",
+      "status": "active",
+      "condition": {
+        "all": [
+          {
+            "field": "citizenship_class",
+            "operator": "equals",
+            "value": "italian"
+          },
+          {
+            "field": "registration_context",
+            "operator": "equals",
+            "value": "already_registered_in_italy"
+          },
+          {
+            "field": "destination_municipality",
+            "operator": "equals",
+            "value": "milano"
+          },
+          {
+            "field": "household_scope",
+            "operator": "equals",
+            "value": "individual_no_aggregation"
+          },
+          {
+            "field": "housing_basis",
+            "operator": "equals",
+            "value": "registered_private_rental"
+          }
+        ]
+      },
+      "result": {
+        "description": "For registered private rental (title 2), prepare the Agenzia delle Entrate registration-office municipality, rental contract date and registration number. Confirm these fields against the current ANPR form.",
+        "required_document_types": []
+      },
+      "evidence_refs": [
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0015",
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0017"
+      ]
+    },
+    {
+      "id": "tenant_attachments_reference_only",
+      "kind": "requirement",
+      "status": "active",
+      "condition": {
+        "all": [
+          {
+            "field": "citizenship_class",
+            "operator": "equals",
+            "value": "italian"
+          },
+          {
+            "field": "registration_context",
+            "operator": "equals",
+            "value": "already_registered_in_italy"
+          },
+          {
+            "field": "destination_municipality",
+            "operator": "equals",
+            "value": "milano"
+          },
+          {
+            "field": "household_scope",
+            "operator": "equals",
+            "value": "individual_no_aggregation"
+          },
+          {
+            "field": "housing_basis",
+            "operator": "equals",
+            "value": "registered_private_rental"
+          }
+        ]
+      },
+      "result": {
+        "description": "The reviewed public ANPR guide describes supporting uploads as generally optional for this Italian tenant scenario; keep the lease and registration evidence available if the current ANPR form or municipality requests them.",
+        "required_document_types": []
+      },
+      "evidence_refs": [
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0018",
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0019",
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0017"
+      ]
+    },
+    {
+      "id": "applicant_only_anpr_handoff",
+      "kind": "requirement",
+      "status": "active",
+      "condition": {
+        "all": [
+          {
+            "field": "citizenship_class",
+            "operator": "equals",
+            "value": "italian"
+          },
+          {
+            "field": "registration_context",
+            "operator": "equals",
+            "value": "already_registered_in_italy"
+          },
+          {
+            "field": "destination_municipality",
+            "operator": "equals",
+            "value": "milano"
+          },
+          {
+            "field": "household_scope",
+            "operator": "equals",
+            "value": "individual_no_aggregation"
+          },
+          {
+            "field": "housing_basis",
+            "operator": "equals",
+            "value": "registered_private_rental"
+          }
+        ]
+      },
+      "result": {
+        "description": "Review the prepared fields and submit only after the applicant personally checks the current ANPR service. PracticaMIA prepares a worksheet; it never submits the declaration to the municipality.",
+        "required_document_types": []
+      },
+      "evidence_refs": [
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0021",
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0022"
+      ]
+    }
+  ],
+  "review_blockers": [
+    "The approved archive source is 2025-created documentation from public-anpr.github.io, not a verified current Ministry-hosted guide. Before claiming current live ANPR behavior, confirm that referenced fields and conditions still apply.",
+    "Reviewer must confirm whether all relevant conditional exceptions and supporting-document requirements are covered for the narrowly defined Italian private tenant route, and attest complete_scenario_coverage only after that review.",
+    "After scope-completeness review, prepare an exact-key final catalog with real reviewer identity and UTC timestamp; the authorized reviewer must sign it offline with their own Ed25519 private key. No signature or activation is implied by this proposal."
+  ],
+  "evidence_source_versions": [
+    {
+      "id": "milano-italian-residence-change",
+      "version_id": "e139e910-3a89-4994-b450-b5107d8db7dd",
+      "status_at_review": "approved",
+      "subject": "Comune di Milano: Italian citizen already in Italy, 20-day notification, different household scope, separate TARI"
+    },
+    {
+      "id": "anpr-public-docs-residence-guide",
+      "version_id": "c89b4c40-4c41-48d5-ad52-be08e9630277",
+      "content_sha256": "7ecc161913692a6d6102931c1b8cba368647a69ce664fd682785cdfd5fbadd81",
+      "status_at_review": "approved",
+      "review_actor": "google-oauth2|113439370376814005256",
+      "reviewed_at_utc": "2026-11-07T23:50:57.480Z",
+      "archive_provenance": "public-anpr.github.io; NOT sc.anpr.interno.it",
+      "source_currentness_verified": false
+    }
+  ]
+}
