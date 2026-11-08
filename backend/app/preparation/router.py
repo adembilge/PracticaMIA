@@ -29,7 +29,7 @@ from app.preparation.extract import (
 from app.preparation.models import CaseDocument, CasePreparation
 from app.preparation.intake import scope_intake, validate_scope_facts
 from app.preparation.anpr_draft import build_anpr_draft
-from app.preparation.agent import guide_case
+from app.preparation.agent import guide_case, _fallback_action
 from app.preparation.workflow import assess_preparation
 from app.rules.catalog import current_catalog
 from app.rules.engine import JURISDICTION, PROCEDURE
@@ -297,8 +297,11 @@ def guide_case_preview(
     _case(db, case_id, principal)
     settings = request.app.state.settings
     model = None
-    if settings.enable_assistant_api:
-        # This flag enforces existing preview-only provider and usage controls.
+    if settings.enable_assistant_api and _fallback_action(payload.question) != "evidence":
+        # For clearly identified source questions, skip a separate LLM intent
+        # call. The RAG endpoint searches approved evidence first and reserves
+        # a single model call only when evidence is available. Ambiguous
+        # questions retain the optional model tool router and separate quota.
         from app.knowledge.assistant_router import _model_for_preview
         from app.knowledge.usage_limit import reserve_daily_model_call
         try:
