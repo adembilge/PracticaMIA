@@ -32,6 +32,7 @@ class GuideState(TypedDict, total=False):
     history: list[dict[str, str]]
     model: Any
     evidence_tool: Callable[[], list[dict]]
+    rag_tool: Callable[[], dict[str, Any]] | None
     status_tool: Callable[[], dict]
     action: str
     mode: str
@@ -43,6 +44,8 @@ def _fallback_action(question: str) -> str:
     if any(k in q for k in (
         "source", "official", "rule", "requirement", "deadline",
         "fonte", "ufficial", "normativ", "requisit", "scaden", "anpr",
+        "residen", "residenc", "mandatory", "required", "quali documenti",
+        "which documents", "documents required",
     )):
         return "evidence"
     if any(k in q for k in (
@@ -114,8 +117,55 @@ def _intake(state: GuideState) -> dict:
 
 
 def _evidence(state: GuideState) -> dict:
-    references = state["evidence_tool"]()
+    """Use the existing approved-source RAG endpoint's verified quote contract.
+
+    This graph does not perform its own retrieval approval, source review,
+    generation, or quote verification. Those remain the RAG tool's responsibility.
+    A missing/invalid answer is never promoted to an administrative claim.
+    """
     it = state["language"] == "it"
+    rag_tool = state.get("rag_tool")
+    if rag_tool is not None:
+        rag = rag_tool()
+        status = rag.get("status", "generation_unavailable")
+        sources = rag.get("sources", [])
+        references = [
+            {
+                "citation_id": ref["citation_id"], "title": ref["title"],
+                "official_url": ref["official_url"], "excerpt": ref["excerpt"],
+                "reviewed_at": ref.get("reviewed_at", ""),
+            }
+            for ref in sources
+        ]
+        # The injected RAG tool alone has authority to report a verified answer.
+        answer = rag.get("answer") if status == "answer_generated" else None
+        message = (
+            "Ho trovato estratti ufficiali verificati. Le citazioni riportano "
+            "le parole originali, non una valutazione individuale." if it else
+            "Reviewed municipal passages were found. The quotations show "
+            "the original wording, not a personalized eligibility assessment."
+        ) if answer else (
+            "Sono disponibili estratti approvati, ma non posso fornire "
+            "una risposta verificata per questa domanda." if it else
+            "Approved excerpts are available, but I cannot provide a "
+            "verified answer to this question."
+        ) if references else (
+            "Non sono disponibili estratti approvati pertinenti; non "
+            "posso dedurre requisiti." if it else
+            "No relevant currently approved excerpts were found, "
+            "so I cannot infer requirements."
+        )
+        return {"result": {
+            "action": "evidence", "status": status,
+            "message": message, "next_question": None,
+            "references": references, "answer": answer,
+            "answer_status": status,
+            "tool_actions": ["search_approved_hybrid", "verify_exact_quotations"]
+                            if status == "answer_generated" else
+                            ["search_approved_hybrid"],
+        }}
+
+    references = state["evidence_tool"]()
     message = (
         "Sono disponibili estratti comunali verificati come riferimento generale; "
         "non rappresentano requisiti personalizzati." if it else
@@ -130,6 +180,7 @@ def _evidence(state: GuideState) -> dict:
         "action": "evidence",
         "status": "reference_only" if references else "insufficient_evidence",
         "message": message, "next_question": None, "references": references,
+        "answer": None,
     }}
 
 
@@ -269,6 +320,7 @@ def guide_case(
     evidence_tool: Callable[[], list[dict]],
     status_tool: Callable[[], dict], model: Any = None,
     history: list[dict[str, str]] | None = None,
+    rag_tool: Callable[[], dict[str, Any]] | None = None,
 ) -> dict:
     if not (2 <= len(question.strip()) <= 180) or len(question) > 180:
         raise ValueError("Question must contain 2-180 characters")
@@ -278,6 +330,7 @@ def guide_case(
         "question": question, "language": language, "facts": facts, "model": model,
         "history": history or [],
         "evidence_tool": evidence_tool, "status_tool": status_tool,
+        "rag_tool": rag_tool,
     })
     return {
         **state["result"],
