@@ -16,7 +16,7 @@ type Props = {
 };
 
 export function SavedCasesView({ configured, signedIn, backendConfigured, liveAIEnabled }: Props) {
-  const { t } = useDemo();
+  const { t, locale } = useDemo();
   const router = useRouter();
   const [cases, setCases] = useState<SavedCase[]>([]);
   const [loading, setLoading] = useState(false);
@@ -102,7 +102,7 @@ export function SavedCasesView({ configured, signedIn, backendConfigured, liveAI
         )}
         <div style={{marginTop: 20, marginBottom: 14}}>
           <p><Link href="/demo/synthetic" className="inline-link">
-            {t.navStart === 'Inizia' ? 'Esplora il percorso completo con un caso fittizio' : 'Explore a complete fictional case — no login or personal data required'}
+            {locale === 'it' ? 'Esplora il percorso completo con un caso fittizio' : 'Explore a complete fictional case — no login or personal data required'}
           </Link></p>
         </div>
         {signedIn && liveAIEnabled && <LiveExampleAIGuide />}
