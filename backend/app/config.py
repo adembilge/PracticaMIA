@@ -12,6 +12,7 @@ class Settings:
     enable_knowledge_search_api: bool = False
     enable_assistant_api: bool = False
     enable_preparation_api: bool = False
+    enable_agent_history_api: bool = False
     preparation_document_key: str = ""
     preparation_target: str = ""
     preparation_database_fingerprint: str = ""
@@ -40,6 +41,8 @@ class Settings:
             enable_assistant_api=environ.get("ENABLE_ASSISTANT_API", "").lower()
             in {"1", "true", "yes"},
             enable_preparation_api=environ.get("ENABLE_PREPARATION_API", "").lower()
+            in {"1", "true", "yes"},
+            enable_agent_history_api=environ.get("ENABLE_AGENT_HISTORY_API", "").lower()
             in {"1", "true", "yes"},
             preparation_document_key=environ.get("PREPARATION_DOCUMENT_KEY", ""),
             preparation_target=environ.get("PREPARATION_TARGET", ""),

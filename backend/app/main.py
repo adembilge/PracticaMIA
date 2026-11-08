@@ -26,6 +26,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
         )
         return response
+    if settings.enable_agent_history_api and not settings.enable_preparation_api:
+        raise ValueError("Agent history requires isolated preparation Preview")
     if settings.enable_preparation_api:
         # No production access to personal-document processing until independent
         # privacy, malware, retention, and legal review gates are complete.
@@ -86,8 +88,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     revision = connection.exec_driver_sql(
                         "SELECT version_num FROM alembic_version"
                     ).scalar_one()
-                if revision != "20261106_0011":
-                    raise ValueError("Preparation requires migrated isolated staging schema 0011")
+                if revision not in {"20261106_0011", "20261108_0012"}:
+                    raise ValueError("Preparation requires migrated isolated staging schema")
+                if settings.enable_agent_history_api and revision != "20261108_0012":
+                    raise ValueError("Agent history requires isolated staging schema 0012")
             except Exception:
                 engine.dispose()
                 raise

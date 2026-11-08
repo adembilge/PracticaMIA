@@ -182,3 +182,38 @@ def test_model_cannot_invoke_arbitrary_write_or_approval_action():
     assert result["mode"] == "guided_fallback"
     assert result["action"] == "next_step"
     assert result["government_submission_status"] == "not_submitted"
+
+
+def test_optional_model_router_receives_bounded_prior_turns_only():
+    from types import SimpleNamespace
+
+    class CaptureModel:
+        def __init__(self):
+            self.messages = None
+
+        def invoke(self, messages):
+            self.messages = messages
+            return SimpleNamespace(content="case_status")
+
+    model = CaptureModel()
+    history = [
+        {"question": f"Synthetic previous question {i}", "action": "intake",
+         "answer": "Never use previous answers as authoritative."}
+        for i in range(5)
+    ]
+    result = guide_case(
+        question="And the status?", language="en", facts={},
+        evidence_tool=lambda: [],
+        status_tool=lambda: {"status": "blocked", "blocking_issues": []},
+        model=model, history=history,
+    )
+    assert result["mode"] == "model_selected"
+    assert result["action"] == "case_status"
+    assert len(model.messages) == 2
+    prompt = model.messages[1].content
+    assert "Synthetic previous question 0" not in prompt
+    assert "Synthetic previous question 1" not in prompt
+    assert "Synthetic previous question 2" in prompt
+    assert "Synthetic previous question 4" in prompt
+    assert "And the status?" in prompt
+    assert "Never use previous answers" not in prompt

@@ -94,6 +94,23 @@ type GuideResult = {
   is_demo: true;
   is_legal_assessment: false;
   government_submission_status: 'not_submitted';
+  history_saved?: boolean;
+};
+type ConversationTurn = {
+  id: string;
+  question: string;
+  answer: string;
+  action: string;
+  status: string;
+  language: string;
+  next_action: string | null;
+  created_at: string;
+};
+type ConversationResponse = {
+  turns: ConversationTurn[];
+  is_demo: true;
+  historical_only: true;
+  government_submission_status: 'not_submitted';
 };
 type ReferenceEvidence = {
   status: 'reference_only' | 'partial_or_unavailable';
@@ -133,6 +150,7 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
   const [guideQuestion, setGuideQuestion] = useState('');
   const [guideResult, setGuideResult] = useState<GuideResult | null>(null);
   const [guideBusy, setGuideBusy] = useState(false);
+  const [guideHistory, setGuideHistory] = useState<ConversationTurn[]>([]);
   const [facts, setFacts] = useState<Record<string, string>>({
     citizenship_class: '',
     registration_context: '',
@@ -153,12 +171,14 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
   const [handoff, setHandoff] = useState<{ links: { title: string; official_url: string }[] } | null>(null);
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
-    const [state, docs, sources, anpr] = await Promise.all([
+    const [state, docs, sources, anpr, conversation] = await Promise.all([
       fetch(base, { cache: 'no-store', signal }),
       fetch(base + '/documents', { cache: 'no-store', signal }),
       fetch(base + '/reference-evidence', { cache: 'no-store', signal })
         .catch(() => null),
       fetch(base + '/anpr-draft', { cache: 'no-store', signal })
+        .catch(() => null),
+      fetch(base + '/conversation', { cache: 'no-store', signal })
         .catch(() => null),
     ]);
     if (!state.ok || !docs.ok) throw new Error('Preview service unavailable');
@@ -168,6 +188,16 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
       !Array.isArray(list)) throw new Error('Invalid preview data');
     setSnapshot(saved);
     setDocuments(list);
+    if (conversation?.ok) {
+      const history = await conversation.json() as ConversationResponse;
+      setGuideHistory(
+        history.is_demo === true && history.historical_only === true &&
+        history.government_submission_status === 'not_submitted' &&
+        Array.isArray(history.turns) ? history.turns : [],
+      );
+    } else {
+      setGuideHistory([]);
+    }
     // Reference evidence is optional; retrieval failures must not break
     // the private case workspace or silently invent a citation.
     if (sources?.ok) {
@@ -249,6 +279,15 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
         throw new Error('Guide returned an unexpected response');
       }
       setGuideResult(result);
+      if (result.history_saved === true) {
+        const saved = await fetch(base + '/conversation', { cache: 'no-store' });
+        if (saved.ok) {
+          const history = await saved.json() as ConversationResponse;
+          if (history.is_demo && history.historical_only &&
+              history.government_submission_status === 'not_submitted' &&
+              Array.isArray(history.turns)) setGuideHistory(history.turns);
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Guide request failed');
     } finally {
@@ -559,6 +598,18 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
           {guideBusy ? (it ? 'Controllo…' : 'Checking…') :
             (it ? 'Chiedi all’assistente' : 'Ask the guide')}
         </button>
+        {guideHistory.length > 0 && <div style={{ marginTop: 16 }}>
+          <h3>{it ? 'Conversazione salvata' : 'Saved conversation'}</h3>
+          <p className="account-footnote">{it
+            ? 'Cronologia di prova. Le risposte passate non sostituiscono i dati e le fonti verificati oggi.'
+            : 'Historical preview only. Previous answers do not replace current verified facts or sources.'}</p>
+          <ol>
+            {guideHistory.map(turn => <li key={turn.id} style={{ marginBottom: 12 }}>
+              <p><strong>{turn.question}</strong></p>
+              <p>{turn.answer}</p>
+            </li>)}
+          </ol>
+        </div>}
         {guideResult && <div className="message-box notice" role="status"
           style={{ marginTop: 16 }}>
           <p>{guideResult.message}</p>

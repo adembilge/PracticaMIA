@@ -322,11 +322,47 @@ def guide_case_preview(
         return _assessment(db, request, str(case_id), principal.subject)
 
     prep = _preparation(db, str(case_id), principal.subject)
-    return guide_case(
+    prior_turns = []
+    if settings.enable_agent_history_api:
+        from app.preparation.conversation import load_turns
+        prior_turns = load_turns(
+            db, case_id=str(case_id), owner=principal.subject, key=_key(request),
+        )
+    result = guide_case(
         question=payload.question, language=payload.language,
         facts=_facts(request, prep, str(case_id), principal.subject),
         evidence_tool=evidence_tool, status_tool=status_tool, model=model,
+        history=prior_turns,
     )
+    if settings.enable_agent_history_api:
+        from app.preparation.conversation import save_turn
+        save_turn(
+            db, case_id=str(case_id), owner=principal.subject, key=_key(request),
+            question=payload.question, language=payload.language, result=result,
+        )
+        result["history_saved"] = True
+    return result
+
+
+@router.get("/{case_id}/preparation/conversation")
+def read_guide_conversation(
+    case_id: UUID, request: Request,
+    db: Session = Depends(get_session),
+    principal: Principal = Depends(get_principal),
+):
+    """Historical, encrypted guide turns; never current administrative evidence."""
+    if not request.app.state.settings.enable_agent_history_api:
+        raise HTTPException(404, "Conversation history is unavailable")
+    _case(db, case_id, principal)
+    from app.preparation.conversation import load_turns
+    return {
+        "turns": load_turns(
+            db, case_id=str(case_id), owner=principal.subject, key=_key(request),
+        ),
+        "is_demo": True,
+        "historical_only": True,
+        "government_submission_status": "not_submitted",
+    }
 
 
 @router.get("/{case_id}/preparation/checklist")

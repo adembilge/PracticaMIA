@@ -99,6 +99,14 @@ def delete_case(
         # Explicit cleanup also works in SQLite test fixtures with foreign
         # keys disabled; Postgres additionally enforces ON DELETE CASCADE.
         from app.preparation.models import CaseDocument, CasePreparation
+        if request.app.state.settings.enable_agent_history_api:
+            # SQLite test fixtures may not enforce FK cascades. Production
+            # PostgreSQL also has ON DELETE CASCADE for this scoped table.
+            from app.preparation.models import CaseAgentTurn
+            db.execute(delete(CaseAgentTurn).where(
+                CaseAgentTurn.case_id == str(case_id),
+                CaseAgentTurn.owner_subject == principal.subject,
+            ))
         db.execute(delete(CaseDocument).where(
             CaseDocument.case_id == str(case_id),
             CaseDocument.owner_subject == principal.subject,
