@@ -1,5 +1,6 @@
 """App factory for development-only authenticated, synthetic case persistence."""
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request, Response
+from os import environ
 
 from app.config import Settings
 from app.database import configure_database
@@ -113,6 +114,44 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if settings.enable_knowledge_review_api:
                 from app.knowledge.review_router import router as review_router
                 api.include_router(review_router)
+
+    # Temporary isolated Preview smoke check: synthetic prompt only.
+    # This route is removed immediately after verification and is never on
+    # Production; access requires a separate high-entropy one-time token.
+    smoke_token = environ.get("OPENROUTER_SMOKE_TOKEN", "")
+    if (
+        settings.deployment_environment == "preview"
+        and settings.enable_assistant_api
+        and len(smoke_token) >= 32
+    ):
+        @api.get("/__internal/openrouter-smoke", include_in_schema=False)
+        def synthetic_model_smoke(request: Request, response: Response, token: str):
+            from hmac import compare_digest
+            from app.knowledge.assistant_router import _model_for_preview
+
+            response.headers["Cache-Control"] = "no-store"
+            if not compare_digest(token, smoke_token):
+                raise HTTPException(404, "Not found")
+            model = _model_for_preview(request)
+            if model is None:
+                return {"status": "model_not_configured"}
+            try:
+                generated = model.invoke(
+                    "Synthetic connection test. Reply with exactly: PracticaMIA TEST OK"
+                )
+                content = generated.content
+                if not isinstance(content, str):
+                    content = str(content)
+                return {
+                    "status": "answer_generated" if content.strip() else "empty_response",
+                    "model": settings.assistant_chat_model,
+                    "provider": settings.assistant_llm_provider,
+                    "answer": content[:180],
+                    "synthetic_only": True,
+                }
+            except Exception as exc:
+                # Never include provider response bodies, request headers, or secrets.
+                return {"status": "provider_error", "error_type": type(exc).__name__}
 
     return api
 
