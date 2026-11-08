@@ -9,7 +9,7 @@ type Context = { params: Promise<{ id: string; operation?: string[] }> };
 function routeFor(id: string, operation: string[], method: string) {
   const path = '/api/v1/cases/' + id + '/preparation';
   const action = operation.join('/');
-  if (method === 'GET' && ['', 'checklist', 'documents', 'package', 'handoff', 'reference-evidence', 'anpr-draft'].includes(action)) {
+  if (method === 'GET' && ['', 'checklist', 'documents', 'package', 'handoff', 'reference-evidence', 'anpr-draft', 'conversation'].includes(action)) {
     return { path: path + (action ? '/' + action : ''), action };
   }
   if (method === 'PUT' && action === 'facts') return { path: path + '/facts', action };
