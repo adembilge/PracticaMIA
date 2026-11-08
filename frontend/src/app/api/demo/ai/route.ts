@@ -47,11 +47,12 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         model: 'openrouter/free',
         messages,
-        max_tokens: 180,
+        max_tokens: 400,
         temperature: 0.2,
+        reasoning: {effort: 'none'},
       }),
       cache: 'no-store',
-      signal: AbortSignal.timeout(16000),
+      signal: AbortSignal.timeout(25000),
     });
     if (!result.ok) return json({error: 'Free AI provider is temporarily unavailable'}, 503);
     const data: unknown = await result.json();

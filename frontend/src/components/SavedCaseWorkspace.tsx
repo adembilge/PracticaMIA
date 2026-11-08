@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { type Answer, useDemo } from '@/components/DemoProvider';
 import { classifySingleAnswer } from '@/lib/flow.js';
+import { LiveExampleAIGuide } from '@/components/LiveExampleAIGuide';
 import { firstUnresolvedQuestion, isCaseId, nextScopeAnswers } from '@/lib/case-scope.js';
 
 type StoredCase = {
@@ -16,10 +17,10 @@ type StoredCase = {
   updated_at: string;
 };
 
-type Props = { caseId: string; configured: boolean; signedIn: boolean; assistantEnabled: boolean; preparationEnabled: boolean };
+type Props = { caseId: string; configured: boolean; signedIn: boolean; assistantEnabled: boolean; preparationEnabled: boolean; liveAIEnabled: boolean };
 const ANSWERS: Answer[] = ['yes', 'no', 'unsure'];
 
-export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnabled, preparationEnabled }: Props) {
+export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnabled, preparationEnabled, liveAIEnabled }: Props) {
   const router = useRouter();
   const { t, locale } = useDemo();
   const [record, setRecord] = useState<StoredCase | null>(null);
@@ -213,6 +214,7 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
             </button>
           </div>
         </>}
+        {!loading && record && liveAIEnabled && <div style={{padding: 16}}><LiveExampleAIGuide /></div>}
         {notice && <p className="container" role="status" style={{ padding: '12px 24px' }}>{notice}</p>}
         {error && <p className="error-text" role="alert" style={{ padding: '12px 24px' }}>{error}</p>}
       </section>
