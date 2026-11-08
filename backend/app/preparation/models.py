@@ -44,3 +44,21 @@ class CaseDocument(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now,
     )
+
+
+class CaseAgentTurn(Base):
+    """Encrypted, bounded history of synthetic guide interactions."""
+
+    __tablename__ = "case_agent_turns"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    case_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("cases.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    owner_subject: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    content_ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now,
+    )
