@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useDemo } from '@/components/DemoProvider';
+import { LiveExampleAIGuide } from '@/components/LiveExampleAIGuide';
 
 type SavedCase = { id: string; status: string; created_at: string };
 
@@ -11,9 +12,10 @@ type Props = {
   configured: boolean;
   signedIn: boolean;
   backendConfigured: boolean;
+  liveAIEnabled: boolean;
 };
 
-export function SavedCasesView({ configured, signedIn, backendConfigured }: Props) {
+export function SavedCasesView({ configured, signedIn, backendConfigured, liveAIEnabled }: Props) {
   const { t } = useDemo();
   const router = useRouter();
   const [cases, setCases] = useState<SavedCase[]>([]);
@@ -98,6 +100,12 @@ export function SavedCasesView({ configured, signedIn, backendConfigured }: Prop
             {error && <p role="alert" className="error-text">{error}</p>}
           </section>
         )}
+        <div style={{marginTop: 20, marginBottom: 14}}>
+          <p><Link href="/demo/synthetic" className="inline-link">
+            {t.navStart === 'Inizia' ? 'Esplora il percorso completo con un caso fittizio' : 'Explore a complete fictional case — no login or personal data required'}
+          </Link></p>
+        </div>
+        {signedIn && liveAIEnabled && <LiveExampleAIGuide />}
         <p className="account-footnote">{t.accountDemoPrivacy}</p>
         <Link href="/account" className="back-link">{t.accountBack}</Link>
       </div>
