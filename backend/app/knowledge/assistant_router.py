@@ -29,10 +29,10 @@ PROCEDURE = "milan_residence_change"
 # Narrow lexical aliases for English questions over reviewed Italian passages.
 # Retrieval hints are NOT administrative facts or translated rules.
 ENGLISH_RETRIEVAL_ALIASES = (
-    (re.compile(r"\\b(residence|residency|change of address|moving)\\b"), "residenza"),
-    (re.compile(r"\\b(documents?|attachments?|paperwork)\\b"), "documenti"),
-    (re.compile(r"\\b(lease|rental|tenant|renting)\\b"), "locazione"),
-    (re.compile(r"\\b(application|submit|submission)\\b"), "domanda"),
+    (re.compile(r"\b(residence|residency|change of address|moving)\b"), "residenza"),
+    (re.compile(r"\b(documents?|attachments?|paperwork)\b"), "documenti"),
+    (re.compile(r"\b(lease|rental|tenant|renting)\b"), "locazione"),
+    (re.compile(r"\b(application|submit|submission)\b"), "domanda"),
 )
 
 
