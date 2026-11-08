@@ -59,10 +59,22 @@ def save_turn(db: Session, *, case_id: str, owner: str, key: bytes,
               question: str, language: str, result: dict) -> None:
     """Persist only user question and server-produced, non-authoritative status."""
     turn_id = str(uuid4())
+    # Keep the already-verified extractive answer in the encrypted case
+    # history, so a resumed session does not lose the cited material.
+    # Historical quotations MUST NOT be used as current approved evidence.
+    verified_quote = (
+        result.get("answer") if
+        result.get("answer_status") == "answer_generated"
+        and isinstance(result.get("answer"), str)
+        else None
+    )
+    saved_answer = result["message"]
+    if verified_quote:
+        saved_answer += "\n\n" + verified_quote[:2000]
     content = {
         "question": question,
         "language": language,
-        "answer": result["message"],
+        "answer": saved_answer,
         "action": result["action"],
         "status": result["status"],
         "next_action": result.get("next_action"),
