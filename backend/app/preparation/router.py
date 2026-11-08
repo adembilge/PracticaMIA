@@ -29,7 +29,7 @@ from app.preparation.extract import (
 from app.preparation.models import CaseDocument, CasePreparation
 from app.preparation.intake import scope_intake, validate_scope_facts
 from app.preparation.anpr_draft import build_anpr_draft
-from app.preparation.agent import guide_case
+from app.preparation.agent import guide_case, _fallback_action
 from app.preparation.workflow import assess_preparation
 from app.rules.catalog import current_catalog
 from app.rules.engine import JURISDICTION, PROCEDURE
@@ -297,8 +297,11 @@ def guide_case_preview(
     _case(db, case_id, principal)
     settings = request.app.state.settings
     model = None
-    if settings.enable_assistant_api:
-        # This flag enforces existing preview-only provider and usage controls.
+    if settings.enable_assistant_api and _fallback_action(payload.question) != "evidence":
+        # For clearly identified source questions, skip a separate LLM intent
+        # call. The RAG endpoint searches approved evidence first and reserves
+        # a single model call only when evidence is available. Ambiguous
+        # questions retain the optional model tool router and separate quota.
         from app.knowledge.assistant_router import _model_for_preview
         from app.knowledge.usage_limit import reserve_daily_model_call
         try:
@@ -318,6 +321,24 @@ def guide_case_preview(
             case_id=case_id, request=request, db=db, principal=principal,
         )["references"]
 
+    def rag_tool() -> dict:
+        # Reuse the separately tested, owner-scoped source verification and
+        # model daily budget. Never let a model mint citations or case facts.
+        from app.knowledge.assistant_router import AskQuestion, ask_case_question
+        try:
+            return ask_case_question(
+                case_id=case_id,
+                payload=AskQuestion(question=payload.question, language=payload.language),
+                request=request, db=db, principal=principal,
+            ).model_dump()
+        except HTTPException as exc:
+            if exc.status_code == 422:
+                # A long conversational question may exceed the approved
+                # lexical retrieval grammar. Abstain instead of disclosing
+                # an error or synthesizing an unsupported search result.
+                return {"status": "insufficient_evidence", "sources": [], "answer": None}
+            raise
+
     def status_tool() -> dict:
         return _assessment(db, request, str(case_id), principal.subject)
 
@@ -332,7 +353,7 @@ def guide_case_preview(
         question=payload.question, language=payload.language,
         facts=_facts(request, prep, str(case_id), principal.subject),
         evidence_tool=evidence_tool, status_tool=status_tool, model=model,
-        history=prior_turns,
+        history=prior_turns, rag_tool=rag_tool if settings.enable_assistant_api else None,
     )
     if settings.enable_agent_history_api:
         from app.preparation.conversation import save_turn

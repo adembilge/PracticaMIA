@@ -217,3 +217,52 @@ def test_optional_model_router_receives_bounded_prior_turns_only():
     assert "Synthetic previous question 4" in prompt
     assert "And the status?" in prompt
     assert "Never use previous answers" not in prompt
+
+
+def test_rag_tool_selected_inside_existing_graph_and_claims_remain_quotes():
+    calls = []
+    quote = '[00000000-0000-0000-0000-000000000001:0000] "Synthetic exact passage text only."'
+    def rag():
+        calls.append("rag")
+        return {
+            "status": "answer_generated", "answer": quote,
+            "sources": [{
+                "citation_id": "00000000-0000-0000-0000-000000000001:0000",
+                "title": "Synthetic source",
+                "official_url": "https://example.test",
+                "excerpt": "Synthetic exact passage text only.",
+            }],
+        }
+    result = guide_case(
+        question="residenza", language="en", facts={},
+        evidence_tool=lambda: calls.append("static") or [],
+        status_tool=lambda: {}, rag_tool=rag, model=LabelModel("evidence"),
+    )
+    assert calls == ["rag"]
+    assert result["status"] == "answer_generated"
+    assert result["answer"] == quote
+    assert result["references"][0]["title"] == "Synthetic source"
+    assert result["tool_actions"] == ["search_approved_hybrid", "verify_exact_quotations"]
+    assert result["government_submission_status"] == "not_submitted"
+
+
+def test_rag_tool_suppresses_unverified_answer_body():
+    result = guide_case(
+        question="residenza", language="it", facts={},
+        evidence_tool=lambda: [],
+        status_tool=lambda: {},
+        rag_tool=lambda: {
+            "status": "unverified_answer", "answer": "INVENTED ELIGIBILITY",
+            "sources": [{
+                "citation_id": "00000000-0000-0000-0000-000000000001:0000",
+                "title": "Synthetic source",
+                "official_url": "https://example.test",
+                "excerpt": "Synthetic approved passage",
+            }],
+        },
+        model=LabelModel("evidence"),
+    )
+    assert result["status"] == "unverified_answer"
+    assert result["answer"] is None
+    assert "INVENTED ELIGIBILITY" not in str(result)
+    assert result["is_legal_assessment"] is False
