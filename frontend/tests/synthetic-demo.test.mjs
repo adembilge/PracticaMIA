@@ -20,9 +20,11 @@ function readyStandard() {
   return reviewSyntheticDocument(state);
 }
 
-test('synthetic-only route is never available on production deployment', () => {
+test('fictional demo is opt-in on Production and available on Preview', () => {
   assert.equal(syntheticDemoAvailable({ VERCEL_ENV: 'production', NODE_ENV: 'production' }), false);
-  assert.equal(syntheticDemoAvailable({ VERCEL_ENV: 'production', NODE_ENV: 'development' }), false);
+  assert.equal(syntheticDemoAvailable({ VERCEL_ENV: 'production', ENABLE_PUBLIC_SYNTHETIC_DEMO: '0' }), false);
+  assert.equal(syntheticDemoAvailable({ VERCEL_ENV: 'production', ENABLE_PUBLIC_SYNTHETIC_DEMO: '1' }), true);
+  assert.equal(syntheticDemoAvailable({ VERCEL_ENV: 'production', NODE_ENV: 'development', ENABLE_PUBLIC_SYNTHETIC_DEMO: '1' }), true);
   assert.equal(syntheticDemoAvailable({ VERCEL_ENV: 'preview', NODE_ENV: 'production' }), true);
   assert.equal(syntheticDemoAvailable({ NODE_ENV: 'development' }), true);
   assert.equal(syntheticDemoAvailable({ NODE_ENV: 'production' }), false);
