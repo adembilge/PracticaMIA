@@ -227,3 +227,43 @@ def test_multi_sentence_search_abstains_instead_of_inventing_answer(
     assert result.status_code == 200, result.text
     assert result.json()["answer"] is None
     assert result.json()["status"] == "insufficient_evidence"
+
+
+def test_english_residence_question_uses_reviewed_italian_lexical_alias(
+    rag_preparation_client, auth_headers,
+):
+    client = rag_preparation_client
+    headers = auth_headers()
+    case_id = make_case(client, headers)
+    imported = seed_passage(client, approve=True)
+    calls = use_model(client)
+    reply = ask(
+        client, case_id, headers, language="en",
+        question="What official sources explain residence?",
+    )
+    assert reply.status_code == 200, reply.text
+    result = reply.json()
+    assert result["action"] == "evidence"
+    assert result["status"] == "answer_generated"
+    assert result["answer"] == f'[{imported.version_id}:0000] "{QUOTE}"'
+    assert result["government_submission_status"] == "not_submitted"
+    assert calls == {"selector": 0, "rag": 1}
+
+
+def test_english_alias_does_not_escape_source_approval_gate(
+    rag_preparation_client, auth_headers,
+):
+    client = rag_preparation_client
+    headers = auth_headers()
+    case_id = make_case(client, headers)
+    seed_passage(client, approve=False)
+    calls = use_model(client)
+    response = ask(
+        client, case_id, headers, language="en",
+        question="What official sources explain residence?",
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "insufficient_evidence"
+    assert response.json()["references"] == []
+    assert response.json()["answer"] is None
+    assert calls == {"selector": 0, "rag": 0}
