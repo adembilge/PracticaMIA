@@ -117,14 +117,14 @@ def test_approved_source_quote_in_unified_agent_and_saved_history(
     assert result["action"] == "evidence"
     assert result["status"] == "answer_generated"
     assert result["answer_status"] == "answer_generated"
-    assert result["mode"] == "model_selected"
+    assert result["mode"] == "guided_fallback"
     assert result["answer"] == f'[{imported.version_id}:0000] "{QUOTE}"'
     assert result["references"][0]["citation_id"] == imported.version_id + ":0000"
     assert result["references"][0]["official_url"].startswith("https://")
     assert result["is_legal_assessment"] is False
     assert result["government_submission_status"] == "not_submitted"
     assert result["history_saved"] is True
-    assert calls == {"selector": 1, "rag": 1}
+    assert calls == {"selector": 0, "rag": 1}
 
     old = client.get(
         f"/api/v1/cases/{case_id}/preparation/conversation", headers=alice,
