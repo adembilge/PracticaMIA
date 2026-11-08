@@ -326,7 +326,9 @@ def test_preview_case_guide_is_owner_scoped_and_never_approves_a_case(
     assert first.status_code == 200, first.text
     data = first.json()
     assert data["mode"] == "guided_fallback"
-    assert data["action"] == "intake"
+    assert data["action"] == "next_step"
+    assert data["next_action"] == "answer_missing_facts"
+    assert data["tool_actions"] == ["scope_intake"]
     assert data["next_question"]["field"] == "citizenship_class"
     assert data["is_legal_assessment"] is False
     assert data["government_submission_status"] == "not_submitted"
@@ -336,6 +338,14 @@ def test_preview_case_guide_is_owner_scoped_and_never_approves_a_case(
     assert status.status_code == 200
     assert status.json()["action"] == "case_status"
     assert status.json()["status"] == "blocked"
+
+    documents = http.post(base, json={"question": "Are my documents reviewed?",
+                                       "language": "en"}, headers=owner)
+    assert documents.status_code == 200
+    assert documents.json()["action"] == "documents"
+    assert documents.json()["status"] == "no_documents"
+    assert documents.json()["tool_actions"] == ["assess_preparation"]
+    assert documents.json()["government_submission_status"] == "not_submitted"
 
     sources = http.post(base, json={"question": "What official ANPR sources?",
                                     "language": "it"}, headers=owner)

@@ -82,13 +82,15 @@ type DocumentSummary = {
   status: string;
 };
 type GuideResult = {
-  action: 'intake' | 'evidence' | 'case_status';
+  action: 'intake' | 'evidence' | 'case_status' | 'documents' | 'next_step';
   status: string;
   message: string;
   mode: 'model_selected' | 'guided_fallback';
   next_question: ScopeQuestion | null;
   references: ReferenceEvidence['references'];
   blocking_issues?: string[];
+  next_action?: string;
+  tool_actions?: string[];
   is_demo: true;
   is_legal_assessment: false;
   government_submission_status: 'not_submitted';
