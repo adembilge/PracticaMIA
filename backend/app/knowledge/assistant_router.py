@@ -4,6 +4,7 @@ No production route, no document ingestion and no auto-approval. A user can
 query only an owned synthetic case and only against active, approved official
 passages. The model is never called if the review gate yields no evidence.
 """
+import re
 from typing import Literal
 from uuid import UUID
 
@@ -24,6 +25,23 @@ from app.knowledge.vector_search import search_approved_hybrid
 
 JURISDICTION = "IT-MI-MILANO"
 PROCEDURE = "milan_residence_change"
+
+# Narrow lexical aliases for English questions over reviewed Italian passages.
+# Retrieval hints are NOT administrative facts or translated rules.
+ENGLISH_RETRIEVAL_ALIASES = (
+    (re.compile(r"\\b(residence|residency|change of address|moving)\\b"), "residenza"),
+    (re.compile(r"\\b(documents?|attachments?|paperwork)\\b"), "documenti"),
+    (re.compile(r"\\b(lease|rental|tenant|renting)\\b"), "locazione"),
+    (re.compile(r"\\b(application|submit|submission)\\b"), "domanda"),
+)
+
+
+def _english_retrieval_hints(question: str) -> tuple[str, ...]:
+    lowered = question.casefold()
+    return tuple(
+        italian for pattern, italian in ENGLISH_RETRIEVAL_ALIASES
+        if pattern.search(lowered)
+    )
 router = APIRouter(
     prefix="/api/v1/cases",
     tags=["assistant-preview"],
@@ -101,6 +119,16 @@ def ask_case_question(
         db, query=payload.question, jurisdiction=JURISDICTION,
         procedure_id=PROCEDURE, language="it", limit=5,
     )
+    if not passages and payload.language == "en":
+        # No LLM query rewriting or invented eligibility facts. Search fixed
+        # Italian vocabulary through exactly the same approval-gated path.
+        for verified_query in _english_retrieval_hints(payload.question):
+            passages = search_approved_hybrid(
+                db, query=verified_query, jurisdiction=JURISDICTION,
+                procedure_id=PROCEDURE, language="it", limit=5,
+            )
+            if passages:
+                break
     if not passages:
         return AskAnswer(status="insufficient_evidence", sources=[])
 
