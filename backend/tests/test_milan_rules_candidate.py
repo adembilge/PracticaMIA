@@ -1,7 +1,7 @@
-"""First Milan route proposal regression tests: approved citations are NOT rule approval.
+"""Historical v1 candidate remains unapproved; its simulated tests remain isolated.
 
-All positive outcomes here use a deliberately simulated approval in memory.
-The actual production catalog remains pending human review and cannot activate.
+The separate reviewed v3 narrow-route catalog activates only with its pinned
+Ed25519 Preview verification key. Production does not receive this key.
 """
 from copy import deepcopy
 import json
@@ -44,14 +44,19 @@ def hypothetical_approved():
     return c
 
 
-def test_candidate_remains_pending_and_live_catalog_is_unapproved():
+def test_historical_candidate_remains_pending_and_live_catalog_requires_public_key():
     candidate = proposed()
     live = json.loads(LIVE_CATALOG.read_text(encoding="utf-8"))
     assert candidate["status"] == "pending_review"
     assert candidate["complete_scenario_coverage"] is False
     assert candidate["approved_by"] is None
-    assert live["status"] == "pending_review"
-    assert live["rules"] == []
+    assert live["status"] == "active"
+    assert live["complete_scenario_coverage"] is True
+    assert len(live["rules"]) == 6
+    assert live["approved_by"] == "google-oauth2|113439370376814005256"
+    # Signed status alone cannot activate it. The deployment must pin
+    # its independently configured public verification key.
+    assert not has_valid_human_review_signature(live, "")
     assert not has_valid_human_review_signature(candidate, "")
 
 
