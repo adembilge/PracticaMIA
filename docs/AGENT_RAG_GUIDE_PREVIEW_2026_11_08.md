@@ -37,10 +37,11 @@ or government submission state may be inferred from the model.
   in addition to any RAG generation. Both use the existing per-user quota.
 - Without `ENABLE_ASSISTANT_API`, the existing read-only fixed-source guide
   remains available and no AI answer is generated.
-- English natural-language queries may currently abstain against Italian
-  lexical-only evidence when multilingual embeddings are not available.
-  This is a known retrieval-quality limitation, **not** proof that an
-  administrative rule does not apply.
+- A small server-owned English-to-Italian lexical alias table now retries
+  approved retrieval for common words such as "residence" → "residenza".
+  It does not translate rules, expand jurisdiction, or bypass approvals.
+  Less common English questions may still abstain without multilingual
+  embeddings; **insufficient search evidence is not legal ineligibility**.
 - The current RAG verifier checks quote provenance and exactness, not
   relevance, completeness, current administrative applicability, or an
   explanation in the user's language. A later retrieval-language improvement
