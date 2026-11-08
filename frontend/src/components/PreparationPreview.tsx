@@ -624,8 +624,8 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
           <small>{guideResult.mode === 'model_selected'
             ? (it ? 'Strumento scelto dal modello, dati verificati lato server' :
               'Model selected the read-only tool; server verified the data')
-            : (it ? 'Guida deterministica: modello AI non configurato o non disponibile' :
-              'Deterministic guidance: AI model not configured or unavailable')}</small>
+            : (it ? 'Strumento di sola lettura scelto con regole; risposta alle fonti con AI se disponibile' :
+              'Read-only tool selected by rules; source answers may use AI')}</small>
           {guideResult.next_question && <p style={{ marginTop: 8 }}>
             <strong>{it ? guideResult.next_question.label_it :
               guideResult.next_question.label_en}</strong>
