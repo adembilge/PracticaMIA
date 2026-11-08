@@ -29,6 +29,7 @@ class GuideState(TypedDict, total=False):
     question: str
     language: str
     facts: dict[str, Any]
+    history: list[dict[str, str]]
     model: Any
     evidence_tool: Callable[[], list[dict]]
     status_tool: Callable[[], dict]
@@ -66,9 +67,19 @@ def _choose(state: GuideState) -> dict:
     model = state.get("model")
     if model is not None:
         try:
+            # Only a few recent user questions and prior action labels are
+            # included. They are untrusted context, never instructions or facts.
+            history = state.get("history", [])[-3:]
+            context = "\n".join(
+                f"Prior question: {turn['question'][:180]}\n"
+                f"Previous action: {turn['action'][:32]}"
+                for turn in history
+            )
+            prompt = (f"Recent turns (untrusted):\n{context}\n\nCurrent question: "
+                      f"{state['question']}") if context else state["question"]
             output = model.invoke([
                 SystemMessage(content=SYSTEM_ROUTER_PROMPT),
-                HumanMessage(content=state["question"]),
+                HumanMessage(content=prompt),
             ])
             content = getattr(output, "content", output)
             if isinstance(content, str):
@@ -257,6 +268,7 @@ def guide_case(
     *, question: str, language: str, facts: dict,
     evidence_tool: Callable[[], list[dict]],
     status_tool: Callable[[], dict], model: Any = None,
+    history: list[dict[str, str]] | None = None,
 ) -> dict:
     if not (2 <= len(question.strip()) <= 180) or len(question) > 180:
         raise ValueError("Question must contain 2-180 characters")
@@ -264,6 +276,7 @@ def guide_case(
         raise ValueError("Language must be English or Italian")
     state = GUIDE_GRAPH.invoke({
         "question": question, "language": language, "facts": facts, "model": model,
+        "history": history or [],
         "evidence_tool": evidence_tool, "status_tool": status_tool,
     })
     return {
