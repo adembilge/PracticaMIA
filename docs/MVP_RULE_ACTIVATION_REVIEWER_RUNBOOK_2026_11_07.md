@@ -1,5 +1,7 @@
 # PracticaMIA rules activation — authorized reviewer handoff
 
+> **8 November 2026 update:** The six-rule owner-reviewed P0 catalog has now been assembled with approved ANPR and Milan passage citations and a delegated technical Ed25519 signature. The earlier sections below are an archival record of the steps before review. For current signature provenance, Preview scope, and the exact status, read [the 8 November activation record](MILAN_FIRST_ROUTE_OWNER_REVIEW_ACTIVATION_2026_11_08.md). The original Ministry-hosted guide remains unverified; the separate public-documentation copy is explicitly attributed and was approved in the isolated source registry. This does not certify current live ANPR conditions.
+
 **Recorded research: 7 November 2026. Status: NOT ACTIVATED.**
 
 ## Decision and boundary
