@@ -85,6 +85,8 @@ type GuideResult = {
   action: 'intake' | 'evidence' | 'case_status' | 'documents' | 'next_step';
   status: string;
   message: string;
+  answer?: string | null;
+  answer_status?: string;
   mode: 'model_selected' | 'guided_fallback';
   next_question: ScopeQuestion | null;
   references: ReferenceEvidence['references'];
@@ -613,6 +615,12 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
         {guideResult && <div className="message-box notice" role="status"
           style={{ marginTop: 16 }}>
           <p>{guideResult.message}</p>
+          {guideResult.answer_status === 'answer_generated' &&
+            typeof guideResult.answer === 'string' && <div style={{ marginTop: 12 }}>
+              <p><strong>{it ? 'Citazione verificata dalla fonte (in italiano)' :
+                'Verified source quotation (original Italian)'}</strong></p>
+              <p lang="it" style={{ whiteSpace: 'pre-wrap' }}>{guideResult.answer}</p>
+            </div>}
           <small>{guideResult.mode === 'model_selected'
             ? (it ? 'Strumento scelto dal modello, dati verificati lato server' :
               'Model selected the read-only tool; server verified the data')
