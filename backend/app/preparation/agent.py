@@ -40,12 +40,11 @@ class GuideState(TypedDict, total=False):
 
 
 def _fallback_action(question: str) -> str:
+    """Prioritize concrete case actions over broad procedure keywords."""
     q = question.casefold()
     if any(k in q for k in (
-        "source", "official", "rule", "requirement", "deadline",
-        "fonte", "ufficial", "normativ", "requisit", "scaden", "anpr",
-        "residen", "residenc", "mandatory", "required", "quali documenti",
-        "which documents", "documents required",
+        "documents required", "what documents", "which documents",
+        "quali documenti", "documenti necessari",
     )):
         return "evidence"
     if any(k in q for k in (
@@ -63,8 +62,13 @@ def _fallback_action(question: str) -> str:
         "prossim", "cosa fare", "continuare", "procedere",
     )):
         return "next_step"
+    if any(k in q for k in (
+        "source", "official", "rule", "requirement", "deadline",
+        "fonte", "ufficial", "normativ", "requisit", "scaden", "anpr",
+        "residen", "residenc", "mandatory", "required",
+    )):
+        return "evidence"
     return "intake"
-
 
 def _choose(state: GuideState) -> dict:
     model = state.get("model")
