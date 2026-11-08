@@ -13,10 +13,11 @@ export default function WelcomePage() {
         <h1>{t.homeTitle1}<br/><em>{t.homeTitle2}</em></h1>
         <p className="lead hero-lead">{t.homeLead}</p>
         <div className="hero-actions">
-          <Link href="/cases/new" className="button button-primary">{t.homePrimary}<Icon name="arrowRight" size={18}/></Link>
-          <Link href="/#how-it-works" className="button button-text">{t.homeSecondary}<Icon name="arrowRight" size={16}/></Link>
+          <Link href="/cases/saved" className="button button-primary">{t.homePrimary}<Icon name="arrowRight" size={18}/></Link>
+          <Link href="/demo/synthetic" className="button button-text">{t.homeSecondary}<Icon name="arrowRight" size={16}/></Link>
         </div>
         <p className="hero-smallprint"><Icon name="shield" size={16}/>{t.independent}</p>
+        <p className="hero-smallprint"><Link href="/demo/synthetic">Try the complete fictional workflow (no login required)</Link></p>
       </div>
       <div className="hero-visual" aria-label={t.visualTitle}>
         <div className="visual-grid-decor"/>
