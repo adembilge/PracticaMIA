@@ -77,24 +77,52 @@ class AskAnswer(BaseModel):
 
 
 def _model_for_preview(request: Request) -> Runnable | None:
-    # Unit tests may inject a strictly offline model factory. Do not
-    # serialize this object or surface credentials to clients.
+    """Create a provider adapter only for an explicitly configured Preview.
+
+    OpenRouter defaults to free-only routing; no paid model may be selected
+    accidentally through this Preview integration.
+    """
     factory = getattr(request.app.state, "assistant_model_factory", None)
     if factory is not None:
         return factory()
+
     settings = request.app.state.settings
-    if not settings.assistant_chat_model or not settings.assistant_openai_api_key:
+    if not settings.assistant_chat_model:
         return None
 
-    from langchain_openai import ChatOpenAI
+    provider = settings.assistant_llm_provider
+    if provider == "openrouter":
+        if not settings.assistant_openrouter_api_key:
+            return None
+        model_id = settings.assistant_chat_model
+        if model_id != "openrouter/free" and not model_id.endswith(":free"):
+            raise ValueError("OpenRouter Preview requires an explicitly free model")
 
-    return ChatOpenAI(
-        model=settings.assistant_chat_model,
-        api_key=settings.assistant_openai_api_key,
-        max_tokens=500,
-        timeout=15,
-        max_retries=0,
-    )
+        from langchain_openai import ChatOpenAI
+
+        return ChatOpenAI(
+            model=model_id,
+            api_key=settings.assistant_openrouter_api_key,
+            base_url="https://openrouter.ai/api/v1",
+            max_tokens=500,
+            timeout=30,
+            max_retries=0,
+        )
+
+    if provider == "openai":
+        if not settings.assistant_openai_api_key:
+            return None
+        from langchain_openai import ChatOpenAI
+
+        return ChatOpenAI(
+            model=settings.assistant_chat_model,
+            api_key=settings.assistant_openai_api_key,
+            max_tokens=500,
+            timeout=15,
+            max_retries=0,
+        )
+
+    raise ValueError("Unsupported assistant model provider")
 
 
 @router.post("/{case_id}/assistant/ask", response_model=AskAnswer)

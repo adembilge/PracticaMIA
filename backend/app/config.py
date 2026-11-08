@@ -18,7 +18,9 @@ class Settings:
     preparation_database_fingerprint: str = ""
     deployment_environment: str = ""
     assistant_chat_model: str = ""
+    assistant_llm_provider: str = "openai"
     assistant_openai_api_key: str = ""
+    assistant_openrouter_api_key: str = ""
     assistant_usage_hash_key: str = ""
     assistant_daily_limit: int = 10
     knowledge_reviewer_subjects: frozenset[str] = frozenset()
@@ -49,7 +51,9 @@ class Settings:
             preparation_database_fingerprint=environ.get("PREPARATION_DATABASE_FINGERPRINT", ""),
             deployment_environment=environ.get("VERCEL_ENV", ""),
             assistant_chat_model=environ.get("ASSISTANT_CHAT_MODEL", "").strip(),
+            assistant_llm_provider=environ.get("ASSISTANT_LLM_PROVIDER", "openai").strip().lower(),
             assistant_openai_api_key=environ.get("OPENAI_API_KEY", ""),
+            assistant_openrouter_api_key=environ.get("OPENROUTER_API_KEY", ""),
             assistant_usage_hash_key=environ.get("ASSISTANT_USAGE_HASH_KEY", ""),
             assistant_daily_limit=int(environ.get("ASSISTANT_DAILY_LIMIT", "10")),
             knowledge_reviewer_subjects=frozenset(
