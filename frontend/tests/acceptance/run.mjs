@@ -57,6 +57,20 @@ async function readJson(page,path){
   const response=await page.request.get(origin+path);
   return {status:response.status(),body:await response.json()};
 }
+async function awaitSavedCaseStatus(page,id,expected){
+  let last=null;
+  for(let attempt=0;attempt<60;attempt++){
+    const response=await readJson(page,'/api/cases/'+id);
+    if(response.status===200){
+      last=response.body.status;
+      if(last===expected)return response.body;
+    }
+    await page.waitForTimeout(100);
+  }
+  throw new Error('Timed out waiting for saved case status '+expected+
+    ', last observed: '+String(last));
+}
+
 async function scopeAnswers(page,values){
   for(let i=0;i<values.length;i++){
     const choice=values[i]==='yes'?'Yes':values[i]==='no'?'No':'Not sure';
@@ -213,16 +227,16 @@ try{
     const unsupported=await createCase(bobPage);
     await bobPage.getByRole('button',{name:'No',exact:true}).click();
     await bobPage.getByRole('button',{name:'Save and continue'}).click();
-    const first=await readJson(bobPage,'/api/cases/'+unsupported);
-    assert.equal(first.body.status,'unsupported');
+    const first=await awaitSavedCaseStatus(bobPage,unsupported,'unsupported');
+    assert.equal(first.status,'unsupported');
     assert.equal((await bobPage.request.get(
       origin+'/api/cases/'+unsupported+'/package/pdf')).status(),409);
     assert.equal((await readJson(bobPage,'/api/cases/'+unsupported+'/workflow')).body
       .checklist.items.length,0);
     const unsure=await createCase(bobPage);
     await scopeAnswers(bobPage,['yes','unsure']);
-    assert.equal((await readJson(bobPage,'/api/cases/'+unsure)).body.status,
-      'needs_information');
+    const uncertain=await awaitSavedCaseStatus(bobPage,unsure,'needs_information');
+    assert.equal(uncertain.status,'needs_information');
     assert.equal((await bobPage.request.get(
       origin+'/api/cases/'+unsure+'/package/pdf')).status(),409);
   });
