@@ -129,8 +129,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if settings.enable_knowledge_catalog_api:
             from app.knowledge.router import router as knowledge_router
             from app.cases.checklist_router import router as checklist_router
+            from app.cases.package_router import router as package_router
             api.include_router(knowledge_router)
             api.include_router(checklist_router)
+            api.include_router(package_router)
             if settings.enable_knowledge_search_api:
                 from app.knowledge.search_router import router as search_router
                 api.include_router(search_router)
