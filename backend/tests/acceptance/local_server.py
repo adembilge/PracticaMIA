@@ -199,10 +199,12 @@ def run(port: int, assets: Path):
                 return
             body = self.rfile.read(length) if length else None
             try:
-                with LOCK:
-                    response = client.request(
-                        self.command, mapped, headers=headers, content=body,
-                    )
+                # TestClient dispatches sync FastAPI handlers in a *different*
+                # worker thread. Do NOT hold STATE's RLock across this call:
+                # the synthetic resolver also needs that lock and would deadlock.
+                response = client.request(
+                    self.command, mapped, headers=headers, content=body,
+                )
                 forward_headers = {
                     "Cache-Control": "private, no-store",
                 }
@@ -215,8 +217,9 @@ def run(port: int, assets: Path):
                     response.headers.get("content-type", "application/json"),
                     forward_headers,
                 )
-            except Exception:
-                # Fail closed, and do not expose Python exception text in response.
+            except Exception as error:
+                # Log only exception type (never request body or bearer token).
+                print("ACCEPTANCE_BRIDGE_ERROR " + type(error).__name__, flush=True)
                 self.json_reply(502, {"error": "Acceptance backend unavailable"})
 
         def do_GET(self):
