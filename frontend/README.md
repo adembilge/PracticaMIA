@@ -1,10 +1,10 @@
-# PracticaMIA — First Interactive Prototype
+# PracticaMIA Frontend
 
-A responsive **Next.js + TypeScript** frontend prototype for the first PracticaMIA journey.
+The user interface for PracticaMIA is a **Next.js 15 / React 19 / TypeScript** application. It provides English and Italian navigation, authentication, saved cases, structured intake, case progress, assistant interactions, and review interfaces. Availability of individual features depends on the configured backend and environment.
 
-## Run locally
+## Development
 
-Requirements: Node.js 22 and npm with access to the npm registry. Dependencies are locked in `package-lock.json`.
+Requires Node.js 22 and npm.
 
 ```bash
 cd frontend
@@ -12,9 +12,11 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:3000.
+Visit `http://localhost:3000`. The initial page can render without external credentials; protected case operations require Auth0 and an accessible FastAPI service.
 
-Optional checks:
+Copy the variable names from `.env.example` into your local environment and configure only the services you intend to use. Auth0 secrets and backend access tokens must stay server-side. Do not enable restricted document or administrative-review features without their corresponding backend safeguards.
+
+## Checks
 
 ```bash
 npm test
@@ -22,50 +24,15 @@ npm run typecheck
 npm run build
 ```
 
-> Vercel successfully built the Next.js application from GitHub commit `8edb961` on 4 November 2026. The build included type validation and static generation. Run `npm test`, `npm run typecheck`, and `npm run build` locally when developing; pull requests also run these commands via GitHub Actions.
+GitHub Actions also exercises a browser-based acceptance suite in an isolated environment.
 
-## Standalone browser preview
+## Architecture
 
-Open `preview.html` in a browser. This is a self-contained **English-only interactive preview** that works without npm. The Next.js application also has the Italian translation. The preview was browser-tested on desktop and mobile.
+- `src/app/` — routes and server-side API proxies.
+- `src/components/` — reusable case, document, assistant, and layout components.
+- `src/lib/` — authentication configuration, request validation, state helpers, and domain clients.
+- `tests/` — unit and browser acceptance infrastructure.
 
-## Routes
+The Next.js server obtains authorized backend access tokens; the browser does not receive raw API bearer credentials. For backend setup and environmental safeguards, see [backend documentation](../backend/README.md) and [the project overview](../README.md).
 
-- `/` — welcome and how-it-works page
-- `/cases/new` — demo case creation
-- `/cases/demo` — five scope questions, synthetic intake, and illustrative checklist
-- `/cases/demo/review` — read-only review and official guidance reference
-
-## Important behaviors
-
-- English/Italian language toggle; frontend labels only.
-- Deterministic branches for supported demonstration / out of scope / information unknown.
-- Input validation and reconfirmation after changing answers.
-- Responsive desktop and mobile workspace.
-- No backend, LLM, authentication, uploads, application generation or government submission.
-- **No user data is saved or sent to a server.** Refreshing the browser resets the demo.
-- Do not enter real personal information. Enter synthetic addresses.
-- Passing the scope check is *only* a match for the demo scenario, not a government eligibility decision.
-- Documentary requirements are intentionally not fabricated; they remain pending administrative review.
-
-## Prototype checks
-
-Eight tests in `tests/flow.test.mjs` cover matching scenario, missing information, unsupported paths, date/address intake validation and duplicate-address detection.
-
-## Sources
-
-The product behavior follows:
-
-- `../docs/UX_INTERFACE_SPEC.md`
-- `../docs/FIRST_USER_JOURNEY.md`
-- `../research/milan_residence_change.md`
-
-Official municipality guidance linked from the prototype:
-https://www.comune.milano.it/servizi/anagrafe/cambio-di-residenza
-
-## Next engineering milestone
-
-Review usability, validate applicant-specific administrative requirements, then implement case persistence and a deterministic requirements engine before introducing LangGraph.
-
-## Optional authentication scaffolding
-
-The Account and Saved Demo Cases pages use a server-side Auth0 session when configured, but are **disabled by default**. See [authentication integration](../docs/AUTHENTICATION_INTEGRATION.md). The public guided demonstration does not save information and does not require login.
+PracticaMIA is independent of the Italian government and does not submit applications on a user's behalf.
