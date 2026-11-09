@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 
 STAGING_REVISION = "20261106_0010"
-SUPPORTED_STAGING_REVISIONS = frozenset({STAGING_REVISION, "20261106_0011", "20261108_0012", "20261109_0013", "20261109_0014"})
+SUPPORTED_STAGING_REVISIONS = frozenset({STAGING_REVISION, "20261106_0011", "20261108_0012", "20261109_0013", "20261109_0014", "20261109_0015"})
 
 
 def require_staging_intent(environment: Mapping[str, str] | None = None) -> None:
