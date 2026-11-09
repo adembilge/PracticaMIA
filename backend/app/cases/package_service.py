@@ -124,6 +124,9 @@ def build_package_manifest(
                     })
                     if status != "user_reviewed_unverified":
                         issues.append("document_" + status)
+                    if any(c["result"] != "match"
+                           for c in documents[-1]["comparisons"]):
+                        issues.append("document_comparison_unresolved")
                 if not rows:
                     issues.append("no_documents_reviewed")
 
@@ -138,6 +141,7 @@ def build_package_manifest(
     allowed = (actionable and bool(facts) and not document_blockers
                and "intake_data_invalid" not in issues
                and "document_limit_exceeded" not in issues
+               and "document_review_unavailable" not in issues
                and "unscanned_document" not in issues)
     # 'no_documents_reviewed' is an explicit warning, not a blocker for
     # a labeled draft with unverified document requirements.
