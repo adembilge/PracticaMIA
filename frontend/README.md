@@ -1,10 +1,21 @@
-# PracticaMIA — First Interactive Prototype
+# PracticaMIA Frontend
 
-A responsive **Next.js + TypeScript** frontend prototype for the first PracticaMIA journey.
+The web application uses **Next.js, React and TypeScript** to guide people through authenticated case preparation in English and Italian.
 
-## Run locally
+## Features
 
-Requirements: Node.js 22 and npm with access to the npm registry. Dependencies are locked in `package-lock.json`.
+- Account and saved-case workspace
+- Guided scope questions and structured case intake
+- Case-aware explanations, approved-source citations and a reviewed checklist
+- Persistent read acknowledgments and current next-action guidance
+- Document review where separately authorized
+- Preparation PDF export and links to official services
+
+The frontend does not decide eligibility or submit an application. AI explanations cannot override the verified case workflow.
+
+## Development
+
+Requires Node.js 22 and npm.
 
 ```bash
 cd frontend
@@ -12,9 +23,7 @@ npm ci
 npm run dev
 ```
 
-Open http://localhost:3000.
-
-Optional checks:
+Open `http://localhost:3000`.
 
 ```bash
 npm test
@@ -22,50 +31,16 @@ npm run typecheck
 npm run build
 ```
 
-> Vercel successfully built the Next.js application from GitHub commit `8edb961` on 4 November 2026. The build included type validation and static generation. Run `npm test`, `npm run typecheck`, and `npm run build` locally when developing; pull requests also run these commands via GitHub Actions.
+The authenticated workspace needs an Auth0 Regular Web Application and a configured FastAPI backend. Consult [`.env.example`](.env.example) and the [repository README](../README.md) for the complete local setup. Keep authentication secrets server-side.
 
-## Standalone browser preview
+## Important routes
 
-Open `preview.html` in a browser. This is a self-contained **English-only interactive preview** that works without npm. The Next.js application also has the Italian translation. The preview was browser-tested on desktop and mobile.
+| Route | Purpose |
+| --- | --- |
+| `/` | Project introduction |
+| `/account` | Account and session |
+| `/cases/saved` | Saved cases |
+| `/cases/[id]` | Scope, intake, checklist, workflow and package |
+| `/privacy/documents` | Private-document processing information |
 
-## Routes
-
-- `/` — welcome and how-it-works page
-- `/cases/new` — demo case creation
-- `/cases/demo` — five scope questions, synthetic intake, and illustrative checklist
-- `/cases/demo/review` — read-only review and official guidance reference
-
-## Important behaviors
-
-- English/Italian language toggle; frontend labels only.
-- Deterministic branches for supported demonstration / out of scope / information unknown.
-- Input validation and reconfirmation after changing answers.
-- Responsive desktop and mobile workspace.
-- No backend, LLM, authentication, uploads, application generation or government submission.
-- **No user data is saved or sent to a server.** Refreshing the browser resets the demo.
-- Do not enter real personal information. Enter synthetic addresses.
-- Passing the scope check is *only* a match for the demo scenario, not a government eligibility decision.
-- Documentary requirements are intentionally not fabricated; they remain pending administrative review.
-
-## Prototype checks
-
-Eight tests in `tests/flow.test.mjs` cover matching scenario, missing information, unsupported paths, date/address intake validation and duplicate-address detection.
-
-## Sources
-
-The product behavior follows:
-
-- `../docs/UX_INTERFACE_SPEC.md`
-- `../docs/FIRST_USER_JOURNEY.md`
-- `../research/milan_residence_change.md`
-
-Official municipality guidance linked from the prototype:
-https://www.comune.milano.it/servizi/anagrafe/cambio-di-residenza
-
-## Next engineering milestone
-
-Review usability, validate applicant-specific administrative requirements, then implement case persistence and a deterministic requirements engine before introducing LangGraph.
-
-## Optional authentication scaffolding
-
-The Account and Saved Demo Cases pages use a server-side Auth0 session when configured, but are **disabled by default**. See [authentication integration](../docs/AUTHENTICATION_INTEGRATION.md). The public guided demonstration does not save information and does not require login.
+The Next.js `app/api/` routes authenticate and forward case requests to FastAPI. Browser clients must not receive backend bearer tokens or private file contents.
