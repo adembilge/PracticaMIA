@@ -2,8 +2,10 @@
 
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import {useDemo} from '@/components/DemoProvider';
-import {INTAKE_HOUSING_VALUES,validIntelligenceResponse}
-  from '@/lib/private-document-intelligence.js';
+import {
+  INTAKE_HOUSING_VALUES,validIntelligenceResponse,
+  reviewFormDefaults,canEditDocumentReview,
+} from '@/lib/private-document-intelligence.js';
 
 type Candidate={
   candidate_id:string;field_name:'housing_basis'|'move_in_date';
@@ -15,6 +17,7 @@ type Review={
   status:string;candidates:Candidate[];comparisons:Comparison[];
   ambiguous_fields:string[];extraction_digest:string|null;
   confirmed_fields:Record<string,string>;user_reviewed:boolean;
+  selected_evidence?:Record<string,string>;
   no_legal_verification:true;official_submission:false;
 };
 type Props={caseId:string;documentId:string};
@@ -37,6 +40,7 @@ const words={
     choose:'Choose supporting suggestion',
     disclaimer:'I checked each selected field against this document. These are my corrections and do not change the saved case intake.',
     save:'Save my review',
+    update:'Update my review',
     saving:'Saving…',
     match:'Matches confirmed case fact',
     conflict:'Disagrees with confirmed case fact — update your case intake or clarify the document',
@@ -44,6 +48,7 @@ const words={
     ambiguous:'Conflicting labels in this file require manual review. The app will not resolve the disagreement automatically.',
     reviewed:'User-reviewed values saved in encrypted temporary storage. No official verification occurred.',
     needsIntake:'Confirm your case intake to compare the document values.',
+    needsCaseInfo:'A reviewed field is missing from your confirmed case. Update case intake before downloading a PDF draft.',
     reload:'Reload review',
     error:'Document review could not be completed. Check the saved file and try again.',
     options:{
@@ -69,6 +74,7 @@ const words={
     choose:'Scegli il suggerimento corrispondente',
     disclaimer:'Ho verificato tutti i campi rispetto al documento. Le correzioni non modificano i dati della pratica.',
     save:'Salva la mia revisione',
+    update:'Aggiorna la mia revisione',
     saving:'Salvataggio…',
     match:'Corrisponde al dato confermato nella pratica',
     conflict:'In disaccordo con la pratica — correggi i dati o chiarisci il documento',
@@ -76,6 +82,7 @@ const words={
     ambiguous:'Il file contiene valori contrastanti. Serve una revisione manuale; l’app non sceglie automaticamente.',
     reviewed:'Valori confermati dall’utente e salvati in archivio cifrato. Nessuna verifica ufficiale.',
     needsIntake:'Conferma la raccolta dati della pratica per eseguire il confronto.',
+    needsCaseInfo:'Un campo revisionato non è presente nei dati confermati della pratica. Aggiorna i dati prima di scaricare il PDF.',
     reload:'Ricarica la revisione',
     error:'Impossibile completare la revisione. Verifica il file e riprova.',
     options:{
@@ -98,15 +105,10 @@ export function PrivateDocumentIntelligence({caseId,documentId}:Props) {
 
   const adopt=(data:Review)=>{
     setReview(data);
-    const nextChosen:Record<string,string>={};
-    const nextValues:Record<string,string>={};
-    for(const candidate of data.candidates){
-      if(!(candidate.field_name in nextChosen)){
-        nextChosen[candidate.field_name]=candidate.candidate_id;
-        nextValues[candidate.field_name]=candidate.suggested_value;
-      }
-    }
-    setChosen(nextChosen);setCorrected(nextValues);setApproved(false);
+    const defaults=reviewFormDefaults(data);
+    setChosen(defaults.selected as Record<string,string>);
+    setCorrected(defaults.corrected as Record<string,string>);
+    setApproved(false);
   };
 
   const load=useCallback(async(signal?:AbortSignal)=>{
@@ -174,7 +176,7 @@ export function PrivateDocumentIntelligence({caseId,documentId}:Props) {
 
   const status=review?.status;
   const isUnprocessed=status==='needs_extraction';
-  const canReview=status==='needs_user_confirmation'&&groups.length>0;
+  const canReview=canEditDocumentReview(review)&&groups.length>0;
 
   return <section aria-label={t.title} style={{padding:14,marginTop:10,border:'1px solid #d6e5e8',borderRadius:10}}>
     <h4>{t.title}</h4>
@@ -192,6 +194,7 @@ export function PrivateDocumentIntelligence({caseId,documentId}:Props) {
     {status==='unreadable'&&<p role="status">{t.unreadable}</p>}
     {status==='needs_manual_review'&&<p role="status">{t.ambiguous}</p>}
     {status==='needs_confirmed_intake'&&<p role="status">{t.needsIntake}</p>}
+    {status==='needs_case_information'&&<p role="status">{t.needsCaseInfo}</p>}
     {canReview&&<>
       <p>{t.reviewing}</p>
       {review?.ambiguous_fields.length? <p role="alert">{t.ambiguous}</p>:null}
@@ -232,7 +235,7 @@ export function PrivateDocumentIntelligence({caseId,documentId}:Props) {
       </label>
       <button type="button" className="button button-primary" style={{marginTop:10}}
         disabled={!approved||busy}
-        onClick={()=>void confirm()}>{busy?t.saving:t.save}</button>
+        onClick={()=>void confirm()}>{busy?t.saving:review?.user_reviewed?t.update:t.save}</button>
     </>}
     {review?.user_reviewed&&<>
       <p><strong>{t.reviewed}</strong></p>

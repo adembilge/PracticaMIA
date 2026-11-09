@@ -33,7 +33,11 @@ ISSUE_TEXT = {
     "document_unreadable": "An uploaded document could not be read.",
     "document_no_supported_fields": "No supported labeled values could be extracted.",
     "document_needs_confirmed_intake": "Document needs matching confirmed case information.",
-    "document_unsupported_category": "Document category needs manual review.",
+    "document_needs_case_information": "A reviewed field is missing from confirmed case intake.",
+    "document_unsupported_category": (
+        "An uploaded identity or other supporting document has not been "
+        "automatically extracted or validated. Review it yourself."
+    ),
     "document_limit_exceeded": "Document count is inconsistent; contact support.",
     "unscanned_document": "A document has no valid malware-scan record.",
 }

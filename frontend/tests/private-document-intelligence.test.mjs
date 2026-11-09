@@ -5,6 +5,7 @@ import {
   INTAKE_HOUSING_VALUES,
   isDateOnly,isReviewedValue,
   validateIntelligenceReview,validIntelligenceResponse,
+  reviewFormDefaults,canEditDocumentReview,
 } from '../src/lib/private-document-intelligence.js';
 
 const digest='a'.repeat(64);
@@ -67,4 +68,44 @@ test('identity scans, unsupported fields and unofficial verification status fail
     {...sampleReview,status:'officially_approved'},
     {...sampleReview,candidates:Array(9).fill(sampleCandidate)},
   ]) assert.equal(validIntelligenceResponse(bad),false);
+});
+
+
+
+test('saved reviews reopen with the user choice and corrections intact',()=>{
+  const second={
+    field_name:'move_in_date',
+    candidate_id:'c'.repeat(64),
+    raw_value:'05/11/2026',
+    suggested_value:'2026-11-05',
+    page:2,
+  };
+  const alternative={...sampleCandidate,candidate_id:'d'.repeat(64),page:3};
+  const saved={
+    ...sampleReview,
+    status:'conflict',
+    candidates:[sampleCandidate,alternative,second],
+    confirmed_fields:{housing_basis:'guest',move_in_date:'2026-11-06'},
+    selected_evidence:{
+      housing_basis:alternative.candidate_id,
+      move_in_date:second.candidate_id,
+    },
+    user_reviewed:true,
+    comparisons:[{
+      field_name:'housing_basis',reviewed_value:'guest',
+      case_value:'registered_private_rental',comparison:'conflict',
+    }],
+  };
+  assert.equal(validIntelligenceResponse(saved),true);
+  assert.equal(canEditDocumentReview(saved),true);
+  assert.deepEqual(reviewFormDefaults(saved),{
+    selected:{housing_basis:alternative.candidate_id,
+      move_in_date:second.candidate_id},
+    corrected:{housing_basis:'guest',move_in_date:'2026-11-06'},
+  });
+  assert.equal(canEditDocumentReview(sampleReview),true);
+  assert.equal(canEditDocumentReview({...sampleReview,status:'unreadable',candidates:[]}),false);
+  assert.equal(validIntelligenceResponse({
+    ...saved,selected_evidence:{housing_basis:'f'.repeat(64)},
+  }),false);
 });

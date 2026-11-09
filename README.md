@@ -64,8 +64,7 @@ The codebase contains deployment configuration for Vercel and PostgreSQL infrast
 backend/       FastAPI application, domain services, migrations and tests
 frontend/      Next.js pages, components, API proxies and tests
 requirements/  Reviewed and candidate procedure catalogs and public verification keys
-research/      Administrative research and jurisdiction-specific notes
-docs/          Architecture, source-review, workflow and governance documentation
+ docs/          Architecture, source-review, research, workflow and governance documentation
 evals/         Evaluation inputs and fixtures
 audit/         Security and end-to-end audit utilities
 scripts/       Repository validation utilities

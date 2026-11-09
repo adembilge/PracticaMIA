@@ -31,6 +31,7 @@ const messages = {
     identity_document: 'Identity document',
     other_supporting_document: 'Other supporting document',
     choose: 'Choose a PDF, PNG or JPEG (maximum 2 MiB)',
+    categoryNote: 'Only housing documents support automated field extraction. Other categories remain unverified and may appear as warnings in a draft.',
     consent: 'I have read the document privacy notice. I understand the document is scanned, encrypted and accessible only to my account, expires after seven days, and may remain temporarily in infrastructure backups.',
     privacy: 'Read the document privacy notice',
     upload: 'Upload securely',
@@ -56,6 +57,7 @@ const messages = {
     identity_document: 'Documento di identità',
     other_supporting_document: 'Altro documento',
     choose: 'Scegli PDF, PNG o JPEG (massimo 2 MiB)',
+    categoryNote: 'Solo i documenti dell’alloggio supportano l’estrazione automatica. Le altre categorie restano non verificate e possono comparire come avvisi nel PDF.',
     consent: 'Ho letto l’informativa sui documenti. Comprendo che il file viene analizzato, cifrato, accessibile solo al mio account, scade dopo sette giorni e potrebbe restare temporaneamente nei backup.',
     privacy: 'Leggi l’informativa sui documenti',
     upload: 'Carica in modo sicuro',
@@ -158,6 +160,7 @@ export function PrivateDocumentsWorkspace({caseId, configured, signedIn}: Props)
             <option value="identity_document">{t.identity_document}</option>
             <option value="other_supporting_document">{t.other_supporting_document}</option>
           </select>
+          <p style={{fontSize:13,marginTop:8}}>{t.categoryNote}</p>
           <label htmlFor="private-document-file" style={{display:'block',marginTop:14}}>{t.choose}</label>
           <input id="private-document-file" type="file" accept="application/pdf,image/png,image/jpeg"
             onChange={e=>setFile(e.target.files?.[0]??null)} />

@@ -259,3 +259,71 @@ def test_corrupted_private_review_fails_closed(
         db.commit()
     assert client.get(f"{ROOT}/{case_id}/package", headers=alice).status_code == 503
     assert client.get(f"{ROOT}/{case_id}/package/pdf", headers=alice).status_code == 503
+
+
+
+def test_unsupported_document_is_disclosed_but_does_not_block_non_official_draft(
+    vault_package_client, auth_headers, approved,
+):
+    client = vault_package_client
+    alice = auth_headers("alice")
+    case_id = create_case(client, alice)
+    confirmed_intake(client, alice, case_id, facts=FACTS)
+    base = f"{ROOT}/{case_id}"
+    response = client.post(
+        base + "/private-documents", headers=alice,
+        data={"category": "identity_document", "privacy_ack": "true",
+              "consent_version": "private-documents-2026-11-v1"},
+        files={"file": ("fictional.pdf", fixture_pdf("Synthetic identity test"),
+                        "application/pdf")},
+    )
+    assert response.status_code == 201, response.text
+    result = client.get(base + "/package", headers=alice)
+    assert result.status_code == 200
+    manifest = result.json()
+    assert manifest["status"] == "reviewable_draft"
+    assert manifest["download_allowed"] is True
+    assert manifest["document_requirements_verified"] is False
+    assert manifest["documents_legally_verified"] is False
+    assert "document_unsupported_category" in manifest["outstanding_issues"]
+    assert manifest["documents"][0]["review_status"] == "unsupported_category"
+    pdf = client.get(base + "/package/pdf", headers=alice)
+    assert pdf.status_code == 200
+    text = pdf_text(pdf.content)
+    assert "not been automatically extracted or validated" in text
+    assert "DRAFT - NOT SUBMITTED" in text
+    assert "Synthetic identity test" not in text
+
+
+def test_reviewed_document_missing_case_fact_blocks_pdf(
+    vault_package_client, auth_headers, approved,
+):
+    client = vault_package_client
+    alice = auth_headers("alice")
+    case_id = create_case(client, alice)
+    confirmed_intake(client, alice, case_id, facts=FACTS)
+    base = f"{ROOT}/{case_id}"
+    result = client.post(base + "/private-documents", headers=alice,
+        data={"category": "housing_document", "privacy_ack": "true",
+              "consent_version": "private-documents-2026-11-v1"},
+        files={"file": ("housing.pdf", fixture_pdf(
+            "Move-in date: 2026-11-05"), "application/pdf")})
+    assert result.status_code == 201, result.text
+    doc_id = result.json()["id"]
+    intel_url = base + f"/private-documents/{doc_id}/intelligence"
+    extracted = client.post(intel_url + "/extract", headers=alice).json()
+    reviewed = client.put(intel_url + "/review", headers=alice, json={
+        "extraction_digest": extracted["extraction_digest"],
+        "confirm": True,
+        "selections": [{
+            "field_name": "move_in_date",
+            "candidate_id": extracted["candidates"][0]["candidate_id"],
+            "confirmed_value": "2026-11-05",
+        }],
+    })
+    assert reviewed.status_code == 200
+    assert reviewed.json()["status"] == "needs_case_information"
+    package = client.get(base + "/package", headers=alice).json()
+    assert "document_needs_case_information" in package["outstanding_issues"]
+    assert package["download_allowed"] is False
+    assert client.get(base + "/package/pdf", headers=alice).status_code == 409

@@ -35,7 +35,7 @@ FACT_LABELS = {
 DOCUMENT_STATUS = frozenset({
     "needs_extraction", "unreadable", "no_supported_fields", "needs_user_confirmation",
     "needs_manual_review", "conflict", "needs_confirmed_intake",
-    "user_reviewed_unverified", "unsupported_category",
+    "needs_case_information", "user_reviewed_unverified", "unsupported_category",
 })
 
 
@@ -134,8 +134,15 @@ def build_package_manifest(
     # incomplete/conflicting review blocks even its export. Neither case means
     # a legally complete application.
     actionable = checklist["status"] == "ready_for_user_review"
+    # Unsupported categories cannot be extracted by this narrow parser.
+    # They stay visibly unverified but must not trap an otherwise valid
+    # non-official draft behind an impossible automated review.
+    document_warnings = {
+        "document_unsupported_category",
+    }
     document_blockers = [
         issue for issue in issues if issue.startswith("document_")
+        and issue not in document_warnings
         and issue != "document_review_unavailable"
     ]
     allowed = (actionable and bool(facts) and not document_blockers
