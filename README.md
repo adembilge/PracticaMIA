@@ -1,121 +1,154 @@
 # PracticaMIA
-> **Independent system audit (6 November 2026):** [production GET smoke, adversarial authorization, provenance integrity, quota concurrency, and release blockers](docs/audits/INDEPENDENT_SYSTEM_AUDIT_2026_11_06.md). Experimental demo only; not yet suitable for public administrative advice.
 
+**PracticaMIA** is an independent, bilingual (English and Italian) web application that helps people understand and organize Italian administrative procedures. Its first supported workflow focuses on an individual change of registered residence (*cambio di residenza*) in the Comune di Milano.
 
-PracticaMIA is an independent English–Italian administrative-guidance prototype, initially focused on selected individual changes of registered residence within Milan (`cambio di residenza`). It helps users organize preparation steps; **it is not a government service and cannot submit an official application**.
+Instead of offering a generic answer, PracticaMIA guides a person through structured questions, checks the supported procedure against reviewed official-source evidence, and assembles a preparation summary that the person can review before continuing on the official website.
 
-- **Frontend:** [practicamia.vercel.app](https://practicamia.vercel.app) — Next.js.
-- **Backend:** [practicamia-api.vercel.app](https://practicamia-api.vercel.app) — FastAPI.
-- **Source:** [github.com/adembilge/PracticaMIA](https://github.com/adembilge/PracticaMIA).
+PracticaMIA is **not affiliated with a municipality or the Italian government**. It does not determine legal eligibility, authenticate official documents, or submit applications on a user's behalf.
 
-## Current functionality (November 2026)
+## How it works
 
-| Area | Status | What works |
-| --- | --- | --- |
-| Bilingual frontend | Implemented | English/Italian demo, guided scope questions, illustrative checklist and review |
-| Authentication | Deployed | Auth0 Regular Web Application, server-side Next.js session, login/logout |
-| Case API | Deployed | JWT-verified FastAPI, per-user authorization, synthetic case CRUD |
-| Database | Deployed | Neon PostgreSQL, SQLAlchemy, Alembic schema at `20261104_0002` |
-| Frontend–backend bridge | Deployed | Same-origin Next.js routes fetch Auth0 access tokens server-side; browser never receives API tokens |
-| Saved-case workspace | Implemented and deployed | Link to a saved case, answer five synthetic scope questions, save/resume, edit and delete |
-| Official-source registry | Merged, disabled pending migration | Versioned municipal source candidates, approval-gated read API; no approved evidence yet |
-| Official HTML and PDF snapshots | PDF support merged, production-disabled | Controlled original-byte acquisition, versioned snapshots and hash-linked passages |
-| Reviewer-only source approval | Merged, not production-enabled | Verified reviewer allowlist, hash-confirmed approval/revocation and audit records |
-| Approved passage lexical search | Merged, production-disabled | PostgreSQL full-text ranking, jurisdiction/procedure filters, versioned citations and integrity gates |
-| Neon knowledge staging | Isolated, validated | Branch `staging-knowledge-0003-0006-2026-11-05` migrated to `0008` with pgvector 0.8.0 and a daily-model-usage table; 17 source candidates, one historical PDF pending review, zero approved sources or embeddings |
-| Official knowledge and rules | Research draft | No approved production eligibility rules or authoritative personalized checklist |
-| LangChain/RAG foundation | Development code, disabled in production | Approved-only pgvector hybrid retrieval and LangChain two-step answer tests; no public RAG endpoint or configured model |
-| Authenticated assistant Q&A preview | Implemented, disabled by default | Case-bound FastAPI route and Next.js preview UI with exact-source quote validation and pseudonymous daily model budget; no model configured |
-| Documents and submission | Not implemented | No real personal data, document uploads, ANPR login or government submission |
+1. **Create a case.** Sign in and start a saved residence-change case.
+2. **Describe the situation.** Answer scope questions and explicitly confirm structured case information.
+3. **Review guidance.** See the next action, source-backed checklist, and citations to approved official references. Optional AI explanations are separate from the rules that determine the checklist.
+4. **Check information.** Where the private-document service has been separately enabled, examine extracted housing and move-date suggestions, correct them, and inspect inconsistencies with the case.
+5. **Prepare a document.** Download a PDF summary containing confirmed facts, reviewed actions, citations, outstanding issues, and links to the relevant official services.
+6. **Continue on the official service.** The user independently verifies the current instructions and completes any required government submission.
 
-The current scope check is **only a synthetic product filter**, not a determination of legal eligibility. Do not enter real names, addresses, identity documents, or SPID/CIE credentials.
+The reviewed first-route rules cover a narrowly defined individual Milan scenario. Unconfirmed, unsupported, or insufficiently sourced situations must not be presented as approved or complete. A downloaded preparation summary is **not** an official application or receipt.
 
-## Product journey
+## Key capabilities
 
-1. Sign in at `/account` using Auth0.
-2. Create a synthetic case under `/cases/saved`.
-3. Open `/cases/{id}` to answer the five demo scope questions.
-4. Save each answer, leave, and resume the same case later. Editing an earlier answer clears dependent later answers.
-5. Inspect the saved summary, return to the case list, or delete the synthetic case.
-
-The unauthenticated `/cases/new` and `/cases/demo` experience remains a separate, in-memory demonstration. Real-world intake fields and official administrative rules are **not** stored in the authenticated workflow.
+- **Account-bound case management:** Auth0 sign-in, saved cases, case ownership, resumable intake, and user-controlled checklist review progress.
+- **Official-source knowledge:** controlled acquisition, immutable snapshots, content digests, versioned passages, human review, explicit approval and revocation, and traceable citations.
+- **Verified rules:** an independently reviewed and signed administrative ruleset, evaluated against confirmed facts and current source approval; missing or revoked evidence blocks the associated guidance.
+- **AI-assisted explanations:** optional case-contextual explanations and an isolated RAG question-answering service. Generated text cannot approve sources, create mandatory requirements, or override the rules engine.
+- **Document intelligence:** bounded PDF/image extraction, user-confirmed corrections, and comparison against saved case facts. Private uploads are disabled until their separate privacy, malware-scanning, encryption, and retention controls are ready.
+- **Preparation export:** on-demand, non-official PDF drafts that distinguish user-provided facts, approved references, and unresolved issues.
+- **Multilingual interface:** English and Italian navigation, with the reviewed administrative source text preserved and cited.
 
 ## Architecture
 
 ```text
-Browser — HTTPS — Next.js (Auth0 encrypted session)
-                     |
-                     | same-origin /api/cases/* server routes
-                     | server-side Auth0 audience access token
-                     v
-                   FastAPI (RS256 JWKS, issuer, audience, case ownership)
-                     |
-                     v
-                  Neon PostgreSQL (synthetic cases and scope answers)
+Browser
+  │
+  ▼
+Next.js / React / TypeScript
+  ├── Auth0 server-managed session
+  ├── Case workspace and source-linked checklist
+  └── Same-origin API routes (server-side access tokens)
+                │
+                ▼
+          FastAPI / Python
+          ├── JWT verification and case ownership
+          ├── Structured intake and workflow state
+          ├── Signed rules and citation validation
+          ├── Official-source registry and retrieval
+          ├── Document review (separately gated)
+          └── Preparation PDF generation
+                │
+                ▼
+       PostgreSQL / Neon / pgvector
+       ├── Cases and user confirmations
+       ├── Source versions, reviews and passages
+       └── Encrypted document metadata when enabled
 ```
 
-The backend refuses case API startup unless trusted OIDC settings, a database URL and `ENABLE_DEMO_CASE_API=1` are configured. Missing or invalid bearer tokens return `401`; access to another user's case returns `404`. Mutating frontend proxy routes check the request Origin. Credentials live in Vercel environment variables; **do not commit secrets or copy them into issues**.
+The main components are kept separate so AI-generated explanations cannot become administrative decisions. All personal-case API operations require a validated identity, and access is scoped to the case owner.
 
-## Local development
+## Technology
+
+| Layer | Technologies |
+| --- | --- |
+| Web | Next.js 15, React 19, TypeScript |
+| API | Python 3.12, FastAPI, Pydantic |
+| Authentication | Auth0, RS256 JWT verification |
+| Data | PostgreSQL, SQLAlchemy, Alembic, pgvector |
+| Knowledge and AI | Versioned official-source retrieval, LangChain, LangGraph, optional model providers |
+| Document processing | PDF parsing, local OCR where available, AES-GCM encrypted review storage |
+| Deployment | Vercel frontend and API, Neon PostgreSQL |
+| Quality | pytest, Node.js tests, TypeScript, GitHub Actions, Chromium browser acceptance tests |
+
+## Repository layout
+
+```text
+frontend/       Next.js application, UI components and frontend tests
+backend/        FastAPI services, database models, migrations and tests
+requirements/   Reviewed residence-change rule artifacts and public verification key
+research/       Source-specific procedure research
+evals/          Evaluation fixtures
+audit/          Independent security and authenticated-flow checks
+docs/           Architecture, source review, operational guides and design decisions
+scripts/        Repository governance checks
+.github/        CI and acceptance workflows
+```
+
+## Development
+
+### Requirements
+
+- Node.js 22 and npm
+- Python 3.12
+- Docker or a local PostgreSQL database with pgvector
+- An OIDC/Auth0 configuration for authenticated case operations
+
+### Start the API
+
+From the repository root:
+
+```bash
+docker compose -f backend/compose.yaml up -d db
+cd backend
+python -m venv .venv
+# Activate your virtual environment
+python -m pip install -e ".[dev]"
+# Export the local settings described in .env.example
+python -m alembic -c alembic.ini upgrade head
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+The health endpoint runs without authenticated case services configured. To use saved cases locally, supply a trusted JWT issuer, audience, JWKS URL, and database connection, and explicitly enable the applicable services. See [backend/.env.example](backend/.env.example) for the environment contract; variables must be present in the process environment.
+
+### Start the web application
+
+In another terminal:
 
 ```bash
 cd frontend
 npm ci
-npm test
-npm run typecheck
+# Configure local server settings from .env.example
 npm run dev
 ```
 
-Frontend preview: `http://localhost:3000`. Without the required Auth0 server-side configuration, account operations are intentionally unavailable; the anonymous demonstration works independently.
+Visit `http://localhost:3000`. Saved cases require a configured Auth0 application and a reachable API. Secrets belong in local environment configuration, never in Git.
+
+### Run checks
 
 ```bash
+# Backend
 cd backend
-python3.12 -m venv .venv
-source .venv/bin/activate
-python -m pip install -e '.[dev]'
-docker compose up -d db
 python -m pytest -q
+
+# Frontend
+cd ../frontend
+npm test
+npm run typecheck
+npm run build
 ```
 
-See [backend/README.md](backend/README.md) for PostgreSQL, Alembic, OIDC configuration and API endpoints. On Windows, activate `.venv\Scripts\Activate.ps1`.
-
-## Quality and release workflow
-
-Work on a feature branch and open a pull request to protected `main`. GitHub Actions runs:
-
-- **Backend CI:** pytest; a PostgreSQL migration from the legacy schema; authenticated CRUD, ownership and migration smoke tests.
-- **Frontend CI:** unit tests, TypeScript typecheck and production Next.js build.
-
-Review the Vercel preview deployment before merging. The saved-case milestone and its acceptance criteria are documented in [docs/CASE_WORKSPACE.md](docs/CASE_WORKSPACE.md). Environment variables are managed separately for production and preview; do not automatically enable Auth0 or real data on untrusted previews.
+GitHub Actions also exercises migrations against disposable PostgreSQL and an isolated Chromium-to-FastAPI acceptance workflow with temporary signed test identities. That automated workflow does not replace live Auth0, document-security, or hosted-environment verification.
 
 ## Documentation
 
-- [First user journey](docs/FIRST_USER_JOURNEY.md)
-- [UX interface specification](docs/UX_INTERFACE_SPEC.md)
-- [Authentication integration](docs/AUTHENTICATION_INTEGRATION.md)
-- [Case workspace milestone](docs/CASE_WORKSPACE.md)
-- [Official-source registry design](docs/OFFICIAL_SOURCE_REGISTRY.md)
-- [Controlled official HTML snapshots](docs/CONTROLLED_SOURCE_SNAPSHOTS.md)
-- [Knowledge review and audit workflow](docs/KNOWLEDGE_REVIEW_WORKFLOW.md)
-- [Approved passage lexical search](docs/APPROVED_PASSAGE_SEARCH.md)
-- [Synthetic retrieval evaluation and quality gates](docs/RETRIEVAL_EVALUATION.md)
-- [LangChain + pgvector development foundation](docs/LANGCHAIN_PGVECTOR_FOUNDATION.md)
-- [Authenticated RAG Q&A preview, controls and release gates](docs/AUTHENTICATED_RAG_PREVIEW.md)
-- [Verified 5 November 2026 release and evidence blockers](docs/RELEASE_BLOCKERS_2026_11_05.md)
-- [Official-source acquisition queue, validated batch import and review](docs/OFFICIAL_SOURCE_INTAKE.md)
-- [5 November 2026: 14 official webpage requests, all HTTP 403](docs/OFFICIAL_HTML_ACCESS_AUDIT_2026_11_05.md)
-- [Browser-rendered municipal pages: labeled provenance and human review](docs/BROWSER_CAPTURE_EVIDENCE.md)
-- [Preview-only mobile browser-source review workflow](docs/MOBILE_BROWSER_SOURCE_REVIEW.md)
-- [Approved-only staging embedding indexer: dry-run, explicit transfer, rollback](docs/APPROVED_EMBEDDING_INDEXING.md)
-- [Knowledge staging migration and source acquisition report](docs/KNOWLEDGE_STAGING_ROLLOUT.md)
-- [Milan official-source acquisition inventory (17 unapproved candidates)](docs/MILAN_OFFICIAL_SOURCE_ACQUISITION.md)
-- [Manual PDF and HTML source ingestion](docs/PDF_SOURCE_INGESTION.md)
-- [User-uploaded non-EU Allegato A: staging import and review caveats](docs/ALLEGATO_A_STAGING_INGESTION.md)
-- [New original-file download leads and acquisition queue](docs/OFFICIAL_DOCUMENT_DOWNLOAD_QUEUE.md)
-- [Development workflow](docs/DEVELOPMENT_WORKFLOW.md)
-- [Milan residence-change research](research/milan_residence_change.md)
-- [Complete original project specification](PracticaMIA_Complete_Project_Specification.md)
+The [documentation index](docs/README.md) organizes the product architecture, source-review process, case workflow, security controls, and testing instructions. The [complete project specification](PracticaMIA_Complete_Project_Specification.md) captures the broader product design and planned capabilities.
 
-Production Neon is intentionally at migration `20261104_0002`; the isolated knowledge staging branch has migrated to `20261105_0008` with pgvector 0.8.0 and persistent model-call quota tracking. The staging vector index exists, but no embeddings have been generated. The backend's Production and staging Preview `DATABASE_URL` variables are now separated; staging credentials are restricted to the trusted `feature/knowledge-staging-rollout` preview branch, so other previews receive no database URL. The original specification's 94-task roadmap is reference material, **not** the current completion status. Next milestones are authentic reviewed-source acquisition, representative hybrid retrieval evaluation, controlled embedding-model selection, deterministic administrative rules, and an authenticated, evidence-gated LangChain RAG endpoint. Security work still includes live multi-user isolation checks, audit/retention policies, rate limiting, monitoring and backups.
+## Official resources
 
-**PracticaMIA does not represent or act on behalf of a municipality or the Italian government.**
+- [ANPR — Anagrafe Nazionale della Popolazione Residente](https://www.anagrafenazionale.interno.it/)
+- [Comune di Milano — Cambio di residenza](https://www.comune.milano.it/servizi/anagrafe/cambio-di-residenza)
+
+Always consult the current official service for authoritative requirements, required attachments, deadlines, and submission instructions.
+
+---
+
+PracticaMIA is an independent assistance project, not a public authority or authorized government intermediary.

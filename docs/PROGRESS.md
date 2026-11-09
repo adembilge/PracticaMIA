@@ -1,35 +1,29 @@
-# PracticaMIA — verified progress and blockers
+# PracticaMIA — implementation and release evidence
 
-**Snapshot:** 6 November 2026 (Europe/Rome)  
-**Baseline:** main at `e9404767c7917756dcc7dc19d3b535054823aebe` (independent audit PR #31).
+**Recorded:** 9 November 2026. This is a dated engineering snapshot, not certification of the project specification's full task roadmap.
 
-## Evidence already available
+## Verified engineering evidence
 
-| Source | Observed fact | Limit |
+| Item | Evidence | Important limitation |
 | --- | --- | --- |
-| [Independent audit PR #31](https://github.com/adembilge/PracticaMIA/pull/31) | Merged; final CI had 225 automated tests passing | Not proof of the complete product |
-| [Audit report](audits/INDEPENDENT_SYSTEM_AUDIT_2026_11_06.md) | 10/10 anonymous live HTTP checks, 13 staging source snapshots with verified body and metadata hashes | No authenticated two-account E2E or approved guidance |
-| Neon production | Alembic at `20261104_0002` | Behind knowledge schema |
-| Neon staging branch | Alembic at `20261106_0010` | Data staging does not establish source approval |
-| [Draft PR #32](https://github.com/adembilge/PracticaMIA/pull/32) | Two-account Auth0 browser harness and safeguards; offline/frontend/backend PR CI passed | Live run NOT EXECUTED because isolated preview identity is unconfigured |
-| This governance branch | Adds AGENTS instructions and machine-readable source-derived task tracker | Historic task-status evidence not yet reconciled |
+| Saved case, intake and workflow | PRs [#64](https://github.com/adembilge/PracticaMIA/pull/64) and [#67](https://github.com/adembilge/PracticaMIA/pull/67) | User-read marks do not establish that official administrative steps are complete |
+| Private document review | [PR #65](https://github.com/adembilge/PracticaMIA/pull/65) | Production personal-document upload remains disabled behind release controls |
+| Downloadable preparation summary | [PR #66](https://github.com/adembilge/PracticaMIA/pull/66) | PDF is a non-official, reviewable draft, never a government receipt |
+| Isolated browser acceptance | [PR #68](https://github.com/adembilge/PracticaMIA/pull/68), eight supported synthetic browser scenarios passing | Not a live Auth0 sign-in or real document acceptance |
+| Neon database | Production revision `20261109_0016`; two preexisting cases and two reviewed source records checked | A schema revision does not imply live frontend parity |
+| Production backend | Commit `4ab8fa2` was deployed and `/health` and OpenAPI routes returned HTTP 200 | Authenticated case and PDF requests were not verified end-to-end on the hosted website |
+| Production frontend | Last verified production deployment on `5a3b78f` | Newer frontend deployment failed due to Vercel daily quota (HTTP 402) |
 
-## Unresolved delivery blockers
+## Outstanding release gates
 
-- **P0 — Official administrative evidence:** captured municipal sources remain pending human review; no proven approved source corpus or real embeddings for user-facing guidance. Historical PDF requires independent currency review.
-- **P0 — Full MVP:** audited code does not yet provide a verified deterministic rules engine, complete private upload/OCR/field confirmation, full LangGraph case workflow or reviewed application package.
-- **P1 — Real preview E2E:** separate Preview Auth0 credentials, paired Preview frontend/backend, reviewer allowlist and two synthetic accounts must be configured without production credential reuse. Follow the [draft PR #32 runbook](https://github.com/adembilge/PracticaMIA/blob/test/isolated-authenticated-preview-e2e/docs/AUTHENTICATED_PREVIEW_E2E_RUNBOOK.md).
-- **P1 — Deployment drift:** live frontend/backend revisions and production schema have not been aligned with the audited head. No production migration is authorized.
-- **P1 — Task evidence:** historical PRs, source changes, executed tests and explicit human approvals have not been mapped individually to 94 master-plan task acceptance criteria.
-- **P2 — Operational release:** backup/restore, sustained load, real mobile accessibility, privacy/retention review and beta validation are not completed.
+- Verify the latest frontend deployment, its same-commit backend, and a complete hosted login-to-PDF flow with genuine Auth0 browser sessions.
+- Complete independent evaluations of the conversational assistant, citations, source currency and document extraction on representative cases.
+- Keep real-document uploads disabled until privacy, security, malware scanning, retention, backup and operational obligations have been reviewed and demonstrated.
+- Reconcile the canonical task registry against individual acceptance evidence; old governance states are not automatically updated by merged code.
+- Complete operational monitoring, rollback and owner release sign-off before opening access to personal residence records.
 
-## Next action: evidence reconciliation
+## Evidence discipline
 
-1. Validate the tracker in CI and review this governance PR.
-2. Reconcile the 94 parent tasks against actual source code, merged PRs, CI, staging checks, and human approval records. Mark incomplete, partial, blocked and verified-complete separately. Never fabricate sign-off.
-3. Clear global task execution blockade only after that evidence review. Then choose the earliest eligible task under the specification's dependency and approval rules.
-4. Independently complete the isolated two-account Auth0 Preview setup and run PR #32's opt-in browser workflow. A blocked run is not a pass.
+A passing synthetic fixture does not constitute a source approval; a signed rule cannot replace current official instructions; a completed review checkbox does not constitute a legal action; and a deployed backend is not proof that the frontend is updated.
 
-## Future progress entry template
-
-Date; task IDs; base SHA; branch/PR; changed files; tests actually executed and results; production/staging/CI distinctions; human approval evidence; unresolved risks; next eligible action.
+For current implementation details see [the documentation index](README.md).
