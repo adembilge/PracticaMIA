@@ -122,8 +122,11 @@ try{
   await scenario('A2: all five user-read marks persist and draft PDF downloads',async()=>{
     assert.ok(alicePage&&caseId);
     for(let i=0;i<5;i++){
+      // This checkbox is controlled by the server-acknowledged review state.
+      // A click triggers PATCH; unlike .check(), it does not require an
+      // immediate local checked state before the async response resolves.
       await alicePage.locator('#case-workflow-checklist input[type="checkbox"]')
-        .nth(i).check({timeout:12000});
+        .nth(i).click({timeout:12000});
       await alicePage.getByText('Actions read by you: '+(i+1)+' / 5')
         .waitFor({timeout:15000});
     }
@@ -162,6 +165,9 @@ try{
 
   await scenario('A4: revoked source blocks actions/PDF; restored evidence invalidates old marks',async()=>{
     assert.ok(alicePage&&caseId);
+    const before=(await readJson(alicePage,'/api/cases/'+caseId+'/workflow')).body;
+    assert.equal(before.checklist.reviewed_count,5,
+      'Revocation scenario requires previously saved review marks');
     const revoke=await alicePage.request.post(origin+'/__acceptance/sources/revoke');
     assert.equal(revoke.status(),200);
     await alicePage.getByRole('button',{name:'Refresh workflow'}).click();
