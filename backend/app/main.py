@@ -93,9 +93,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     revision = connection.exec_driver_sql(
                         "SELECT version_num FROM alembic_version"
                     ).scalar_one()
-                if revision not in {"20261106_0011", "20261108_0012", "20261109_0013", "20261109_0014"}:
+                if revision not in {"20261106_0011", "20261108_0012", "20261109_0013", "20261109_0014", "20261109_0015"}:
                     raise ValueError("Preparation requires migrated isolated staging schema")
-                if settings.enable_agent_history_api and revision not in {"20261108_0012", "20261109_0013", "20261109_0014"}:
+                if settings.enable_agent_history_api and revision not in {"20261108_0012", "20261109_0013", "20261109_0014", "20261109_0015"}:
                     raise ValueError("Agent history requires isolated staging schema 0012")
             except Exception:
                 engine.dispose()
@@ -107,7 +107,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 revision = connection.exec_driver_sql(
                     "SELECT version_num FROM alembic_version"
                 ).scalar_one()
-            if revision not in {"20261109_0013", "20261109_0014"}:
+            if revision not in {"20261109_0013", "20261109_0014", "20261109_0015"}:
                 engine.dispose()
                 raise ValueError("Private documents require migrated 0013 schema")
         api.include_router(router)
@@ -117,6 +117,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             from app.private_documents.router import router as private_router, retention_router
             api.include_router(private_router)
             api.include_router(retention_router)
+            if engine.dialect.name == "postgresql":
+                if revision != "20261109_0015":
+                    engine.dispose()
+                    raise ValueError("Document intelligence requires schema revision 0015")
+            from app.private_documents.intelligence_router import router as intelligence_router
+            api.include_router(intelligence_router)
         if settings.enable_preparation_api:
             from app.preparation.router import router as preparation_router
             api.include_router(preparation_router)
