@@ -3,6 +3,7 @@
 import {useEffect,useState} from 'react';
 import {useDemo} from '@/components/DemoProvider';
 import {FIRST_ROUTE_SOURCE_LINKS} from '@/lib/approved-source-view.js';
+import {validateCaseChecklist} from '@/lib/case-checklist.js';
 
 type Evidence = {
   citation_id:string; source_id:string; source_version_id:string;
@@ -19,10 +20,6 @@ type Checklist = {
   synthetic_only:boolean;eligibility_evaluated:boolean;
   government_submitted:boolean;required_document_types:string[];
   missing_fields:string[];
-};
-const sourceVersions:Record<string,string> = {
-  'milano-italian-residence-change':'e139e910-3a89-4994-b450-b5107d8db7dd',
-  'anpr-public-docs-residence-guide':'c89b4c40-4c41-48d5-ad52-be08e9630277',
 };
 const labels = {
   en:{
@@ -67,29 +64,6 @@ const labels = {
   },
 } as const;
 
-function verifiedEvidence(e:Evidence):boolean {
-  const expected=FIRST_ROUTE_SOURCE_LINKS[e.source_id as keyof typeof FIRST_ROUTE_SOURCE_LINKS];
-  return Boolean(expected && expected.url===e.official_url &&
-    e.source_version_id===sourceVersions[e.source_id] &&
-    e.citation_id.startsWith(e.source_version_id+':') &&
-    e.archived_reference===(e.source_id==='anpr-public-docs-residence-guide'));
-}
-
-function validChecklist(v:unknown):v is Checklist {
-  if(!v||typeof v!=='object'||Array.isArray(v))return false;
-  const x=v as Partial<Checklist>;
-  if(typeof x.status!=='string'||!Array.isArray(x.items)||typeof x.next_action!=='string'||
-    x.synthetic_only!==true||x.eligibility_evaluated!==false||x.government_submitted!==false)return false;
-  if(x.status==='ready_for_user_review'){
-    return x.verified_evidence===true&&x.items.length===5&&
-      Array.isArray(x.required_document_types)&&x.required_document_types.length===0&&
-      x.items.every(i=>i&&typeof i.id==='string'&&typeof i.description==='string'&&
-        i.status==='needs_user'&&Array.isArray(i.evidence)&&i.evidence.length>0&&
-        i.evidence.every(verifiedEvidence));
-  }
-  return x.items.length===0;
-}
-
 export function CaseChecklistPanel({caseId,revision,confirmed}:{
   caseId:string;revision:number;confirmed:boolean;
 }) {
@@ -109,8 +83,8 @@ export function CaseChecklistPanel({caseId,revision,confirmed}:{
     }).then(async r=>{
       if(!r.ok)throw new Error('Checklist unavailable');
       const payload:unknown=await r.json();
-      if(!validChecklist(payload))throw new Error('Invalid checklist');
-      return payload;
+      if(!validateCaseChecklist(payload))throw new Error('Invalid checklist');
+      return payload as Checklist;
     }).then(payload=>{if(!controller.signal.aborted)setData(payload);})
       .catch(()=>{if(!controller.signal.aborted)setError(t.unavailable);})
       .finally(()=>{if(!controller.signal.aborted)setLoading(false);});
