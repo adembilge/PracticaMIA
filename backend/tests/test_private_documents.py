@@ -14,6 +14,7 @@ from reportlab.pdfgen import canvas
 from sqlalchemy import select
 
 from app.config import Settings
+from app.knowledge import model as knowledge_model  # noqa: F401 — metadata registry
 from app.database import Base
 from app.main import create_app
 from app.private_documents import router as document_router
