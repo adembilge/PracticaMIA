@@ -2,8 +2,6 @@
 
 import {useCallback,useEffect,useState} from 'react';
 import {useDemo} from '@/components/DemoProvider';
-import {CaseChecklistPanel} from '@/components/CaseChecklistPanel';
-import {CasePackagePanel} from '@/components/CasePackagePanel';
 import {firstRouteIntakeState,INTAKE_FIELDS,INTAKE_OPTIONS,isRealCalendarDate}
   from '@/lib/case-intake.js';
 
@@ -98,7 +96,7 @@ const labels = {
   },
 } as const;
 
-export function CaseIntakePanel({caseId}:{caseId:string}) {
+export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=>void}) {
   const {locale}=useDemo();
   const t=labels[locale];
   const [facts,setFacts]=useState<Facts>({});
@@ -153,6 +151,7 @@ export function CaseIntakePanel({caseId}:{caseId:string}) {
       setStored(body);
       setRevision(n=>n+1);
       setAck(false);
+      onChanged?.();
       setMessage(confirm?t.confirmed:t.saved);
     }catch{setError(t.error);}
     finally{setBusy(false);}
@@ -163,7 +162,7 @@ export function CaseIntakePanel({caseId}:{caseId:string}) {
     try{
       const r=await fetch('/api/cases/'+caseId+'/intake',{method:'DELETE',credentials:'same-origin'});
       if(r.status!==204)throw new Error('Delete failed');
-      setFacts({});setDate('');setAck(false);setStored(null);setRevision(n=>n+1);setMessage(t.saved);
+      setFacts({});setDate('');setAck(false);setStored(null);setRevision(n=>n+1);onChanged?.();setMessage(t.saved);
     }catch{setError(t.error);}
     finally{setBusy(false);}
   }
@@ -174,7 +173,7 @@ export function CaseIntakePanel({caseId}:{caseId:string}) {
     setStored(old=>old?{...old,confirmed:false}:old);
     setMessage('');
   }
-  return <section aria-label={t.heading} style={{padding:20,marginTop:22,border:'1px solid #d6e5e8',borderRadius:12}}>
+  return <section id="case-intake" aria-label={t.heading} style={{padding:20,marginTop:22,border:'1px solid #d6e5e8',borderRadius:12}}>
     <span className="tiny-eyebrow">{t.eyebrow}</span>
     <h3 style={{marginTop:10}}>{t.heading}</h3>
     <p>{t.intro}</p>
@@ -229,7 +228,5 @@ export function CaseIntakePanel({caseId}:{caseId:string}) {
       <button type="button" className="button button-outline" onClick={()=>void load()}>{t.retry}</button>
     </p>}
     <p style={{fontSize:12,opacity:0.8,marginTop:14}}>{t.noLaw}</p>
-    <CaseChecklistPanel caseId={caseId} revision={revision} confirmed={Boolean(stored?.confirmed)} />
-    <CasePackagePanel caseId={caseId} revision={revision} confirmed={Boolean(stored?.confirmed)} />
   </section>;
 }
