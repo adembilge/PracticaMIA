@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import {useCallback, useEffect, useState} from 'react';
 import {useDemo} from '@/components/DemoProvider';
+import {PrivateDocumentIntelligence} from '@/components/PrivateDocumentIntelligence';
 import {
   PRIVATE_DOCUMENT_CONSENT_VERSION,
   PRIVATE_DOCUMENT_MAX_BYTES,
@@ -180,6 +181,9 @@ export function PrivateDocumentsWorkspace({caseId, configured, signedIn}: Props)
               <p>{t.expires}: {new Date(doc.expires_at).toLocaleDateString(locale==='it'?'it-IT':'en-GB')}</p>
               <button type="button" disabled={busy} className="button button-outline"
                 onClick={()=>void erase(doc.id)}>{t.delete}</button>
+              {doc.category==='housing_document'&&
+                <PrivateDocumentIntelligence caseId={caseId} documentId={doc.id}/>}
+
             </li>)}
           </ul>
           <p style={{fontSize:13,marginTop:18}}>{t.note}</p>
