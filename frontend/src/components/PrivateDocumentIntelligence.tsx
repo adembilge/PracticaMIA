@@ -104,7 +104,8 @@ export function PrivateDocumentIntelligence({caseId,documentId}:Props) {
   const adopt=(data:Review)=>{
     setReview(data);
     const defaults=reviewFormDefaults(data);
-    setChosen(defaults.selected);setCorrected(defaults.corrected);
+    setChosen(defaults.selected as Record<string,string>);
+    setCorrected(defaults.corrected as Record<string,string>);
     setApproved(false);
   };
 
