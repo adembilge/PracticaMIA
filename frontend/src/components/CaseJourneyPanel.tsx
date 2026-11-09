@@ -5,7 +5,7 @@ import {useCallback,useEffect,useState} from 'react';
 import {useDemo} from '@/components/DemoProvider';
 import {FIRST_ROUTE_SOURCE_LINKS} from '@/lib/approved-source-view.js';
 import {PREPARATION_ISSUES} from '@/lib/case-package.js';
-import {validCaseWorkflow,WORKFLOW_STEPS} from '@/lib/case-workflow.js';
+import {validCaseWorkflow} from '@/lib/case-workflow.js';
 
 type Evidence={
   citation_id:string;source_id:string;official_url:string;
