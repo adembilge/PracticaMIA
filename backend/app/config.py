@@ -13,6 +13,15 @@ class Settings:
     enable_assistant_api: bool = False
     enable_preparation_api: bool = False
     enable_agent_history_api: bool = False
+    enable_private_document_api: bool = False
+    private_document_key: str = ""
+    private_document_scan_url: str = ""
+    private_document_scan_host: str = ""
+    private_document_scan_token: str = ""
+    private_document_cron_secret: str = ""
+    private_document_privacy_approved: bool = False
+    private_document_controller: str = ""
+    private_document_contact: str = ""
     preparation_document_key: str = ""
     preparation_target: str = ""
     preparation_database_fingerprint: str = ""
@@ -46,6 +55,17 @@ class Settings:
             in {"1", "true", "yes"},
             enable_agent_history_api=environ.get("ENABLE_AGENT_HISTORY_API", "").lower()
             in {"1", "true", "yes"},
+            enable_private_document_api=environ.get("ENABLE_PRIVATE_DOCUMENT_API", "").lower()
+            in {"1", "true", "yes"},
+            private_document_key=environ.get("PRIVATE_DOCUMENT_KEY", ""),
+            private_document_scan_url=environ.get("PRIVATE_DOCUMENT_SCAN_URL", ""),
+            private_document_scan_host=environ.get("PRIVATE_DOCUMENT_SCAN_HOST", ""),
+            private_document_scan_token=environ.get("PRIVATE_DOCUMENT_SCAN_TOKEN", ""),
+            private_document_cron_secret=environ.get("CRON_SECRET", ""),
+            private_document_privacy_approved=environ.get("PRIVATE_DOCUMENT_PRIVACY_APPROVED", "").lower()
+            in {"1", "true", "yes"},
+            private_document_controller=environ.get("PRIVATE_DOCUMENT_CONTROLLER", ""),
+            private_document_contact=environ.get("PRIVATE_DOCUMENT_CONTACT", ""),
             preparation_document_key=environ.get("PREPARATION_DOCUMENT_KEY", ""),
             preparation_target=environ.get("PREPARATION_TARGET", ""),
             preparation_database_fingerprint=environ.get("PREPARATION_DATABASE_FINGERPRINT", ""),

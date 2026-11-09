@@ -98,3 +98,30 @@ export async function proxySyntheticDocumentUpload(path: string, form: FormData)
     return caseError('Backend unavailable', 502);
   }
 }
+
+/** Strictly separated from synthetic Preview uploads; never forwards file names to AI. */
+export async function proxyPrivateDocumentUpload(path: string, form: FormData) {
+  if (!auth0) return caseError('Service not configured', 503);
+  const backend = backendOrigin(process.env.BACKEND_API_URL, process.env.NODE_ENV);
+  if (!backend) return caseError('Service not configured', 503);
+  try {
+    const session = await auth0.getSession();
+    if (!session) return caseError('Authentication required', 401);
+    const credential = await auth0.getAccessToken();
+    if (!credential.token) return caseError('Authentication needs renewal', 401);
+    const response = await fetch(backend + path, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + credential.token },
+      body: form,
+      redirect: 'manual',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(25000),
+    });
+    return new NextResponse(response.status === 204 ? null : await response.text(), {
+      status: response.status,
+      headers: { ...headers, 'Content-Type': 'application/json' },
+    });
+  } catch {
+    return caseError('Private document service unavailable', 502);
+  }
+}
