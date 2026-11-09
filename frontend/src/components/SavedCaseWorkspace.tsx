@@ -7,6 +7,7 @@ import { type Answer, useDemo } from '@/components/DemoProvider';
 import { classifySingleAnswer } from '@/lib/flow.js';
 import { LiveExampleAIGuide } from '@/components/LiveExampleAIGuide';
 import { MilanOfficialGuidance } from '@/components/MilanOfficialGuidance';
+import { ReviewedSourcesPanel } from '@/components/ReviewedSourcesPanel';
 import { firstUnresolvedQuestion, isCaseId, nextScopeAnswers } from '@/lib/case-scope.js';
 
 type StoredCase = {
@@ -173,6 +174,7 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
             </ol>
             <div className="message-box notice" role="status">{t.savedNotEligibility}</div>
             <MilanOfficialGuidance locale={locale} />
+            <ReviewedSourcesPanel locale={locale} />
           </div>
           <div className="panel-bottom">
             <button type="button" className="button button-outline" onClick={() => openQuestion(4)}>{t.savedEditAnswers}</button>
