@@ -26,7 +26,7 @@ The documentation is organized around implemented components, operational bounda
 - [Vercel and Neon deployment](VERCEL_NEON_DEPLOYMENT.md)
 - [Private document vault release controls](PRIVATE_DOCUMENT_VAULT_RELEASE.md)
 - [Document intelligence](PRIVATE_DOCUMENT_INTELLIGENCE.md)
-- [Synthetic browser acceptance testing](MVP_SYNTHETIC_ACCEPTANCE.md)
+- [Synthetic browser acceptance testing](ACCEPTANCE_TESTING.md)
 - [Independent security audit](audits/INDEPENDENT_SYSTEM_AUDIT_2026_11_06.md)
 
 ## Planning and decisions
