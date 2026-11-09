@@ -106,7 +106,6 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
   const [busy,setBusy]=useState(false);
   const [loading,setLoading]=useState(true);
   const [message,setMessage]=useState('');
-  const [revision,setRevision]=useState(0);
   const [error,setError]=useState('');
   const load=useCallback(async(signal?:AbortSignal)=>{
     setLoading(true);setError('');
@@ -119,7 +118,6 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
       if(!body||!body.facts||typeof body.facts!=='object') throw new Error('Bad intake');
       if(signal?.aborted) return;
       setStored(body);
-      setRevision(n=>n+1);
       setFacts(Object.fromEntries(INTAKE_FIELDS
         .filter(k=>typeof body.facts[k as FieldKey]==='string')
         .map(k=>[k,body.facts[k as FieldKey]])) as Facts);
@@ -149,7 +147,6 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
       if(!r.ok) throw new Error('Save failed');
       const body=await r.json() as ApiIntake;
       setStored(body);
-      setRevision(n=>n+1);
       setAck(false);
       onChanged?.();
       setMessage(confirm?t.confirmed:t.saved);
@@ -162,7 +159,7 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
     try{
       const r=await fetch('/api/cases/'+caseId+'/intake',{method:'DELETE',credentials:'same-origin'});
       if(r.status!==204)throw new Error('Delete failed');
-      setFacts({});setDate('');setAck(false);setStored(null);setRevision(n=>n+1);onChanged?.();setMessage(t.saved);
+      setFacts({});setDate('');setAck(false);setStored(null);onChanged?.();setMessage(t.saved);
     }catch{setError(t.error);}
     finally{setBusy(false);}
   }
