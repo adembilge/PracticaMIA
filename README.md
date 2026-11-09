@@ -1,154 +1,128 @@
 # PracticaMIA
 
-**PracticaMIA** is an independent, bilingual (English and Italian) web application that helps people understand and organize Italian administrative procedures. Its first supported workflow focuses on an individual change of registered residence (*cambio di residenza*) in the Comune di Milano.
+**AI-assisted preparation for Italian administrative procedures.**
 
-Instead of offering a generic answer, PracticaMIA guides a person through structured questions, checks the supported procedure against reviewed official-source evidence, and assembles a preparation summary that the person can review before continuing on the official website.
+PracticaMIA helps people navigate administrative paperwork in Italy through structured, evidence-backed workflows. It combines a bilingual interface, case management, an AI assistant, official-source retrieval, deterministic requirements, and document review to help users understand what to prepare and what to do next.
 
-PracticaMIA is **not affiliated with a municipality or the Italian government**. It does not determine legal eligibility, authenticate official documents, or submit applications on a user's behalf.
+The current domain focus is **`cambio di residenza`** (change of registered residence) in **Milano**. PracticaMIA is independent of the Italian government: it prepares and explains information but does **not** authenticate to government services, submit an application, or issue an official decision.
 
-## How it works
+## What PracticaMIA does
 
-1. **Create a case.** Sign in and start a saved residence-change case.
-2. **Describe the situation.** Answer scope questions and explicitly confirm structured case information.
-3. **Review guidance.** See the next action, source-backed checklist, and citations to approved official references. Optional AI explanations are separate from the rules that determine the checklist.
-4. **Check information.** Where the private-document service has been separately enabled, examine extracted housing and move-date suggestions, correct them, and inspect inconsistencies with the case.
-5. **Prepare a document.** Download a PDF summary containing confirmed facts, reviewed actions, citations, outstanding issues, and links to the relevant official services.
-6. **Continue on the official service.** The user independently verifies the current instructions and completes any required government submission.
+- **Guided case intake:** collect relevant facts through focused questions, distinguish known information from unresolved details, and save progress.
+- **Case workspace:** organize intake, next actions, checklists, documents, and preparation status in one place.
+- **Official-source knowledge:** store versioned municipal material, track its provenance and approval, and retrieve passages using lexical and vector search.
+- **AI assistance:** use bounded agent actions and retrieval-augmented answers while checking quoted evidence against approved sources.
+- **Requirements and review:** apply deterministic, versioned conditions; flag missing information and contradictions rather than guessing.
+- **Document intelligence:** process supported private documents, extract candidate fields, compare them against case facts, and request explicit user confirmation.
+- **Application preparation:** assemble reviewable information and PDF artifacts when the supported workflow's evidence and review conditions are satisfied.
 
-The reviewed first-route rules cover a narrowly defined individual Milan scenario. Unconfirmed, unsupported, or insufficiently sourced situations must not be presented as approved or complete. A downloaded preparation summary is **not** an official application or receipt.
+The implementation is evolving. Some services are deliberately disabled outside controlled environments until source review, privacy controls, and deployment prerequisites have been satisfied. A feature's presence in the repository does not imply that it is available for public use.
 
-## Key capabilities
-
-- **Account-bound case management:** Auth0 sign-in, saved cases, case ownership, resumable intake, and user-controlled checklist review progress.
-- **Official-source knowledge:** controlled acquisition, immutable snapshots, content digests, versioned passages, human review, explicit approval and revocation, and traceable citations.
-- **Verified rules:** an independently reviewed and signed administrative ruleset, evaluated against confirmed facts and current source approval; missing or revoked evidence blocks the associated guidance.
-- **AI-assisted explanations:** optional case-contextual explanations and an isolated RAG question-answering service. Generated text cannot approve sources, create mandatory requirements, or override the rules engine.
-- **Document intelligence:** bounded PDF/image extraction, user-confirmed corrections, and comparison against saved case facts. Private uploads are disabled until their separate privacy, malware-scanning, encryption, and retention controls are ready.
-- **Preparation export:** on-demand, non-official PDF drafts that distinguish user-provided facts, approved references, and unresolved issues.
-- **Multilingual interface:** English and Italian navigation, with the reviewed administrative source text preserved and cited.
-
-## Architecture
+## How the system works
 
 ```text
-Browser
-  │
-  ▼
-Next.js / React / TypeScript
-  ├── Auth0 server-managed session
-  ├── Case workspace and source-linked checklist
-  └── Same-origin API routes (server-side access tokens)
-                │
-                ▼
-          FastAPI / Python
-          ├── JWT verification and case ownership
-          ├── Structured intake and workflow state
-          ├── Signed rules and citation validation
-          ├── Official-source registry and retrieval
-          ├── Document review (separately gated)
-          └── Preparation PDF generation
-                │
-                ▼
-       PostgreSQL / Neon / pgvector
-       ├── Cases and user confirmations
-       ├── Source versions, reviews and passages
-       └── Encrypted document metadata when enabled
+User (English / Italian)
+    |
+    v
+Next.js interface and authenticated case workspace
+    |
+    v
+FastAPI — authentication, case ownership and typed services
+    |
+    +--> Case intake, checklist and workflow state
+    +--> LangGraph assistant and constrained tool selection
+    |       +--> Source-grounded retrieval and quote verification
+    |       +--> Deterministic administrative rules
+    +--> Private document extraction and human review
+    +--> Reviewable preparation and PDF output
+    |
+    v
+PostgreSQL — case records, source versions and retrieval indexes
 ```
 
-The main components are kept separate so AI-generated explanations cannot become administrative decisions. All personal-case API operations require a validated identity, and access is scoped to the case owner.
+**Evidence and control are separate from language generation.** The language model can help interpret a request and explain verified results, but it cannot approve official sources, invent binding procedural requirements, confirm extracted personal information, or mark an application as submitted.
 
 ## Technology
 
-| Layer | Technologies |
+| Layer | Stack |
 | --- | --- |
-| Web | Next.js 15, React 19, TypeScript |
-| API | Python 3.12, FastAPI, Pydantic |
-| Authentication | Auth0, RS256 JWT verification |
-| Data | PostgreSQL, SQLAlchemy, Alembic, pgvector |
-| Knowledge and AI | Versioned official-source retrieval, LangChain, LangGraph, optional model providers |
-| Document processing | PDF parsing, local OCR where available, AES-GCM encrypted review storage |
-| Deployment | Vercel frontend and API, Neon PostgreSQL |
-| Quality | pytest, Node.js tests, TypeScript, GitHub Actions, Chromium browser acceptance tests |
+| Interface | Next.js 15, React 19, TypeScript, English/Italian localization |
+| API | Python 3.12, FastAPI, Pydantic, SQLAlchemy |
+| Identity | Auth0 sessions, RS256 access-token validation, owner-scoped API access |
+| Agent and language models | LangGraph, LangChain, configurable model provider |
+| Knowledge retrieval | PostgreSQL full-text search, pgvector, source and passage provenance |
+| Administrative logic | Deterministic Python rules, source/version approval controls |
+| Documents | Private storage, PDF processing, OCR, validation, PDF generation |
+| Persistence | PostgreSQL, Alembic |
+| Quality | pytest, Node.js tests, TypeScript checks, Playwright and GitHub Actions |
 
-## Repository layout
+The codebase contains deployment configuration for Vercel and PostgreSQL infrastructure. Environment-specific access and privacy-sensitive services are explicitly gated.
+
+## Repository structure
 
 ```text
-frontend/       Next.js application, UI components and frontend tests
-backend/        FastAPI services, database models, migrations and tests
-requirements/   Reviewed residence-change rule artifacts and public verification key
-research/       Source-specific procedure research
-evals/          Evaluation fixtures
-audit/          Independent security and authenticated-flow checks
-docs/           Architecture, source review, operational guides and design decisions
-scripts/        Repository governance checks
-.github/        CI and acceptance workflows
+backend/       FastAPI application, domain services, migrations and tests
+frontend/      Next.js pages, components, API proxies and tests
+requirements/  Reviewed and candidate procedure catalogs and public verification keys
+research/      Administrative research and jurisdiction-specific notes
+docs/          Architecture, source-review, workflow and governance documentation
+evals/         Evaluation inputs and fixtures
+audit/         Security and end-to-end audit utilities
+scripts/       Repository validation utilities
+.github/       Continuous integration workflows
+AGENTS.md      Repository development and safety instructions
 ```
 
-## Development
+## Local development
 
-### Requirements
+**Prerequisites:** Node.js 22, npm, Python 3.12, and Docker for the local PostgreSQL service.
 
-- Node.js 22 and npm
-- Python 3.12
-- Docker or a local PostgreSQL database with pgvector
-- An OIDC/Auth0 configuration for authenticated case operations
-
-### Start the API
-
-From the repository root:
-
-```bash
-docker compose -f backend/compose.yaml up -d db
-cd backend
-python -m venv .venv
-# Activate your virtual environment
-python -m pip install -e ".[dev]"
-# Export the local settings described in .env.example
-python -m alembic -c alembic.ini upgrade head
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-The health endpoint runs without authenticated case services configured. To use saved cases locally, supply a trusted JWT issuer, audience, JWKS URL, and database connection, and explicitly enable the applicable services. See [backend/.env.example](backend/.env.example) for the environment contract; variables must be present in the process environment.
-
-### Start the web application
-
-In another terminal:
+Frontend:
 
 ```bash
 cd frontend
 npm ci
-# Configure local server settings from .env.example
 npm run dev
 ```
 
-Visit `http://localhost:3000`. Saved cases require a configured Auth0 application and a reachable API. Secrets belong in local environment configuration, never in Git.
+Open `http://localhost:3000`. Protected account and case operations require a configured Auth0 application and API connection; see `frontend/.env.example`.
 
-### Run checks
+Backend (from the repository root in a separate terminal):
 
 ```bash
-# Backend
 cd backend
-python -m pytest -q
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
+docker compose up -d db
+uvicorn app.main:app --reload
+```
 
+On Windows, activate the environment using `.venv\Scripts\Activate.ps1`. The public `/health` endpoint runs without enabling private APIs. To use protected case, knowledge, or document services, configure the required identity, database, feature flags and migration level as described in `backend/.env.example` and [backend documentation](backend/README.md). Do not copy credentials into the repository.
+
+## Verification
+
+```bash
 # Frontend
-cd ../frontend
+cd frontend
 npm test
 npm run typecheck
 npm run build
+
+# Backend (in a separate shell)
+cd backend
+python -m pytest -q
+
+# Roadmap consistency (from repository root)
+python scripts/validate_roadmap.py
 ```
 
-GitHub Actions also exercises migrations against disposable PostgreSQL and an isolated Chromium-to-FastAPI acceptance workflow with temporary signed test identities. That automated workflow does not replace live Auth0, document-security, or hosted-environment verification.
+Some integration and browser checks additionally require an isolated PostgreSQL service and their dedicated CI configuration. Automated tests use synthetic fixtures and do not establish that real municipal cases are legally valid.
 
-## Documentation
+## Trust and scope
 
-The [documentation index](docs/README.md) organizes the product architecture, source-review process, case workflow, security controls, and testing instructions. The [complete project specification](PracticaMIA_Complete_Project_Specification.md) captures the broader product design and planned capabilities.
+Administrative guidance must be grounded in human-reviewed, versioned official material. Missing, revoked, or conflicting evidence is a reason to stop or request review. User-uploaded information is private; extracted fields are not considered confirmed without the required validation and user action.
 
-## Official resources
+PracticaMIA is **not an official municipal service, legal representative, or application-submission channel**. Users remain responsible for reviewing their information and completing any submission through the appropriate government service.
 
-- [ANPR — Anagrafe Nazionale della Popolazione Residente](https://www.anagrafenazionale.interno.it/)
-- [Comune di Milano — Cambio di residenza](https://www.comune.milano.it/servizi/anagrafe/cambio-di-residenza)
-
-Always consult the current official service for authoritative requirements, required attachments, deadlines, and submission instructions.
-
----
-
-PracticaMIA is an independent assistance project, not a public authority or authorized government intermediary.
+For implementation details, see [system design](docs/UX_INTERFACE_SPEC.md), [case workflow](docs/UNIFIED_CASE_WORKFLOW.md), [official-source review](docs/KNOWLEDGE_REVIEW_WORKFLOW.md), [document processing](docs/PRIVATE_DOCUMENT_INTELLIGENCE.md), and the [full product specification](PracticaMIA_Complete_Project_Specification.md).

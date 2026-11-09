@@ -1,62 +1,50 @@
 # PracticaMIA Backend
 
-The backend is a **FastAPI** service for authenticated case management, structured intake, source-backed administrative guidance, document review, and preparation export.
+The Python backend provides the authenticated case-management and administrative-preparation services for PracticaMIA. It uses **FastAPI, SQLAlchemy, PostgreSQL, Alembic, LangGraph, and source-grounded retrieval**.
 
-It verifies RS256 access tokens, scopes saved cases to the verified user, and keeps reviewed official evidence separate from AI-generated explanations. It does **not** submit to government services or establish legal eligibility.
+## Responsibilities
 
-## Structure
+- Validate Auth0-issued RS256 access tokens and enforce per-case ownership.
+- Manage cases, intake facts, checklists, workflow progress, and reviewable packages.
+- Register versioned official sources, verify their provenance, and require authorized human approval.
+- Retrieve approved passages using full-text and vector search, with exact quote and citation checks.
+- Evaluate reviewed administrative rules separately from language-model output.
+- Support controlled assistant, preparation, document storage, OCR, extraction, and field-review services.
 
-- `app/cases/` — authenticated cases, intake, checklist, workflow and preparation PDF.
-- `app/knowledge/` — official sources, snapshots, review events, approved passage retrieval and optional RAG.
-- `app/rules/` — versioned, signed administrative rules and evaluator.
-- `app/private_documents/` — separately gated encrypted file and field-review lifecycle.
-- `app/preparation/` — isolated preparation and agent orchestration services.
-- `migrations/` — Alembic schema history; retain all revisions.
-- `tests/` — API, authorization, extraction, knowledge, rules and integration tests.
+Sensitive routes are **disabled by default** and require the appropriate environment flags, trusted identity configuration, migrated database, and — for document handling — additional privacy and scanning controls. Read the implementation gates in `app/config.py` and `app/main.py` before enabling a service.
 
 ## Local setup
 
-Requirements: Python 3.12 and PostgreSQL with pgvector.
+Requires Python 3.12 and Docker Compose.
 
 ```bash
-# Run at the repository root
-docker compose -f backend/compose.yaml up -d db
-
-# Then:
 cd backend
-python -m venv .venv
-# Activate the environment
-python -m pip install -e ".[dev]"
-# Configure trusted OIDC and database environment settings
-python -m alembic -c alembic.ini upgrade head
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
+docker compose up -d db
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-See [`.env.example`](.env.example) for the exact environment variables. Copying it to a file does not automatically export its variables to the Python process. With account services disabled, `GET /health` remains available.
+The unprotected `GET /health` endpoint is available with private features disabled. For authenticated APIs, populate the settings documented in `.env.example` with real trusted OIDC values and an isolated database. Apply migrations to the **intended non-production database only** after reviewing them:
 
-## API surface
+```bash
+alembic -c alembic.ini upgrade head
+```
 
-The available routes depend on server-side release flags.
+Setting values in an example file alone does not load them into the process; export them or use a supported environment loader. Never put actual credentials, user identity documents, or private signing keys into Git.
 
-| Area | Representative endpoints |
-| --- | --- |
-| Cases | `/api/v1/cases`, `/api/v1/cases/{case_id}` |
-| Intake and scope | `/api/v1/cases/{case_id}/scope`, `/intake` |
-| Reviewed checklist | `/api/v1/cases/{case_id}/checklist` |
-| Case workflow | `/api/v1/cases/{case_id}/workflow` and `/workflow/checklist` |
-| Preparation PDF | `/api/v1/cases/{case_id}/package` and `/package/pdf` |
-| Approved sources | `/api/v1/knowledge/sources` |
-| Optional services | Source search/review, assistant, preparation and private documents |
-
-Swagger/OpenAPI metadata is available from the running application at `/openapi.json`.
-
-**Security boundaries:** Every case operation requires a valid bearer token and owner-scoped authorization; review privileges and private-document processing have additional server-side controls. Source versions must be approved and integrity-checked before they can support a trusted checklist.
-
-## Tests
+## Validation
 
 ```bash
 cd backend
 python -m pytest -q
 ```
 
-CI also validates PostgreSQL migrations, source integrity, authenticated access, and a synthetic browser-to-API workflow. For runbooks, see [the documentation index](../docs/README.md).
+The test suite covers authenticated access, case state, knowledge provenance, retrieval, document review, and preparation behavior using isolated or synthetic inputs. PostgreSQL integration and browser acceptance workflows are also defined under `.github/workflows/`.
+
+## Project boundaries
+
+The backend does not authenticate with SPID/CIE, submit paperwork to public offices, or issue official eligibility decisions. Approved municipal evidence and deterministic validation take precedence over model output. All consequential case information and prepared artifacts remain subject to user review.
+
+See the [project overview](../README.md), [knowledge-review workflow](../docs/KNOWLEDGE_REVIEW_WORKFLOW.md), [case workflow](../docs/UNIFIED_CASE_WORKFLOW.md), and [document-intelligence design](../docs/PRIVATE_DOCUMENT_INTELLIGENCE.md).
