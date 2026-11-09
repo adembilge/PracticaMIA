@@ -26,6 +26,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
         )
         return response
+    if settings.enable_private_document_api:
+        from app.private_documents.security import validate_release_settings
+        # The operator must approve a reviewed notice, configure an external
+        # malware scanner, cron credential, and a separate encryption key.
+        api.state.private_document_key = validate_release_settings(settings)
     if settings.enable_agent_history_api and not settings.enable_preparation_api:
         raise ValueError("Agent history requires isolated preparation Preview")
     if settings.enable_preparation_api:
@@ -97,7 +102,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 raise
         api.state.engine = engine
         api.state.session_factory = session_factory
+        if settings.enable_private_document_api and engine.dialect.name == "postgresql":
+            with engine.connect() as connection:
+                revision = connection.exec_driver_sql(
+                    "SELECT version_num FROM alembic_version"
+                ).scalar_one()
+            if revision != "20261109_0013":
+                engine.dispose()
+                raise ValueError("Private documents require migrated 0013 schema")
         api.include_router(router)
+        if settings.enable_private_document_api:
+            from app.private_documents.router import router as private_router, retention_router
+            api.include_router(private_router)
+            api.include_router(retention_router)
         if settings.enable_preparation_api:
             from app.preparation.router import router as preparation_router
             api.include_router(preparation_router)
