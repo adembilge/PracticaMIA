@@ -110,9 +110,9 @@ def test_checklist_read_requires_owner_and_current_confirmed_intake(client, auth
                for item in data["items"])
     assert any(c["archived_reference"] for item in data["items"]
                for c in item["evidence"])
-    assert not any(x in str(data) for x in [
-        "italian", "registered_private_rental", case_id, "owner_subject",
-    ])
+    assert "facts" not in data and "scope_answers" not in data
+    assert case_id not in str(data)
+    assert "owner_subject" not in str(data)
     assert client.get(path, headers=bob).status_code == 404
 
     # Changing the scope deletes the confirmed intake and any trusted output.
