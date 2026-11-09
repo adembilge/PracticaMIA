@@ -125,3 +125,62 @@ export async function proxyPrivateDocumentUpload(path: string, form: FormData) {
     return caseError('Private document service unavailable', 502);
   }
 }
+
+
+/** Authenticated, no-store binary PDF proxy. Never send Auth0 access tokens
+ * to the browser or trust an upstream Content-Disposition filename.
+ */
+export async function proxyCasePdf(path: string) {
+  if (!auth0) return caseError('Service not configured', 503);
+  const backend = backendOrigin(process.env.BACKEND_API_URL, process.env.NODE_ENV);
+  if (!backend) return caseError('Service not configured', 503);
+  try {
+    if (!await auth0.getSession()) return caseError('Authentication required', 401);
+    const credential = await auth0.getAccessToken();
+    if (!credential.token) return caseError('Authentication needs renewal', 401);
+    const previewOidc = await previewIdentity(backend);
+    const upstream = await fetch(backend + path, {
+      method: 'GET',
+      headers: {
+        Authorization: 'Bearer ' + credential.token,
+        ...(previewOidc ? { 'x-vercel-trusted-oidc-idp-token': previewOidc } : {}),
+        Accept: 'application/pdf',
+      },
+      cache: 'no-store', redirect: 'manual',
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!upstream.ok) {
+      const status = [401, 403, 404, 409, 503].includes(upstream.status)
+        ? upstream.status : 502;
+      return caseError(
+        status === 409 ? 'Package blocked: resolve case or document issues'
+          : 'Preparation package unavailable', status,
+      );
+    }
+    const media = upstream.headers.get('content-type')?.split(';')[0].trim();
+    const declared = Number(upstream.headers.get('content-length') ?? '0');
+    if (media !== 'application/pdf' || !Number.isFinite(declared)
+        || declared > 1_000_000) return caseError('Invalid document response', 502);
+    const binary = await upstream.arrayBuffer();
+    const bytes = new Uint8Array(binary);
+    if (bytes.byteLength < 30 || bytes.byteLength > 1_000_000 ||
+        String.fromCharCode(...bytes.subarray(0, 5)) !== '%PDF-') {
+      return caseError('Invalid document response', 502);
+    }
+    return new NextResponse(bytes, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment; filename="practicamia-preparation-draft.pdf"',
+        'Content-Length': String(bytes.byteLength),
+        'Cache-Control': 'private, no-store',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Robots-Tag': 'noindex',
+        'Referrer-Policy': 'no-referrer',
+        'Content-Security-Policy': "default-src 'none'; sandbox",
+      },
+    });
+  } catch {
+    return caseError('Preparation package service unavailable', 502);
+  }
+}
