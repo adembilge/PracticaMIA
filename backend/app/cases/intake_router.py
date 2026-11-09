@@ -69,6 +69,11 @@ def write_intake(case_id: UUID, payload: IntakeUpdate,
     if row is None:
         row = CaseIntake(case_id=str(case_id), owner_subject=principal.subject)
         db.add(row)
+    if row.facts != facts or (row.confirmed_at is not None and not payload.confirm):
+        # A corrected/deselected fact invalidates all previous user review marks.
+        # Simply re-confirming unchanged facts preserves review progress.
+        row.checklist_progress = {}
+        row.progress_fingerprint = None
     row.facts = facts  # replacement semantics prevent stale unconfirmed facts
     row.confirmed_at = datetime.now(timezone.utc) if payload.confirm else None
     row.updated_at = datetime.now(timezone.utc)

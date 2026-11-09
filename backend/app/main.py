@@ -93,9 +93,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     revision = connection.exec_driver_sql(
                         "SELECT version_num FROM alembic_version"
                     ).scalar_one()
-                if revision not in {"20261106_0011", "20261108_0012", "20261109_0013", "20261109_0014", "20261109_0015"}:
+                if revision not in {"20261106_0011", "20261108_0012", "20261109_0013", "20261109_0014", "20261109_0015", "20261109_0016"}:
                     raise ValueError("Preparation requires migrated isolated staging schema")
-                if settings.enable_agent_history_api and revision not in {"20261108_0012", "20261109_0013", "20261109_0014", "20261109_0015"}:
+                if settings.enable_agent_history_api and revision not in {"20261108_0012", "20261109_0013", "20261109_0014", "20261109_0015", "20261109_0016"}:
                     raise ValueError("Agent history requires isolated staging schema 0012")
             except Exception:
                 engine.dispose()
@@ -107,7 +107,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 revision = connection.exec_driver_sql(
                     "SELECT version_num FROM alembic_version"
                 ).scalar_one()
-            if revision not in {"20261109_0013", "20261109_0014", "20261109_0015"}:
+            if revision not in {"20261109_0013", "20261109_0014", "20261109_0015", "20261109_0016"}:
                 engine.dispose()
                 raise ValueError("Private documents require migrated 0013 schema")
         api.include_router(router)
@@ -118,7 +118,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             api.include_router(private_router)
             api.include_router(retention_router)
             if engine.dialect.name == "postgresql":
-                if revision != "20261109_0015":
+                if revision not in {"20261109_0015", "20261109_0016"}:
                     engine.dispose()
                     raise ValueError("Document intelligence requires schema revision 0015")
             from app.private_documents.intelligence_router import router as intelligence_router
@@ -130,9 +130,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             from app.knowledge.router import router as knowledge_router
             from app.cases.checklist_router import router as checklist_router
             from app.cases.package_router import router as package_router
+            from app.cases.workflow_router import router as workflow_router
             api.include_router(knowledge_router)
             api.include_router(checklist_router)
             api.include_router(package_router)
+            api.include_router(workflow_router)
             if settings.enable_knowledge_search_api:
                 from app.knowledge.search_router import router as search_router
                 api.include_router(search_router)
