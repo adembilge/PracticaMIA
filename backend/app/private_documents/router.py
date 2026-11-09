@@ -66,7 +66,7 @@ async def add_private_document(
         raise HTTPException(422, "Unsupported document category")
     if request.headers.get("content-length"):
         try:
-            if int(request.headers["content-length"]) > MAX_FILE_BYTES + 4096:
+            if int(request.headers["content-length"]) > MAX_FILE_BYTES + 16384:
                 raise HTTPException(413, "Upload too large")
         except ValueError:
             raise HTTPException(413, "Invalid request size") from None

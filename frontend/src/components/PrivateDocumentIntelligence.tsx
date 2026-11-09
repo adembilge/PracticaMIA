@@ -48,6 +48,7 @@ const words={
     ambiguous:'Conflicting labels in this file require manual review. The app will not resolve the disagreement automatically.',
     reviewed:'User-reviewed values saved in encrypted temporary storage. No official verification occurred.',
     needsIntake:'Confirm your case intake to compare the document values.',
+    needsCaseInfo:'A reviewed field is missing from your confirmed case. Update case intake before downloading a PDF draft.',
     reload:'Reload review',
     error:'Document review could not be completed. Check the saved file and try again.',
     options:{
@@ -81,6 +82,7 @@ const words={
     ambiguous:'Il file contiene valori contrastanti. Serve una revisione manuale; l’app non sceglie automaticamente.',
     reviewed:'Valori confermati dall’utente e salvati in archivio cifrato. Nessuna verifica ufficiale.',
     needsIntake:'Conferma la raccolta dati della pratica per eseguire il confronto.',
+    needsCaseInfo:'Un campo revisionato non è presente nei dati confermati della pratica. Aggiorna i dati prima di scaricare il PDF.',
     reload:'Ricarica la revisione',
     error:'Impossibile completare la revisione. Verifica il file e riprova.',
     options:{
@@ -192,6 +194,7 @@ export function PrivateDocumentIntelligence({caseId,documentId}:Props) {
     {status==='unreadable'&&<p role="status">{t.unreadable}</p>}
     {status==='needs_manual_review'&&<p role="status">{t.ambiguous}</p>}
     {status==='needs_confirmed_intake'&&<p role="status">{t.needsIntake}</p>}
+    {status==='needs_case_information'&&<p role="status">{t.needsCaseInfo}</p>}
     {canReview&&<>
       <p>{t.reviewing}</p>
       {review?.ambiguous_fields.length? <p role="alert">{t.ambiguous}</p>:null}

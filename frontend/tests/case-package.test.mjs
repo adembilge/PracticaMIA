@@ -50,6 +50,8 @@ test('reviewable preparation draft is source-pinned and non-official',()=>{
   assert.equal(validPackageManifest(manifest()),true);
   assert.equal(Object.hasOwn(PREPARATION_ISSUES,
     'private_document_processing_not_enabled'),true);
+  assert.equal(Object.hasOwn(PREPARATION_ISSUES,
+    'document_needs_case_information'),true);
 });
 
 test('unsupported application or fabricated approval cannot expose download',()=>{
