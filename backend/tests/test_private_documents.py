@@ -34,6 +34,8 @@ def fixture_pdf():
     return buf.getvalue()
 
 
+PDF_BYTES = fixture_pdf()
+
 def enabled_settings(database_url="sqlite+pysqlite:///:memory:"):
     return Settings(
         database_url=database_url,
@@ -71,7 +73,7 @@ def upload(http, url, headers, *, consent=True):
             "privacy_ack": str(consent).lower(),
             "consent_version": CONSENT_VERSION,
         },
-        files={"file": ("fictional.pdf", fixture_pdf(), "application/pdf")},
+        files={"file": ("fictional.pdf", PDF_BYTES, "application/pdf")},
     )
 
 
@@ -104,7 +106,7 @@ def test_document_upload_requires_consent_and_scanner_then_encrypts(document_cli
     assert http.get(url).status_code == 401
     assert http.get(url, headers=bob).status_code == 404
     assert http.post(url, headers=alice, data={"category": "housing_document"},
-                     files={"file": ("f.pdf", fixture_pdf(), "application/pdf")}).status_code == 422
+                     files={"file": ("f.pdf", PDF_BYTES, "application/pdf")}).status_code == 422
     assert upload(http, url, alice, consent=False).status_code == 422
     assert upload(http, url, bob).status_code == 404
 
@@ -119,14 +121,14 @@ def test_document_upload_requires_consent_and_scanner_then_encrypts(document_cli
     with http.app.state.session_factory() as db:
         doc = db.get(PrivateCaseDocument, out["id"])
         assert doc and doc.owner_subject == "alice"
-        assert doc.ciphertext != fixture_pdf()
-        assert doc.content_sha256 == sha256(fixture_pdf()).hexdigest()
+        assert doc.ciphertext != PDF_BYTES
+        assert doc.content_sha256 == sha256(PDF_BYTES).hexdigest()
         assert doc.consent_version == CONSENT_VERSION
         assert doc.consented_at is not None and doc.scanned_at is not None
         assert doc.expires_at - doc.uploaded_at == timedelta(days=7)
         key = http.app.state.private_document_key
         assert open_bytes(doc.ciphertext, key=key, case_id=case_id,
-                          owner="alice", document_id=doc.id) == fixture_pdf()
+                          owner="alice", document_id=doc.id) == PDF_BYTES
         with pytest.raises(InvalidTag):
             open_bytes(doc.ciphertext, key=key, case_id=case_id,
                        owner="bob", document_id=doc.id)
