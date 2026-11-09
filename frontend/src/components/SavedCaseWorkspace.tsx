@@ -9,6 +9,7 @@ import { SavedCaseAIGuide } from '@/components/SavedCaseAIGuide';
 import { MilanOfficialGuidance } from '@/components/MilanOfficialGuidance';
 import { ReviewedSourcesPanel } from '@/components/ReviewedSourcesPanel';
 import { CaseIntakePanel } from '@/components/CaseIntakePanel';
+import { CaseJourneyPanel } from '@/components/CaseJourneyPanel';
 import { firstUnresolvedQuestion, isCaseId, nextScopeAnswers } from '@/lib/case-scope.js';
 
 type StoredCase = {
@@ -35,6 +36,7 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [journeyRevision, setJourneyRevision] = useState(0);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -95,6 +97,7 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
         updated = (await response.json()) as StoredCase;
         if (updated.id !== record.id) throw new Error('Unexpected case response');
         setRecord(updated);
+        setJourneyRevision(n => n + 1);
       }
       const outcome = classifySingleAnswer(questionIndex, selected);
       setNotice(t.savedAnswerSaved);
@@ -157,6 +160,12 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
           <p>{t.savedUnavailableBody}</p>
           <button type="button" className="button button-outline" onClick={() => void load()}>{t.savedRetry}</button>
         </div>}
+        {!loading && record && <CaseJourneyPanel
+          caseId={caseId}
+          refreshKey={journeyRevision}
+          privateDocumentsEnabled={privateDocumentsEnabled}
+          liveAIEnabled={liveAIEnabled}
+        />}
         {!loading && record && reviewing && <>
           <div className="panel-intro">
             <span className="tiny-eyebrow">{t.savedDemoReview}</span>
@@ -165,7 +174,7 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
           </div>
           <div className="panel-rule" />
           <div className="scope-content">
-            <ol className="side-checklist">
+            <ol id="case-scope" className="side-checklist">
               {t.questions.map((question, index) => <li key={question}>
                 <button type="button" className="inline-link" onClick={() => openQuestion(index)}>
                   {question} — {record.scope_answers[index] === 'yes' ? t.answerYes
@@ -174,9 +183,9 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
               </li>)}
             </ol>
             <div className="message-box notice" role="status">{t.savedNotEligibility}</div>
-            <MilanOfficialGuidance locale={locale} />
-            <ReviewedSourcesPanel locale={locale} />
-            <CaseIntakePanel caseId={caseId} />
+            <div id="case-handoff"><MilanOfficialGuidance locale={locale} /></div>
+            <div id="case-sources"><ReviewedSourcesPanel locale={locale} /></div>
+            <CaseIntakePanel caseId={caseId} onChanged={() => setJourneyRevision(n => n + 1)} />
           </div>
           <div className="panel-bottom">
             <button type="button" className="button button-outline" onClick={() => openQuestion(4)}>{t.savedEditAnswers}</button>
@@ -190,7 +199,7 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
             <p>{t.savedProgress} {record.scope_answers.length} / 5 — {t.savedDraft}: {record.status}</p>
           </div>
           <div className="panel-rule" />
-          <div className="scope-content">
+          <div className="scope-content" id="case-scope">
             <span className="question-count">{t.questionLabel} {questionIndex + 1} / 5</span>
             <h3>{t.questions[questionIndex]}</h3>
             <div className="answer-grid" role="group" aria-label={t.questions[questionIndex]}>
@@ -220,7 +229,7 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
             </button>
           </div>
         </>}
-        {!loading && record && liveAIEnabled && <div style={{padding: 16}}>
+        {!loading && record && liveAIEnabled && <div id="case-ai" style={{padding: 16}}>
           <SavedCaseAIGuide
             key={record.id + ':' + record.scope_answers.join(',')}
             caseId={caseId}
