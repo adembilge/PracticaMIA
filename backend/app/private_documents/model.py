@@ -23,6 +23,7 @@ class PrivateCaseDocument(Base):
     media_type: Mapped[str] = mapped_column(String(40), nullable=False)
     content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
     ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    review_ciphertext: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     consent_version: Mapped[str] = mapped_column(String(48), nullable=False)
     consented_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     scanned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
