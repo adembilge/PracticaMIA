@@ -93,9 +93,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     revision = connection.exec_driver_sql(
                         "SELECT version_num FROM alembic_version"
                     ).scalar_one()
-                if revision not in {"20261106_0011", "20261108_0012"}:
+                if revision not in {"20261106_0011", "20261108_0012", "20261109_0013"}:
                     raise ValueError("Preparation requires migrated isolated staging schema")
-                if settings.enable_agent_history_api and revision != "20261108_0012":
+                if settings.enable_agent_history_api and revision not in {"20261108_0012", "20261109_0013"}:
                     raise ValueError("Agent history requires isolated staging schema 0012")
             except Exception:
                 engine.dispose()
