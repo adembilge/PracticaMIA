@@ -23,10 +23,10 @@ Real two-account Auth0 tests require two dedicated synthetic accounts, a separat
 
 ## Decisions still unresolved
 
-- Human-reviewed and time-valid Milan residence-change branches, mandatory source dossier, reviewer authorization, and rule approval.
-- Exact preview Auth0 configuration and deployment setup; live two-account test acceptance.
-- Model provider, embedding model, data transfer/retention policy and bilingual retrieval targets.
-- Personal document categories, secure storage/retention and deletion behavior.
-- Backup/restore policy, private beta acceptance, production deploy and public release approval.
+- Currency and applicability reviews for the approved first Milan scenario, especially the officially required attachments and exceptions.
+- Real browser Auth0 and two-account session acceptance against the deployed frontend and backend.
+- Full conversational-agent and retrieval quality benchmarks, provider routing and privacy of model inputs.
+- Operational authorization to enable private documents, scanner, encryption/retention lifecycle and live personal-data handling.
+- Backup and restore exercise, observability coverage, private user validation, and explicit production release sign-off.
 
-No entry grants permission for destructive migrations, production promotion, external LLM data processing, official source approval, or government action.
+Historical decisions above are dated records. Later code, database changes, and approved-source events must be reconciled using current evidence; they do not retroactively alter the human decisions recorded at the time.

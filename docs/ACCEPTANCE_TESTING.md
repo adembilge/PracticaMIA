@@ -1,4 +1,4 @@
-# Synthetic MVP acceptance suite
+# Synthetic case acceptance suite
 
 This is an **automated end-to-end acceptance rehearsal**, not permission to
 handle real municipal documents or a completed production launch.

@@ -1,40 +1,25 @@
-# PracticaMIA — Development and Preview Workflow
+# Development and release workflow
 
-**Status:** Initial development workflow, 4 November 2026.  
-**Applies to:** `adembilge/PracticaMIA`; frontend lives in `frontend/`.
+## Branches and review
 
-## Branches and environments
+Use a short-lived branch for a scoped change and open a pull request to `main`. Keep production and review-only feature flags separate. Do not infer that a GitHub merge automatically updates a live deployment.
 
-- `main` is the production branch. A push to `main` triggers a production deployment.
-- Work on a short-lived feature branch, such as `feature/case-persistence` or `chore/frontend-quality-gates`.
-- Vercel builds preview deployments for eligible non-production Git pushes and pull requests. Review the URL shown on the PR; do **not** assume that the production URL has changed.
-- The application is currently a **synthetic-data demonstration**. Do not enter real personal documents or addresses.
+## Required checks
 
-## Before merging
+- **Backend:** `python -m pytest -q` and PostgreSQL migration smoke checks.
+- **Frontend:** `npm test`, `npm run typecheck`, `npm run build`, and built-server HTTP smoke.
+- **Browser acceptance:** the dedicated GitHub Actions Chromium job uses the real case UI and FastAPI with a disposable database and test identities.
+- **Governance changes:** `python scripts/validate_roadmap.py` plus its negative-control tests.
 
-1. Describe the change and expected behavior in the pull request.
-2. Confirm GitHub Actions **Frontend CI** completed: `npm ci`, `npm test`, `npm run typecheck`, `npm run build`.
-3. Open the Vercel preview and check navigation, desktop/mobile layout, language toggle, and relevant user flows.
-4. Check that the application still distinguishes *demo-scope matching* from real administrative eligibility and does not claim a case has been submitted.
-5. Merge to `main` only after reviewing the preview; check the production deployment afterward.
+Review changes to source approvals, rules signatures, authentication, encryption, and data retention independently. A passing unit test is not a replacement for a real reviewer decision or an authenticated hosted-environment check.
 
-## Local commands
+## Deployment
 
-```bash
-cd frontend
-npm ci
-npm test
-npm run typecheck
-npm run build
-npm run dev
-```
+1. Verify the intended repository commit, team, frontend and backend projects, and target environment.
+2. Verify the target database schema; apply additive migrations through a reviewed release process.
+3. Build the backend and frontend from the same reviewed commit.
+4. Check runtime health, API route presence, Auth0 callback/session, case isolation, current sources, package export, and blocked/unsupported cases.
+5. Confirm release flags. Real personal-document ingestion requires an independently reviewed controller notice, malware scanner, encryption key lifecycle, retention and backup policies, and two-account testing.
+6. Record the release commit, deployment IDs, tests, open issues and rollback plan.
 
-****Reproducible installs:** `frontend/package-lock.json` is committed; use `npm ci` locally and in CI. Update dependencies with `npm install` and commit both `package.json` and `package-lock.json` in the same PR.
-
-## Protection and approvals
-
-A successful GitHub Actions check and a successful Vercel build are **not** the same as a required merge gate. Configure repository branch protection or a ruleset separately to require the checks and PR review. Until then, repository write permissions can still allow direct updates to `main`.
-
-## Next product milestones
-
-After the frontend workflow is verified, validate the live prototype UX and official-source assumptions, then implement a FastAPI backend and persistent case management. Do not turn draft administrative research into executable requirements before review.
+Do not enable real personal data or official submission behavior through environment flags or a text-only approval. See [the private-document release guide](PRIVATE_DOCUMENT_VAULT_RELEASE.md) for additional controls.

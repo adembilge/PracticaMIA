@@ -1,58 +1,42 @@
-# PracticaMIA — Vercel FastAPI + Neon rollout
+# Vercel and Neon deployment
 
-**Purpose:** Host FastAPI on a separate Vercel project and PostgreSQL on Neon's free plan. Do not expose the case API until authentication and database access have both been verified.
+PracticaMIA is organized as two deployable services sharing one reviewed Git commit:
 
-## Architecture
+| Service | Repository directory | Vercel project | URL |
+| --- | --- | --- | --- |
+| Web | `frontend/` | `practicamia` | https://practicamia.vercel.app |
+| API | `backend/` | `practicamia-api` | https://practicamia-api.vercel.app |
 
-- Existing Vercel project `practicamia`: Next.js frontend, unchanged.
-- New Vercel project `practicamia-api`: Python 3.12 FastAPI with root directory `backend`, using `backend/index.py`.
-- Neon Postgres: provision a free project in an EU region if available. Use its **pooled** connection string for serverless runtime and a suitable direct connection for controlled migrations.
-- Auth0: the authenticated case API requires an RS256 JWT with the configured issuer, audience and signing keys. The public frontend login is a separate workstream.
+The API runs Python 3.12 and FastAPI. The web app uses Next.js and server-side Auth0 sessions. The API validates RS256 access tokens against the configured issuer, JWKS and audience. Neon PostgreSQL stores owned case records and source provenance.
 
-## Initial deployment safety
+## Configuration
 
-The backend uses `ENABLE_DEMO_CASE_API=0` by default. In that state only `/health` and FastAPI's metadata/documentation routes are present. Do not turn on case routes without verifying all requirements below.
+Use project-scoped, environment-specific variables; never commit or print credentials.
 
-## Phase A — Vercel backend project
+**Web:** Auth0 domain/client ID/client secret/session secret, audience, `APP_BASE_URL`, and HTTPS `BACKEND_API_URL`. Its private-document UI and optional model explanations have independent release flags.
 
-1. Create Vercel project `practicamia-api` linked to GitHub repository `adembilge/PracticaMIA`, with Root Directory **`backend`** and framework **FastAPI**.
-2. Choose function region Frankfurt (`fra1`) to be close to EU-hosted PostgreSQL.
-3. Deploy the feature branch before promoting to production. Check `GET /health` returns `{"status":"ok","service":"practicamia-backend"}`.
-4. The existing frontend project and domain must not be modified during this step.
+**API:** database URL, OIDC issuer/audience/JWKS URL, authenticated-case feature flag, approved knowledge catalog flag, and any separately authorized reviewer or document-processing settings.
 
-## Phase B — Neon Postgres
+The frontend never passes access tokens to the browser; Next.js API routes call FastAPI with the authenticated user's server-side bearer token.
 
-1. Provision Neon Free in a European region and create a database for PracticaMIA.
-2. Attach Neon to the backend Vercel project or set a **sensitive** `DATABASE_URL` on that project only. Never commit or log its value.
-3. SQLAlchemy uses the `psycopg` v3 driver; connection URLs must use the prefix `postgresql+psycopg://`. Keep TLS enabled (`sslmode=require`).
-4. For serverless functions, prefer Neon's pooled URL to reduce connection exhaustion. Run database migrations using a direct connection under a controlled process.
-5. Apply Alembic migrations **before** enabling case endpoints. From `backend/`, with a temporary direct-connection `DATABASE_URL` provided securely, run `python -m alembic -c alembic.ini upgrade head`.
-6. Test schema version, network reachability and owner isolation. Never run migrations from every Vercel function invocation.
+## Release procedure
 
-## Phase C — Auth0 and backend activation
+1. Confirm the intended team, two project IDs, protected branch, commit SHA, build environment and database target.
+2. Verify GitHub Actions (backend tests, frontend tests, TypeScript/build, and isolated browser acceptance). Inspect the exact code to be deployed.
+3. Create a restore point and migrate Neon through the repository's Alembic head using reviewed, non-destructive operations. Verify cases, reviewed source versions and table counts before and after.
+4. Deploy the **API** at the reviewed SHA, verify `GET /health` and protected routes in `/openapi.json`. Require the correct schema version.
+5. Deploy the **web app** at the **same SHA**. Check its environment values and Auth0 callback/redirect allowlist; do not substitute preview secrets for production.
+6. Sign in with authorized test accounts and execute the hosted case journey: create, scope, confirm intake, inspect current citations, mark actions read, resume, download PDF, and verify another account cannot access the case.
+7. Check no personal-document API became active without separate security approval. Inspect runtime errors, recording evidence, the release SHA and deployment IDs.
 
-Configure sensitive backend-only variables:
+**Important:** A successful backend deployment does not imply that the frontend was updated. A Vercel quota failure or pending build must be reported as incomplete rather than silently bypassed. A preview build is not automatically production-compatible.
 
-| Variable | Required value |
-| --- | --- |
-| `ENABLE_DEMO_CASE_API` | `1` only after all other prerequisites pass |
-| `DATABASE_URL` | Neon PostgreSQL pooled URL using SQLAlchemy's `postgresql+psycopg://` scheme and TLS |
-| `AUTH_ISSUER` | Exact Auth0 issuer URL with trailing slash |
-| `AUTH_AUDIENCE` | Auth0 API identifier matching the frontend's requested audience |
-| `AUTH_JWKS_URL` | Auth0 JWKS HTTPS endpoint |
+## Recovery
 
-After checking Auth0 token signature and per-user access, set `BACKEND_API_URL` only on the **frontend Vercel project**, pointing to this backend's stable HTTPS domain. Frontend access tokens must remain server-side.
+Keep the last known-good production deployment and Neon recovery plan. Revert or promote an already tested production-compatible deployment only after confirming its environment and database compatibility. Avoid rolling back schema changes by dropping case tables or approved source evidence.
 
-## Important limits
+## Security boundaries
 
-- The Vercel FastAPI runtime is serverless: do not rely on persistent process memory, background threads or local filesystem data surviving requests.
-- PostgreSQL is separate; data persists independently of function instances. Avoid long-lived global sessions and connection leaks.
-- Synthetic demo cases only. No real personal addresses or documents until a privacy/security review and an actual end-to-end login test.
-- Neon Free resource limits and Vercel Hobby function limits apply. Database inactivity and cold starts can increase latency.
-- Keep Neon and the function in nearby EU regions, and evaluate data processing, backups, logs, retention and regulatory obligations before real user data.
+The case API and knowledge catalog are distinct from protected reviewer actions. Private documents, local extraction and RAG services are independently gated. Government portal submission is not part of this application.
 
-## Verification
-
-Backend CI tests the Python entrypoint, API auth and PostgreSQL migrations. Vercel deployment must separately pass its Python build and a live `/health` request.
-
-References: https://vercel.com/docs/frameworks/backend/fastapi and https://vercel.com/marketplace/neon
+Further controls: [private document vault release](PRIVATE_DOCUMENT_VAULT_RELEASE.md), [unified case workflow](UNIFIED_CASE_WORKFLOW.md), and [development workflow](DEVELOPMENT_WORKFLOW.md).

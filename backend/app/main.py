@@ -1,4 +1,4 @@
-"""App factory for development-only authenticated, synthetic case persistence."""
+"""ASGI application factory for authenticated case and source services."""
 from fastapi import FastAPI
 
 from app.config import Settings
@@ -9,7 +9,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
     api = FastAPI(
         title="PracticaMIA Backend",
-        description="Development-only API. No official eligibility or submission.",
+        description="Independent case preparation API; no government eligibility or submission.",
         version="0.2.0",
     )
     api.state.settings = settings
