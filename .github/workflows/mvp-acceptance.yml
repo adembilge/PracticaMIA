@@ -17,7 +17,9 @@ concurrency:
 jobs:
   synthetic-acceptance:
     name: Browser + signed JWT + real FastAPI + disposable PostgreSQL
-    runs-on: ubuntu-latest
+    # Pin supported OS; GitHub ubuntu-latest now resolves to Ubuntu 26.04,
+    # which Playwright 1.56 cannot install on.
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     services:
       postgres:
