@@ -19,6 +19,15 @@ class CaseIntake(Base):
     )
     owner_subject: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     facts: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    # User-marked "reviewed" only, never an administrative/official completion.
+    # The version-bound fingerprint changes when confirmed facts or signed
+    # source evidence changes. A stale record is treated as no progress.
+    checklist_progress: Mapped[dict] = mapped_column(
+        JSON, nullable=False, default=dict
+    )
+    progress_fingerprint: Mapped[str | None] = mapped_column(
+        String(64), nullable=True
+    )
     confirmed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
