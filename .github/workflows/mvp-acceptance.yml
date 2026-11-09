@@ -126,7 +126,12 @@ jobs:
             cat frontend/.acceptance-results/server.log
             exit 1
           fi
-          (cd frontend && node tests/acceptance/run.mjs)
+          if ! (cd frontend && node tests/acceptance/run.mjs); then
+            echo "::group::Local synthetic bridge diagnostics (no requests or credentials logged)"
+            tail -n 120 frontend/.acceptance-results/server.log
+            echo "::endgroup::"
+            exit 1
+          fi
 
       - name: Save synthetic acceptance report and failure screenshots
         if: always()
@@ -136,3 +141,4 @@ jobs:
           path: frontend/.acceptance-results/
           if-no-files-found: warn
           retention-days: 14
+          include-hidden-files: true
