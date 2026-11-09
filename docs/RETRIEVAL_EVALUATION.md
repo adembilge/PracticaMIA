@@ -1,8 +1,6 @@
-# Retrieval Evaluation — Synthetic Lexical Baseline
+# Retrieval evaluation — synthetic regression baseline
 
-**Milestone:** Stage 7 retrieval quality preparation (tasks 50–51). This is
-**not** semantic RAG, not a completed official-source audit, and not a verified
-administrative-rules evaluation.
+This document describes a small lexical retrieval regression dataset. The repository also contains approved-only pgvector and hybrid-retrieval implementations and tests. These synthetic checks do **not** validate legal correctness, current official sources, or live user outcomes.
 
 ## Implemented
 
@@ -73,8 +71,8 @@ not approve any real source.
 3. Separate development and holdout queries; assess Recall@K, MRR, citation
    validity, coverage, source-change invalidation and abstention. Define
    meaningful thresholds only after establishing a representative baseline.
-4. Implement and compare semantic embeddings plus pgvector hybrid fusion
-   against this lexical baseline, without weakening source approval gates.
+4. Benchmark the existing semantic embeddings and pgvector hybrid fusion
+   against the lexical baseline on representative reviewed questions, without weakening source approval gates.
 5. Build deterministic verified administrative rules before allowing an agent
    to derive personalized requirements.
 

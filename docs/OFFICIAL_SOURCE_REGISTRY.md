@@ -1,80 +1,47 @@
-# Official-source registry — milestone 44
+# Official-source registry and evidence lifecycle
 
-**Status:** Milestone 44 merged into main, but production migration and feature enabling are pending. The registry remains behind a disabled-by-default feature flag. It is **not** a RAG system, approved requirements catalog, or government submission service.
+PracticaMIA maintains a versioned registry of official administrative sources. A registered URL is a **candidate**, not proof that a document has been acquired, reviewed, remains current, or applies to a particular case.
 
-## Why this exists
+## Components
 
-Milan residence-change guidance must cite the exact institution, jurisdiction, source document, version, and review date. Sources discovered online are not automatically trusted administrative rules. The original research in `research/milan_residence_change.md` remains a draft; its procedure descriptions must not silently become binding decisions.
+- `backend/app/knowledge/candidate_sources.json`: version-controlled candidate source metadata.
+- `catalog.py` and `model.py`: registry models and candidate registration.
+- `snapshots.py`, `html_extraction.py`, and `pdf_extraction.py`: controlled original-byte snapshots and structured passage extraction.
+- `review_service.py` and `review_router.py`: reviewer-controlled version approvals, revocations, and associated audit records.
+- `search.py`, `vector_search.py`, and `search_router.py`: approved-only lexical/hybrid retrieval and passage resolution.
+- `approved_embedding_index.py`: bounded indexing of reviewed public passages, with explicit transfer and environment safeguards.
 
-## Candidate inventory
+Alembic migrations evolve the registry, content snapshots, review events, PostgreSQL full-text search, and pgvector storage. **Keep every migration in sequence**; deletion or squashing could break existing databases.
 
-Four manually curated Comune di Milano URL references are bundled in `backend/app/knowledge/candidate_sources.json`:
+## Trust model
 
-| ID | Subject |
-| --- | --- |
-| `milano-residence-change` | Main municipal change-of-residence service |
-| `milano-residence-faq` | General Milan residence-change FAQ |
-| `milano-foreign-rental-documents` | Foreign rental housing document FAQ |
-| `milano-foreign-resident-change` | Change for foreign residents already in Italy |
+A source contributes to trusted retrieval only while its active version passes all required checks: correct jurisdiction and procedure, current approval, independent reviewer audit, matching official URL and content digest, valid passage provenance, and absence of revocation or supersession. The application fails closed when evidence is absent or outdated.
 
-**All four are candidates, not reviewed or approved.** The URLs originate from the 3 November research document and were cross-checked against municipal search results on 4 November 2026. Automated direct fetching of some municipal help-center pages was blocked; no text snapshot or content hash is asserted for these candidates.
+The versioned source registry is separate from the **deterministic administrative ruleset**. An approved source passage by itself does not grant an AI model permission to decide legal eligibility, required documents, fees, deadlines, or government submission status.
 
-## Schema and source status
+A reviewer decision is a privileged operation; it is never inferred from a user prompt, test fixture, or direct database status change. For the recorded scope of the first reviewed Milan ruleset, see [the owner review and activation record](MILAN_FIRST_ROUTE_OWNER_REVIEW_ACTIVATION_2026_11_08.md). The historical [Milan source inventory](MILAN_OFFICIAL_SOURCE_ACQUISITION.md) is not a current approval or deployment report.
 
-Alembic revision `20261104_0003` adds:
+## API and activation
 
-- `knowledge_sources`: stable source ID, institution, jurisdiction, procedure, language, title, official URL, document type, discovery timestamp, review state, active version ID.
-- `knowledge_source_versions`: immutable-intended version number, SHA-256 hash of a future verified snapshot, retrieval timestamp, review timestamp and reviewer, approval state.
+Authenticated clients can read active approved source metadata through `GET /api/v1/knowledge/sources` when the case and catalog APIs are configured. Search and citation resolution have separate gates. Reviewer-only operations require a distinct allowlist and enabled review API. Consult `backend/app/config.py` and `backend/app/main.py` for the actual environment flags and startup validation; do not assume the repository's code is activated in any particular deployment.
 
-A source is **never** eligible for trusted retrieval unless:
-
-1. the source status is `approved`;
-2. its `active_version_id` points to a version owned by that same source;
-3. that version status is `approved`;
-4. both `reviewed_at` and `reviewed_by` are set;
-5. the snapshot hash is a lowercase 64-character SHA-256 digest.
-
-The registry still has no public/user-facing approval operation or automatic activation. The follow-up [controlled HTML snapshots](CONTROLLED_SOURCE_SNAPSHOTS.md) PR adds raw snapshot storage, hashing, extraction and provenance-preserving passages, but they remain unreviewed; reviewer authentication and final source approval are future work.
-
-## Safe migration / rollout
-
-Development / CI:
+An isolated development database can be migrated and candidate metadata inspected using:
 
 ```bash
 cd backend
-python -m alembic -c alembic.ini upgrade head
+alembic -c alembic.ini upgrade head
 python -m app.knowledge.seed_candidates
-# Prints candidate count without writing.
-python -m app.knowledge.seed_candidates --apply
-# Explicitly registers only missing candidate metadata.
 ```
 
-**Production order requires human review/approval:**
+Seeding candidates with `--apply` is an explicit write; use it only on an authorized database and confirm the exact target first. Do not migrate production, approve a source, or enable sensitive routes merely to make a test pass.
 
-1. Back up or verify restore capability for Neon.
-2. Run migration `20261104_0003` against the intended Neon branch/database.
-3. Optionally run candidate seeding with `--apply`. It is idempotent and never modifies existing sources, their approvals, or their versions.
-4. Only once migrated, configure backend `ENABLE_KNOWLEDGE_CATALOG_API=1` in the intended environment and redeploy.
-5. With no reviewed versions, a signed-in request to `GET /api/v1/knowledge/sources` returns `{"status":"insufficient_evidence","sources":[]}`. This is the correct initial result.
+## Related guidance
 
-The feature flag defaults to **off**. Merging this code alone does not require an immediate production database migration and does not affect existing authenticated case CRUD.
+- [Controlled source snapshots](CONTROLLED_SOURCE_SNAPSHOTS.md)
+- [Source acquisition runbook](OFFICIAL_SOURCE_INTAKE.md)
+- [Human review and approval](KNOWLEDGE_REVIEW_WORKFLOW.md)
+- [Approved passage retrieval](APPROVED_PASSAGE_SEARCH.md)
+- [Embedding indexing](APPROVED_EMBEDDING_INDEXING.md)
+- [Retrieval evaluation](RETRIEVAL_EVALUATION.md)
 
-## API
-
-`GET /api/v1/knowledge/sources` is available only when both `ENABLE_DEMO_CASE_API=1` and `ENABLE_KNOWLEDGE_CATALOG_API=1`, with valid Auth0 bearer authentication. It exposes metadata for approved active versions, not their text. Pending, revoked, superseded, mislinked or unreviewed versions are absent.
-
-**Never use this endpoint to answer legal questions unless approved snapshots and passage-level citations have been implemented.** An empty result is not a negative legal determination.
-
-## Next work
-
-1. Review and merge controlled manual HTML acquisition, versioned snapshots and passage extraction (milestone 45.1–45.3). PDF support is not part of that milestone.
-2. Review and merge the [reviewer-only approval and audit workflow](KNOWLEDGE_REVIEW_WORKFLOW.md), including exact-hash human approval and revocation.
-4. Implement approved-passage indexing and hybrid lexical/vector retrieval, with deterministic tests.
-5. Establish linked, human-reviewed administrative rules and citation resolution; only then connect the knowledge tool to LangGraph.
-
-## Security boundaries
-
-- No arbitrary client URL ingestion; candidate URLs require HTTPS, official allowlisted hosts, a valid Milan procedure/jurisdiction, and no credentials/query strings.
-- No raw user documents or Auth0 identifiers are stored in the shared knowledge corpus.
-- No external requests occur when validating or seeding candidates.
-- Never infer user eligibility from mere source metadata.
+PracticaMIA is independent of government authorities. Review status and provenance are engineering controls, not certification that any administrative decision will be accepted. 
