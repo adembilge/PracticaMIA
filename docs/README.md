@@ -5,8 +5,7 @@ The documentation is organized around implemented components, operational bounda
 ## Product and architecture
 
 - [Complete project specification](../PracticaMIA_Complete_Project_Specification.md)
-- [User journey](FIRST_USER_JOURNEY.md) and [interface design](UX_INTERFACE_SPEC.md)
-- [Structured intake](STRUCTURED_CASE_INTAKE.md) and [unified case workflow](UNIFIED_CASE_WORKFLOW.md)
+- [Case workflow](UNIFIED_CASE_WORKFLOW.md) and [structured intake](STRUCTURED_CASE_INTAKE.md)
 - [Source-backed checklist](REVIEWED_CASE_CHECKLIST.md) and [preparation export](CASE_PREPARATION_EXPORT.md)
 - [Case-aware AI explanation](CASE_AWARE_AI_GUIDANCE.md)
 
@@ -18,6 +17,7 @@ The documentation is organized around implemented components, operational bounda
 - [Approved passage search](APPROVED_PASSAGE_SEARCH.md)
 - [Embedding indexing](APPROVED_EMBEDDING_INDEXING.md) and [retrieval evaluation](RETRIEVAL_EVALUATION.md)
 - [First reviewed route activation](MILAN_FIRST_ROUTE_OWNER_REVIEW_ACTIVATION_2026_11_08.md)
+- [Milan research dossier](research/milan_residence_change.md) (background research, not an approved ruleset)
 
 ## Development and security
 
