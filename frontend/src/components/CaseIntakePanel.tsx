@@ -3,6 +3,7 @@
 import {useCallback,useEffect,useState} from 'react';
 import {useDemo} from '@/components/DemoProvider';
 import {CaseChecklistPanel} from '@/components/CaseChecklistPanel';
+import {CasePackagePanel} from '@/components/CasePackagePanel';
 import {firstRouteIntakeState,INTAKE_FIELDS,INTAKE_OPTIONS,isRealCalendarDate}
   from '@/lib/case-intake.js';
 
@@ -229,5 +230,6 @@ export function CaseIntakePanel({caseId}:{caseId:string}) {
     </p>}
     <p style={{fontSize:12,opacity:0.8,marginTop:14}}>{t.noLaw}</p>
     <CaseChecklistPanel caseId={caseId} revision={revision} confirmed={Boolean(stored?.confirmed)} />
+    <CasePackagePanel caseId={caseId} revision={revision} confirmed={Boolean(stored?.confirmed)} />
   </section>;
 }
