@@ -49,6 +49,17 @@ HOUSING_CHOICES = frozenset({
 REVIEW_FIELDS = frozenset({"housing_basis", "move_in_date"})
 
 
+def normalize_labeled_move_date(value: str) -> str | None:
+    """Normalize an explicitly labeled date, never infer one from a lease term."""
+    if not isinstance(value, str):
+        return None
+    raw = value.strip()
+    if re.fullmatch(r"\d{2}[./-]\d{2}[./-]\d{4}", raw):
+        day, month, year = re.split(r"[./-]", raw)
+        raw = f"{year}-{month}-{day}"
+    return raw if valid_move_date(raw) else None
+
+
 def valid_move_date(value: str) -> bool:
     if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
         return False
@@ -111,8 +122,9 @@ def extract_intake_candidates(body: bytes, media_type: str, digest: str) -> dict
                     field_values.setdefault("housing_basis", set()).add(normalized)
         for match in MOVE_DATE_RE.finditer(text):
             raw = match.group("value").strip()
-            if valid_move_date(raw):
-                c = _candidate("move_in_date", raw, raw, number, digest)
+            normalized_date = normalize_labeled_move_date(raw)
+            if normalized_date is not None:
+                c = _candidate("move_in_date", raw, normalized_date, number, digest)
                 if c["candidate_id"] not in seen:
                     seen.add(c["candidate_id"])
                     candidates.append(c)
@@ -197,11 +209,13 @@ def compare_review(review: dict | None, *, intake_facts: dict | None,
         return {
             "status": "needs_extraction", "candidates": [], "confirmed_fields": {},
             "extraction_digest": None, "comparisons": [], "ambiguous_fields": [],
-            "user_reviewed": False,
+            "user_reviewed": False, "selected_evidence": {},
         }
     status = review.get("status")
     confirmed = review.get("confirmed_fields") if review.get("user_reviewed") else {}
     confirmed = confirmed if isinstance(confirmed, dict) else {}
+    chosen_evidence = review.get("selected_evidence") if review.get("user_reviewed") else {}
+    chosen_evidence = chosen_evidence if isinstance(chosen_evidence, dict) else {}
     results: list[dict] = []
     for field, confirmed_value in sorted(confirmed.items()):
         case_value = (intake_facts or {}).get(field) if intake_confirmed else None
@@ -225,10 +239,14 @@ def compare_review(review: dict | None, *, intake_facts: dict | None,
             "needs_manual_review" if ambiguous else
             "conflict" if conflicts else
             "needs_confirmed_intake" if not intake_confirmed else
+            "needs_case_information" if any(
+                entry["comparison"] == "no_confirmed_case_fact" for entry in results
+            ) else
             "user_reviewed_unverified"
         ),
         "candidates": review.get("candidates", []),
         "confirmed_fields": confirmed,
+        "selected_evidence": chosen_evidence,
         "extraction_digest": review.get("extraction_digest"),
         "comparisons": results,
         "ambiguous_fields": ambiguous,

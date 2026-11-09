@@ -2,8 +2,10 @@
 
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import {useDemo} from '@/components/DemoProvider';
-import {INTAKE_HOUSING_VALUES,validIntelligenceResponse}
-  from '@/lib/private-document-intelligence.js';
+import {
+  INTAKE_HOUSING_VALUES,validIntelligenceResponse,
+  reviewFormDefaults,canEditDocumentReview,
+} from '@/lib/private-document-intelligence.js';
 
 type Candidate={
   candidate_id:string;field_name:'housing_basis'|'move_in_date';
@@ -15,6 +17,7 @@ type Review={
   status:string;candidates:Candidate[];comparisons:Comparison[];
   ambiguous_fields:string[];extraction_digest:string|null;
   confirmed_fields:Record<string,string>;user_reviewed:boolean;
+  selected_evidence?:Record<string,string>;
   no_legal_verification:true;official_submission:false;
 };
 type Props={caseId:string;documentId:string};
@@ -37,6 +40,7 @@ const words={
     choose:'Choose supporting suggestion',
     disclaimer:'I checked each selected field against this document. These are my corrections and do not change the saved case intake.',
     save:'Save my review',
+    update:'Update my review',
     saving:'Saving…',
     match:'Matches confirmed case fact',
     conflict:'Disagrees with confirmed case fact — update your case intake or clarify the document',
@@ -69,6 +73,7 @@ const words={
     choose:'Scegli il suggerimento corrispondente',
     disclaimer:'Ho verificato tutti i campi rispetto al documento. Le correzioni non modificano i dati della pratica.',
     save:'Salva la mia revisione',
+    update:'Aggiorna la mia revisione',
     saving:'Salvataggio…',
     match:'Corrisponde al dato confermato nella pratica',
     conflict:'In disaccordo con la pratica — correggi i dati o chiarisci il documento',
@@ -98,15 +103,9 @@ export function PrivateDocumentIntelligence({caseId,documentId}:Props) {
 
   const adopt=(data:Review)=>{
     setReview(data);
-    const nextChosen:Record<string,string>={};
-    const nextValues:Record<string,string>={};
-    for(const candidate of data.candidates){
-      if(!(candidate.field_name in nextChosen)){
-        nextChosen[candidate.field_name]=candidate.candidate_id;
-        nextValues[candidate.field_name]=candidate.suggested_value;
-      }
-    }
-    setChosen(nextChosen);setCorrected(nextValues);setApproved(false);
+    const defaults=reviewFormDefaults(data);
+    setChosen(defaults.selected);setCorrected(defaults.corrected);
+    setApproved(false);
   };
 
   const load=useCallback(async(signal?:AbortSignal)=>{
@@ -174,7 +173,7 @@ export function PrivateDocumentIntelligence({caseId,documentId}:Props) {
 
   const status=review?.status;
   const isUnprocessed=status==='needs_extraction';
-  const canReview=status==='needs_user_confirmation'&&groups.length>0;
+  const canReview=canEditDocumentReview(review)&&groups.length>0;
 
   return <section aria-label={t.title} style={{padding:14,marginTop:10,border:'1px solid #d6e5e8',borderRadius:10}}>
     <h4>{t.title}</h4>
@@ -232,7 +231,7 @@ export function PrivateDocumentIntelligence({caseId,documentId}:Props) {
       </label>
       <button type="button" className="button button-primary" style={{marginTop:10}}
         disabled={!approved||busy}
-        onClick={()=>void confirm()}>{busy?t.saving:t.save}</button>
+        onClick={()=>void confirm()}>{busy?t.saving:review?.user_reviewed?t.update:t.save}</button>
     </>}
     {review?.user_reviewed&&<>
       <p><strong>{t.reviewed}</strong></p>

@@ -250,3 +250,71 @@ def test_expiration_and_ciphertext_integrity_fail_closed(
         db.commit()
     assert client.get(base,headers=alice).status_code==404
     assert client.post(base+"/extract",headers=alice).status_code==404
+
+
+
+def test_italian_date_normalization_explicit_review_and_subsequent_correction(
+    document_client, auth_headers,
+):
+    client = document_client
+    alice = auth_headers("alice")
+    case_id = prepare_case(client, alice)
+    doc_id = upload(client, alice, case_id, sample_pdf(
+        "Titolo di occupazione: Contratto di locazione registrato",
+        "Data del trasferimento: 05/11/2026",
+    ))
+    url = f"/api/v1/cases/{case_id}/private-documents/{doc_id}/intelligence"
+    extracted = client.post(url + "/extract", headers=alice).json()
+    suggestions = {c["field_name"]: c for c in extracted["candidates"]}
+    assert suggestions["housing_basis"]["suggested_value"] == "registered_private_rental"
+    assert suggestions["move_in_date"]["raw_value"] == "05/11/2026"
+    assert suggestions["move_in_date"]["suggested_value"] == "2026-11-05"
+    payload = review_payload(extracted)
+    reviewed = client.put(url + "/review", json=payload, headers=alice)
+    assert reviewed.status_code == 200
+    assert reviewed.json()["status"] == "user_reviewed_unverified"
+    assert len(reviewed.json()["selected_evidence"]) == 2
+    assert client.get(url, headers=alice).json()["confirmed_fields"]["move_in_date"] == "2026-11-05"
+
+    # Corrections are reversible while evidence and the encrypted record persist.
+    for selection in payload["selections"]:
+        if selection["field_name"] == "housing_basis":
+            selection["confirmed_value"] = "guest"
+    modified = client.put(url + "/review", json=payload, headers=alice)
+    assert modified.status_code == 200
+    assert modified.json()["status"] == "conflict"
+    for selection in payload["selections"]:
+        if selection["field_name"] == "housing_basis":
+            selection["confirmed_value"] = "registered_private_rental"
+    again = client.put(url + "/review", json=payload, headers=alice)
+    assert again.status_code == 200
+    assert again.json()["status"] == "user_reviewed_unverified"
+
+
+def test_reviewed_optional_move_date_needs_corresponding_case_fact(
+    document_client, auth_headers,
+):
+    client = document_client
+    alice = auth_headers("alice")
+    case_id = prepare_case(client, alice)
+    # A confirmed first-route intake may omit this optional date.
+    updated = client.put(f"/api/v1/cases/{case_id}/intake",
+        headers=alice, json={"facts": {k: v for k, v in FACTS.items()
+                                      if k != "move_in_date"}, "confirm": True})
+    assert updated.status_code == 200, updated.text
+    doc_id = upload(client, alice, case_id,
+                    sample_pdf("Data del trasferimento: 05.11.2026"))
+    url = f"/api/v1/cases/{case_id}/private-documents/{doc_id}/intelligence"
+    extracted = client.post(url + "/extract", headers=alice).json()
+    assert extracted["candidates"][0]["suggested_value"] == "2026-11-05"
+    reviewed = client.put(url + "/review", headers=alice,
+                          json=review_payload(extracted))
+    assert reviewed.status_code == 200, reviewed.text
+    assert reviewed.json()["status"] == "needs_case_information"
+    assert reviewed.json()["comparisons"][0]["comparison"] == "no_confirmed_case_fact"
+
+
+def test_invalid_labeled_dates_do_not_become_suggestions():
+    for raw in ("31/02/2026", "2026-02-30", "not a date", "01/01/2101"):
+        assert intel.normalize_labeled_move_date(raw) is None
+    assert intel.normalize_labeled_move_date("29/02/2024") == "2024-02-29"

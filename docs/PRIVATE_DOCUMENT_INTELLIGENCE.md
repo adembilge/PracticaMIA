@@ -76,3 +76,25 @@ active storage per the provider's own retention period.
 
 The next milestone remains preparing an **exportable, user-reviewed package**,
 with official handoff instructions and no simulated government approval.
+
+
+## Review corrections and document-type boundaries
+
+A saved, user-confirmed housing review can be reopened and corrected while
+its encrypted record and extraction fingerprint remain valid. The UI restores
+the previously chosen evidence and corrected typed values; the backend still
+requires an explicit confirmation for every field. Italian dates explicitly
+labeled as a move/transfer date may be normalized from `DD/MM/YYYY` or
+`DD.MM.YYYY` to canonical `YYYY-MM-DD`; an unlabelled rental commencement
+date is never inferred to be the applicant's move date.
+
+A confirmed document value without a matching confirmed case fact is reported
+as `needs_case_information`. It blocks draft export rather than being silently
+treated as an equivalent match. Identity and miscellaneous supporting documents
+may be stored only when the opt-in vault is enabled; they have no approved
+automated extractor. They remain explicitly **unverified warnings** in the
+non-official draft, not impossible-to-complete automated review blockers.
+
+The route remains limited to supported, reviewed Milan cases. There is no
+claim that a document is legally valid, that uploaded files satisfy all
+mandatory attachments, or that a government application has been submitted.

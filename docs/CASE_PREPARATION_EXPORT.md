@@ -74,3 +74,20 @@ checklist, or submission receipt.** Neither the user nor the AI can mark
 Connect case navigation, cited checklist, document review and package status
 into one coherent journey, with persistent user-only checklist progress,
 then perform controlled E2E tests and release acceptance.
+
+
+## Draft export and unsupported attachments
+
+An identity or miscellaneous supporting document can be uploaded into the
+private vault without an automated extractor. Its status is
+`unsupported_category`. It is shown as **unreviewed** in the manifest and
+draft PDF, and cannot be used as proof of eligibility or attachment
+completeness. Such a document does not, by itself, prevent export of a
+clearly non-official draft.
+
+Supported housing documents **do** block export until extracted and
+explicitly reviewed. A conflict, ambiguity, failed extraction or reviewed
+value with no matching confirmed case fact (`needs_case_information`)
+continues to block export. The exported PDF contains only bounded categorical
+metadata and status labels; it does not embed uploaded document bytes,
+full OCR text or personal identifiers.
