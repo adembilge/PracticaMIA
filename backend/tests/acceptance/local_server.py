@@ -18,9 +18,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
+import sys
 from threading import RLock
 from types import SimpleNamespace
 from urllib.parse import urlsplit
+
+# The standalone script is launched from backend/ but lives in tests/.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import jwt
 from cryptography.hazmat.primitives.asymmetric import rsa
