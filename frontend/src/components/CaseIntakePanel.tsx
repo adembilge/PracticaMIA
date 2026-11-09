@@ -11,7 +11,7 @@ type FieldKey =
 type Facts = Partial<Record<FieldKey,string>> & {move_in_date?:string};
 type ApiIntake = {facts:Facts;confirmed:boolean;confirmed_at:string|null;
   missing_fields:string[];outside_first_scenario:string[];
-  first_scenario_match:boolean;eligibility_evaluated:false};
+  first_scenario_match:boolean;eligibility_evaluated:false;updated_at:string|null};
 
 const labels = {
   en: {
@@ -178,6 +178,7 @@ export function CaseIntakePanel({caseId}:{caseId:string}) {
       <div style={{display:'grid',gap:16,marginTop:20}}>
         {INTAKE_FIELDS.map(key=>{
           const field=key as FieldKey;
+          const optionLabels: Record<string,string> = t.options[field];
           return <div key={field}>
             <label htmlFor={'intake-'+field} className="field-label">{t.fields[field]}</label>
             <select id={'intake-'+field} className="input" value={facts[field]??''}
@@ -185,7 +186,7 @@ export function CaseIntakePanel({caseId}:{caseId:string}) {
               onChange={e=>change(field,e.target.value)}>
               <option value="">{t.placeholder}</option>
               {INTAKE_OPTIONS[field].map(value=><option key={value} value={value}>
-                {t.options[field][value as keyof typeof t.options[typeof field]]}
+                {optionLabels[value]??value}
               </option>)}
             </select>
           </div>;
