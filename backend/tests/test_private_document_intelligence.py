@@ -93,7 +93,12 @@ def test_private_housing_extraction_review_comparison_and_isolation(
     assert client.get(base).status_code==401
     assert client.get(base,headers=bob).status_code==404
     assert client.post(base+"/extract",headers=bob).status_code==404
-    assert client.put(base+"/review",headers=bob,json={}).status_code==404
+    # Give a structurally valid payload so FastAPI reaches owner authorization.
+    assert client.put(base+"/review",headers=bob,json={
+        "extraction_digest":"a"*64,"confirm":True,
+        "selections":[{"field_name":"move_in_date","candidate_id":"b"*64,
+                       "confirmed_value":"2026-11-05"}],
+    }).status_code==404
 
     initial=client.get(base,headers=alice)
     assert initial.status_code==200
