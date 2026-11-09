@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { type Answer, useDemo } from '@/components/DemoProvider';
 import { classifySingleAnswer } from '@/lib/flow.js';
-import { LiveExampleAIGuide } from '@/components/LiveExampleAIGuide';
+import { SavedCaseAIGuide } from '@/components/SavedCaseAIGuide';
 import { MilanOfficialGuidance } from '@/components/MilanOfficialGuidance';
 import { ReviewedSourcesPanel } from '@/components/ReviewedSourcesPanel';
 import { firstUnresolvedQuestion, isCaseId, nextScopeAnswers } from '@/lib/case-scope.js';
@@ -218,7 +218,13 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
             </button>
           </div>
         </>}
-        {!loading && record && liveAIEnabled && <div style={{padding: 16}}><LiveExampleAIGuide /></div>}
+        {!loading && record && liveAIEnabled && <div style={{padding: 16}}>
+          <SavedCaseAIGuide
+            key={record.id + ':' + record.scope_answers.join(',')}
+            caseId={caseId}
+            snapshot={{status: record.status, scope_answers: record.scope_answers}}
+          />
+        </div>}
         {notice && <p className="container" role="status" style={{ padding: '12px 24px' }}>{notice}</p>}
         {error && <p className="error-text" role="alert" style={{ padding: '12px 24px' }}>{error}</p>}
       </section>
