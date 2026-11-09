@@ -93,9 +93,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     revision = connection.exec_driver_sql(
                         "SELECT version_num FROM alembic_version"
                     ).scalar_one()
-                if revision not in {"20261106_0011", "20261108_0012", "20261109_0013"}:
+                if revision not in {"20261106_0011", "20261108_0012", "20261109_0013", "20261109_0014"}:
                     raise ValueError("Preparation requires migrated isolated staging schema")
-                if settings.enable_agent_history_api and revision not in {"20261108_0012", "20261109_0013"}:
+                if settings.enable_agent_history_api and revision not in {"20261108_0012", "20261109_0013", "20261109_0014"}:
                     raise ValueError("Agent history requires isolated staging schema 0012")
             except Exception:
                 engine.dispose()
@@ -107,10 +107,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 revision = connection.exec_driver_sql(
                     "SELECT version_num FROM alembic_version"
                 ).scalar_one()
-            if revision != "20261109_0013":
+            if revision not in {"20261109_0013", "20261109_0014"}:
                 engine.dispose()
                 raise ValueError("Private documents require migrated 0013 schema")
         api.include_router(router)
+        from app.cases.intake_router import router as case_intake_router
+        api.include_router(case_intake_router)
         if settings.enable_private_document_api:
             from app.private_documents.router import router as private_router, retention_router
             api.include_router(private_router)
