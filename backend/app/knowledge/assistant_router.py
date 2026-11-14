@@ -5,6 +5,7 @@ query only an owned synthetic case and only against active, approved official
 passages. The model is never called if the review gate yields no evidence.
 """
 import re
+from collections.abc import Sequence
 from typing import Literal
 from uuid import UUID
 
@@ -16,7 +17,7 @@ from sqlalchemy.orm import Session
 from app.auth.tokens import Principal, get_principal
 from app.cases.router import get_case
 from app.database import get_session
-from app.knowledge.rag_chain import answer_from_passages
+from app.knowledge.rag_chain import answer_from_passages, select_verified_quotes
 from app.knowledge.quote_verification import verify_exact_quotations
 from app.knowledge.search import EvidencePassage, normalize_query, resolve_approved_passage
 from app.knowledge.usage_model import AssistantDailyUsage  # noqa: F401 - register table
@@ -40,15 +41,25 @@ ENGLISH_RETRIEVAL_ALIASES = (
 _MILAN_FAQ = "e139e910-3a89-4994-b450-b5107d8db7dd"
 _ANPR_GUIDE = "c89b4c40-4c41-48d5-ad52-be08e9630277"
 _TOPICS = (
-    (r"\btari\b", (f"{_MILAN_FAQ}:0005",)),
-    (r"\b(upload|caricare|allegare)\b.*\b(lease|contratto)\b",
-     (f"{_ANPR_GUIDE}:0017",)),
-    (r"\b(lease|locazione)\b",
-     (f"{_ANPR_GUIDE}:0015", f"{_ANPR_GUIDE}:0017")),
-    (r"\b(submit|inviare)\b.*\b(declaration|dichiarazione)\b",
-     (f"{_ANPR_GUIDE}:0021", f"{_ANPR_GUIDE}:0022")),
-    (r"\b(when must|how many days|entro quando|entro quanti giorni)\b",
-     (f"{_MILAN_FAQ}:0000",)),
+    (r"\btari\b", (
+        (f"{_MILAN_FAQ}:0005", r"Inoltre, è necessario dichiarare[^.]+\."),
+    )),
+    (r"\b(upload|caricare|allegare)\b.*\b(lease|contratto)\b", (
+        (f"{_ANPR_GUIDE}:0018", r"Gli allegati non sono obbligatori"),
+        (f"{_ANPR_GUIDE}:0017", r"Per agevolare gli accertamenti.*?proprietario\)\."),
+    )),
+    (r"\b(?:registered|registrato)\b.*\b(?:lease|locazione)\b|"
+     r"\blocazione\b.*\bregistrato\b", (
+        (f"{_ANPR_GUIDE}:0015", r"seleziona il punto 2[^]+"),
+    )),
+    (r"\b(submit|inviare)\b.*\b(declaration|dichiarazione)\b", (
+        (f"{_ANPR_GUIDE}:0021", r"Verifica la correttezza.*?della dichiarazione;"),
+        (f"{_ANPR_GUIDE}:0021", r"Seleziona il tasto “Invio dichiarazione”\."),
+    )),
+    (r"\b(when must|how many days|entro quando|entro quanti giorni)\b"
+     r"(?=.*\b(milan|milano)\b)(?=.*\b(address|residence|indirizzo|residenza)\b)", (
+        (f"{_MILAN_FAQ}:0000", r"Comunicare all'Ufficio Anagrafe[^.]+\."),
+    )),
 )
 _REQUIRES_CURRENT_OR_PERSONAL_DECISION = re.compile(
     r"\b(attachment size|file size|limite.{0,35}allegat|"
@@ -57,17 +68,34 @@ _REQUIRES_CURRENT_OR_PERSONAL_DECISION = re.compile(
 )
 
 
-def _scope_passages(db: Session, question: str) -> list[EvidencePassage] | None:
-    for pattern, citations in _TOPICS:
-        if re.search(pattern, question, re.IGNORECASE):
-            return [
-                passage for citation in citations
-                if (passage := resolve_approved_passage(
-                    db, citation_id=citation, jurisdiction=JURISDICTION,
-                    procedure_id=PROCEDURE, language="it",
-                )) is not None
-            ]
-    return None
+def _reviewed_topic(question: str) -> Sequence[tuple[str, str]]:
+    return next((options for pattern, options in _TOPICS
+                 if re.search(pattern, question, re.IGNORECASE)), ())
+
+
+def _resolve_topic(
+    db: Session, options: Sequence[tuple[str, str]],
+) -> tuple[list[EvidencePassage], tuple[str, ...]]:
+    passages = {}
+    quotes = []
+    for citation_id, pattern in options:
+        if citation_id not in passages:
+            passages[citation_id] = resolve_approved_passage(
+                db, citation_id=citation_id, jurisdiction=JURISDICTION,
+                procedure_id=PROCEDURE, language="it",
+            )
+        passage = passages[citation_id]
+        if passage is None:
+            return [], ()
+        match = re.search(pattern, " ".join(passage.content.split()))
+        if match is None:
+            return [], ()
+        quotes.append(f'[{citation_id}] "{match.group().strip()}"')
+    approved = [passage for passage in passages.values() if passage is not None]
+    bundle = "\n".join(quotes)
+    if not verify_exact_quotations(bundle, {item.citation_id: item.content for item in approved}):
+        return [], ()
+    return approved, tuple(quotes)
 
 
 def _english_retrieval_hints(question: str) -> tuple[str, ...]:
@@ -179,8 +207,11 @@ def ask_case_question(
     # are evaluated. Never change source scope based on an LLM's inference.
     if _REQUIRES_CURRENT_OR_PERSONAL_DECISION.search(payload.question):
         return AskAnswer(status="insufficient_evidence", sources=[])
-    passages = _scope_passages(db, payload.question)
-    if passages is None:
+    topic = _reviewed_topic(payload.question)
+    quotes: tuple[str, ...] = ()
+    if topic:
+        passages, quotes = _resolve_topic(db, topic)
+    else:
         passages = search_approved_hybrid(
             db, query=payload.question, jurisdiction=JURISDICTION,
             procedure_id=PROCEDURE, language="it", limit=5,
@@ -201,7 +232,11 @@ def ask_case_question(
             citation_id=item.citation_id, source_id=item.source_id,
             source_version_id=item.source_version_id, title=item.title,
             official_url=item.official_url, section_path=item.section_path,
-            excerpt=item.content[:1200],
+            excerpt=(
+                " ".join(quote.split('] "', 1)[1][:-1] for quote in quotes
+                         if quote.startswith(f"[{item.citation_id}] "))
+                if quotes else item.content[:1200]
+            ),
         )
         for item in passages
     ]
@@ -223,19 +258,26 @@ def ask_case_question(
         raise HTTPException(status_code=429, detail="Daily assistant limit reached")
 
     try:
-        generated = answer_from_passages(
-            question=payload.question, passages=passages, chat_model=model,
-        )
+        if quotes:
+            answer = select_verified_quotes(
+                question=payload.question, quotes=quotes, chat_model=model,
+            )
+            if answer == "":
+                return AskAnswer(status="insufficient_evidence", sources=[])
+        else:
+            answer = answer_from_passages(
+                question=payload.question, passages=passages, chat_model=model,
+            ).answer
     except Exception:
         return AskAnswer(status="generation_unavailable", sources=sources)
 
-    if generated.answer is None or not verify_exact_quotations(
-        generated.answer, {item.citation_id: item.content for item in passages},
+    if answer is None or not verify_exact_quotations(
+        answer, {item.citation_id: item.content for item in passages},
     ):
         return AskAnswer(status="unverified_answer", sources=sources)
 
     # Every line is a verified exact quote. Applicability, relevance, and
     # source freshness still require human review and separate evaluation.
     return AskAnswer(
-        status="answer_generated", answer=generated.answer, sources=sources,
+        status="answer_generated", answer=answer, sources=sources,
     )
