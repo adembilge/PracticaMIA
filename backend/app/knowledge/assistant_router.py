@@ -18,7 +18,7 @@ from app.cases.router import get_case
 from app.database import get_session
 from app.knowledge.rag_chain import answer_from_passages
 from app.knowledge.quote_verification import verify_exact_quotations
-from app.knowledge.search import normalize_query
+from app.knowledge.search import EvidencePassage, normalize_query, resolve_approved_passage
 from app.knowledge.usage_model import AssistantDailyUsage  # noqa: F401 - register table
 from app.knowledge.usage_limit import reserve_daily_model_call
 from app.knowledge.vector_search import search_approved_hybrid
@@ -34,6 +34,40 @@ ENGLISH_RETRIEVAL_ALIASES = (
     (re.compile(r"\b(lease|rental|tenant|renting)\b"), "locazione"),
     (re.compile(r"\b(application|submit|submission)\b"), "domanda"),
 )
+
+# Known requests within the reviewed route use its existing exact passages.
+# A source approval or version change still has to pass the normal resolver.
+_MILAN_FAQ = "e139e910-3a89-4994-b450-b5107d8db7dd"
+_ANPR_GUIDE = "c89b4c40-4c41-48d5-ad52-be08e9630277"
+_TOPICS = (
+    (r"\btari\b", (f"{_MILAN_FAQ}:0005",)),
+    (r"\b(upload|caricare|allegare)\b.*\b(lease|contratto)\b",
+     (f"{_ANPR_GUIDE}:0017",)),
+    (r"\b(lease|locazione)\b",
+     (f"{_ANPR_GUIDE}:0015", f"{_ANPR_GUIDE}:0017")),
+    (r"\b(submit|inviare)\b.*\b(declaration|dichiarazione)\b",
+     (f"{_ANPR_GUIDE}:0021", f"{_ANPR_GUIDE}:0022")),
+    (r"\b(when must|how many days|entro quando|entro quanti giorni)\b",
+     (f"{_MILAN_FAQ}:0000",)),
+)
+_REQUIRES_CURRENT_OR_PERSONAL_DECISION = re.compile(
+    r"\b(attachment size|file size|limite.{0,35}allegat|"
+    r"automatically rejected|respinta automaticamente|missed the deadline|superato il termine)\b",
+    re.IGNORECASE,
+)
+
+
+def _scope_passages(db: Session, question: str) -> list[EvidencePassage] | None:
+    for pattern, citations in _TOPICS:
+        if re.search(pattern, question, re.IGNORECASE):
+            return [
+                passage for citation in citations
+                if (passage := resolve_approved_passage(
+                    db, citation_id=citation, jurisdiction=JURISDICTION,
+                    procedure_id=PROCEDURE, language="it",
+                )) is not None
+            ]
+    return None
 
 
 def _english_retrieval_hints(question: str) -> tuple[str, ...]:
@@ -143,20 +177,22 @@ def ask_case_question(
     # The initial official sources are Italian. English output is supported,
     # but English lexical queries may abstain until multilingual embeddings
     # are evaluated. Never change source scope based on an LLM's inference.
-    passages = search_approved_hybrid(
-        db, query=payload.question, jurisdiction=JURISDICTION,
-        procedure_id=PROCEDURE, language="it", limit=5,
-    )
-    if not passages and payload.language == "en":
-        # No LLM query rewriting or invented eligibility facts. Search fixed
-        # Italian vocabulary through exactly the same approval-gated path.
-        for verified_query in _english_retrieval_hints(payload.question):
-            passages = search_approved_hybrid(
-                db, query=verified_query, jurisdiction=JURISDICTION,
-                procedure_id=PROCEDURE, language="it", limit=5,
-            )
-            if passages:
-                break
+    if _REQUIRES_CURRENT_OR_PERSONAL_DECISION.search(payload.question):
+        return AskAnswer(status="insufficient_evidence", sources=[])
+    passages = _scope_passages(db, payload.question)
+    if passages is None:
+        passages = search_approved_hybrid(
+            db, query=payload.question, jurisdiction=JURISDICTION,
+            procedure_id=PROCEDURE, language="it", limit=5,
+        )
+        if not passages and payload.language == "en":
+            for verified_query in _english_retrieval_hints(payload.question):
+                passages = search_approved_hybrid(
+                    db, query=verified_query, jurisdiction=JURISDICTION,
+                    procedure_id=PROCEDURE, language="it", limit=5,
+                )
+                if passages:
+                    break
     if not passages:
         return AskAnswer(status="insufficient_evidence", sources=[])
 

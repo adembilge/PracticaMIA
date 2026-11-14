@@ -18,6 +18,6 @@ export async function POST(request: NextRequest, { params }: Context) {
   const payload: unknown = await request.json().catch(() => null);
   if (!isAssistantQuestionPayload(payload)) return caseError('Invalid preview question', 422);
   return proxyCaseRequest(
-    'POST', '/api/v1/cases/' + id + '/assistant/ask', payload, 20000,
+    'POST', '/api/v1/cases/' + id + '/assistant/ask', payload, 40000,
   );
 }

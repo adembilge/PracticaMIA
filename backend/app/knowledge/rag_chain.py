@@ -90,7 +90,7 @@ def answer_from_passages(
     )
     # LCEL, not LangGraph. Tests supply an offline deterministic chat model.
     model_chain = PROMPT | chat_model | StrOutputParser()
-    answer = model_chain.invoke({"question": question, "context": context})
+    answer = model_chain.invoke({"question": question, "context": context}).strip()
     return GroundedAnswer(
         "answer_generated", answer,
         tuple(doc.metadata["citation_id"] for doc in documents),

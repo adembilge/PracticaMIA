@@ -6,6 +6,7 @@ import {useDemo} from '@/components/DemoProvider';
 import {FIRST_ROUTE_SOURCE_LINKS} from '@/lib/approved-source-view.js';
 import {PREPARATION_ISSUES} from '@/lib/case-package.js';
 import {validCaseWorkflow} from '@/lib/case-workflow.js';
+import {MILAN_OFFICIAL_LINKS} from '@/lib/milan-official-guidance.js';
 
 type Evidence={
   citation_id:string;source_id:string;official_url:string;
@@ -39,7 +40,7 @@ const copy={
     },
     state:{
       complete:'Answered',blocked:'Needs attention',needs_attention:'In progress',
-      locked:'Not ready',informational:'Optional explanation',
+      locked:'Available after previous steps',informational:'Optional explanation',
       reviewed_by_user:'Read by you',unavailable:'Not enabled',
       user_reviewed_unverified:'User reviewed, unverified',
       optional_unverified:'No documents reviewed',
@@ -70,8 +71,16 @@ const copy={
     unavailable:'Package download is blocked until outstanding issues are resolved.',
     issues:'Outstanding issues and limitations',
     noIssues:'No issues found by the limited case checks. This is not legal verification.',
-    noDocs:'Real document review is not enabled. Do not upload personal documents.',
     docs:'Open private document review',
+    demoDocs:'Review a fictional document',
+    previewDocs:'Review synthetic documents in Preview',
+    demoDocsNotice:'Use a fictional sample to try document review. Personal-file uploads are unavailable here.',
+    privateDocsUnavailable:'Personal-file uploads are unavailable here.',
+    assistant:'Open the evidence assistant',
+    completeScope:'Finish the initial questions first',
+    confirmFacts:'Confirm the case facts first',
+    sourcesPending:'Waiting for approved sources',
+    officialGuidance:'Read the official guidance',
     handoff:'Open official ANPR service',
     warning:'Marks record that you read instructions. They are not proof of completion, document authenticity, government acceptance, or submission.',
     note:'The rules are shown in their originally signed English text.',
@@ -87,7 +96,7 @@ const copy={
     },
     state:{
       complete:'Risposto',blocked:'Serve attenzione',needs_attention:'In corso',
-      locked:'Non disponibile',informational:'Spiegazione facoltativa',
+      locked:'Disponibile dopo i passaggi precedenti',informational:'Spiegazione facoltativa',
       reviewed_by_user:'Letto dall’utente',unavailable:'Non attivo',
       user_reviewed_unverified:'Rivisto, non verificato',
       optional_unverified:'Documenti non verificati',
@@ -118,8 +127,16 @@ const copy={
     unavailable:'Il download è bloccato finché le questioni aperte non vengono risolte.',
     issues:'Questioni aperte e limitazioni',
     noIssues:'Nessun problema nei controlli limitati. Non è una verifica legale.',
-    noDocs:'La revisione di documenti reali non è attiva. Non caricare documenti personali.',
     docs:'Apri la revisione documenti',
+    demoDocs:'Esamina un documento di esempio',
+    previewDocs:'Esamina documenti fittizi in anteprima',
+    demoDocsNotice:'Prova la revisione con un documento fittizio. Qui non puoi caricare file personali.',
+    privateDocsUnavailable:'Qui non puoi caricare file personali.',
+    assistant:'Apri l’assistente con fonti',
+    completeScope:'Completa prima le domande iniziali',
+    confirmFacts:'Conferma prima i dati della pratica',
+    sourcesPending:'In attesa delle fonti approvate',
+    officialGuidance:'Consulta le istruzioni ufficiali',
     handoff:'Apri il servizio ufficiale ANPR',
     warning:'Questi segni attestano solo la lettura delle istruzioni; non provano completamento, validità, accettazione o invio ufficiale.',
     note:'Le regole sono riportate in inglese nel testo firmato originale.',
@@ -142,8 +159,13 @@ const target:Record<string,string>={
   package:'#case-workflow-package',handoff:'#case-handoff',
 };
 
-export function CaseJourneyPanel({caseId,refreshKey,privateDocumentsEnabled,liveAIEnabled}:{
+export function CaseJourneyPanel({
+  caseId,refreshKey,privateDocumentsEnabled,liveAIEnabled,
+  assistantEnabled,preparationEnabled,scopeReviewVisible,fictionalDocumentsEnabled,
+}:{
   caseId:string;refreshKey:number;privateDocumentsEnabled:boolean;liveAIEnabled:boolean;
+  assistantEnabled:boolean;preparationEnabled:boolean;scopeReviewVisible:boolean;
+  fictionalDocumentsEnabled:boolean;
 }) {
   const {locale}=useDemo();
   const t=copy[locale];
@@ -197,6 +219,8 @@ export function CaseJourneyPanel({caseId,refreshKey,privateDocumentsEnabled,live
     }finally{setSaving(false);}
   }
   const reviewed=data?.checklist.reviewed_items??{};
+  const base='/cases/'+encodeURIComponent(caseId);
+  const privateReviewAvailable=Boolean(data?.documents.enabled&&privateDocumentsEnabled);
   return <section id="case-workflow" aria-label={t.heading}
     style={{border:'1px solid #cbdce4',borderRadius:12,padding:18,margin:'15px 0'}}>
     <h2 style={{marginTop:0}}>{t.heading}</h2>
@@ -209,26 +233,50 @@ export function CaseJourneyPanel({caseId,refreshKey,privateDocumentsEnabled,live
         gap:8,marginTop:18,
       }}>
         {data.steps.map((step,i)=>{
-          const unavailable=(step.id==='documents'&&!privateDocumentsEnabled)||
-            (step.id==='guidance'&&!liveAIEnabled);
-          return <a key={step.id} href={target[step.id]}
-            aria-disabled={unavailable}
+          let href=target[step.id]??'#case-workflow-next';
+          let label:string=t.state[step.status as keyof typeof t.state]??step.status;
+          if(step.id==='documents'&&!privateReviewAvailable){
+            if(fictionalDocumentsEnabled) label=t.demoDocs;
+            else if(preparationEnabled) label=t.previewDocs;
+          }
+          if(step.id==='guidance'&&assistantEnabled){
+            href=base+'/assistant';
+            label=t.assistant;
+          }else if(step.id==='guidance'&&liveAIEnabled){
+            label=t.state.informational;
+          }else if(step.id==='guidance'){
+            href='#case-workflow-next';
+            label=t.summary;
+          }
+          if(step.id==='intake'&&!scopeReviewVisible){
+            href='#case-scope';
+            label=t.completeScope;
+          }
+          if(step.id==='checklist'&&step.status==='locked'){
+            href=scopeReviewVisible?(data.next_action==='review_sources'?'#case-sources':'#case-intake'):'#case-scope';
+            label=!scopeReviewVisible?t.completeScope:
+              data.next_action==='review_sources'?t.sourcesPending:t.confirmFacts;
+          }
+          if(step.id==='handoff'&&!scopeReviewVisible) href='#case-workflow-handoff';
+          return <a key={step.id} href={href}
             style={{
               padding:12,border:'1px solid #d8e2e7',borderRadius:8,
-              textDecoration:'none',opacity:unavailable?0.55:1,
+              textDecoration:'none',
             }}>
             <span style={{display:'block',fontSize:12,opacity:0.75}}>
-              {String(i+1).padStart(2,'0')} · {t.state[step.status as keyof typeof t.state]??step.status}
+              {String(i+1).padStart(2,'0')} · {label}
             </span>
             <strong>{t.stages[step.id as keyof typeof t.stages]??step.id}</strong>
           </a>;
         })}
       </nav>
-      <div className="message-box notice" role="status" style={{marginTop:15}}>
+      <div id="case-workflow-next" className="message-box notice" role="status" style={{marginTop:15}}>
         <div>
           <strong>{t.summary}</strong>
           <p>{t.action[data.next_action as keyof typeof t.action]??data.next_action}</p>
-          <a href={nextTarget[data.next_action]??'#case-intake'} className="inline-link">
+          <a href={!scopeReviewVisible&&data.next_action==='consult_official'?
+            '#case-workflow-handoff':!scopeReviewVisible&&['confirm_intake','review_sources'].includes(data.next_action)?
+              '#case-scope':nextTarget[data.next_action]} className="inline-link">
             {t.stages[(data.next_action==='answer_scope'?'scope':
               data.next_action==='confirm_intake'?'intake':
               data.next_action==='review_checklist'?'checklist':
@@ -267,11 +315,23 @@ export function CaseJourneyPanel({caseId,refreshKey,privateDocumentsEnabled,live
       <div id="case-workflow-documents" style={{marginTop:18}}>
         <h3>{t.stages.documents}</h3>
         <p>{data.documents.uploaded_count} · {data.documents.reviewed_count} {t.state.user_reviewed_unverified}</p>
-        {data.documents.enabled&&privateDocumentsEnabled
+        {privateReviewAvailable
           ?<Link className="button button-outline"
             href={'/cases/'+encodeURIComponent(caseId)+'/documents'}>{t.docs}</Link>
-          :<p>{t.noDocs}</p>}
+          :<>
+            <p>{fictionalDocumentsEnabled?t.demoDocsNotice:t.privateDocsUnavailable}</p>
+            {fictionalDocumentsEnabled&&<Link className="button button-outline" href="/demo/synthetic?step=document">
+              {t.demoDocs}
+            </Link>}
+            {preparationEnabled&&<p><Link className="inline-link" href={base+'/preparation#synthetic-documents'}>
+              {t.previewDocs}
+            </Link></p>}
+          </>}
       </div>
+      {!scopeReviewVisible&&<p id="case-workflow-handoff">
+        <a className="inline-link" href={MILAN_OFFICIAL_LINKS.anpr}
+          target="_blank" rel="noopener noreferrer">{t.officialGuidance}</a>
+      </p>}
       <div id="case-workflow-package" style={{marginTop:18}}>
         <h3>{t.package}</h3>
         {data.package.download_allowed

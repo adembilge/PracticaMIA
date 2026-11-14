@@ -201,12 +201,15 @@ function saveJSON(value: unknown) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
-export function SyntheticDemoWorkspace() {
+export function SyntheticDemoWorkspace({startAtDocument = false}: {startAtDocument?: boolean}) {
   const { locale } = useDemo();
   const it = locale === 'it';
   const t = words[it ? 'it' : 'en'];
-  const [state, setState] = useState(() => createSyntheticCase('standard'));
-  const [step, setStep] = useState(0);
+  const [state, setState] = useState<ReturnType<typeof createSyntheticCase>>(() => {
+    const sample = createSyntheticCase('standard');
+    return startAtDocument ? {...sample, ...confirmSyntheticFacts(sample)} : sample;
+  });
+  const [step, setStep] = useState(startAtDocument ? 3 : 0);
   const [fieldChoice, setFieldChoice] = useState('');
   const [packageAccepted, setPackageAccepted] = useState(false);
   const evaluation = evaluateSyntheticCase(state);
