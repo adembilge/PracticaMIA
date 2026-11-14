@@ -21,6 +21,10 @@ Existing code and merged PRs predate a tracked task-state system. Every generate
 
 Real two-account Auth0 tests require two dedicated synthetic accounts, a separate allowed Preview callback origin, a paired isolated frontend/backend, and the migration-compatible staging Neon branch. Do not bypass authentication challenges or copy production session secrets to preview. Reviewer-only article access is testable without approving any source.
 
+## D-004 — Align the scope questions with the signed Milan route (14 November 2026)
+
+The product owner approved aligning the entry flow with the existing signed route. The first question asks about prior registration anywhere in Italy. The second asks whether the destination is in Comune di Milano. Moves within Milan and moves into Milan from another Italian municipality follow the same route if the separately confirmed intake matches the signed conditions. A saved `Yes` to the former narrower registration question remains valid. A saved `No` remains blocked until the user answers the updated question. See [the reviewed checklist boundary](REVIEWED_CASE_CHECKLIST.md#exact-release-boundary).
+
 ## Decisions still unresolved
 
 - Currency and applicability reviews for the approved first Milan scenario, especially the officially required attachments and exceptions.

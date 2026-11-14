@@ -14,6 +14,7 @@
 ## Exact release boundary
 
 - Supported only: **one adult Italian citizen already registered in Italy, moving alone into Comune di Milano, as holder of a registered private rental contract**, with no household aggregation.
+- The previous registered address may be in Milan or another Italian municipality. The destination must be in Comune di Milano. The scope questions use the same five saved answer positions. Existing cases with a saved `No` to the former Milan-only registration question can reopen the case and update the answer.
 - Other confirmed categories yield `outside_first_route` with **zero** actions.
 - Unfinished scope or unconfirmed/unknown intake yields `needs_scope` or `needs_confirmation` with **zero** actions.
 - Bad signature, incomplete catalog or missing/revoked official source produces `evidence_unavailable` with **zero** actions.
@@ -24,6 +25,7 @@
 
 - Backend tests: authenticated owner isolation, missing intake, user confirmation, five signed actions, invalidation on scope edits, unsupported tenancy, citation revocation, malicious URL and public-key signature tampering.
 - Frontend tests: five expected rule IDs, version and URL allowlists, no invented attachment categories, no malicious citation URL, and blocked states with no instructions.
+- Browser acceptance covers the supported move within Milan, correction of a saved answer for a move into Milan from another Italian municipality, and rejection of a destination outside Milan.
 - Both GitHub Actions test/build pipelines must pass. No Vercel testing, sandbox or deployment requests.
 - The endpoint reads the existing `20261109_0014` Neon schema; **no new database migration**.
 - Merging on GitHub does **not** prove the current Vercel-hosted production website has deployed this code. Browser E2E and a separate production release remain necessary.

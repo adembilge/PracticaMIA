@@ -57,6 +57,7 @@ export function CaseWorkspace() {
           <div className="scope-content">
             <span className="question-count">{t.questionLabel} {data.questionIndex + 1} / 5</span>
             <h3 ref={stepHeadingRef} tabIndex={-1}>{t.questions[data.questionIndex]}</h3>
+            {data.questionIndex === 0 && <p>{t.previousRegistrationHelp}</p>}
             <div className="answer-grid" role="group" aria-label={t.questions[data.questionIndex]}>
               {(['yes', 'no', 'unsure'] as Answer[]).map((option) => <button type="button" className={`answer-option ${scopeAnswer === option ? 'selected' : ''}`} key={option} aria-pressed={scopeAnswer === option} onClick={() => answer(data.questionIndex, option)}><span className="answer-radio"/>{option === 'yes' ? t.answerYes : option === 'no' ? t.answerNo : t.answerUnsure}</button>)}
             </div>
