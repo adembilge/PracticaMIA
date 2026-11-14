@@ -1,0 +1,137 @@
+"""Bilingual Milan acceptance cases with local scope and provider-failure fixtures."""
+import json
+from dataclasses import replace
+from datetime import datetime, timezone
+from pathlib import Path
+
+import pytest
+from langchain_core.messages import AIMessage
+from langchain_core.runnables import RunnableLambda
+
+from app.cases import checklist_service
+from app.knowledge import assistant_router
+from app.knowledge.search import EvidencePassage
+from test_assistant_preview import assistant_client, case_id, post  # noqa: F401
+from test_case_checklist import FACTS, confirmed_intake, create_case, fake_resolver
+
+FIXTURE = Path(__file__).resolve().parents[2] / "evals/fixtures/milan_mvp_bilingual.json"
+CASES = {
+    case["id"]: case
+    for case in json.loads(FIXTURE.read_text(encoding="utf-8"))["cases"]
+}
+TIMESTAMP = datetime(2026, 11, 14, tzinfo=timezone.utc)
+PASSAGE_CONTENT = {
+    "0000": "Comunicare all'Ufficio Anagrafe entro 20 giorni dalla data di trasferimento.",
+    "0015": "seleziona il punto 2 per questo esempio sintetico di locazione registrata",
+}
+
+
+@pytest.mark.parametrize("item", ["MIL-08", "MIL-09", "MIL-10", "MIL-11"])
+def test_scope_matrix(client, auth_headers, monkeypatch, item):
+    assert set(CASES[item]["queries"]) == {"en", "it"}
+    monkeypatch.setattr(
+        checklist_service, "resolve_approved_passage",
+        lambda db, *, citation_id, **_: fake_resolver(citation_id),
+    )
+    headers = auth_headers()
+
+    if item in {"MIL-10", "MIL-11"}:
+        cid = create_case(client, headers, scoped=False)
+        scope = ["yes", "yes", "no"] if item == "MIL-10" else ["yes", "no"]
+        reply = client.patch(
+            f"/api/v1/cases/{cid}/scope", json={"answers": scope}, headers=headers,
+        )
+        assert reply.status_code == 200
+        assert reply.json()["status"] == "unsupported"
+    else:
+        cid = create_case(client, headers)
+        if item == "MIL-08":
+            confirmed_intake(client, headers, cid)
+            state = client.get(f"/api/v1/cases/{cid}/workflow", headers=headers).json()
+            assert state["checklist"]["total"] == 5
+            assert state["official_submission"] is False
+            return
+        draft = client.put(
+            f"/api/v1/cases/{cid}/intake", headers=headers,
+            json={"facts": {**FACTS, "housing_basis": "unknown"}, "confirm": False},
+        )
+        assert draft.status_code == 200
+        assert draft.json()["missing_fields"] == ["housing_basis"]
+    assert client.get(f"/api/v1/cases/{cid}/package/pdf", headers=headers).status_code == 409
+
+
+def resolve_topic_passage(db, *, citation_id, **kwargs):
+    version, ordinal = citation_id.split(":")
+    reviewed = fake_resolver(citation_id)
+    return EvidencePassage(
+        citation_id=citation_id, passage_id=citation_id, source_id=reviewed.source_id,
+        source_version_id=version, source_revision=1, institution=reviewed.institution,
+        title=reviewed.title, official_url=reviewed.official_url,
+        jurisdiction=assistant_router.JURISDICTION, procedure_id=assistant_router.PROCEDURE,
+        language="it", section_path="Synthetic fixture", content=PASSAGE_CONTENT[ordinal],
+        passage_sha256="a" * 64, source_sha256="b" * 64,
+        reviewed_at=TIMESTAMP, retrieved_at=TIMESTAMP,
+    )
+
+
+@pytest.mark.parametrize("language", ["en", "it"])
+@pytest.mark.parametrize(("item", "expected_status"), [
+    ("MIL-12", "insufficient_evidence"), ("MIL-13", "unverified_answer"),
+    ("MIL-14", "generation_unavailable"),
+])
+def test_assistant_failure_matrix(
+    assistant_client, auth_headers, monkeypatch, item, expected_status, language,
+):
+    resolver = (lambda *args, **kwargs: None) if item == "MIL-12" else resolve_topic_passage
+    monkeypatch.setattr(assistant_router, "resolve_approved_passage", resolver)
+    calls = []
+
+    def model(_prompt):
+        calls.append(True)
+        if item == "MIL-14":
+            raise TimeoutError("private provider diagnostic")
+        return AIMessage(content='[wrong-citation] "An invented statement without evidence."')
+
+    assistant_client.app.state.assistant_model_factory = lambda: RunnableLambda(model)
+    headers = auth_headers()
+    cid = case_id(assistant_client, headers)
+    response = post(
+        assistant_client, cid, headers, question=CASES[item]["queries"][language], language=language,
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == expected_status
+    assert response.json()["answer"] is None
+    assert "private provider diagnostic" not in response.text
+    assert len(calls) == (0 if item == "MIL-12" else 1)
+    if item == "MIL-12":
+        assert response.json()["sources"] == []
+    if item == "MIL-14":
+        assert assistant_client.get(f"/api/v1/cases/{cid}/workflow", headers=headers).status_code == 200
+
+
+@pytest.mark.parametrize(("selection", "expected_status"), [
+    ("1", "answer_generated"), ("0", "insufficient_evidence"),
+    ("2", "unverified_answer"), ("1\nextra text", "unverified_answer"),
+])
+def test_reviewed_quote_selection(
+    assistant_client, auth_headers, monkeypatch, selection, expected_status,
+):
+    def resolve(db, *, citation_id, **kwargs):
+        passage = resolve_topic_passage(db, citation_id=citation_id, **kwargs)
+        return replace(passage, content=passage.content + " Unrelated fixture text.")
+
+    monkeypatch.setattr(assistant_router, "resolve_approved_passage", resolve)
+    assistant_client.app.state.assistant_model_factory = lambda: RunnableLambda(
+        lambda _: AIMessage(content=selection),
+    )
+    headers = auth_headers()
+    cid = case_id(assistant_client, headers)
+    response = post(
+        assistant_client, cid, headers, question=CASES["MIL-01"]["queries"]["en"], language="en",
+    ).json()
+    assert response["status"] == expected_status
+    if selection == "1":
+        assert PASSAGE_CONTENT["0000"] in response["answer"]
+        assert response["sources"][0]["excerpt"] == PASSAGE_CONTENT["0000"]
+    else:
+        assert response["answer"] is None
