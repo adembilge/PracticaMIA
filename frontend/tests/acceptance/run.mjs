@@ -113,9 +113,12 @@ const facts={
 };
 
 try{
-  await scenario('A1: supported user creates, scopes, confirms and resumes a case',async()=>{
+  await scenario('A1: a move within Milan reaches the signed checklist',async()=>{
     alicePage=await contextFor('alice');
     caseId=await createCase(alicePage);
+    await alicePage.getByRole('heading',{
+      name:'Before you moved, were you registered as a resident in Italy?',
+    }).waitFor();
     await scopeAnswers(alicePage,['yes','yes','yes','no','yes']);
     await alicePage.getByRole('heading',{name:'Your demo scope check is complete.'})
       .waitFor({timeout:12000});
@@ -131,6 +134,28 @@ try{
     assert.equal(body.eligibility_evaluated,false);
     assert.equal(body.documents.enabled,false);
     assert.equal(await alicePage.locator('#case-workflow-checklist input[type="checkbox"]').count(),5);
+  });
+
+  await scenario('A9: an applicant moving from another Italian municipality can resume and reach the signed checklist',async()=>{
+    const page=await contextFor('alice');
+    const id=await createCase(page);
+    // A saved No from the former Milan-only question stays blocked until corrected.
+    await scopeAnswers(page,['no']);
+    await awaitSavedCaseStatus(page,id,'unsupported');
+    await page.reload();
+    await page.getByText(
+      'If your previous registered address was in Milan or another Italian municipality, select Yes.'
+    ).waitFor({timeout:12000});
+    assert.equal(await page.getByRole('button',{name:'No',exact:true}).getAttribute('aria-pressed'),'true');
+    await scopeAnswers(page,['yes','yes','yes','no','yes']);
+    await confirmIntake(page,facts);
+    await page.locator('#case-workflow-checklist input[type="checkbox"]')
+      .first().waitFor({timeout:15000});
+    const {status,body}=await readJson(page,'/api/cases/'+id+'/workflow');
+    assert.equal(status,200);
+    assert.equal(body.checklist.items.length,5);
+    assert.equal(body.package.download_allowed,true);
+    assert.equal(body.official_submission,false);
   });
 
   await scenario('A2: all five user-read marks persist and draft PDF downloads',async()=>{
@@ -233,6 +258,11 @@ try{
       origin+'/api/cases/'+unsupported+'/package/pdf')).status(),409);
     assert.equal((await readJson(bobPage,'/api/cases/'+unsupported+'/workflow')).body
       .checklist.items.length,0);
+    const otherDestination=await createCase(bobPage);
+    await scopeAnswers(bobPage,['yes','no']);
+    await awaitSavedCaseStatus(bobPage,otherDestination,'unsupported');
+    assert.equal((await bobPage.request.get(
+      origin+'/api/cases/'+otherDestination+'/package/pdf')).status(),409);
     const unsure=await createCase(bobPage);
     await scopeAnswers(bobPage,['yes','unsure']);
     const uncertain=await awaitSavedCaseStatus(bobPage,unsure,'needs_information');
@@ -246,6 +276,9 @@ try{
     await alicePage.getByRole('button',{name:'Toggle language'}).click();
     await alicePage.getByRole('heading',{name:'Percorso della pratica'})
       .waitFor({timeout:15000});
+    await alicePage.getByRole('button',{
+      name:/Prima del trasferimento, avevi la residenza anagrafica in Italia/,
+    }).waitFor({timeout:12000});
     await alicePage.getByText('Azioni lette: 0 / 5').waitFor({timeout:15000});
     const json=await readJson(alicePage,'/api/cases/'+caseId+'/workflow');
     assert.equal(json.body.official_submission,false);

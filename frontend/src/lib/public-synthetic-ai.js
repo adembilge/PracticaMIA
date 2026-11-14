@@ -4,7 +4,7 @@
 export const PUBLIC_AI_TOPICS = Object.freeze(['scope', 'documents', 'handoff']);
 
 const examples = Object.freeze({
-  scope: 'A completely fictional person already registered in Milan moves alone to another invented rental address within Milan. Explain how a workflow app should gather missing information and defer unsupported situations. Do not specify any actual legal eligibility rules.',
+  scope: 'A completely fictional person already registered in another Italian municipality moves alone to an invented rental address in Milan. Explain how a workflow app should gather missing information and defer unsupported situations. Do not specify any actual legal eligibility rules.',
   documents: 'In a fictional workflow, an invented housing-note attachment contains an example address that disagrees with an invented case summary. Explain why user confirmation and discrepancy resolution should occur before an example package is prepared. No official document requirements.',
   handoff: 'Explain the difference between an example package prepared in an app, the user reviewing it, the user separately submitting via an official external portal, and the authority later processing it. Do not imply anything was officially submitted.',
 });
