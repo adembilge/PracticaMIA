@@ -9,7 +9,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function SyntheticDemoPage() {
+export default async function SyntheticDemoPage({
+  searchParams,
+}: { searchParams: Promise<{ step?: string | string[] }> }) {
   if (!syntheticDemoAvailable(process.env)) notFound();
-  return <SyntheticDemoWorkspace />;
+  const { step } = await searchParams;
+  return <SyntheticDemoWorkspace startAtDocument={step === 'document'} />;
 }

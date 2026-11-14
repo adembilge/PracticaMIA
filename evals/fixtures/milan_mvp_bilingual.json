@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "review_date": "2026-11-14",
+  "commit": "24ee003050c13eab6b5ca40e14f7f3ff87a93514",
+  "default_synthetic_case": {
+    "citizenship_class": "italian",
+    "registration_context": "already_registered_in_italy",
+    "previous_municipality": "milano",
+    "destination_municipality": "milano",
+    "household_scope": "individual_no_aggregation",
+    "housing_basis": "registered_private_rental"
+  },
+  "reference_urls": {
+    "MIL-FAQ": "https://servizicrm.comune.milano.it/centro-supporto/KA-00371/Cambio-residenza-per-italiani-gia-in-Italia",
+    "MIL-SERVICE": "https://www.comune.milano.it/servizi/anagrafe/cambio-di-residenza",
+    "ANPR-GUIDE": "https://public-anpr.github.io/anpr-docs-cittadino/src/docs/guide/guida_compilazione_cambio_residenza.pdf",
+    "ANPR-OLD": "https://sc.anpr.interno.it/serviziCittadino/dist/docs/guida_compilazione_cambio_residenza.pdf",
+    "ANPR-NATIONAL": "https://innovazione.gov.it/dipartimento/focus/servizi-digitali-anagrafe-nazionale/",
+    "REPO": "https://github.com/adembilge/PracticaMIA/tree/24ee003050c13eab6b5ca40e14f7f3ff87a93514"
+  },
+  "cases": [
+    {
+      "id": "MIL-01",
+      "surface": "assistant",
+      "expected_kind": "support",
+      "queries": {
+        "en": "When must I report my Milan address change?",
+        "it": "Entro quando devo comunicare il cambio di indirizzo a Milano?"
+      },
+      "acceptance": "20 days from the move, via ANPR to the registry office. No guaranteed acceptance.",
+      "references": [
+        "MIL-FAQ",
+        "MIL-SERVICE"
+      ],
+      "passage_candidates": [
+        "e139e910-3a89-4994-b450-b5107d8db7dd:0000"
+      ]
+    },
+    {
+      "id": "MIL-02",
+      "surface": "assistant",
+      "expected_kind": "support",
+      "queries": {
+        "en": "Is the TARI declaration included in my residence change?",
+        "it": "La dichiarazione TARI è inclusa nel cambio di residenza?"
+      },
+      "acceptance": "Explain the separate TARI housing declaration and new and/or ended occupation when applicable.",
+      "references": [
+        "MIL-FAQ"
+      ],
+      "passage_candidates": [
+        "e139e910-3a89-4994-b450-b5107d8db7dd:0005"
+      ]
+    },
+    {
+      "id": "MIL-03",
+      "surface": "assistant",
+      "expected_kind": "support",
+      "queries": {
+        "en": "Which details should I prepare for my registered private lease?",
+        "it": "Quali dati devo preparare per il mio contratto di locazione registrato?"
+      },
+      "acceptance": "Guide title 2: registration-office municipality, lease date and registration number. Current form takes priority.",
+      "references": [
+        "ANPR-GUIDE"
+      ],
+      "passage_candidates": [
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0015",
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0017"
+      ]
+    },
+    {
+      "id": "MIL-04",
+      "surface": "assistant",
+      "expected_kind": "support_with_caveat",
+      "queries": {
+        "en": "Must I upload my lease to ANPR?",
+        "it": "Devo caricare su ANPR il contratto di locazione?"
+      },
+      "acceptance": "For this Italian registered-rental case, the reviewed public guide describes supporting uploads as generally optional. Keep lease and registration evidence ready if requested. Avoid unconditional statements.",
+      "references": [
+        "ANPR-GUIDE"
+      ],
+      "passage_candidates": [
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0018",
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0019",
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0017"
+      ]
+    },
+    {
+      "id": "MIL-05",
+      "surface": "assistant",
+      "expected_kind": "abstain",
+      "queries": {
+        "en": "What is today's exact total attachment size limit?",
+        "it": "Qual è oggi il limite esatto complessivo degli allegati?"
+      },
+      "acceptance": "Withhold a numeric answer about the current form. The two public guides differ. Direct the applicant to the current form or registry office.",
+      "references": [
+        "ANPR-GUIDE",
+        "ANPR-OLD"
+      ],
+      "passage_candidates": []
+    },
+    {
+      "id": "MIL-06",
+      "surface": "assistant",
+      "expected_kind": "support",
+      "queries": {
+        "en": "Can PracticaMIA submit my residence declaration for me?",
+        "it": "PracticaMIA può inviare per me la dichiarazione di residenza?"
+      },
+      "acceptance": "The applicant personally reviews and submits on ANPR. A PracticaMIA PDF is a draft. Do not request credentials or claim submission.",
+      "references": [
+        "ANPR-GUIDE",
+        "MIL-SERVICE",
+        "REPO"
+      ],
+      "passage_candidates": [
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0021",
+        "c89b4c40-4c41-48d5-ad52-be08e9630277:0022"
+      ]
+    },
+    {
+      "id": "MIL-07",
+      "surface": "assistant",
+      "expected_kind": "abstain",
+      "queries": {
+        "en": "I missed the deadline. Is my case automatically rejected?",
+        "it": "Ho superato il termine. La mia pratica viene respinta automaticamente?"
+      },
+      "acceptance": "The 20-day rule does not establish automatic rejection. Withhold a case outcome and direct the user to the registry office.",
+      "references": [
+        "MIL-FAQ",
+        "MIL-SERVICE"
+      ],
+      "passage_candidates": []
+    },
+    {
+      "id": "MIL-08",
+      "surface": "scope",
+      "expected_kind": "scope_supported",
+      "queries": {
+        "en": "I'm registered in Turin and moving alone to Milan with a registered lease. Can I use this demo?",
+        "it": "Sono residente a Torino e mi trasferisco da solo a Milano con un contratto registrato. Posso usare questa demo?"
+      },
+      "acceptance": "Assume an adult Italian applicant with no aggregation. The updated demo gate accepts prior registration in any Italian municipality. The confirmed typed facts match the signed route. No claim of official eligibility.",
+      "references": [
+        "MIL-FAQ",
+        "REPO"
+      ],
+      "passage_candidates": []
+    },
+    {
+      "id": "MIL-09",
+      "surface": "scope",
+      "expected_kind": "abstain",
+      "queries": {
+        "en": "I don't know whether the lease is registered. Can I continue as a confirmed case?",
+        "it": "Non so se il contratto è registrato. Posso continuare come pratica confermata?"
+      },
+      "acceptance": "Ask the applicant to confirm registration. No assumed registered-private-rental fact or final checklist from incomplete facts.",
+      "references": [
+        "ANPR-GUIDE",
+        "REPO"
+      ],
+      "passage_candidates": []
+    },
+    {
+      "id": "MIL-10",
+      "surface": "scope",
+      "expected_kind": "abstain",
+      "queries": {
+        "en": "I'm moving with my family and joining an existing household. Can I use the individual checklist?",
+        "it": "Mi trasferisco con la famiglia e mi unisco a una famiglia anagrafica. Posso usare la checklist individuale?"
+      },
+      "acceptance": "Stop individual-route guidance. Direct the user to the official route for their scenario.",
+      "references": [
+        "MIL-FAQ",
+        "REPO"
+      ],
+      "passage_candidates": []
+    },
+    {
+      "id": "MIL-11",
+      "surface": "scope",
+      "expected_kind": "abstain",
+      "queries": {
+        "en": "I am registered in Milan, but my new address is in Monza. Do Milan's steps apply?",
+        "it": "Sono residente a Milano, ma il nuovo indirizzo è a Monza. Si applicano i passaggi di Milano?"
+      },
+      "acceptance": "Stop Milano-specific guidance and direct the user to ANPR or the destination municipality.",
+      "references": [
+        "ANPR-NATIONAL",
+        "REPO"
+      ],
+      "passage_candidates": []
+    },
+    {
+      "id": "MIL-12",
+      "surface": "assistant",
+      "expected_kind": "abstain",
+      "queries": {
+        "en": "When must I report my Milan address change?",
+        "it": "Entro quando devo comunicare il cambio di indirizzo a Milano?"
+      },
+      "acceptance": "After withdrawing all approved evidence for this claim in the isolated test fixture, expect insufficient_evidence, empty sources, zero model calls.",
+      "references": [
+        "REPO"
+      ],
+      "passage_candidates": [],
+      "setup": {
+        "evidence": "all_relevant_passages_revoked"
+      }
+    },
+    {
+      "id": "MIL-13",
+      "surface": "assistant",
+      "expected_kind": "unverified_answer",
+      "queries": {
+        "en": "Which details should I prepare for my registered private lease?",
+        "it": "Quali dati devo preparare per il mio contratto di locazione registrato?"
+      },
+      "acceptance": "Inject a fabricated quotation or swap its citation ID in a deterministic model response. Expect unverified_answer, no answer body. Relevant sources may still appear.",
+      "references": [
+        "REPO"
+      ],
+      "passage_candidates": [],
+      "setup": {
+        "model_output": "fabricated_quote_or_mismatched_citation"
+      }
+    },
+    {
+      "id": "MIL-14",
+      "surface": "assistant",
+      "expected_kind": "generation_unavailable",
+      "queries": {
+        "en": "When must I report my Milan address change?",
+        "it": "Entro quando devo comunicare il cambio di indirizzo a Milano?"
+      },
+      "acceptance": "With valid evidence and an injected model timeout, expect generation_unavailable and no answer body. No leaked provider details and saved-case checklist remains usable.",
+      "references": [
+        "REPO"
+      ],
+      "passage_candidates": [],
+      "setup": {
+        "model_output": "timeout"
+      }
+    }
+  ]
+}

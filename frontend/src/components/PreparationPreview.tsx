@@ -691,7 +691,7 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
           </>}
       </section>
 
-      <section className="work-panel" style={{ padding: 24, marginTop: 20 }}>
+      <section id="synthetic-documents" className="work-panel" style={{ padding: 24, marginTop: 20 }}>
         <h2>{it ? '3. Documenti sintetici' : '3. Synthetic documents'}</h2>
         <p>{it ? 'PDF o immagini fittizie, max 2 MiB. Le scansioni richiedono OCR disponibile.' :
           'Fictional PDFs or images, maximum 2 MiB. Scans require an available OCR service.'}</p>

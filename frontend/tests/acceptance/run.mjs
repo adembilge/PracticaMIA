@@ -116,12 +116,18 @@ try{
   await scenario('A1: a move within Milan reaches the signed checklist',async()=>{
     alicePage=await contextFor('alice');
     caseId=await createCase(alicePage);
+    const journey=alicePage.getByRole('navigation',{name:'Your case journey'});
+    const intakeStep=journey.getByRole('link',{name:/Confirm facts/});
+    await intakeStep.waitFor({timeout:12000});
+    assert.equal(await intakeStep.getAttribute('href'),'#case-scope');
+    assert.match(await intakeStep.innerText(),/Finish the initial questions first/);
     await alicePage.getByRole('heading',{
       name:'Before you moved, were you registered as a resident in Italy?',
     }).waitFor();
     await scopeAnswers(alicePage,['yes','yes','yes','no','yes']);
     await alicePage.getByRole('heading',{name:'Your demo scope check is complete.'})
       .waitFor({timeout:12000});
+    assert.equal(await intakeStep.getAttribute('href'),'#case-intake');
     await confirmIntake(alicePage,facts);
     await alicePage.locator('#case-workflow-checklist input[type="checkbox"]')
       .first().waitFor({timeout:15000});
