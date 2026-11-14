@@ -21,10 +21,10 @@ type StoredCase = {
   updated_at: string;
 };
 
-type Props = { caseId: string; configured: boolean; signedIn: boolean; assistantEnabled: boolean; preparationEnabled: boolean; liveAIEnabled: boolean; privateDocumentsEnabled: boolean };
+type Props = { caseId: string; configured: boolean; signedIn: boolean; assistantEnabled: boolean; preparationEnabled: boolean; liveAIEnabled: boolean; privateDocumentsEnabled: boolean; fictionalDocumentsEnabled?: boolean };
 const ANSWERS: Answer[] = ['yes', 'no', 'unsure'];
 
-export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnabled, preparationEnabled, liveAIEnabled, privateDocumentsEnabled }: Props) {
+export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnabled, preparationEnabled, liveAIEnabled, privateDocumentsEnabled, fictionalDocumentsEnabled = false }: Props) {
   const router = useRouter();
   const { t, locale } = useDemo();
   const [record, setRecord] = useState<StoredCase | null>(null);
@@ -165,6 +165,10 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
           refreshKey={journeyRevision}
           privateDocumentsEnabled={privateDocumentsEnabled}
           liveAIEnabled={liveAIEnabled}
+          assistantEnabled={assistantEnabled}
+          preparationEnabled={preparationEnabled}
+          scopeReviewVisible={reviewing}
+          fictionalDocumentsEnabled={fictionalDocumentsEnabled}
         />}
         {!loading && record && reviewing && <>
           <div className="panel-intro">
@@ -252,16 +256,6 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
               href={'/cases/' + encodeURIComponent(caseId) + '/documents'}
               className="button button-outline" style={{ marginTop: 18, display: 'inline-flex' }}>
               {locale === 'it' ? 'Archivio documenti privati' : 'Private documents'}
-            </Link>}
-            {preparationEnabled && <Link
-              href={'/cases/' + encodeURIComponent(caseId) + '/preparation'}
-              className="button button-outline" style={{ marginTop: 18, display: 'inline-flex' }}>
-              {locale === 'it' ? 'Preparazione sintetica' : 'Synthetic preparation preview'}
-            </Link>}
-            {assistantEnabled && <Link
-              href={'/cases/' + encodeURIComponent(caseId) + '/assistant'}
-              className="button button-outline" style={{ marginTop: 18, display: 'inline-flex' }}>
-              {locale === 'it' ? 'Anteprima assistente con fonti' : 'Evidence assistant preview'}
             </Link>}
             <button type="button" className="button button-outline" style={{ marginTop: 22 }}
               disabled={saving || deleting} onClick={() => void deleteCase()}>

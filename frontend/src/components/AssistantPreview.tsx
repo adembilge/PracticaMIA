@@ -39,6 +39,11 @@ const copy = {
     unverified_answer: 'The AI response could not be validated against the supplied citation IDs and was withheld.',
     generation_unavailable: 'The AI model could not generate an answer. Please try again later.',
     answer_generated: 'Exact quoted evidence — verify that each excerpt applies to your situation.',
+    verifyCurrent: 'Check the current ANPR form for fields and attachments requested for your case.',
+    officialHelp: 'Check the current ANPR form or contact the Milan Registry Office.',
+    scopeHelp: 'Your PracticaMIA PDF is a draft. Review and submit your declaration yourself on ANPR.',
+    officialForm: 'Open ANPR',
+    registry: 'Milan Registry Office',
     sources: 'Reviewed evidence references',
     open: 'Open official source',
     synthetic: 'Synthetic case only · This is not an official application.',
@@ -59,6 +64,11 @@ const copy = {
     unverified_answer: 'La risposta AI non ha superato il controllo degli identificativi delle citazioni e non viene mostrata.',
     generation_unavailable: 'Il modello AI non è disponibile in questo momento.',
     answer_generated: 'Citazioni testuali delle fonti: verifica che ogni estratto sia applicabile al tuo caso.',
+    verifyCurrent: 'Controlla sul modulo ANPR in uso quali campi e allegati sono richiesti per la tua pratica.',
+    officialHelp: 'Consulta il modulo ANPR in uso o contatta l’Ufficio Anagrafe di Milano.',
+    scopeHelp: 'Il PDF di PracticaMIA è una bozza. Controlla e invia personalmente la dichiarazione su ANPR.',
+    officialForm: 'Apri ANPR',
+    registry: 'Ufficio Anagrafe di Milano',
     sources: 'Riferimenti alle fonti approvate',
     open: 'Apri la fonte ufficiale',
     synthetic: 'Pratica sintetica · Non è una domanda ufficiale.',
@@ -121,11 +131,21 @@ export function AssistantPreview({ caseId, configured, signedIn }: Props) {
               {pending ? t.sending : t.send}
             </button>
           </form>
+          <p className="account-footnote">{t.scopeHelp}</p>
           {error && <p role="alert" className="error-text">{error}</p>}
           {result && <section className="assistant-result" aria-live="polite">
             <h2>{t[result.status]}</h2>
             {result.status === 'answer_generated' && result.answer &&
-              <p className="assistant-answer">{result.answer}</p>}
+              <>
+                <p className="assistant-answer">{result.answer}</p>
+                <p>{t.verifyCurrent}</p>
+              </>}
+            {result.status === 'insufficient_evidence' && <p>
+              {t.officialHelp}{' '}
+              <a href="https://www.anagrafenazionale.interno.it/">{t.officialForm}</a>
+              {' · '}
+              <a href="https://www.comune.milano.it/servizi/anagrafe/cambio-di-residenza">{t.registry}</a>
+            </p>}
             {result.sources.length > 0 && <>
               <h3>{t.sources}</h3>
               <ul className="assistant-source-list">

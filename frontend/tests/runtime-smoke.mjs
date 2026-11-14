@@ -220,3 +220,16 @@ test('preview-mode HTTP: interface renders but input and authentication gates ho
       'review approval must fail closed without Auth0 credentials');
   });
 });
+
+test('the enabled fictional document link opens directly at the sample', {
+  timeout: 45000,
+}, async () => {
+  await withServer({ ENABLE_PUBLIC_SYNTHETIC_DEMO: '1' }, async (origin) => {
+    const document = await fetch(origin + '/demo/synthetic?step=document');
+    assert.equal(document.status, 200);
+    assert.match(await document.text(), /Load fictional sample/);
+    const overview = await fetch(origin + '/demo/synthetic');
+    assert.equal(overview.status, 200);
+    assert.match(await overview.text(), /Choose a demonstration scenario/);
+  });
+});
