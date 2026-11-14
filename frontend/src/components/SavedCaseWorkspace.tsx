@@ -9,6 +9,7 @@ import { SavedCaseAIGuide } from '@/components/SavedCaseAIGuide';
 import { ReviewedSourcesPanel } from '@/components/ReviewedSourcesPanel';
 import { CaseIntakePanel } from '@/components/CaseIntakePanel';
 import { CaseJourneyPanel } from '@/components/CaseJourneyPanel';
+import { Icon } from '@/components/Icon';
 import { firstUnresolvedQuestion, isCaseId, nextScopeAnswers } from '@/lib/case-scope.js';
 
 type StoredCase = {
@@ -36,7 +37,7 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState<'load' | 'save' | 'delete' | null>(null);
+  const [error, setError] = useState<'unavailable' | 'load' | 'save' | 'delete' | null>(null);
   const [notice, setNotice] = useState('');
   const [journeyRevision, setJourneyRevision] = useState(0);
 
@@ -45,7 +46,13 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
     setError(null);
     try {
       const response = await fetch('/api/cases/' + caseId, { cache: 'no-store', signal });
-      if (response.status === 401) { if (!signal?.aborted) setExpired(true); return; }
+      if (signal?.aborted) return;
+      if (response.status === 401) { setExpired(true); return; }
+      if (response.status === 403 || response.status === 404) {
+        setRecord(null);
+        setError('unavailable');
+        return;
+      }
       if (!response.ok) throw new Error('Case unavailable');
       const saved = (await response.json()) as StoredCase;
       if (saved.id !== caseId || !Array.isArray(saved.scope_answers)) throw new Error('Invalid response');
@@ -159,6 +166,29 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
     </main>;
   }
 
+  if (!loading && !record && !expired) {
+    const retryable = error === 'load';
+    return <main className="case-page" id="main-content" tabIndex={-1}>
+      <div className="container">
+        <div className="case-access">
+          <span className="case-access-icon"><Icon name={retryable ? 'alert' : 'lock'} size={25}/></span>
+          <div className="case-access-content">
+            <div role="alert">
+              <h1>{retryable ? t.savedLoadErrorTitle : t.savedUnavailableTitle}</h1>
+              <p>{retryable ? t.savedLoadErrorBody : t.savedUnavailableBody}</p>
+            </div>
+            <div className="case-access-actions">
+              {retryable && <button type="button" className="button button-primary" onClick={() => void load()}>{t.savedRetry}</button>}
+              <Link className={retryable ? 'button button-outline' : 'button button-primary'} href="/cases/saved">
+                <Icon name="arrowLeft" size={17}/>{t.savedBackToCases}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>;
+  }
+
   const scopeComplete = record?.status === 'provisionally_in_scope' && record.scope_answers.length === 5;
   const login = '/auth/login?returnTo=' + encodeURIComponent('/cases/' + caseId);
   return <main className="case-page" id="main-content" tabIndex={-1}>
@@ -173,10 +203,6 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
         <p><a className="inline-link" href={login}>{locale === 'it' ? 'Accedi di nuovo' : 'Sign in again'}</a></p>
       </div></div>}
       {loading && <p className="editorial-pending" role="status">{t.savedLoading}</p>}
-      {!loading && !record && !expired && <section className="case-state" role="alert">
-        <h2>{t.savedUnavailableTitle}</h2><p>{t.savedUnavailableBody}</p>
-        <button type="button" className="button button-outline" onClick={() => void load()}>{t.savedRetry}</button>
-      </section>}
       {record && <CaseJourneyPanel caseId={caseId} refreshKey={journeyRevision}
         scopeComplete={Boolean(scopeComplete)} privateDocumentsEnabled={privateDocumentsEnabled}
         fictionalDocumentsEnabled={fictionalDocumentsEnabled} preparationEnabled={preparationEnabled} assistantEnabled={assistantEnabled}

@@ -131,6 +131,41 @@ input[type=checkbox] { accent-color: var(--forest); }
 .editorial-how-list p { margin: 4px 0 0; font-size: 14px; color: #d6dfd1; }
 
 .case-page { padding: clamp(24px, 4vw, 60px) 0 84px; min-height: calc(100svh - 76px); }
+.case-access {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(18px, 3vw, 30px);
+  max-width: 740px;
+  margin: clamp(20px, 6vw, 84px) auto 0;
+  padding: clamp(22px, 5vw, 56px);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--forest);
+  border-radius: 4px;
+}
+.case-access-icon {
+  display: grid;
+  place-items: center;
+  width: clamp(46px, 6vw, 60px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  color: var(--forest);
+  background: var(--mint);
+}
+.case-access h1 {
+  margin: 0;
+  color: var(--ink);
+  font: 400 clamp(36px, 5vw, 56px)/1.04 var(--serif);
+  letter-spacing: -.045em;
+}
+.case-access p { margin: 16px 0 0; max-width: 43ch; color: var(--muted); }
+.case-access-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.case-access-actions .button { gap: 9px; text-align: center; }
+@media (max-width: 560px) {
+  .case-access { grid-template-columns: 1fr; }
+  .case-access-actions .button { width: 100%; }
+}
 .case-header { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 10px 24px; border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 32px; }
 .case-header h1 { font: 400 clamp(38px, 5.1vw, 68px)/1.03 var(--serif); letter-spacing: -.057em; margin: 6px 0 0; }
 .case-layout { display: grid; grid-template-columns: 210px minmax(0,1fr) minmax(250px, 292px); gap: 28px; align-items: start; }
