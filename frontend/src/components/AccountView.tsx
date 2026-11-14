@@ -30,7 +30,10 @@ export function AccountView({ configured, signedIn, name, backendConfigured }: P
         ) : (
           <section className="account-panel">
             <p>{t.accountSignInIntro}</p>
-            <a href="/auth/login" className="button button-primary">{t.accountLogin}</a>
+            <div className="account-actions">
+              <a href="/auth/login" className="button button-primary">{t.accountLogin}</a>
+              <a href="/auth/login?screen_hint=signup" className="button button-outline">{t.accountRegister}</a>
+            </div>
           </section>
         )}
         <p className="account-footnote">{t.accountDemoPrivacy}</p>
