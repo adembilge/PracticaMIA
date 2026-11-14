@@ -3,6 +3,8 @@ import type { Metadata } from 'next';
 import { syntheticDemoAvailable } from '@/lib/synthetic-demo-guard.js';
 import { SyntheticDemoWorkspace } from '@/components/SyntheticDemoWorkspace';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'PracticaMIA — fictional end-to-end demonstration',
   description: 'Synthetic browser-only demonstration with no legal advice or submission.',
