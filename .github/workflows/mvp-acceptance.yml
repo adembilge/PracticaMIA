@@ -86,6 +86,11 @@ jobs:
           npm install --no-save --package-lock=false --no-audit --no-fund \
             esbuild@0.25.12 playwright@1.56.0
 
+      - name: Install isolated document acceptance tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clamav tesseract-ocr tesseract-ocr-ita fonts-dejavu-core poppler-utils
+
       - name: Install headless Chromium on GitHub runner
         working-directory: frontend
         run: npx --no-install playwright install chromium --with-deps
@@ -107,7 +112,7 @@ jobs:
         run: |
           set -euo pipefail
           (cd backend && python tests/acceptance/local_server.py \
-            --port 8765 --assets ../frontend/.acceptance-dist) \
+            --port 8765 --private-documents --assets ../frontend/.acceptance-dist) \
             > frontend/.acceptance-results/server.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT

@@ -100,7 +100,7 @@ def extract_intake_candidates(body: bytes, media_type: str, digest: str) -> dict
         raise DocumentRejected("Invalid document integrity metadata")
     if sha256(body).hexdigest() != digest:
         raise DocumentRejected("Document integrity mismatch")
-    extraction = extract_document(body, media_type)
+    extraction = extract_document(body, media_type, ocr_pdf_scans=True)
     if extraction["status"] == "unreadable":
         return {"status": "unreadable", "candidates": [], "ambiguous_fields": []}
     candidates: list[dict] = []
@@ -128,7 +128,7 @@ def extract_intake_candidates(body: bytes, media_type: str, digest: str) -> dict
                 if c["candidate_id"] not in seen:
                     seen.add(c["candidate_id"])
                     candidates.append(c)
-                    field_values.setdefault("move_in_date", set()).add(raw)
+                    field_values.setdefault("move_in_date", set()).add(normalized_date)
         if len(candidates) > MAX_CANDIDATES:
             raise DocumentRejected("Too many extracted field suggestions")
     if not candidates:

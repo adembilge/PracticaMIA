@@ -2,11 +2,10 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { type Answer, useDemo } from '@/components/DemoProvider';
 import { classifySingleAnswer } from '@/lib/flow.js';
 import { SavedCaseAIGuide } from '@/components/SavedCaseAIGuide';
-import { MilanOfficialGuidance } from '@/components/MilanOfficialGuidance';
 import { ReviewedSourcesPanel } from '@/components/ReviewedSourcesPanel';
 import { CaseIntakePanel } from '@/components/CaseIntakePanel';
 import { CaseJourneyPanel } from '@/components/CaseJourneyPanel';
@@ -29,34 +28,40 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
   const { t, locale } = useDemo();
   const [record, setRecord] = useState<StoredCase | null>(null);
   const [questionIndex, setQuestionIndex] = useState(0);
+  const [scopeDirection, setScopeDirection] = useState('forward');
+  const questionHeading = useRef<HTMLHeadingElement>(null);
+  const [expired, setExpired] = useState(false);
   const [selected, setSelected] = useState<Answer | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<'load' | 'save' | 'delete' | null>(null);
   const [notice, setNotice] = useState('');
   const [journeyRevision, setJourneyRevision] = useState(0);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
-    setError('');
+    setError(null);
     try {
       const response = await fetch('/api/cases/' + caseId, { cache: 'no-store', signal });
+      if (response.status === 401) { if (!signal?.aborted) setExpired(true); return; }
       if (!response.ok) throw new Error('Case unavailable');
       const saved = (await response.json()) as StoredCase;
       if (saved.id !== caseId || !Array.isArray(saved.scope_answers)) throw new Error('Invalid response');
+      if (signal?.aborted) return;
+      setExpired(false);
       const index = firstUnresolvedQuestion(saved.scope_answers);
       setRecord(saved);
       setQuestionIndex(index);
       setSelected(saved.scope_answers[index] ?? null);
       setReviewing(saved.status === 'provisionally_in_scope' && saved.scope_answers.length === 5);
     } catch {
-      if (!signal?.aborted) setError(t.savedError);
+      if (!signal?.aborted) setError('load');
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
-  }, [caseId, t.savedError]);
+  }, [caseId]);
 
   useEffect(() => {
     if (!configured || !signedIn || !isCaseId(caseId)) {
@@ -70,17 +75,19 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
 
   function openQuestion(index: number, data = record) {
     if (!data) return;
+    setScopeDirection(index < questionIndex || reviewing ? 'back' : 'forward');
     setQuestionIndex(index);
     setSelected(data.scope_answers[index] ?? null);
     setReviewing(false);
-    setError('');
+    setError(null);
     setNotice('');
+    requestAnimationFrame(() => questionHeading.current?.focus());
   }
 
   async function saveAnswer() {
-    if (!record || !selected || saving) return;
+    if (!record || !selected || saving || expired) return;
     setSaving(true);
-    setError('');
+    setError(null);
     setNotice('');
     try {
       const answers = nextScopeAnswers(record.scope_answers, questionIndex, selected);
@@ -93,6 +100,7 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
           credentials: 'same-origin',
           body: JSON.stringify({ answers }),
         });
+        if (response.status === 401) { setExpired(true); return; }
         if (!response.ok) throw new Error('Save failed');
         updated = (await response.json()) as StoredCase;
         if (updated.id !== record.id) throw new Error('Unexpected case response');
@@ -102,33 +110,41 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
       const outcome = classifySingleAnswer(questionIndex, selected);
       setNotice(t.savedAnswerSaved);
       if (outcome === 'pass') {
-        if (questionIndex === 4) setReviewing(true);
-        else {
+        if (questionIndex === 4) {
+          setReviewing(true);
+          if (window.location.hash === '#case-scope') {
+            window.history.pushState(null, '', '#case-intake');
+            window.dispatchEvent(new Event('hashchange'));
+          }
+        } else {
+          setScopeDirection('forward');
           setQuestionIndex(questionIndex + 1);
           setSelected(updated.scope_answers[questionIndex + 1] ?? null);
+          requestAnimationFrame(() => questionHeading.current?.focus());
         }
       }
     } catch {
-      setError(t.savedAnswerError);
+      setError('save');
     } finally {
       setSaving(false);
     }
   }
 
   async function deleteCase() {
-    if (!record || deleting || !window.confirm(t.savedDeleteConfirm)) return;
+    if (!record || deleting || expired || !window.confirm(t.savedDeleteConfirm)) return;
     setDeleting(true);
-    setError('');
+    setError(null);
     try {
       const response = await fetch('/api/cases/' + caseId, {
         method: 'DELETE',
         credentials: 'same-origin',
       });
+      if (response.status === 401) { setExpired(true);setDeleting(false);return; }
       if (response.status !== 204) throw new Error('Delete failed');
       router.push('/cases/saved');
       router.refresh();
     } catch {
-      setError(t.savedDeleteError);
+      setError('delete');
       setDeleting(false);
     }
   }
@@ -138,133 +154,85 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
       <div className="container account-shell">
         <h1 className="subpage-title">{t.savedWorkspaceTitle}</h1>
         <p>{!configured ? t.savedBackendUnavailable : t.savedSignIn}</p>
-        <a className="button button-primary" href="/auth/login">{t.accountLogin}</a>
+        {configured && <a className="button button-primary" href={'/auth/login?returnTo=' + encodeURIComponent('/cases/' + caseId)}>{t.accountLogin}</a>}
       </div>
     </main>;
   }
 
-  return <main className="workspace-page" id="main-content" tabIndex={-1}>
-    <div className="container workspace-head">
-      <div className="workspace-title-group">
-        <span className="tiny-eyebrow">{t.demo}</span>
-        <h1>{t.savedWorkspaceTitle}</h1>
-        <p>{t.savedWorkspaceIntro}</p>
-      </div>
-      <Link className="exit-link" href="/cases/saved">{t.savedBackToCases}</Link>
-    </div>
-    <div className="container workspace-grid" style={{ marginTop: 28 }}>
-      <section className="work-panel" aria-busy={saving || loading}>
-        {loading && <div className="panel-intro" role="status">{t.savedLoading}</div>}
-        {!loading && !record && <div className="panel-intro">
-          <h2>{t.savedUnavailableTitle}</h2>
-          <p>{t.savedUnavailableBody}</p>
-          <button type="button" className="button button-outline" onClick={() => void load()}>{t.savedRetry}</button>
-        </div>}
-        {!loading && record && <CaseJourneyPanel
-          caseId={caseId}
-          refreshKey={journeyRevision}
-          privateDocumentsEnabled={privateDocumentsEnabled}
-          liveAIEnabled={liveAIEnabled}
-          assistantEnabled={assistantEnabled}
-          preparationEnabled={preparationEnabled}
-          scopeReviewVisible={reviewing}
-          fictionalDocumentsEnabled={fictionalDocumentsEnabled}
-        />}
-        {!loading && record && reviewing && <>
-          <div className="panel-intro">
-            <span className="tiny-eyebrow">{t.savedDemoReview}</span>
-            <h2>{t.savedReviewTitle}</h2>
-            <p>{t.savedReviewBody}</p>
-          </div>
-          <div className="panel-rule" />
-          <div className="scope-content">
-            <ol id="case-scope" className="side-checklist">
-              {t.questions.map((question, index) => <li key={question}>
-                <button type="button" className="inline-link" onClick={() => openQuestion(index)}>
-                  {question} — {record.scope_answers[index] === 'yes' ? t.answerYes
-                    : record.scope_answers[index] === 'no' ? t.answerNo : t.answerUnsure}
-                </button>
-              </li>)}
-            </ol>
-            <div className="message-box notice" role="status">{t.savedNotEligibility}</div>
-            <div id="case-handoff"><MilanOfficialGuidance locale={locale} /></div>
-            <div id="case-sources"><ReviewedSourcesPanel locale={locale} /></div>
-            <CaseIntakePanel caseId={caseId} onChanged={() => setJourneyRevision(n => n + 1)} />
-          </div>
-          <div className="panel-bottom">
-            <button type="button" className="button button-outline" onClick={() => openQuestion(4)}>{t.savedEditAnswers}</button>
-            <Link href="/cases/saved" className="button button-primary">{t.savedBackToCases}</Link>
-          </div>
-        </>}
-        {!loading && record && !reviewing && <>
-          <div className="panel-intro">
-            <span className="tiny-eyebrow">{t.scopeEyebrow}</span>
-            <h2>{t.scopeTitle}</h2>
-            <p>{t.savedProgress} {record.scope_answers.length} / 5 — {t.savedDraft}: {record.status}</p>
-          </div>
-          <div className="panel-rule" />
-          <div className="scope-content" id="case-scope">
-            <span className="question-count">{t.questionLabel} {questionIndex + 1} / 5</span>
-            <h3>{t.questions[questionIndex]}</h3>
+  const scopeComplete = record?.status === 'provisionally_in_scope' && record.scope_answers.length === 5;
+  const login = '/auth/login?returnTo=' + encodeURIComponent('/cases/' + caseId);
+  return <main className="case-page" id="main-content" tabIndex={-1}>
+    <div className="container">
+      <header className="case-header">
+        <div><p className="editorial-label">{locale === 'it' ? 'Milano · Pratica di esempio' : 'Milano · Example case'}{record && ' / ' + record.id.slice(0, 8)}</p>
+          <h1>{t.savedWorkspaceTitle}</h1></div>
+        <Link className="editorial-text-link" href="/cases/saved">← {t.savedBackToCases}</Link>
+      </header>
+      {expired && <div className="message-box warning" role="alert"><div>
+        <strong>{locale === 'it' ? 'La sessione è scaduta' : 'Your session has expired'}</strong>
+        <p><a className="inline-link" href={login}>{locale === 'it' ? 'Accedi di nuovo' : 'Sign in again'}</a></p>
+      </div></div>}
+      {loading && <p className="editorial-pending" role="status">{t.savedLoading}</p>}
+      {!loading && !record && !expired && <section className="case-state" role="alert">
+        <h2>{t.savedUnavailableTitle}</h2><p>{t.savedUnavailableBody}</p>
+        <button type="button" className="button button-outline" onClick={() => void load()}>{t.savedRetry}</button>
+      </section>}
+      {record && <CaseJourneyPanel caseId={caseId} refreshKey={journeyRevision}
+        scopeComplete={Boolean(scopeComplete)} privateDocumentsEnabled={privateDocumentsEnabled}
+        fictionalDocumentsEnabled={fictionalDocumentsEnabled} preparationEnabled={preparationEnabled} assistantEnabled={assistantEnabled}
+        sources={<ReviewedSourcesPanel locale={locale}/>}
+        guidance={liveAIEnabled ? <SavedCaseAIGuide
+          key={record.id + ':' + record.scope_answers.join(',')} caseId={caseId}
+          snapshot={{status: record.status, scope_answers: record.scope_answers}}/> : null}
+        scope={reviewing ? <div className="scope-review" id="case-scope">
+          <h3>{t.savedReviewTitle}</h3><p>{t.savedReviewBody}</p>
+          <ol>{t.questions.map((question, index) => <li key={question}>
+            <button type="button" className="scope-review-row" onClick={() => openQuestion(index)}>
+              <span>{question}</span><strong>{record.scope_answers[index] === 'yes' ? t.answerYes :
+                record.scope_answers[index] === 'no' ? t.answerNo : t.answerUnsure}</strong>
+            </button>
+          </li>)}</ol>
+          <p className="case-state">{t.savedNotEligibility}</p>
+        </div> : <div className="scope-question" id="case-scope" aria-busy={saving}>
+          <div className="scope-motion" key={questionIndex} data-direction={scopeDirection}>
+            <p className="editorial-label question-count">{t.questionLabel} {questionIndex + 1} / 5</p>
+            <h3 ref={questionHeading} tabIndex={-1}>{t.questions[questionIndex]}</h3>
             {questionIndex === 0 && <p>{t.previousRegistrationHelp}</p>}
             <div className="answer-grid" role="group" aria-label={t.questions[questionIndex]}>
-              {ANSWERS.map((option) =>
-                <button type="button" key={option}
-                  className={`answer-option ${selected === option ? 'selected' : ''}`}
-                  aria-pressed={selected === option} disabled={saving || deleting}
-                  onClick={() => { setSelected(option); setError(''); setNotice(''); }}>
-                  <span className="answer-radio" />
-                  {option === 'yes' ? t.answerYes : option === 'no' ? t.answerNo : t.answerUnsure}
-                </button>)}
+              {ANSWERS.map(option => <button type="button" key={option}
+                className={'answer-option' + (selected === option ? ' selected' : '')}
+                aria-pressed={selected === option} disabled={saving || deleting || expired}
+                onClick={() => { setSelected(option);setError(null);setNotice(''); }}>
+                <span className="answer-radio"/>
+                {option === 'yes' ? t.answerYes : option === 'no' ? t.answerNo : t.answerUnsure}
+              </button>)}
             </div>
-            {selected && classifySingleAnswer(questionIndex, selected) === 'unsupported'
-              && <div role="status" className="message-box warning"><div><strong>{t.blockedTitle}</strong><p>{t.blockedBody}</p></div></div>}
-            {selected === 'unsure'
-              && <div role="status" className="message-box notice"><div><strong>{t.unsureTitle}</strong><p>{t.unsureBody}</p></div></div>}
+            {selected && classifySingleAnswer(questionIndex, selected) === 'unsupported' &&
+              <div role="status" className="message-box warning"><div><strong>{t.blockedTitle}</strong><p>{t.blockedBody}</p></div></div>}
+            {selected === 'unsure' && <div role="status" className="message-box notice"><div><strong>{t.unsureTitle}</strong><p>{t.unsureBody}</p></div></div>}
             <details className="why-disclosure"><summary>{t.questionWhy}</summary><p>{t.questionWhyBody}</p></details>
           </div>
-          <div className="panel-bottom">
-            <button type="button" className="button button-outline" disabled={saving || deleting}
-              onClick={() => questionIndex === 0 ? router.push('/cases/saved') : openQuestion(questionIndex - 1)}>
-              {t.back}
-            </button>
-            <button type="button" className="button button-primary" disabled={!selected || saving || deleting}
-              onClick={() => void saveAnswer()}>
-              {saving ? t.savedSavingAnswer : t.savedSaveContinue}
-            </button>
+          <div className="case-actions">
+            <button type="button" className="button button-outline" disabled={saving || deleting || expired}
+              onClick={() => questionIndex === 0 ? router.push('/cases/saved') : openQuestion(questionIndex - 1)}>{t.back}</button>
+            <button type="button" className="button button-primary" disabled={!selected || saving || deleting || expired}
+              onClick={() => void saveAnswer()}>{saving ? t.savedSavingAnswer : t.savedSaveContinue}</button>
           </div>
-        </>}
-        {!loading && record && liveAIEnabled && <div id="case-ai" style={{padding: 16}}>
-          <SavedCaseAIGuide
-            key={record.id + ':' + record.scope_answers.join(',')}
-            caseId={caseId}
-            snapshot={{status: record.status, scope_answers: record.scope_answers}}
-          />
+          {error === 'save' && <div className="message-box warning" role="alert"><div><p>{t.savedAnswerError}</p>
+            <button type="button" className="inline-link" onClick={() => void saveAnswer()}>{t.savedRetry}</button>
+          </div></div>}
+          {notice && <p className="case-confirmation" role="status">{notice}</p>}
         </div>}
-        {notice && <p className="container" role="status" style={{ padding: '12px 24px' }}>{notice}</p>}
-        {error && <p className="error-text" role="alert" style={{ padding: '12px 24px' }}>{error}</p>}
-      </section>
-      <aside className="case-sidebar" aria-label={t.sidebarTasks}>
-        <section className="side-panel">
-          <h2>{t.savedCaseDetails}</h2>
-          <p>{t.savedSyntheticOnly}</p>
-          {record && <>
-            <div className="fact-row"><span>{t.savedCaseCode}</span><strong>{record.id.slice(0, 8)}</strong></div>
-            <div className="fact-row"><span>{t.savedDraft}</span><strong>{record.status}</strong></div>
-            <div className="fact-row"><span>{t.savedProgress}</span><strong>{record.scope_answers.length} / 5</strong></div>
-            {privateDocumentsEnabled && <Link
-              href={'/cases/' + encodeURIComponent(caseId) + '/documents'}
-              className="button button-outline" style={{ marginTop: 18, display: 'inline-flex' }}>
-              {locale === 'it' ? 'Archivio documenti privati' : 'Private documents'}
-            </Link>}
-            <button type="button" className="button button-outline" style={{ marginTop: 22 }}
-              disabled={saving || deleting} onClick={() => void deleteCase()}>
-              {deleting ? t.savedDeleting : t.savedDelete}
-            </button>
-          </>}
-        </section>
-        <p className="side-footnote">{t.accountDemoPrivacy}</p>
-      </aside>
+        intake={<CaseIntakePanel caseId={caseId} onChanged={() => setJourneyRevision(n => n + 1)}/>}
+      />}
+      {record && <details className="case-settings case-more">
+        <summary>{locale === 'it' ? 'Gestisci la pratica' : 'Manage this case'}</summary><p>{t.savedSyntheticOnly}</p>
+        <div className="case-actions">
+          <button type="button" className="button button-outline" disabled={saving || deleting || expired}
+            onClick={() => void deleteCase()}>{deleting ? t.savedDeleting : t.savedDelete}</button>
+        </div>
+        {error === 'delete' && <p className="error-text" role="alert">{t.savedDeleteError}</p>}
+      </details>}
     </div>
   </main>;
 }

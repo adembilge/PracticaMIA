@@ -318,3 +318,13 @@ def test_invalid_labeled_dates_do_not_become_suggestions():
     for raw in ("31/02/2026", "2026-02-30", "not a date", "01/01/2101"):
         assert intel.normalize_labeled_move_date(raw) is None
     assert intel.normalize_labeled_move_date("29/02/2024") == "2024-02-29"
+
+
+def test_date_formats_for_the_same_day_are_not_ambiguous():
+    from hashlib import sha256
+
+    body = sample_pdf("Move-in date: 2026-11-05", "Data del trasferimento: 05.11.2026")
+    sample = intel.extract_intake_candidates(body, "application/pdf", sha256(body).hexdigest())
+    assert len(sample["candidates"]) == 2
+    assert sample["ambiguous_fields"] == []
+    assert {item["suggested_value"] for item in sample["candidates"]} == {"2026-11-05"}
