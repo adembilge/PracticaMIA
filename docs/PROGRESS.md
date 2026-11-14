@@ -1,29 +1,26 @@
 # PracticaMIA — implementation and release evidence
 
-**Recorded:** 9 November 2026. This is a dated engineering snapshot, not certification of the project specification's full task roadmap.
+**Updated:** 14 November 2026. The production checks below used a fictional saved case.
 
 ## Verified engineering evidence
 
-| Item | Evidence | Important limitation |
+| Item | Evidence | Limits of the check |
 | --- | --- | --- |
-| Saved case, intake and workflow | PRs [#64](https://github.com/adembilge/PracticaMIA/pull/64) and [#67](https://github.com/adembilge/PracticaMIA/pull/67) | User-read marks do not establish that official administrative steps are complete |
-| Private document review | [PR #65](https://github.com/adembilge/PracticaMIA/pull/65) | Production personal-document upload remains disabled behind release controls |
-| Downloadable preparation summary | [PR #66](https://github.com/adembilge/PracticaMIA/pull/66) | PDF is a non-official, reviewable draft, never a government receipt |
-| Isolated browser acceptance | [PR #68](https://github.com/adembilge/PracticaMIA/pull/68), eight supported synthetic browser scenarios passing | Not a live Auth0 sign-in or real document acceptance |
-| Neon database | Production revision `20261109_0016`; two preexisting cases and two reviewed source records checked | A schema revision does not imply live frontend parity |
-| Production backend | Commit `4ab8fa2` was deployed and `/health` and OpenAPI routes returned HTTP 200 | Authenticated case and PDF requests were not verified end-to-end on the hosted website |
-| Production frontend | Last verified production deployment on `5a3b78f` | Newer frontend deployment failed due to Vercel daily quota (HTTP 402) |
+| Saved case, intake and workflow | PRs [#64](https://github.com/adembilge/PracticaMIA/pull/64) and [#67](https://github.com/adembilge/PracticaMIA/pull/67) | Checklist acknowledgements record the user's review. They do not record administrative completion. |
+| Private document review and PDF preparation | PRs [#65](https://github.com/adembilge/PracticaMIA/pull/65), [#66](https://github.com/adembilge/PracticaMIA/pull/66) and [#72](https://github.com/adembilge/PracticaMIA/pull/72) | Production personal-document upload is disabled. The exported PDF is a reviewable preparation draft. |
+| Isolated browser acceptance | [PR #68](https://github.com/adembilge/PracticaMIA/pull/68), eight synthetic browser scenarios passing | This suite uses synthetic identities and covers different behavior from the live Auth0 check. |
+| Production deployment at the time of the Auth0 check | Web and API both reported Ready on [`24ee003`](https://github.com/adembilge/PracticaMIA/commit/24ee003050c13eab6b5ca40e14f7f3ff87a93514). [Web deployment](https://vercel.com/firatadembilge-4729/practicamia/9W8k1ZXLPybxsfCVUXsMUtxU3wh1) · [API deployment](https://vercel.com/firatadembilge-4729/practicamia-api/AAo41VkywCJQk8Ac9J5uA7oumkMu) | Production revision `20261109_0016` was previously recorded on 9 November. The migration revision was outside the 14 November browser check. |
+| Live Auth0 and case isolation | Two distinct authenticated identities verified on 14 November. The owner reopened the fictional case with 5/5 acknowledgements and confirmed successful PDF download. The second account could not list, open or download that case. [Manual run and limitations](ACCEPTANCE_TESTING.md#manual-production-auth0-check) | Covers read access to the selected fictional case and PDF. Write, upload, and reviewer permission paths require separate evidence. |
+| Milan scope alignment | [PR #74](https://github.com/adembilge/PracticaMIA/pull/74) aligns the entry questions with the signed route for moves within Milan and moves into Milan from another Italian municipality. Both paths passed browser acceptance. The production frontend and API reached [`8449440`](https://github.com/adembilge/PracticaMIA/commit/8449440469d79cea48543076cb2204dd23b15f4b). | The post-deployment smoke check covered homepage copy and API health. The full scope scenarios ran in CI. |
+| Official source and AI evaluation preparation | The 14 November review compared public Comune di Milano and ANPR materials, prepared 14 cases with 28 EN/IT inputs, and ran 15 offline scope and quotation checks. The companion review is titled *PracticaMIA Milano MVP kaynak incelemesi ve AI değerlendirme seti*. | Live ANPR form behavior and current upload limit remain unconfirmed. Live model quality was not measured. |
 
-## Outstanding release gates
+## Outstanding MVP and release gates
 
-- Verify the latest frontend deployment, its same-commit backend, and a complete hosted login-to-PDF flow with genuine Auth0 browser sessions.
-- Complete independent evaluations of the conversational assistant, citations, source currency and document extraction on representative cases.
-- Keep real-document uploads disabled until privacy, security, malware scanning, retention, backup and operational obligations have been reviewed and demonstrated.
-- Reconcile the canonical task registry against individual acceptance evidence; old governance states are not automatically updated by merged code.
-- Complete operational monitoring, rollback and owner release sign-off before opening access to personal residence records.
+| Gate | Remaining acceptance evidence |
+| --- | --- |
+| Staging acceptance and bilingual AI | Establish a matched, isolated frontend/API Preview for the reviewed commit. Run the EN/IT evaluation and record actual answer correctness, citation and source-version validity, and abstention. Complete staging evidence for the supported journey and unsupported fallback. No matching Preview was listed for either project on 14 November. |
+| Document processing and access controls | In isolated staging, prove the supported document journey with representative synthetic PDFs/images, including extraction accuracy, correction, conflicts and cross-account read/write denial, then verify the reviewed draft and handoff. The 14 November production check covers case and PDF read access. |
+| Personal-document beta | Keep production uploads disabled until the responsible review and operational checks for privacy, malware scanning, key management, retention/deletion, backup/restore, and monitoring are evidenced. Complete the consented beta and document findings before broader release. [Document vault release checklist](PRIVATE_DOCUMENT_VAULT_RELEASE.md) |
+| Roadmap and release decision | Reconcile the [task registry](TASKS.yaml) against evidence and required approvals. Record staging results, rollback readiness and explicit owner go/no-go under [specification §26](../PracticaMIA_Complete_Project_Specification.md#26-mvp-acceptance-criteria-and-release-gates). |
 
-## Evidence discipline
-
-A passing synthetic fixture does not constitute a source approval; a signed rule cannot replace current official instructions; a completed review checkbox does not constitute a legal action; and a deployed backend is not proof that the frontend is updated.
-
-For current implementation details see [the documentation index](README.md).
+For implementation details see [the documentation index](README.md).
