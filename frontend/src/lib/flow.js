@@ -3,7 +3,7 @@
  * A matching result means "within our demo scenario", not legally eligible.
  */
 export const SCOPE_FIELDS = [
-  'registeredInMilan',
+  'registeredInItaly',
   'destinationInMilan',
   'applyingAlone',
   'joiningHousehold',

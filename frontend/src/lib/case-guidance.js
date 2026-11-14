@@ -11,15 +11,15 @@ export const CASE_GUIDANCE_STATUSES = Object.freeze([
 
 export const SCOPE_LABELS = Object.freeze({
   en: Object.freeze([
-    'Already registered as a Milan resident',
-    'Moving to another address in Milan',
+    'Previously registered as a resident in Italy',
+    'New address in the municipality of Milan',
     'Applying only for yourself',
     'Joining an existing registered household',
     'Renting the new home',
   ]),
   it: Object.freeze([
-    'Già residente a Milano',
-    'Trasferimento a un altro indirizzo a Milano',
+    'Residenza anagrafica precedente in Italia',
+    'Nuovo indirizzo nel Comune di Milano',
     'Domanda presentata soltanto per te',
     'Ingresso in una famiglia anagrafica esistente',
     'Nuova abitazione in affitto',

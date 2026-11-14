@@ -202,6 +202,7 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
           <div className="scope-content" id="case-scope">
             <span className="question-count">{t.questionLabel} {questionIndex + 1} / 5</span>
             <h3>{t.questions[questionIndex]}</h3>
+            {questionIndex === 0 && <p>{t.previousRegistrationHelp}</p>}
             <div className="answer-grid" role="group" aria-label={t.questions[questionIndex]}>
               {ANSWERS.map((option) =>
                 <button type="button" key={option}
