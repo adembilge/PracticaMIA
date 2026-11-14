@@ -217,7 +217,25 @@ try{
     assert.equal((await readJson(bobPage,'/api/cases/'+caseId+'/workflow')).status,404);
     assert.equal((await bobPage.request.get(origin+'/api/cases/'+caseId+'/package/pdf')).status(),404);
     await bobPage.goto(origin+'/cases/'+caseId);
-    await bobPage.getByRole('heading',{name:'Case unavailable'}).waitFor({timeout:12000});
+    const unavailable=bobPage.getByRole('heading',{level:1,name:'Case unavailable'});
+    await unavailable.waitFor({timeout:12000});
+    assert.equal(await bobPage.getByRole('heading',{name:'Saved case workspace'}).count(),0);
+    assert.equal(await bobPage.getByRole('button',{name:'Try again'}).count(),0);
+    const back=bobPage.getByRole('link',{name:'Back to saved cases'});
+    assert.equal(await back.getAttribute('href'),'/cases/saved');
+    await bobPage.setViewportSize({width:390,height:844});
+    assert.equal(await bobPage.evaluate(()=>document.documentElement.scrollWidth <= innerWidth),true);
+    await back.click();
+    await bobPage.waitForURL(origin+'/cases/saved');
+
+    const caseApi=origin+'/api/cases/'+caseId;
+    const failLoad=route=>route.fulfill({status:503,body:'{}'});
+    await alicePage.route(caseApi,failLoad);
+    await alicePage.goto(origin+'/cases/'+caseId);
+    await alicePage.getByRole('heading',{level:1,name:'We couldn’t load this case'}).waitFor({timeout:12000});
+    await alicePage.unroute(caseApi,failLoad);
+    await alicePage.getByRole('button',{name:'Try again',exact:true}).click();
+    await alicePage.getByRole('navigation',{name:'Case progress'}).waitFor({timeout:12000});
     const anonymous=await browser.newContext();
     try{
       assert.equal((await anonymous.request.get(origin+'/api/cases/'+caseId)).status(),401);
