@@ -26,7 +26,7 @@ function AcceptanceApp(){
   const documentsEnabled=Boolean(window.acceptancePrivateDocuments);
   const signedIn=/\bacceptance_subject=(alice|bob)\b/.test(document.cookie);
   return <DemoProvider>
-    <SiteHeader/>
+    <SiteHeader signedIn={signedIn} accountName={signedIn ? 'Example Applicant' : undefined}/>
     {documentsEnabled && route?.[2] && id ?
       <PrivateDocumentsWorkspace key={id} caseId={id} configured signedIn={signedIn}/> :
       id?<SavedCaseWorkspace key={id} caseId={id}

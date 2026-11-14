@@ -2,7 +2,8 @@ export type Locale = 'en' | 'it';
 
 export const messages = {
   en: {
-        navAccount: 'Account',
+    navAccount: 'Account',
+    navSignIn: 'Sign in / Register',
     accountTitle: 'Your PracticaMIA account',
     accountUnavailable: 'Login is not connected yet. The demo works without an account, and no case information is sent to a backend.',
     accountWelcome: 'Signed in',
@@ -12,6 +13,7 @@ export const messages = {
     accountLogout: 'Sign out',
     accountSignInIntro: 'Sign in to access your saved synthetic demo cases.',
     accountLogin: 'Sign in',
+    accountRegister: 'Create an account',
     accountDemoPrivacy: 'The public demonstration is independent of your account. Do not enter real addresses or identity details.',
     accountDemoLink: 'Continue with the anonymous demo',
     accountBack: 'Back to account',
@@ -130,7 +132,8 @@ export const messages = {
     reviewBack: 'Return to case', footer: 'PracticaMIA is an independent prototype. No government affiliation.',
   },
   it: {
-        navAccount: 'Account',
+    navAccount: 'Account',
+    navSignIn: 'Accedi / Registrati',
     accountTitle: 'Il tuo account PracticaMIA',
     accountUnavailable: 'Il login non è ancora collegato. La demo funziona senza account e nessun dato della pratica viene inviato a un server.',
     accountWelcome: 'Accesso effettuato',
@@ -140,6 +143,7 @@ export const messages = {
     accountLogout: 'Esci',
     accountSignInIntro: 'Accedi per consultare le tue pratiche dimostrative salvate.',
     accountLogin: 'Accedi',
+    accountRegister: 'Registrati',
     accountDemoPrivacy: 'La demo pubblica è indipendente dal tuo account. Non inserire indirizzi reali o dati di identità.',
     accountDemoLink: 'Continua con la demo anonima',
     accountBack: 'Torna all’account',
