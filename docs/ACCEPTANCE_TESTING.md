@@ -67,6 +67,21 @@ This suite deliberately does **not** cover:
 These are separate **release acceptance gates** and must not be silently
 treated as passed merely because synthetic E2E is green.
 
+## Manual production Auth0 check
+
+**14 November 2026** · [Production web](https://practicamia.vercel.app) · web and API on [`24ee003`](https://github.com/adembilge/PracticaMIA/commit/24ee003050c13eab6b5ca40e14f7f3ff87a93514)
+
+| Assertion | Observed result |
+| --- | --- |
+| Real browser sessions | Two signed-in accounts had distinct Auth0 subjects. Subjects and credentials are omitted from this record. |
+| Owner opens the fictional case | The saved workspace loaded with all five acknowledgements preserved. |
+| Owner downloads the preparation draft | The project owner confirmed a successful download. Browser automation timed out waiting for its download event during the repeat attempt. |
+| Second account lists saved cases | The owner case was absent. The signed-in list loaded without an error. |
+| Second account opens owner case directly | The UI displayed `Case unavailable`. The case API returned `Case not found`. |
+| Second account opens the owner's PDF link | The PDF endpoint returned `Preparation package unavailable` as JSON. No PDF was served. |
+
+The manual check covers live Auth0 sign-in, saved-case persistence and read isolation for the selected case and preparation draft. It does not exercise cross-account writes, private document upload or reviewer authorization. The [authenticated Preview runbook](AUTHENTICATED_PREVIEW_E2E_RUNBOOK.md) covers a separate staging workflow.
+
 ## Run locally
 
 The dedicated CI workflow runs on PRs, pushes to main, or manual dispatch.
