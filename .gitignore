@@ -27,3 +27,12 @@ __pycache__/
 *.sqlite3
 *.sqlite3-journal
 *.db
+
+# Generated verification artifacts
+frontend/.acceptance-results/
+playwright-report/
+test-results/
+*.egg-info/
+.coverage
+coverage.xml
+.ruff_cache/

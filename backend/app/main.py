@@ -1,4 +1,4 @@
-"""App factory for development-only authenticated, synthetic case persistence."""
+"""ASGI application factory for authenticated case and source services."""
 from fastapi import FastAPI
 
 from app.config import Settings
@@ -9,7 +9,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
     api = FastAPI(
         title="PracticaMIA Backend",
-        description="Development-only API. No official eligibility or submission.",
+        description="Independent case preparation API; no government eligibility or submission.",
         version="0.2.0",
     )
     api.state.settings = settings
@@ -26,6 +26,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "Permissions-Policy", "camera=(), microphone=(), geolocation=()"
         )
         return response
+    if settings.enable_private_document_api:
+        from app.private_documents.security import validate_release_settings
+        # The operator must approve a reviewed notice, configure an external
+        # malware scanner, cron credential, and a separate encryption key.
+        api.state.private_document_key = validate_release_settings(settings)
     if settings.enable_agent_history_api and not settings.enable_preparation_api:
         raise ValueError("Agent history requires isolated preparation Preview")
     if settings.enable_preparation_api:
@@ -88,22 +93,48 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     revision = connection.exec_driver_sql(
                         "SELECT version_num FROM alembic_version"
                     ).scalar_one()
-                if revision not in {"20261106_0011", "20261108_0012"}:
+                if revision not in {"20261106_0011", "20261108_0012", "20261109_0013", "20261109_0014", "20261109_0015", "20261109_0016"}:
                     raise ValueError("Preparation requires migrated isolated staging schema")
-                if settings.enable_agent_history_api and revision != "20261108_0012":
+                if settings.enable_agent_history_api and revision not in {"20261108_0012", "20261109_0013", "20261109_0014", "20261109_0015", "20261109_0016"}:
                     raise ValueError("Agent history requires isolated staging schema 0012")
             except Exception:
                 engine.dispose()
                 raise
         api.state.engine = engine
         api.state.session_factory = session_factory
+        if settings.enable_private_document_api and engine.dialect.name == "postgresql":
+            with engine.connect() as connection:
+                revision = connection.exec_driver_sql(
+                    "SELECT version_num FROM alembic_version"
+                ).scalar_one()
+            if revision not in {"20261109_0013", "20261109_0014", "20261109_0015", "20261109_0016"}:
+                engine.dispose()
+                raise ValueError("Private documents require migrated 0013 schema")
         api.include_router(router)
+        from app.cases.intake_router import router as case_intake_router
+        api.include_router(case_intake_router)
+        if settings.enable_private_document_api:
+            from app.private_documents.router import router as private_router, retention_router
+            api.include_router(private_router)
+            api.include_router(retention_router)
+            if engine.dialect.name == "postgresql":
+                if revision not in {"20261109_0015", "20261109_0016"}:
+                    engine.dispose()
+                    raise ValueError("Document intelligence requires schema revision 0015")
+            from app.private_documents.intelligence_router import router as intelligence_router
+            api.include_router(intelligence_router)
         if settings.enable_preparation_api:
             from app.preparation.router import router as preparation_router
             api.include_router(preparation_router)
         if settings.enable_knowledge_catalog_api:
             from app.knowledge.router import router as knowledge_router
+            from app.cases.checklist_router import router as checklist_router
+            from app.cases.package_router import router as package_router
+            from app.cases.workflow_router import router as workflow_router
             api.include_router(knowledge_router)
+            api.include_router(checklist_router)
+            api.include_router(package_router)
+            api.include_router(workflow_router)
             if settings.enable_knowledge_search_api:
                 from app.knowledge.search_router import router as search_router
                 api.include_router(search_router)

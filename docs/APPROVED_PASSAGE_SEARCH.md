@@ -1,6 +1,6 @@
 # Approved passage lexical retrieval — milestone 50.4 foundation
 
-**Status:** Merged backend-only search and citation resolution. Production feature remains disabled. No AI-generated legal guidance, embeddings or production knowledge rollout.
+**Scope of this document:** The lexical search and citation-resolution implementation. Later code also adds approved-only hybrid/vector retrieval and constrained assistant endpoints; this is not an up-to-date statement of any live deployment. See [retrieval evaluation](RETRIEVAL_EVALUATION.md) and [embedding indexing](APPROVED_EMBEDDING_INDEXING.md).
 
 ## Contract
 
@@ -73,7 +73,7 @@ A bounded, exact-token **SQLite fallback** exists solely for isolated unit tests
 
 ## Deployment and acceptance
 
-Production Neon remains at `20261104_0002`. A separate staging Neon branch was migrated to `20261105_0006` and has four pending candidate records. Production knowledge flags remain disabled. **Merging this code is not permission to migrate or enable the knowledge API.**
+**Historical rollout context:** When lexical search first landed, production was at `20261104_0002` and an isolated staging branch had reached `20261105_0006`. This is not a current database-state assertion. **Merging code is not authorization to migrate production or enable the knowledge API.**
 
 1. Review the PR and CI results.
 2. Confirm Neon backup/restore, create a disposable branch and test migrations `0003` through `0006`.
@@ -82,4 +82,4 @@ Production Neon remains at `20261104_0002`. A separate staging Neon branch was m
 5. Test `401`, `insufficient_evidence`, scope mismatch, citation resolution, revocation and source-change invalidation.
 6. Enable no user-facing AI guidance until source provenance and relevance fixtures have been reviewed.
 
-**Next:** A synthetic retrieval benchmark now covers Recall@K, MRR, abstention and citation resolution (see [Retrieval Evaluation](RETRIEVAL_EVALUATION.md)). Human-reviewed real-source benchmarks, embeddings/pgvector hybrid fusion, explicit freshness policies and deterministic administrative rules are still required before a bounded LangGraph agent.
+**Next:** A synthetic retrieval benchmark now covers Recall@K, MRR, abstention and citation resolution (see [Retrieval Evaluation](RETRIEVAL_EVALUATION.md)). Representative reviewed-source benchmarks and freshness monitoring remain essential; later modules provide hybrid retrieval and deterministic rules in separately gated workflows.

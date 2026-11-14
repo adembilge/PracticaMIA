@@ -1,6 +1,8 @@
 # Milan official-source acquisition inventory — 5 November 2026
 
-**Status: SOURCE METADATA ONLY. Not ingested or approved.**
+**Historical status on 5 November 2026: candidate source metadata and an unapproved imported PDF.**
+
+> This is a dated source-discovery record, not a current deployment or approval report. Later reviewed source and ruleset provenance are recorded in [the 8 November activation record](MILAN_FIRST_ROUTE_OWNER_REVIEW_ACTIVATION_2026_11_08.md); current applicability must be checked against the active reviewed version.
 **Procedure:** selected changes of registered residence (*cambio di residenza*)
 within Milano or to Milano from another Italian municipality. This inventory
 does **not** certify that the municipality's requirements have been exhaustively
@@ -101,7 +103,7 @@ now supports bounded original-PDF ingestion; only the user-uploaded historical
 Allegato A has been imported. Other originals remain unavailable in this
 environment. See [PDF Source Ingestion](PDF_SOURCE_INGESTION.md).
 
-Two additional conditional FAQ candidates were identified: [documents for a minor's residence change](https://servizicrm.comune.milano.it/centro-supporto/KA-00434/Documenti-necessari-per-cambio-residenza-minori) and [a foreign worker staying with a property owner/tenant](https://servizicrm.comune.milano.it/centro-supporto/KA-00594/). They remain unapproved. An additional [download queue](OFFICIAL_DOCUMENT_DOWNLOAD_QUEUE.md) tracks landlord consent, two minor-related municipal forms, and the national ANPR guide. These are research leads, not stored documents.
+Two additional conditional FAQ candidates were identified: [documents for a minor's residence change](https://servizicrm.comune.milano.it/centro-supporto/KA-00434/Documenti-necessari-per-cambio-residenza-minori) and [a foreign worker staying with a property owner/tenant](https://servizicrm.comune.milano.it/centro-supporto/KA-00594/). They remain unapproved. Additional file leads are preserved in the research section below. They are candidates, not mandatory document requirements or approved forms.
 
 ## Safe acquisition and review procedure
 
@@ -126,3 +128,30 @@ Two additional conditional FAQ candidates were identified: [documents for a mino
 Production migration, reviewer privileges, LangChain answer generation and
 official source approval are **separate tasks**. The catalog alone does not
 make PracticaMIA's knowledge engine ready for user-facing advice.
+
+
+## Additional historical document leads
+
+These official-host and national guide URLs were discovered on 5 November 2026. They are preserved as research leads only; their current validity and applicant-specific relevance require independent review.
+
+### Official-file candidates discovered on 5 November 2026
+
+| Priority | Official source file | Why it matters | Status / caveat |
+| --- | --- | --- | --- |
+| High | [Assenso del proprietario o dell'affittuario (PDF)](https://www.comune.milano.it/documents/20126/526418/ASSENSO%2B%2BProprietario%2B%2BAffittuario.pdf/11c32ca7-8084-a40f-5543-da0f59a86006?t=1705660051113) | Permission to request residence while staying with a tenant or owner | Comune-indexed PDF; original bytes **not downloaded**; confirm current form |
+| High for households with minors | [Consent of the non-moving parent, Mod. 1 (PDF)](https://www.comune.milano.it/ru/documents/20118/42443/Dichiarazione%2Bdi%2Bconsenso%2Bdel%2Bgenitore%2Bche%2Bnon%2Btrasferisce%2Bla%2Bresidenza.pdf/fb9da10d-ccba-f43b-b11b-c8bd169215a7?download=true&t=1743091608070&version=1.0) | Minor moves without both parents changing residence | Older Comune-indexed form; verify validity and version |
+| High for households with minors | [Declaration of absent parent's particulars, Mod. 2 (PDF)](https://www.comune.milano.it/fr/documents/20118/42443/Dichiarazione%2Bdelle%2Bgeneralit%C3%A0%2Bdel%2Bgenitore%2Bassente.pdf/956f5b82-6707-6aaf-d1f0-be3b2b11dad8?download=true&t=1743091608065&version=1.0) | Conditional alternative when another parent's particulars must be declared | Older Comune-indexed form; verify validity and version |
+| High | [ANPR operational guide for residence change (PDF)](https://public-anpr.github.io/anpr-docs-cittadino/src/docs/guide/guida_compilazione_cambio_residenza.pdf) | How to complete the online process, attach evidence and request validation | National online-service manual, **not** Milan requirements |
+| Optional historical example | [Filled residence declaration example (PDF)](https://www.comune.milano.it/documents/20126/526597/fac%2Bsimile%2Bcompilazione%2Bmodulo%2Bcambio%2Bresidenza-indirizzo.pdf/e3df564c-39c9-1659-c7d5-a856845f3266?t=1546955378897) | Explains older paper form fields | Historical example, not a current application template |
+
+**Why the two minor forms:** The municipality's [minor residence-change
+FAQ](https://servizicrm.comune.milano.it/centro-supporto/KA-00434/Documenti-necessari-per-cambio-residenza-minori)
+lists an identity-document copy and the non-moving parent's consent *or* a
+declaration of an absent parent's particulars. The original PDFs were
+located through municipal-indexed official URLs, but their current status
+must be confirmed before treating them as operative forms.
+
+**Why the landlord form:** The municipality's [guest FAQ](https://servizicrm.comune.milano.it/centro-supporto/KA-00367/Residenza-per-italiani-ospiti-documenti-immobile)
+describes the owner's/tenant's assent. A more recent FAQ states this form
+is also provided in the appointment-summary email or at a municipal desk;
+not all applicant pathways require downloading it.

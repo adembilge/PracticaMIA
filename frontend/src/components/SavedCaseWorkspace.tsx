@@ -5,6 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { type Answer, useDemo } from '@/components/DemoProvider';
 import { classifySingleAnswer } from '@/lib/flow.js';
+import { SavedCaseAIGuide } from '@/components/SavedCaseAIGuide';
+import { MilanOfficialGuidance } from '@/components/MilanOfficialGuidance';
+import { ReviewedSourcesPanel } from '@/components/ReviewedSourcesPanel';
+import { CaseIntakePanel } from '@/components/CaseIntakePanel';
+import { CaseJourneyPanel } from '@/components/CaseJourneyPanel';
 import { firstUnresolvedQuestion, isCaseId, nextScopeAnswers } from '@/lib/case-scope.js';
 
 type StoredCase = {
@@ -16,10 +21,10 @@ type StoredCase = {
   updated_at: string;
 };
 
-type Props = { caseId: string; configured: boolean; signedIn: boolean; assistantEnabled: boolean; preparationEnabled: boolean };
+type Props = { caseId: string; configured: boolean; signedIn: boolean; assistantEnabled: boolean; preparationEnabled: boolean; liveAIEnabled: boolean; privateDocumentsEnabled: boolean };
 const ANSWERS: Answer[] = ['yes', 'no', 'unsure'];
 
-export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnabled, preparationEnabled }: Props) {
+export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnabled, preparationEnabled, liveAIEnabled, privateDocumentsEnabled }: Props) {
   const router = useRouter();
   const { t, locale } = useDemo();
   const [record, setRecord] = useState<StoredCase | null>(null);
@@ -31,6 +36,7 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [journeyRevision, setJourneyRevision] = useState(0);
 
   const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
@@ -91,6 +97,7 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
         updated = (await response.json()) as StoredCase;
         if (updated.id !== record.id) throw new Error('Unexpected case response');
         setRecord(updated);
+        setJourneyRevision(n => n + 1);
       }
       const outcome = classifySingleAnswer(questionIndex, selected);
       setNotice(t.savedAnswerSaved);
@@ -153,6 +160,12 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
           <p>{t.savedUnavailableBody}</p>
           <button type="button" className="button button-outline" onClick={() => void load()}>{t.savedRetry}</button>
         </div>}
+        {!loading && record && <CaseJourneyPanel
+          caseId={caseId}
+          refreshKey={journeyRevision}
+          privateDocumentsEnabled={privateDocumentsEnabled}
+          liveAIEnabled={liveAIEnabled}
+        />}
         {!loading && record && reviewing && <>
           <div className="panel-intro">
             <span className="tiny-eyebrow">{t.savedDemoReview}</span>
@@ -161,7 +174,7 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
           </div>
           <div className="panel-rule" />
           <div className="scope-content">
-            <ol className="side-checklist">
+            <ol id="case-scope" className="side-checklist">
               {t.questions.map((question, index) => <li key={question}>
                 <button type="button" className="inline-link" onClick={() => openQuestion(index)}>
                   {question} — {record.scope_answers[index] === 'yes' ? t.answerYes
@@ -170,6 +183,9 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
               </li>)}
             </ol>
             <div className="message-box notice" role="status">{t.savedNotEligibility}</div>
+            <div id="case-handoff"><MilanOfficialGuidance locale={locale} /></div>
+            <div id="case-sources"><ReviewedSourcesPanel locale={locale} /></div>
+            <CaseIntakePanel caseId={caseId} onChanged={() => setJourneyRevision(n => n + 1)} />
           </div>
           <div className="panel-bottom">
             <button type="button" className="button button-outline" onClick={() => openQuestion(4)}>{t.savedEditAnswers}</button>
@@ -183,9 +199,10 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
             <p>{t.savedProgress} {record.scope_answers.length} / 5 — {t.savedDraft}: {record.status}</p>
           </div>
           <div className="panel-rule" />
-          <div className="scope-content">
+          <div className="scope-content" id="case-scope">
             <span className="question-count">{t.questionLabel} {questionIndex + 1} / 5</span>
             <h3>{t.questions[questionIndex]}</h3>
+            {questionIndex === 0 && <p>{t.previousRegistrationHelp}</p>}
             <div className="answer-grid" role="group" aria-label={t.questions[questionIndex]}>
               {ANSWERS.map((option) =>
                 <button type="button" key={option}
@@ -213,6 +230,13 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
             </button>
           </div>
         </>}
+        {!loading && record && liveAIEnabled && <div id="case-ai" style={{padding: 16}}>
+          <SavedCaseAIGuide
+            key={record.id + ':' + record.scope_answers.join(',')}
+            caseId={caseId}
+            snapshot={{status: record.status, scope_answers: record.scope_answers}}
+          />
+        </div>}
         {notice && <p className="container" role="status" style={{ padding: '12px 24px' }}>{notice}</p>}
         {error && <p className="error-text" role="alert" style={{ padding: '12px 24px' }}>{error}</p>}
       </section>
@@ -224,6 +248,11 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
             <div className="fact-row"><span>{t.savedCaseCode}</span><strong>{record.id.slice(0, 8)}</strong></div>
             <div className="fact-row"><span>{t.savedDraft}</span><strong>{record.status}</strong></div>
             <div className="fact-row"><span>{t.savedProgress}</span><strong>{record.scope_answers.length} / 5</strong></div>
+            {privateDocumentsEnabled && <Link
+              href={'/cases/' + encodeURIComponent(caseId) + '/documents'}
+              className="button button-outline" style={{ marginTop: 18, display: 'inline-flex' }}>
+              {locale === 'it' ? 'Archivio documenti privati' : 'Private documents'}
+            </Link>}
             {preparationEnabled && <Link
               href={'/cases/' + encodeURIComponent(caseId) + '/preparation'}
               className="button button-outline" style={{ marginTop: 18, display: 'inline-flex' }}>

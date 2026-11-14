@@ -21,12 +21,16 @@ Existing code and merged PRs predate a tracked task-state system. Every generate
 
 Real two-account Auth0 tests require two dedicated synthetic accounts, a separate allowed Preview callback origin, a paired isolated frontend/backend, and the migration-compatible staging Neon branch. Do not bypass authentication challenges or copy production session secrets to preview. Reviewer-only article access is testable without approving any source.
 
+## D-004 — Align the scope questions with the signed Milan route (14 November 2026)
+
+The product owner approved aligning the entry flow with the existing signed route. The first question asks about prior registration anywhere in Italy. The second asks whether the destination is in Comune di Milano. Moves within Milan and moves into Milan from another Italian municipality follow the same route if the separately confirmed intake matches the signed conditions. A saved `Yes` to the former narrower registration question remains valid. A saved `No` remains blocked until the user answers the updated question. See [the reviewed checklist boundary](REVIEWED_CASE_CHECKLIST.md#exact-release-boundary).
+
 ## Decisions still unresolved
 
-- Human-reviewed and time-valid Milan residence-change branches, mandatory source dossier, reviewer authorization, and rule approval.
-- Exact preview Auth0 configuration and deployment setup; live two-account test acceptance.
-- Model provider, embedding model, data transfer/retention policy and bilingual retrieval targets.
-- Personal document categories, secure storage/retention and deletion behavior.
-- Backup/restore policy, private beta acceptance, production deploy and public release approval.
+- Currency and applicability reviews for the approved first Milan scenario, especially the officially required attachments and exceptions.
+- Real browser Auth0 and two-account session acceptance against the deployed frontend and backend.
+- Full conversational-agent and retrieval quality benchmarks, provider routing and privacy of model inputs.
+- Operational authorization to enable private documents, scanner, encryption/retention lifecycle and live personal-data handling.
+- Backup and restore exercise, observability coverage, private user validation, and explicit production release sign-off.
 
-No entry grants permission for destructive migrations, production promotion, external LLM data processing, official source approval, or government action.
+Historical decisions above are dated records. Later code, database changes, and approved-source events must be reconciled using current evidence; they do not retroactively alter the human decisions recorded at the time.

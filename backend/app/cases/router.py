@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.tokens import Principal, get_principal
 from app.cases.model import CaseRecord
+from app.cases.intake_model import CaseIntake
 from app.cases.schemas import CaseOut, CreateCase, ScopeUpdate
 from app.cases.scope import classify_scope
 from app.database import get_session
@@ -78,7 +79,18 @@ def update_scope(
     db: Session = Depends(get_session),
     principal: Principal = Depends(get_principal),
 ):
-    record = get_case(db, case_id, principal.subject)
+    record = db.scalar(select(CaseRecord).where(
+        CaseRecord.id == str(case_id),
+        CaseRecord.owner_subject == principal.subject,
+    ).with_for_update())
+    if record is None:
+        raise HTTPException(404, "Case not found")
+    if record.scope_answers != list(payload.answers):
+        # Scope edits invalidate and erase downstream confirmations.
+        db.execute(delete(CaseIntake).where(
+            CaseIntake.case_id == str(case_id),
+            CaseIntake.owner_subject == principal.subject,
+        ))
     record.scope_answers = list(payload.answers)
     record.status = classify_scope(record.scope_answers)
     record.updated_at = datetime.now(timezone.utc)
@@ -95,6 +107,11 @@ def delete_case(
     principal: Principal = Depends(get_principal),
 ):
     record = get_case(db, case_id, principal.subject)
+    # Explicit cleanup also works with SQLite fixtures without FK enforcement.
+    db.execute(delete(CaseIntake).where(
+        CaseIntake.case_id == str(case_id),
+        CaseIntake.owner_subject == principal.subject,
+    ))
     if request.app.state.settings.enable_preparation_api:
         # Explicit cleanup also works in SQLite test fixtures with foreign
         # keys disabled; Postgres additionally enforces ON DELETE CASCADE.

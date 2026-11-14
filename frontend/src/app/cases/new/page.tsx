@@ -21,6 +21,8 @@ export default function NewCasePage() {
         <span className="tiny-eyebrow">{t.newKicker}</span>
         <h1 className="subpage-title">{t.newTitle}</h1>
         <p className="lead">{t.newLead}</p>
+        <p><Link href="/cases/saved" className="inline-link">Use a saved, resumable case instead (sign-in required)</Link></p>
+        <p><Link href="/demo/synthetic" className="inline-link">See the complete fictional document-to-handoff walkthrough</Link></p>
         <form onSubmit={submit} className="new-form">
           <label htmlFor="case-goal" className="field-label">{t.newLabel}</label>
           <textarea id="case-goal" className="input input-textarea" maxLength={500} value={data.goal} onChange={(e) => setGoal(e.target.value)} placeholder={t.newPlaceholder} rows={5} required />

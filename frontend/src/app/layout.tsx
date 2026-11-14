@@ -8,7 +8,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'PracticaMIA — Italian paperwork, with a plan',
-  description: 'An independent prototype for guided administrative preparation in Milan. Not a government service.',
+  description: 'Independent English–Italian administrative case preparation in Milan. Not a government service.',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
