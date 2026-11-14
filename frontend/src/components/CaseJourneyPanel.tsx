@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import {useCallback,useEffect,useState} from 'react';
+import {useCallback,useEffect,useRef,useState,type MouseEvent,type ReactNode} from 'react';
 import {useDemo} from '@/components/DemoProvider';
+import {Icon} from '@/components/Icon';
+import {MILAN_OFFICIAL_LINKS} from '@/lib/milan-official-guidance.js';
+import {MilanOfficialGuidance} from '@/components/MilanOfficialGuidance';
 import {FIRST_ROUTE_SOURCE_LINKS} from '@/lib/approved-source-view.js';
 import {PREPARATION_ISSUES} from '@/lib/case-package.js';
 import {validCaseWorkflow} from '@/lib/case-workflow.js';
-import {MILAN_OFFICIAL_LINKS} from '@/lib/milan-official-guidance.js';
 
 type Evidence={
   citation_id:string;source_id:string;official_url:string;
@@ -71,16 +73,8 @@ const copy={
     unavailable:'Package download is blocked until outstanding issues are resolved.',
     issues:'Outstanding issues and limitations',
     noIssues:'No issues found by the limited case checks. This is not legal verification.',
+    noDocs:'Real document review is not enabled. Do not upload personal documents.',
     docs:'Open private document review',
-    demoDocs:'Review a fictional document',
-    previewDocs:'Review synthetic documents in Preview',
-    demoDocsNotice:'Use a fictional sample to try document review. Personal-file uploads are unavailable here.',
-    privateDocsUnavailable:'Personal-file uploads are unavailable here.',
-    assistant:'Open the evidence assistant',
-    completeScope:'Finish the initial questions first',
-    confirmFacts:'Confirm the case facts first',
-    sourcesPending:'Waiting for approved sources',
-    officialGuidance:'Read the official guidance',
     handoff:'Open official ANPR service',
     warning:'Marks record that you read instructions. They are not proof of completion, document authenticity, government acceptance, or submission.',
     note:'The rules are shown in their originally signed English text.',
@@ -127,231 +121,425 @@ const copy={
     unavailable:'Il download è bloccato finché le questioni aperte non vengono risolte.',
     issues:'Questioni aperte e limitazioni',
     noIssues:'Nessun problema nei controlli limitati. Non è una verifica legale.',
+    noDocs:'La revisione di documenti reali non è attiva. Non caricare documenti personali.',
     docs:'Apri la revisione documenti',
-    demoDocs:'Esamina un documento di esempio',
-    previewDocs:'Esamina documenti fittizi in anteprima',
-    demoDocsNotice:'Prova la revisione con un documento fittizio. Qui non puoi caricare file personali.',
-    privateDocsUnavailable:'Qui non puoi caricare file personali.',
-    assistant:'Apri l’assistente con fonti',
-    completeScope:'Completa prima le domande iniziali',
-    confirmFacts:'Conferma prima i dati della pratica',
-    sourcesPending:'In attesa delle fonti approvate',
-    officialGuidance:'Consulta le istruzioni ufficiali',
     handoff:'Apri il servizio ufficiale ANPR',
     warning:'Questi segni attestano solo la lettura delle istruzioni; non provano completamento, validità, accettazione o invio ufficiale.',
     note:'Le regole sono riportate in inglese nel testo firmato originale.',
   },
 } as const;
 
-const nextTarget:Record<string,string>={
-  answer_scope:'#case-scope',
-  confirm_intake:'#case-intake',
-  consult_official:'#case-handoff',
-  review_sources:'#case-sources',
-  review_checklist:'#case-workflow-checklist',
-  resolve_documents:'#case-workflow-documents',
-  download_draft:'#case-workflow-package',
-  review_package:'#case-workflow-package',
+const stages = ['scope', 'intake', 'checklist', 'documents', 'package'] as const;
+type Stage = typeof stages[number];
+const anchors: Record<Stage, string> = {
+  scope: '#case-scope', intake: '#case-intake', checklist: '#case-workflow-checklist',
+  documents: '#case-workflow-documents', package: '#case-workflow-package',
 };
-const target:Record<string,string>={
-  scope:'#case-scope',intake:'#case-intake',guidance:'#case-ai',
-  checklist:'#case-workflow-checklist',documents:'#case-workflow-documents',
-  package:'#case-workflow-package',handoff:'#case-handoff',
+const destination: Record<string, Stage> = {
+  answer_scope: 'scope', confirm_intake: 'intake', consult_official: 'package',
+  review_sources: 'checklist', review_checklist: 'checklist',
+  resolve_documents: 'documents', download_draft: 'package', review_package: 'package',
+};
+const extra = {
+  en: {
+    nav: 'Case progress', stages: ['Scope', 'Case details', 'Requirements', 'Documents', 'PDF summary'],
+    waiting: 'Waiting for confirmed case details.', step: 'Stage', source: 'Requirement and sources', close: 'Close details',
+    noFile: 'No private documents have been added.',
+    demoDocs: 'Review a fictional document',
+    previewDocs: 'Review synthetic documents in Preview',
+    demoDocsNotice: 'Use a fictional sample to try document review. Personal-file uploads are unavailable here.',
+    completeScope: 'Finish the initial questions first',
+    confirmFacts: 'Confirm the case facts first',
+    sourcesPending: 'Waiting for approved sources',
+    openAssistant: 'Open the evidence assistant',
+    draftReady: 'Preparation draft available', draftBlocked: 'Preparation draft blocked',
+    manual: 'Submit separately on ANPR', notSent: 'No official submission has been made here.',
+    missing: 'Go to the relevant stage', expired: 'Your session has expired.', login: 'Sign in again',
+    assistant: 'Help with this case', retry: 'Try again',
+    pdfLoading: 'Preparing the PDF…', pdfError: 'The PDF could not be downloaded. Check the current case and try again.',
+    officialLink: 'Open ANPR',
+  },
+  it: {
+    nav: 'Avanzamento della pratica', stages: ['Ambito', 'Dati della pratica', 'Requisiti', 'Documenti', 'Riepilogo PDF'],
+    waiting: 'In attesa della conferma dei dati della pratica.', step: 'Fase', source: 'Requisito e fonti', close: 'Chiudi dettagli',
+    noFile: 'Nessun documento privato aggiunto.',
+    demoDocs: 'Esamina un documento di esempio',
+    previewDocs: 'Esamina documenti fittizi in anteprima',
+    demoDocsNotice: 'Prova la revisione con un documento fittizio. Qui non puoi caricare file personali.',
+    completeScope: 'Completa prima le domande iniziali',
+    confirmFacts: 'Conferma prima i dati della pratica',
+    sourcesPending: 'In attesa delle fonti approvate',
+    openAssistant: 'Apri l’assistente con fonti',
+    draftReady: 'Bozza di preparazione disponibile', draftBlocked: 'Bozza di preparazione bloccata',
+    manual: 'Invia separatamente su ANPR', notSent: 'Da qui non è stato effettuato alcun invio ufficiale.',
+    missing: 'Vai alla fase relativa', expired: 'La sessione è scaduta.', login: 'Accedi di nuovo',
+    assistant: 'Aiuto per questa pratica', retry: 'Riprova',
+    pdfLoading: 'Preparazione del PDF…', pdfError: 'Impossibile scaricare il PDF. Controlla la pratica e riprova.',
+    officialLink: 'Apri ANPR',
+  },
+} as const;
+
+const italianIssues: Record<keyof typeof PREPARATION_ISSUES, string> = {
+  checklist_needs_scope: 'Completa le domande iniziali',
+  checklist_needs_confirmation: 'Conferma i dati della pratica',
+  checklist_outside_first_route: 'Questo esempio non rientra nel percorso supportato',
+  checklist_evidence_unavailable: 'Una regola firmata o una fonte ufficiale non è disponibile',
+  intake_not_confirmed: 'I dati della pratica non sono confermati',
+  intake_data_invalid: 'Non è stato possibile verificare i dati salvati',
+  private_document_processing_not_enabled: 'La revisione sicura dei documenti non è attiva',
+  document_review_unavailable: 'La revisione dei documenti è temporaneamente indisponibile',
+  no_documents_reviewed: 'Non è stato esaminato alcun documento privato',
+  document_needs_extraction: 'I dati del documento devono ancora essere estratti',
+  document_needs_user_confirmation: 'La revisione del documento non è confermata',
+  document_conflict: 'I dati della pratica e del documento non coincidono',
+  document_comparison_unresolved: 'Alcuni confronti tra i documenti sono irrisolti',
+  document_needs_manual_review: 'Il documento richiede una revisione manuale',
+  document_unreadable: 'Un documento caricato è illeggibile',
+  document_no_supported_fields: 'Non sono stati trovati campi supportati',
+  document_needs_confirmed_intake: 'Conferma i dati della pratica per confrontare il documento',
+  document_needs_case_information: 'Manca il dato della pratica corrispondente al campo esaminato',
+  document_unsupported_category: 'Categoria non verificata automaticamente',
+  document_limit_exceeded: 'Controlla il numero di documenti',
+  unscanned_document: 'Manca il risultato della scansione di un documento',
+  unrecognized_document_review: 'Non è stato possibile verificare la revisione del documento',
+};
+
+function issueStage(issue: string): Stage {
+  if (issue === 'checklist_needs_scope') return 'scope';
+  if (issue.startsWith('intake_') || issue.includes('case_information') ||
+    issue.endsWith('confirmed_intake') || issue === 'checklist_needs_confirmation' ||
+    issue === 'checklist_outside_first_route') return 'intake';
+  return issue.startsWith('checklist_') ? 'checklist' : 'documents';
+}
+
+function RequirementDetails({ item, onClose }: { item: Action | null; onClose: () => void }) {
+  const { locale } = useDemo();
+  const dialog = useRef<HTMLDialogElement>(null);
+  const title = useRef<HTMLHeadingElement>(null);
+  const t = copy[locale];
+  const c = extra[locale];
+
+  useEffect(() => {
+    const panel = dialog.current;
+    if (!panel) return;
+    if (!item) {
+      if (panel.open) panel.close();
+      return;
+    }
+    const narrow = window.matchMedia('(max-width: 1100px)');
+    function sync() {
+      if (!panel) return;
+      const modal = narrow.matches;
+      if (panel.open && panel.matches(':modal') !== modal) panel.close();
+      if (!panel.open) {
+        if (modal) panel.showModal();
+        else panel.show();
+      }
+      title.current?.focus({ preventScroll: true });
+    }
+    sync();
+    narrow.addEventListener('change', sync);
+    return () => narrow.removeEventListener('change', sync);
+  }, [item]);
+
+  return <dialog id="case-requirement-detail" className="case-detail" ref={dialog} aria-labelledby="case-detail-title"
+    onCancel={event => { event.preventDefault(); onClose(); }}
+    onKeyDown={event => { if (event.key === 'Escape' && !dialog.current?.matches(':modal')) onClose(); }}>
+    <div className="case-detail-heading">
+      <h3 id="case-detail-title" ref={title} tabIndex={-1}>{c.source}</h3>
+      <button className="detail-close" type="button" aria-label={c.close} onClick={onClose}><Icon name="x"/></button>
+    </div>
+    {item && <>
+      <p>{item.description}</p>
+      <ul>{item.evidence.map(evidence => <li key={evidence.citation_id}>
+        <span className="editorial-label">{t.source}</span>
+        <a className="editorial-text-link" href={FIRST_ROUTE_SOURCE_LINKS[evidence.source_id as keyof typeof FIRST_ROUTE_SOURCE_LINKS]?.url}
+          target="_blank" rel="noopener noreferrer">{evidence.title}<Icon name="external" size={15}/></a>
+        <small>{evidence.reviewed_at.slice(0, 10)}{evidence.archived_reference ? ' · ' + t.archived : ''}</small>
+      </li>)}</ul>
+    </>}
+  </dialog>;
+}
+
+type JourneyProps = {
+  caseId: string;
+  refreshKey: number;
+  privateDocumentsEnabled: boolean;
+  fictionalDocumentsEnabled: boolean;
+  preparationEnabled: boolean;
+  assistantEnabled: boolean;
+  scopeComplete: boolean;
+  scope: ReactNode;
+  intake: ReactNode;
+  sources: ReactNode;
+  guidance: ReactNode;
 };
 
 export function CaseJourneyPanel({
-  caseId,refreshKey,privateDocumentsEnabled,liveAIEnabled,
-  assistantEnabled,preparationEnabled,scopeReviewVisible,fictionalDocumentsEnabled,
-}:{
-  caseId:string;refreshKey:number;privateDocumentsEnabled:boolean;liveAIEnabled:boolean;
-  assistantEnabled:boolean;preparationEnabled:boolean;scopeReviewVisible:boolean;
-  fictionalDocumentsEnabled:boolean;
-}) {
-  const {locale}=useDemo();
-  const t=copy[locale];
-  const [data,setData]=useState<Workflow|null>(null);
-  const [loading,setLoading]=useState(false);
-  const [saving,setSaving]=useState(false);
-  const [error,setError]=useState('');
-  const [notice,setNotice]=useState('');
-  const [revision,setRevision]=useState(0);
+  caseId, refreshKey, privateDocumentsEnabled, fictionalDocumentsEnabled,
+  preparationEnabled, assistantEnabled, scopeComplete, scope, intake, sources, guidance,
+}: JourneyProps) {
+  const {locale} = useDemo();
+  const t = copy[locale];
+  const c = extra[locale];
+  const [data, setData] = useState<Workflow | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<'load' | 'save' | 'expired' | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState(false);
+  const [selection, setSelection] = useState<Stage | null>(null);
+  const [direction, setDirection] = useState('forward');
+  const [selectedRule, setSelectedRule] = useState<string | null>(null);
+  const trigger = useRef<HTMLButtonElement | null>(null);
+  const stageHeading = useRef<HTMLHeadingElement>(null);
 
-  const load=useCallback(async(signal?:AbortSignal)=>{
-    setLoading(true);setError('');setNotice('');
-    try{
-      const response=await fetch('/api/cases/'+caseId+'/workflow',{
-        credentials:'same-origin',cache:'no-store',signal,
+  const load = useCallback(async (signal?: AbortSignal) => {
+    setLoading(true);
+    setError(null);
+    setNotice(false);
+    try {
+      const response = await fetch('/api/cases/' + caseId + '/workflow', {
+        credentials: 'same-origin', cache: 'no-store', signal,
       });
-      if(!response.ok)throw new Error('Workflow unavailable');
-      const payload:unknown=await response.json();
-      if(!validCaseWorkflow(payload))throw new Error('Invalid workflow');
-      if(!signal?.aborted)setData(payload as Workflow);
-    }catch{
-      if(!signal?.aborted){setData(null);setError(copy[locale].loadError);}
-    }finally{if(!signal?.aborted)setLoading(false);}
-  },[caseId,locale]);
+      if (response.status === 401) {
+        if (!signal?.aborted) { setError('expired'); setData(null); }
+        return;
+      }
+      if (!response.ok) throw new Error('Workflow unavailable');
+      const payload: unknown = await response.json();
+      if (!validCaseWorkflow(payload)) throw new Error('Invalid workflow');
+      if (!signal?.aborted) setData(payload as Workflow);
+    } catch {
+      if (!signal?.aborted) { setData(null); setError('load'); }
+    } finally {
+      if (!signal?.aborted) setLoading(false);
+    }
+  }, [caseId]);
 
-  useEffect(()=>{
-    const controller=new AbortController();
+  useEffect(() => {
+    const controller = new AbortController();
     void load(controller.signal);
-    return ()=>controller.abort();
-  },[load,refreshKey,revision]);
+    return () => controller.abort();
+  }, [load, refreshKey]);
 
-  async function mark(itemId:string,reviewed:boolean){
-    if(!data?.checklist.fingerprint||saving)return;
-    setSaving(true);setError('');setNotice('');
-    try{
-      const response=await fetch('/api/cases/'+caseId+'/workflow/checklist',{
-        method:'PATCH',credentials:'same-origin',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          item_id:itemId,reviewed,fingerprint:data.checklist.fingerprint,
-        }),
-      });
-      if(!response.ok)throw new Error('Stale checklist');
-      const payload:unknown=await response.json();
-      if(!validCaseWorkflow(payload))throw new Error('Invalid workflow');
-      setData(payload as Workflow);
-      setNotice(t.updated);
-    }catch{
-      setError(t.error);
-      setRevision(x=>x+1);
-    }finally{setSaving(false);}
+  const recommendation = scopeComplete || data?.next_action === 'consult_official'
+    ? destination[data?.next_action ?? ''] ?? 'intake'
+    : 'scope';
+  const current = selection ?? (scopeComplete ? recommendation : 'scope');
+
+  useEffect(() => {
+    function fromHistory() {
+      const hash = window.location.hash;
+      setSelection(stages.find(stage => anchors[stage] === hash) ??
+        (hash === '#case-handoff' || hash === '#case-workflow-handoff' ? 'package' : hash === '#case-sources' ? 'checklist' : null));
+      setSelectedRule(null);
+    }
+    fromHistory();
+    window.addEventListener('popstate', fromHistory);
+    window.addEventListener('hashchange', fromHistory);
+    return () => {
+      window.removeEventListener('popstate', fromHistory);
+      window.removeEventListener('hashchange', fromHistory);
+    };
+  }, []);
+
+  function open(stage: Stage) {
+    setSelectedRule(null);
+    setDirection(stages.indexOf(stage) < stages.indexOf(current) ? 'back' : 'forward');
+    if (window.location.hash !== anchors[stage]) window.history.pushState(null, '', anchors[stage]);
+    setSelection(stage);
+    requestAnimationFrame(() => stageHeading.current?.focus());
   }
-  const reviewed=data?.checklist.reviewed_items??{};
-  const base='/cases/'+encodeURIComponent(caseId);
-  const privateReviewAvailable=Boolean(data?.documents.enabled&&privateDocumentsEnabled);
-  return <section id="case-workflow" aria-label={t.heading}
-    style={{border:'1px solid #cbdce4',borderRadius:12,padding:18,margin:'15px 0'}}>
-    <h2 style={{marginTop:0}}>{t.heading}</h2>
-    <p>{t.intro}</p>
-    {loading&&<p role="status">{t.loading}</p>}
-    {error&&<p role="alert">{error}</p>}
-    {data&&<>
-      <nav aria-label={t.heading} style={{
-        display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(155px,1fr))',
-        gap:8,marginTop:18,
-      }}>
-        {data.steps.map((step,i)=>{
-          let href=target[step.id]??'#case-workflow-next';
-          let label:string=t.state[step.status as keyof typeof t.state]??step.status;
-          if(step.id==='documents'&&!privateReviewAvailable){
-            if(fictionalDocumentsEnabled) label=t.demoDocs;
-            else if(preparationEnabled) label=t.previewDocs;
+
+  function closeRule() {
+    setSelectedRule(null);
+    const button = trigger.current;
+    requestAnimationFrame(() => button?.focus());
+  }
+
+  async function mark(itemId: string, reviewed: boolean) {
+    if (!data?.checklist.fingerprint || saving || loading) return;
+    setSelection(current);
+    setSaving(true);setError(null);setNotice(false);
+    try {
+      const response = await fetch('/api/cases/' + caseId + '/workflow/checklist', {
+        method: 'PATCH', credentials: 'same-origin',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({item_id: itemId, reviewed, fingerprint: data.checklist.fingerprint}),
+      });
+      if (response.status === 401) { setData(null);setError('expired');return; }
+      if (!response.ok) {
+        await load();
+        setError(currentError => currentError ?? 'save');
+        return;
+      }
+      const payload: unknown = await response.json();
+      if (!validCaseWorkflow(payload)) throw new Error('Invalid workflow');
+      setData(payload as Workflow);
+      setNotice(true);
+    } catch {
+      await load();
+      setError(currentError => currentError ?? 'save');
+    } finally {setSaving(false);}
+  }
+
+  const activeRule = current === 'checklist' ? data?.checklist.items.find(item => item.id === selectedRule) ?? null : null;
+  const pdfUrl = '/api/cases/' + encodeURIComponent(caseId) + '/package/pdf';
+
+  async function downloadPdf(event?: MouseEvent<HTMLAnchorElement>) {
+    if (event?.altKey || event?.ctrlKey || event?.metaKey || event?.shiftKey) return;
+    event?.preventDefault();
+    if (pdfBusy || loading || !data?.package.download_allowed) return;
+    setSelection('package');setPdfBusy(true);setPdfError(false);
+    try {
+      const response = await fetch(pdfUrl, {credentials: 'same-origin', cache: 'no-store'});
+      if (response.status === 401) { setError('expired');setData(null);return; }
+      if (!response.ok || !response.headers.get('content-type')?.startsWith('application/pdf')) {
+        if (response.status === 409 || response.status === 404) await load();
+        setPdfError(true);
+        return;
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'practicamia-preparation-draft.pdf';
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+    } catch { setPdfError(true); }
+    finally { setPdfBusy(false); }
+  }
+
+  const caseUrl = '/cases/' + encodeURIComponent(caseId);
+  const available = !loading && data?.documents.enabled && privateDocumentsEnabled;
+  const showIntake = scopeComplete || current === 'intake';
+
+  return <div className="case-layout">
+    <nav className="case-progress" aria-label={c.nav}>
+      <p className="editorial-label">{c.nav}</p>
+      <ol>{stages.map((stage, index) => {
+        const status = data?.steps.find(step => step.id === stage)?.status;
+        let target = stage;
+        let label: string | undefined = status ? t.state[status as keyof typeof t.state] : undefined;
+        if (stage === 'intake' || stage === 'checklist') {
+          if (!scopeComplete) { target = 'scope'; label = c.completeScope; }
+          else if (stage === 'checklist' && status === 'locked') {
+            if (data?.next_action === 'review_sources') label = c.sourcesPending;
+            else if (data?.next_action === 'confirm_intake') { target = 'intake'; label = c.confirmFacts; }
           }
-          if(step.id==='guidance'&&assistantEnabled){
-            href=base+'/assistant';
-            label=t.assistant;
-          }else if(step.id==='guidance'&&liveAIEnabled){
-            label=t.state.informational;
-          }else if(step.id==='guidance'){
-            href='#case-workflow-next';
-            label=t.summary;
-          }
-          if(step.id==='intake'&&!scopeReviewVisible){
-            href='#case-scope';
-            label=t.completeScope;
-          }
-          if(step.id==='checklist'&&step.status==='locked'){
-            href=scopeReviewVisible?(data.next_action==='review_sources'?'#case-sources':'#case-intake'):'#case-scope';
-            label=!scopeReviewVisible?t.completeScope:
-              data.next_action==='review_sources'?t.sourcesPending:t.confirmFacts;
-          }
-          if(step.id==='handoff'&&!scopeReviewVisible) href='#case-workflow-handoff';
-          return <a key={step.id} href={href}
-            style={{
-              padding:12,border:'1px solid #d8e2e7',borderRadius:8,
-              textDecoration:'none',
-            }}>
-            <span style={{display:'block',fontSize:12,opacity:0.75}}>
-              {String(i+1).padStart(2,'0')} · {label}
-            </span>
-            <strong>{t.stages[step.id as keyof typeof t.stages]??step.id}</strong>
-          </a>;
-        })}
-      </nav>
-      <div id="case-workflow-next" className="message-box notice" role="status" style={{marginTop:15}}>
-        <div>
-          <strong>{t.summary}</strong>
-          <p>{t.action[data.next_action as keyof typeof t.action]??data.next_action}</p>
-          <a href={!scopeReviewVisible&&data.next_action==='consult_official'?
-            '#case-workflow-handoff':!scopeReviewVisible&&['confirm_intake','review_sources'].includes(data.next_action)?
-              '#case-scope':nextTarget[data.next_action]} className="inline-link">
-            {t.stages[(data.next_action==='answer_scope'?'scope':
-              data.next_action==='confirm_intake'?'intake':
-              data.next_action==='review_checklist'?'checklist':
-              data.next_action==='download_draft'?'package':
-              data.next_action==='resolve_documents'?'documents':
-              data.next_action==='consult_official'?'handoff':'checklist') as keyof typeof t.stages]}
-          </a>
-        </div>
-      </div>
-      {data.checklist.status==='ready_for_user_review'&&
-        <div id="case-workflow-checklist" style={{marginTop:20}}>
-          <h3>{t.rules}</h3>
-          <p>{t.note}</p>
-          <p><strong>{t.progress}: {data.checklist.reviewed_count} / {data.checklist.total}</strong></p>
-          <ol style={{paddingLeft:22}}>
-            {data.checklist.items.map(item=><li key={item.id} style={{marginBottom:15}}>
-              <p style={{marginBottom:5}}>{item.description}</p>
-              <ul style={{paddingLeft:18,fontSize:12}}>
-                {item.evidence.map(ev=><li key={ev.citation_id}>
-                  <a href={FIRST_ROUTE_SOURCE_LINKS[ev.source_id as keyof typeof FIRST_ROUTE_SOURCE_LINKS]?.url}
-                    target="_blank" rel="noopener noreferrer">
-                    {t.source}: {ev.title}
-                  </a> · {ev.reviewed_at.slice(0,10)}
-                  {ev.archived_reference&&<> · <strong>{t.archived}</strong></>}
-                </li>)}
-              </ul>
-              <label style={{display:'flex',alignItems:'center',gap:9,marginTop:8}}>
-                <input type="checkbox" disabled={saving||loading}
-                  checked={Object.hasOwn(reviewed,item.id)}
-                  onChange={e=>void mark(item.id,e.target.checked)}/>
-                <span>{t.check}</span>
-              </label>
-            </li>)}
-          </ol>
+        }
+        if (stage === 'documents' && !available && !loading) {
+          if (fictionalDocumentsEnabled) label = c.demoDocs;
+          else if (preparationEnabled) label = c.previewDocs;
+        }
+        return <li key={stage}><button type="button" aria-current={current === stage ? 'step' : undefined}
+          onClick={() => open(target)}>
+          <span className="case-step-number">{String(index + 1).padStart(2, '0')}</span>
+          <span>{c.stages[index]}{label && <small>{label}</small>}</span>
+          {current === stage && <Icon name="arrowRight" size={15}/>}
+        </button></li>;
+      })}</ol>
+    </nav>
+    <div className="case-content" data-direction={direction}>
+      <div className="case-stage-header">
+        <p className="editorial-label">{c.step} {stages.indexOf(current) + 1} / {stages.length}</p>
+        <h2 ref={stageHeading} tabIndex={-1}>{c.stages[stages.indexOf(current)]}</h2>
+        {data && <div className="case-stage-next">
+          <span role="status">{t.action[data.next_action as keyof typeof t.action]}</span>
+          {recommendation !== current && <button className="inline-link" type="button" onClick={() => open(recommendation)}>
+            {c.stages[stages.indexOf(recommendation)]} →
+          </button>}
         </div>}
-      <div id="case-workflow-documents" style={{marginTop:18}}>
-        <h3>{t.stages.documents}</h3>
-        <p>{data.documents.uploaded_count} · {data.documents.reviewed_count} {t.state.user_reviewed_unverified}</p>
-        {privateReviewAvailable
-          ?<Link className="button button-outline"
-            href={'/cases/'+encodeURIComponent(caseId)+'/documents'}>{t.docs}</Link>
-          :<>
-            <p>{fictionalDocumentsEnabled?t.demoDocsNotice:t.privateDocsUnavailable}</p>
-            {fictionalDocumentsEnabled&&<Link className="button button-outline" href="/demo/synthetic?step=document">
-              {t.demoDocs}
-            </Link>}
-            {preparationEnabled&&<p><Link className="inline-link" href={base+'/preparation#synthetic-documents'}>
-              {t.previewDocs}
-            </Link></p>}
-          </>}
       </div>
-      {!scopeReviewVisible&&<p id="case-workflow-handoff">
-        <a className="inline-link" href={MILAN_OFFICIAL_LINKS.anpr}
-          target="_blank" rel="noopener noreferrer">{t.officialGuidance}</a>
-      </p>}
-      <div id="case-workflow-package" style={{marginTop:18}}>
-        <h3>{t.package}</h3>
-        {data.package.download_allowed
-          ?<a className="button button-primary"
-             href={'/api/cases/'+encodeURIComponent(caseId)+'/package/pdf'}>
-            {t.draft}
+      {loading && <p className="editorial-pending" role="status">{t.loading}</p>}
+      {error && <div className="message-box warning case-state" role="alert">
+        <Icon name="alert"/><div>
+          <p>{error === 'expired' ? c.expired : error === 'save' ? t.error : t.loadError}</p>
+          {error === 'expired'
+            ? <a className="inline-link" href={'/auth/login?returnTo=' + encodeURIComponent('/cases/' + caseId)}>{c.login}</a>
+            : <button type="button" className="inline-link" onClick={() => void load()}>{t.refresh}</button>}
+        </div>
+      </div>}
+      <section className="case-stage" hidden={current !== 'scope'}>{scope}</section>
+      {showIntake && <section className="case-stage" hidden={current !== 'intake'}>
+        {scopeComplete ? intake : <p className="case-state">{c.waiting}</p>}
+      </section>}
+      <section className="case-stage" hidden={current !== 'checklist'} id="case-workflow-checklist">
+        {data?.checklist.status === 'ready_for_user_review' ? <>
+          <div className="case-list-heading"><div><h3>{t.rules}</h3><p>{t.note}</p></div>
+            <strong>{t.progress}: {data.checklist.reviewed_count} / {data.checklist.total}</strong></div>
+          <ol className="requirement-list">{data.checklist.items.map((item, index) => <li key={item.id}
+            data-selected={selectedRule === item.id}>
+            <button type="button" className="requirement-open" aria-expanded={selectedRule === item.id}
+              aria-controls="case-requirement-detail" onClick={event => { trigger.current = event.currentTarget;setSelectedRule(item.id); }}>
+              <span>{String(index + 1).padStart(2, '0')}</span><strong>{item.description}</strong><Icon name="arrowRight" size={17}/>
+            </button>
+            <label>
+              <input type="checkbox" disabled={saving || loading} checked={Object.hasOwn(data.checklist.reviewed_items, item.id)}
+                onChange={event => void mark(item.id, event.target.checked)}/>
+              {t.check}
+            </label>
+          </li>)}</ol>
+          {notice && <p className="case-confirmation" role="status"><Icon name="check" size={16}/>{t.updated}</p>}
+          {saving && <p className="editorial-pending" role="status">{locale === 'it' ? 'Salvataggio…' : 'Saving…'}</p>}
+        </> : !loading && <p className="case-state">{data?.next_action === 'review_sources' ? t.action.review_sources : c.waiting}</p>}
+        <details className="case-more"><summary>{t.source}</summary>{sources}</details>
+      </section>
+      <section className="case-stage" hidden={current !== 'documents'} id="case-workflow-documents">
+        <div className="case-state"><Icon name="file"/>
+          <div><h3>{t.stages.documents}</h3>
+            {available ? <>
+              <p>{data.documents.uploaded_count ? data.documents.reviewed_count + ' / ' + data.documents.uploaded_count + ' · ' + t.state.user_reviewed_unverified : c.noFile}</p>
+              <Link className="button button-primary" href={caseUrl + '/documents'}>{t.docs}<Icon name="arrowRight" size={16}/></Link>
+            </> : loading ? <p>{t.loading}</p> : <>
+              <p>{fictionalDocumentsEnabled ? c.demoDocsNotice : t.noDocs}</p>
+              {fictionalDocumentsEnabled && <Link className="button button-outline" href="/demo/synthetic?step=document">
+                {c.demoDocs}<Icon name="arrowRight" size={16}/>
+              </Link>}
+              {preparationEnabled && <p><Link className="inline-link" href={caseUrl + '/preparation#synthetic-documents'}>{c.previewDocs} →</Link></p>}
+            </>}
+          </div>
+        </div>
+      </section>
+      <section className="case-stage" hidden={current !== 'package'} id="case-workflow-package">
+        {data && <div className="package-sheet">
+          <div className="package-sheet-title"><Icon name="file" size={28}/><div><h3>{t.package}</h3>
+            <p>{data.package.download_allowed ? c.draftReady : c.draftBlocked}</p></div></div>
+          {data.package.outstanding_issues.length > 0 && <ul className="package-issues">
+            {data.package.outstanding_issues.map(issue => {
+              const key = issue as keyof typeof PREPARATION_ISSUES;
+              const stage = issueStage(issue);
+              const actionable = !data.package.download_allowed && (stage !== 'documents' || available) && stage !== current;
+              return <li key={issue}><span>{(locale === 'it' ? italianIssues : PREPARATION_ISSUES)[key] ?? issue}</span>
+                {actionable && <button className="inline-link" type="button" onClick={() => open(stage)}>{c.missing} →</button>}
+              </li>;
+            })}
+          </ul>}
+          {!data.package.download_allowed && <p className="case-state">{t.unavailable}</p>}
+          {data.package.download_allowed && !loading && <a className="button button-primary"
+            href={pdfUrl} onClick={downloadPdf} aria-disabled={pdfBusy}>{t.draft}<Icon name="arrowRight" size={17}/></a>}
+          {pdfBusy && <p className="editorial-pending" role="status">{c.pdfLoading}</p>}
+          {pdfError && <div className="message-box warning" role="alert"><div><p>{c.pdfError}</p>
+            {data.package.download_allowed && <button className="inline-link" type="button" disabled={pdfBusy || loading}
+              onClick={() => void downloadPdf()}>{c.retry}</button>}
+          </div></div>}
+        </div>}
+        <div className="case-handoff" id="case-handoff">
+          <h3>{c.manual}</h3><p>{c.notSent}</p>
+          <a className="editorial-text-link" href={MILAN_OFFICIAL_LINKS.anpr} target="_blank" rel="noopener noreferrer">
+            {c.officialLink}<Icon name="external" size={16}/>
           </a>
-          :<p>{t.unavailable}</p>}
-        <h4 style={{marginTop:16}}>{t.issues}</h4>
-        {data.package.outstanding_issues.length>0
-          ?<ul>{data.package.outstanding_issues.map(issue=><li key={issue}>
-            {PREPARATION_ISSUES[issue as keyof typeof PREPARATION_ISSUES]??issue}
-          </li>)}</ul>
-          :<p>{t.noIssues}</p>}
-      </div>
-      <p style={{marginTop:15,fontSize:12}}>{t.warning}</p>
-      {notice&&<p role="status">{notice}</p>}
-      <button className="button button-outline" type="button"
-        style={{marginTop:10}} disabled={loading||saving}
-        onClick={()=>setRevision(x=>x+1)}>{t.refresh}</button>
-    </>}
-  </section>;
+          {scopeComplete && <details className="case-more"><summary>{t.source}</summary><MilanOfficialGuidance locale={locale}/></details>}
+        </div>
+      </section>
+      {(guidance || assistantEnabled) && <details className="case-more"><summary>{c.assistant}</summary>
+        {assistantEnabled && <p><Link className="inline-link" href={caseUrl + '/assistant'}>{c.openAssistant} →</Link></p>}
+        {guidance}
+      </details>}
+      {data && !error && <button className="inline-link workflow-refresh" type="button" disabled={loading || saving}
+        onClick={() => void load()}>{t.refresh}</button>}
+    </div>
+    <RequirementDetails item={activeRule} onClose={closeRule}/>
+  </div>;
 }

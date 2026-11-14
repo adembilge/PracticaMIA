@@ -1,4 +1,10 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "main": false,
+      "test/private-document-e2e": false
+    }
+  },
   "crons": [
     {
       "path": "/internal/retention/purge",

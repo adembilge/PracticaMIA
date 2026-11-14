@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { Icon } from '@/components/Icon';
 import { useDemo } from '@/components/DemoProvider';
 import {
   SYNTHETIC_DOCUMENT, SYNTHETIC_EVIDENCE, SYNTHETIC_FACT_OPTIONS,
@@ -16,7 +17,7 @@ import styles from './SyntheticDemoWorkspace.module.css';
 const words = {
   en: {
     tagline: 'INTERACTIVE PROTOTYPE  /  SYNTHETIC ONLY',
-    title: 'Walk through a prepared case. Without entering real data.',
+    title: 'Explore a sample case',
     subtitle: 'Explore how PracticaMIA could guide a fictional residence-change case from intake to a reviewed package. Every rule, person, document and citation shown here is invented.',
     steps: ['Scenario', 'Intake', 'Checklist', 'Document', 'Review', 'Handoff'],
     guard: 'No login. No upload. No database. No official decision. This walkthrough runs entirely in your browser and resets when the page reloads.',
@@ -87,7 +88,7 @@ const words = {
   },
   it: {
     tagline: 'PROTOTIPO INTERATTIVO  /  SOLO DATI FITTIZI',
-    title: 'Esplora la preparazione di una pratica. Senza dati reali.',
+    title: 'Esplora una pratica di esempio',
     subtitle: 'Scopri come PracticaMIA potrebbe accompagnare una pratica di residenza fittizia, dalla raccolta dati al riepilogo finale. Regole, persone, documenti e citazioni sono inventati.',
     steps: ['Scenario', 'Dati', 'Requisiti', 'Documento', 'Revisione', 'Passaggio'],
     guard: 'Nessun accesso, caricamento, database o decisione ufficiale. La simulazione funziona solo nel browser e si azzera ricaricando la pagina.',
@@ -210,6 +211,14 @@ export function SyntheticDemoWorkspace({startAtDocument = false}: {startAtDocume
     return startAtDocument ? {...sample, ...confirmSyntheticFacts(sample)} : sample;
   });
   const [step, setStep] = useState(startAtDocument ? 3 : 0);
+  const [direction, setDirection] = useState('forward');
+  const correction = useRef<HTMLSelectElement>(null);
+  const stage = useRef<HTMLElement>(null);
+  function goTo(next: number) {
+    setDirection(next < step ? 'back' : 'forward');
+    setStep(next);
+    requestAnimationFrame(() => stage.current?.querySelector('h2')?.focus());
+  }
   const [fieldChoice, setFieldChoice] = useState('');
   const [packageAccepted, setPackageAccepted] = useState(false);
   const evaluation = evaluateSyntheticCase(state);
@@ -221,7 +230,7 @@ export function SyntheticDemoWorkspace({startAtDocument = false}: {startAtDocume
     setState(createSyntheticCase(id));
     setFieldChoice('');
     setPackageAccepted(false);
-    setStep(1);
+    goTo(1);
   };
 
   const updateFacts = (values: Record<string, string>) => {
@@ -231,7 +240,7 @@ export function SyntheticDemoWorkspace({startAtDocument = false}: {startAtDocume
 
   const reset = () => {
     setState(createSyntheticCase('standard'));
-    setStep(0);
+    goTo(0);
     setFieldChoice('');
     setPackageAccepted(false);
   };
@@ -252,19 +261,19 @@ export function SyntheticDemoWorkspace({startAtDocument = false}: {startAtDocume
         <span>{t.guard}</span>
       </div>
 
+      <div className={styles.columns}>
       <nav className={styles.steps} aria-label={it ? 'Passaggi della dimostrazione' : 'Demo progress'}>
         {t.steps.map((name, i) => <button key={i} type="button"
           className={[styles.step, step === i ? styles.stepActive : '', step > i ? styles.stepDone : ''].join(' ')}
           aria-current={step === i ? 'step' : undefined}
-          disabled={i > step} onClick={() => setStep(i)}>
+          disabled={i > step} onClick={() => goTo(i)}>
           <span>{i + 1}</span>{name}
         </button>)}
       </nav>
 
-      <div className={styles.columns}>
-        <section className={styles.primary}>
+        <section className={styles.primary} key={step} data-direction={direction} ref={stage}>
           {step === 0 && <div className={styles.panel}>
-            <h2>{t.choose}</h2>
+            <h2 tabIndex={-1}>{t.choose}</h2>
             <p className={styles.muted}>{it ? 'Scegli un percorso. Non vengono richiesti dati personali.' :
               'Choose a route. No personal information is requested.'}</p>
             <div className={styles.scenarios}>
@@ -282,7 +291,7 @@ export function SyntheticDemoWorkspace({startAtDocument = false}: {startAtDocume
 
           {step === 1 && <div className={styles.panel}>
             <span className={styles.sectionEyebrow}>{t.steps[1]}</span>
-            <h2>{t.factsTitle}</h2>
+            <h2 tabIndex={-1}>{t.factsTitle}</h2>
             <p className={styles.muted}>{t.factsLead}</p>
             <div className={styles.form}>
               <div className={styles.field}>
@@ -328,17 +337,17 @@ export function SyntheticDemoWorkspace({startAtDocument = false}: {startAtDocume
               </div>
             </div>
             <div className={styles.actions}>
-              <button className="button button-outline" type="button" onClick={() => setStep(0)}>{t.back}</button>
+              <button className="button button-outline" type="button" onClick={() => goTo(0)}>{t.back}</button>
               <button className="button button-primary" type="button" onClick={() => {
                 setState(current => confirmSyntheticFacts(current));
-                setStep(2);
+                goTo(2);
               }}>{t.confirmFacts}</button>
             </div>
           </div>}
 
           {step === 2 && <div className={styles.panel}>
             <span className={styles.sectionEyebrow}>{t.steps[2]}</span>
-            <h2>{t.checklistTitle}</h2>
+            <h2 tabIndex={-1}>{t.checklistTitle}</h2>
             <p className={styles.muted}>{t.checklistLead}</p>
             <div className={styles.status} role="status">
               <small>{t.decision}</small><strong>{statusText}</strong>
@@ -361,18 +370,18 @@ export function SyntheticDemoWorkspace({startAtDocument = false}: {startAtDocume
               <strong>{t.blockers}: </strong>{evaluation.blocking_issues.join('; ')}
             </p>}
             <div className={styles.actions}>
-              <button type="button" className="button button-outline" onClick={() => setStep(1)}>
+              <button type="button" className="button button-outline" onClick={() => goTo(1)}>
                 {t.editFacts}
               </button>
               {evaluation.decision === 'supported' &&
                 <button type="button" className="button button-primary"
-                  onClick={() => setStep(3)}>{t.proceedDocs}</button>}
+                  onClick={() => goTo(3)}>{t.proceedDocs}</button>}
             </div>
           </div>}
 
           {step === 3 && <div className={styles.panel}>
             <span className={styles.sectionEyebrow}>{t.steps[3]}</span>
-            <h2>{t.documentTitle}</h2>
+            <h2 tabIndex={-1}>{t.documentTitle}</h2>
             <p className={styles.muted}>{t.documentLead}</p>
             {!state.sample_loaded
               ? <button type="button" className="button button-primary" onClick={() => {
@@ -381,13 +390,16 @@ export function SyntheticDemoWorkspace({startAtDocument = false}: {startAtDocume
                 setFieldChoice(updated.extraction_value ?? '');
               }}>{t.load}</button>
               : <>
+                <div className={styles.documentSplit}>
                 <div className={styles.mockDocument}>
                   <div className={styles.mockDocumentHeader}>
                     <strong>{t.sample}</strong>
                     <small>SIM-DOC-001 · PAGE 1 · SYNTHETIC</small>
                   </div>
-                  <pre>{syntheticDocumentText(state)}</pre>
+                  <pre>{syntheticDocumentText(state).split(state.extraction_value ?? "\u0000").map((part,index) =>
+                    <span key={index}>{index > 0 && <mark>{state.extraction_value}</mark>}{part}</span>)}</pre>
                 </div>
+                <div className={styles.documentFields}>
                 <div className={styles.evidence}>
                   <strong>{t.extracted}</strong>
                   <p>{t.raw}:</p>
@@ -396,7 +408,7 @@ export function SyntheticDemoWorkspace({startAtDocument = false}: {startAtDocume
                 </div>
                 <div className={styles.field} style={{ marginTop: 20 }}>
                   <label htmlFor="synth-correction">{t.confirmed}</label>
-                  <select id="synth-correction"
+                  <select id="synth-correction" ref={correction}
                     value={fieldChoice || state.confirmed_document_value || state.extraction_value || ''}
                     onChange={e => setFieldChoice(e.target.value)}>
                     {SYNTHETIC_FACT_OPTIONS.addresses.map(addr =>
@@ -419,20 +431,27 @@ export function SyntheticDemoWorkspace({startAtDocument = false}: {startAtDocume
                 {state.document_reviewed && <div className={styles.status}>
                   <strong>{t.documentReviewed}</strong>
                 </div>}
-                {evaluation.status === 'needs_review' && <p className={styles.issue} role="alert">
-                  <strong>{statusText}:</strong> {evaluation.blocking_issues.join('; ')}
-                </p>}
+                {evaluation.status === 'needs_review' && <div className={styles.issue} role="alert">
+                  <strong><Icon name="alert" size={16}/> {statusText}</strong>
+                  <p>{it ? 'Il valore confermato non coincide con l’indirizzo della pratica di esempio.' :
+                    'The confirmed value differs from the address in the sample case.'}</p>
+                  <button className="inline-link" type="button" onClick={() => correction.current?.focus()}>
+                    {it ? 'Esamina il campo' : 'Review field'} →
+                  </button>
+                </div>}
+                </div>
+                </div>
               </>}
             <div className={styles.actions}>
-              <button type="button" className="button button-outline" onClick={() => setStep(2)}>{t.back}</button>
+              <button type="button" className="button button-outline" onClick={() => goTo(2)}>{t.back}</button>
               <button type="button" className="button button-primary" disabled={evaluation.status !== 'reviewable'}
-                onClick={() => setStep(4)}>{t.nextReview}</button>
+                onClick={() => goTo(4)}>{t.nextReview}</button>
             </div>
           </div>}
 
           {step === 4 && <div className={styles.panel}>
             <span className={styles.sectionEyebrow}>{t.steps[4]}</span>
-            <h2>{t.reviewTitle}</h2>
+            <h2 tabIndex={-1}>{t.reviewTitle}</h2>
             <p className={styles.muted}>{t.reviewLead}</p>
             {packageData
               ? <>
@@ -448,19 +467,19 @@ export function SyntheticDemoWorkspace({startAtDocument = false}: {startAtDocume
               </>
               : <p className={styles.issue}>{t.notReady} {evaluation.blocking_issues.join('; ')}</p>}
             <div className={styles.actions}>
-              <button type="button" className="button button-outline" onClick={() => setStep(3)}>{t.back}</button>
+              <button type="button" className="button button-outline" onClick={() => goTo(3)}>{t.back}</button>
               <button type="button" className="button button-primary"
                 disabled={!packageData || !packageAccepted || evaluation.status !== 'reviewable'}
                 onClick={() => {
                   setState(current => approveSyntheticPackage(current));
-                  setStep(5);
+                  goTo(5);
                 }}>{t.approve}</button>
             </div>
           </div>}
 
           {step === 5 && <div className={styles.panel}>
             <span className={styles.sectionEyebrow}>{t.steps[5]}</span>
-            <h2>{t.handoffTitle}</h2>
+            <h2 tabIndex={-1}>{t.handoffTitle}</h2>
             <p className={styles.muted}>{t.handoffLead}</p>
             {evaluation.status === 'simulated_handoff' && packageData
               ? <div className={styles.handoff}>

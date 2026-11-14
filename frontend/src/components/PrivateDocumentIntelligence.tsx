@@ -1,6 +1,8 @@
 'use client';
 
 import {useCallback,useEffect,useMemo,useState} from 'react';
+import Link from 'next/link';
+import {Icon} from '@/components/Icon';
 import {useDemo} from '@/components/DemoProvider';
 import {
   INTAKE_HOUSING_VALUES,validIntelligenceResponse,
@@ -28,7 +30,7 @@ const words={
     extract:'Extract fields',
     extracting:'Extracting…',
     missing:'No supported labeled housing or move-in date fields were found. Review the document yourself.',
-    unreadable:'This document has no readable text. Local OCR may be needed for scanned images.',
+    unreadable:'No readable text was found. Try a clearer scan or a PDF with selectable text.',
     needExtract:'Extract fields to see source-backed suggestions.',
     unsupported:'This document category is not supported for automated field extraction.',
     reviewing:'Review suggested fields and correct them if necessary. Never accept text without checking the document.',
@@ -62,7 +64,7 @@ const words={
     extract:'Estrai i campi',
     extracting:'Estrazione…',
     missing:'Non sono stati trovati campi riconosciuti relativi all’alloggio o alla data. Verifica il documento manualmente.',
-    unreadable:'Non è stato trovato testo leggibile. Potrebbe servire OCR locale per le immagini.',
+    unreadable:'Non è stato trovato testo leggibile. Prova una scansione più nitida o un PDF con testo selezionabile.',
     needExtract:'Estrai i campi per vedere i suggerimenti collegati al documento.',
     unsupported:'Questa categoria di documenti non supporta l’estrazione automatica.',
     reviewing:'Controlla e correggi i valori suggeriti. Confrontali sempre con il documento.',
@@ -99,7 +101,11 @@ export function PrivateDocumentIntelligence({caseId,documentId}:Props) {
   const [chosen,setChosen]=useState<Record<string,string>>({});
   const [corrected,setCorrected]=useState<Record<string,string>>({});
   const [approved,setApproved]=useState(false);
-  const [busy,setBusy]=useState(false);
+  const [operation,setOperation]=useState<'extract'|'review'|null>(null);
+  const [expired,setExpired]=useState(false);
+  const [loading,setLoading]=useState(true);
+  const [failure,setFailure]=useState<'load'|'extract'|'review'|null>(null);
+  const busy=operation!==null||loading;
   const [error,setError]=useState('');
   const base='/api/cases/'+caseId+'/private-documents/'+documentId+'/intelligence';
 
@@ -112,14 +118,16 @@ export function PrivateDocumentIntelligence({caseId,documentId}:Props) {
   };
 
   const load=useCallback(async(signal?:AbortSignal)=>{
-    setError('');
+    setError('');setFailure(null);setLoading(true);
     try{
       const response=await fetch(base,{cache:'no-store',credentials:'same-origin',signal});
+      if(response.status===401){if(!signal?.aborted)setExpired(true);return;}
       if(!response.ok)throw new Error('Unable to load');
       const raw:unknown=await response.json();
       if(!validIntelligenceResponse(raw))throw new Error('Bad response');
-      if(!signal?.aborted)adopt(raw as Review);
-    }catch{if(!signal?.aborted)setError(words[locale].error);}
+      if(!signal?.aborted){adopt(raw as Review);setExpired(false);}
+    }catch{if(!signal?.aborted){setError(words[locale].error);setFailure('load');}}
+    finally{if(!signal?.aborted)setLoading(false);}
   },[base,locale]);
 
   useEffect(()=>{
@@ -137,21 +145,22 @@ export function PrivateDocumentIntelligence({caseId,documentId}:Props) {
   },[review]);
 
   async function extract(){
-    if(busy)return;
-    setBusy(true);setError('');
+    if(busy||expired)return;
+    setOperation('extract');setError('');setFailure(null);
     try{
       const response=await fetch(base+'/extract',{method:'POST',credentials:'same-origin'});
+      if(response.status===401){setExpired(true);return;}
       if(!response.ok)throw new Error('Extraction rejected');
       const raw:unknown=await response.json();
       if(!validIntelligenceResponse(raw))throw new Error('Bad response');
       adopt(raw as Review);
-    }catch{setError(t.error);}
-    finally{setBusy(false);}
+    }catch{setError(t.error);setFailure('extract');}
+    finally{setOperation(null);}
   }
 
   async function confirm(){
-    if(busy||!approved||!review?.extraction_digest)return;
-    setBusy(true);setError('');
+    if(busy||expired||!approved||!review?.extraction_digest)return;
+    setOperation('review');setError('');setFailure(null);
     try{
       const selections=groups.map(([field_name,items])=>({
         field_name,
@@ -166,88 +175,106 @@ export function PrivateDocumentIntelligence({caseId,documentId}:Props) {
           selections,confirm:true,
         }),
       });
+      if(response.status===401){setExpired(true);return;}
       if(!response.ok)throw new Error('Review rejected');
       const raw:unknown=await response.json();
       if(!validIntelligenceResponse(raw))throw new Error('Bad response');
       adopt(raw as Review);
-    }catch{setError(t.error);}
-    finally{setBusy(false);}
+    }catch{setError(t.error);setFailure('review');}
+    finally{setOperation(null);}
   }
 
   const status=review?.status;
   const isUnprocessed=status==='needs_extraction';
   const canReview=canEditDocumentReview(review)&&groups.length>0;
 
-  return <section aria-label={t.title} style={{padding:14,marginTop:10,border:'1px solid #d6e5e8',borderRadius:10}}>
-    <h4>{t.title}</h4>
-    <p style={{fontSize:12}}>{t.privacy}</p>
-    {!review&&!error&&<p role="status">{t.extracting}</p>}
-    {status==='unsupported_category'&&<p role="status">{t.unsupported}</p>}
-    {isUnprocessed&&<>
-      <p>{t.needExtract}</p>
-      <button type="button" className="button button-outline"
-        onClick={()=>void extract()} disabled={busy}>
-        {busy?t.extracting:t.extract}
-      </button>
-    </>}
-    {status==='no_supported_fields'&&<p role="status">{t.missing}</p>}
-    {status==='unreadable'&&<p role="status">{t.unreadable}</p>}
-    {status==='needs_manual_review'&&<p role="status">{t.ambiguous}</p>}
-    {status==='needs_confirmed_intake'&&<p role="status">{t.needsIntake}</p>}
-    {status==='needs_case_information'&&<p role="status">{t.needsCaseInfo}</p>}
+  const it=locale==='it';
+  const fieldLabel=(field:string)=>field==='housing_basis'?t.field_housing_basis:t.field_move_in_date;
+  const displayValue=(value:string|null)=>value===null?'—':t.options[value as keyof typeof t.options]??value;
+  const intakeLink='/cases/'+encodeURIComponent(caseId)+'#case-intake';
+
+  return <section aria-label={t.title} className="document-review" aria-busy={busy}>
+    <h3>{t.title}</h3><p className="document-lead">{t.privacy}</p>
+    {loading&&<p className="editorial-pending" role="status">{it?'Caricamento revisione…':'Loading document review…'}</p>}
+    {operation&&<p className="editorial-pending" role="status">{operation==='extract'?t.extracting:t.saving}</p>}
+    {expired&&<div className="message-box warning" role="alert"><div>
+      <p>{it?'La sessione è scaduta.':'Your session has expired.'}</p>
+      <a className="inline-link" href={'/auth/login?returnTo='+encodeURIComponent('/cases/'+caseId+'/documents')}>{it?'Accedi di nuovo':'Sign in again'}</a>
+    </div></div>}
+    {status==='unsupported_category'&&<p className="case-state" role="status">{t.unsupported}</p>}
+    {isUnprocessed&&<div className="case-state">
+      <Icon name="file"/><div><p>{t.needExtract}</p>
+        <button type="button" className="button button-primary" onClick={()=>void extract()} disabled={busy||expired}>{t.extract}</button>
+      </div>
+    </div>}
+    {status==='no_supported_fields'&&<p className="case-state" role="status">{t.missing}</p>}
+    {status==='unreadable'&&<p className="case-state" role="alert">{t.unreadable}</p>}
+    {status==='needs_manual_review'&&<p className="case-state" role="alert">{t.ambiguous}</p>}
+    {(status==='needs_confirmed_intake'||status==='needs_case_information')&&<div className="case-state" role="status"><div>
+      <p>{status==='needs_confirmed_intake'?t.needsIntake:t.needsCaseInfo}</p>
+      <Link className="inline-link" href={intakeLink}>{it?'Apri i dati della pratica':'Open case details'} →</Link>
+    </div></div>}
+    {review?.user_reviewed&&<p className="case-confirmation" role="status"><Icon name="check" size={16}/>{t.reviewed}</p>}
     {canReview&&<>
       <p>{t.reviewing}</p>
-      {review?.ambiguous_fields.length? <p role="alert">{t.ambiguous}</p>:null}
-      {groups.map(([field,items])=><div key={field} style={{marginTop:12}}>
-        <strong>{field==='housing_basis'?t.field_housing_basis:t.field_move_in_date}</strong>
-        <label htmlFor={'doc-evidence-'+documentId+'-'+field} style={{display:'block',marginTop:5}}>{t.choose}</label>
-        <select className="input" id={'doc-evidence-'+documentId+'-'+field}
-          value={chosen[field]??''}
-          onChange={e=>{
-            const item=items.find(i=>i.candidate_id===e.target.value);
-            if(!item)return;
-            setChosen(old=>({...old,[field]:e.target.value}));
-            setCorrected(old=>({...old,[field]:item.suggested_value}));
-            setApproved(false);
-          }}>
-          {items.map(item=><option key={item.candidate_id} value={item.candidate_id}>
-            {t.page} {item.page} · {t.suggested}: {item.raw_value}
-          </option>)}
-        </select>
-        <label htmlFor={'doc-confirm-'+documentId+'-'+field} style={{display:'block',marginTop:5}}>{t.actual}</label>
-        {field==='housing_basis'? <select className="input"
-          id={'doc-confirm-'+documentId+'-'+field}
-          value={corrected[field]??''}
-          onChange={e=>{setCorrected(old=>({...old,[field]:e.target.value}));setApproved(false);}}>
-          {INTAKE_HOUSING_VALUES.map(value=><option key={value} value={value}>
-            {t.options[value as keyof typeof t.options]}
-          </option>)}
-        </select>:<input type="date" className="input"
-          id={'doc-confirm-'+documentId+'-'+field}
-          value={corrected[field]??''}
-          min="1900-01-01" max="2100-12-31"
-          onChange={e=>{setCorrected(old=>({...old,[field]:e.target.value}));setApproved(false);}}/>}
-      </div>)}
-      <label style={{display:'flex',gap:8,alignItems:'flex-start',marginTop:12}}>
-        <input type="checkbox" checked={approved}
-          onChange={e=>setApproved(e.target.checked)}/>
+      {review?.ambiguous_fields.length ? <p className="case-state" role="alert">{t.ambiguous}</p> : null}
+      <div className="document-comparison">
+        <aside className="document-evidence">
+          <p className="editorial-label">{it?'Riferimenti nel documento':'Document evidence'}</p>
+          {groups.map(([field,items])=>{
+            const evidence=items.find(item=>item.candidate_id===chosen[field])??items[0];
+            return <div key={field}><small>{t.page} {evidence.page}</small>
+              <strong>{fieldLabel(field)}</strong><p>{evidence.raw_value}</p></div>;
+          })}
+        </aside>
+        <div>
+          {groups.map(([field,items])=>{
+            const controlId='doc-confirm-'+documentId+'-'+field;
+            const comparison=review?.comparisons.find(entry=>entry.field_name===field);
+            return <fieldset key={field} className="document-field" disabled={busy||expired}>
+              <legend>{fieldLabel(field)}</legend>
+              <label className="field-label" htmlFor={'doc-evidence-'+documentId+'-'+field}>{t.choose}</label>
+              <select className="input" id={'doc-evidence-'+documentId+'-'+field} value={chosen[field]??''}
+                onChange={e=>{
+                  const item=items.find(candidate=>candidate.candidate_id===e.target.value);
+                  if(!item)return;
+                  setChosen(old=>({...old,[field]:item.candidate_id}));
+                  setCorrected(old=>({...old,[field]:item.suggested_value}));
+                  setApproved(false);
+                }}>
+                {items.map(item=><option key={item.candidate_id} value={item.candidate_id}>{t.page} {item.page} · {item.raw_value}</option>)}
+              </select>
+              <label className="field-label" htmlFor={controlId}>{t.actual}</label>
+              {field==='housing_basis' ? <select className="input" id={controlId} value={corrected[field]??''}
+                onChange={e=>{setCorrected(old=>({...old,[field]:e.target.value}));setApproved(false);}}>
+                {INTAKE_HOUSING_VALUES.map(value=><option key={value} value={value}>{t.options[value as keyof typeof t.options]}</option>)}
+              </select> : <input type="date" className="input" id={controlId} value={corrected[field]??''}
+                min="1900-01-01" max="2100-12-31"
+                onChange={e=>{setCorrected(old=>({...old,[field]:e.target.value}));setApproved(false);}}/>}
+              {comparison&&<div className={'document-result '+(comparison.comparison==='match'?'document-match':'document-conflict')}>
+                <strong>{comparison.comparison==='match'?t.match:comparison.comparison==='conflict'?t.conflict:t.absent}</strong>
+                <p>{it?'Nei dati confermati':'Confirmed case value'} <b>{displayValue(comparison.case_value)}</b></p>
+                {comparison.comparison==='conflict'&&<button className="inline-link" type="button"
+                  onClick={()=>document.getElementById(controlId)?.focus()}>{it?'Esamina il campo':'Review field'} →</button>}
+              </div>}
+            </fieldset>;
+          })}
+        </div>
+      </div>
+      <label className="document-consent">
+        <input type="checkbox" checked={approved} disabled={busy||expired} onChange={e=>setApproved(e.target.checked)}/>
         <span>{t.disclaimer}</span>
       </label>
-      <button type="button" className="button button-primary" style={{marginTop:10}}
-        disabled={!approved||busy}
-        onClick={()=>void confirm()}>{busy?t.saving:review?.user_reviewed?t.update:t.save}</button>
+      <button type="button" className="button button-primary" disabled={!approved||busy||expired}
+        onClick={()=>void confirm()}>{review?.user_reviewed?t.update:t.save}</button>
     </>}
-    {review?.user_reviewed&&<>
-      <p><strong>{t.reviewed}</strong></p>
-      {review.comparisons.map(c=><p key={c.field_name}>
-        <strong>{c.field_name==='housing_basis'?t.field_housing_basis:t.field_move_in_date}:</strong>
-        {' '}{c.reviewed_value}
-        {' — '}{c.comparison==='match'?t.match:c.comparison==='conflict'?t.conflict:t.absent}
-      </p>)}
-    </>}
-    <button type="button" className="button button-outline"
-      style={{marginTop:8}} disabled={busy}
-      onClick={()=>void load()}>{t.reload}</button>
-    {error&&<p role="alert">{error}</p>}
+    <button type="button" className="inline-link workflow-refresh" disabled={busy||expired} onClick={()=>void load()}>{t.reload}</button>
+    {error&&<div className="message-box warning" role="alert"><div><p>{error}</p>
+      <button type="button" className="inline-link" disabled={busy||expired} onClick={()=>{
+        if(failure==='extract')void extract();
+        else if(failure==='review')void confirm();
+        else void load();
+      }}>{it?'Riprova':'Try again'}</button>
+    </div></div>}
   </section>;
 }

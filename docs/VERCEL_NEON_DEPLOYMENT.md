@@ -21,6 +21,8 @@ The frontend never passes access tokens to the browser; Next.js API routes call 
 
 ## Release procedure
 
+Automatic Vercel deployments from `main` and `test/private-document-e2e` are on hold for both projects through their `vercel.json` files. Other branches retain the default behavior. Keep the hold in place until the owner authorizes a release. Removing the `main` rule from either project re-enables automatic deployments for that project, including on the commit that removes it.
+
 1. Confirm the intended team, two project IDs, protected branch, commit SHA, build environment and database target.
 2. Verify GitHub Actions (backend tests, frontend tests, TypeScript/build, and isolated browser acceptance). Inspect the exact code to be deployed.
 3. Create a restore point and migrate Neon through the repository's Alembic head using reviewed, non-destructive operations. Verify cases, reviewed source versions and table counts before and after.
