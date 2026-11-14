@@ -107,25 +107,30 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
   const [loading,setLoading]=useState(true);
   const [message,setMessage]=useState('');
   const [error,setError]=useState('');
+  const [failure,setFailure]=useState<'load'|'draft'|'confirm'|null>(null);
+  const [expired,setExpired]=useState(false);
+  const it=locale==='it';
+  const login='/auth/login?returnTo='+encodeURIComponent('/cases/'+caseId+'#case-intake');
   const load=useCallback(async(signal?:AbortSignal)=>{
-    setLoading(true);setError('');
+    setLoading(true);setError('');setFailure(null);
     try{
       const r=await fetch('/api/cases/'+caseId+'/intake',{
         credentials:'same-origin',cache:'no-store',signal,
       });
+      if(r.status===401){if(!signal?.aborted)setExpired(true);return;}
       if(!r.ok) throw new Error('Case unavailable');
       const body=await r.json() as ApiIntake;
       if(!body||!body.facts||typeof body.facts!=='object') throw new Error('Bad intake');
       if(signal?.aborted) return;
-      setStored(body);
+      setExpired(false);setStored(body);
       setFacts(Object.fromEntries(INTAKE_FIELDS
         .filter(k=>typeof body.facts[k as FieldKey]==='string')
         .map(k=>[k,body.facts[k as FieldKey]])) as Facts);
       setDate(body.facts.move_in_date??'');
       setAck(false);
-    }catch{if(!signal?.aborted) setError(labels[locale].error);}
+    }catch{if(!signal?.aborted){setFailure('load');}}
     finally{if(!signal?.aborted) setLoading(false);}
-  },[caseId,locale]);
+  },[caseId]);
   useEffect(()=>{
     const controller=new AbortController();
     void load(controller.signal);
@@ -136,28 +141,30 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
     facts[k as FieldKey]!=='unknown');
   const validDate=!date||isRealCalendarDate(date);
   async function persist(confirm:boolean){
-    if(busy||!validDate||(confirm&&(!ack||!localComplete))) return;
-    setBusy(true);setError('');setMessage('');
+    if(busy||expired||!validDate||(confirm&&(!ack||!localComplete))) return;
+    setBusy(true);setError('');setMessage('');setFailure(null);
     try{
       const payload={facts:{...facts,...(date?{move_in_date:date}:{})},confirm};
       const r=await fetch('/api/cases/'+caseId+'/intake',{
         method:'PUT',headers:{'Content-Type':'application/json'},
         credentials:'same-origin',body:JSON.stringify(payload),
       });
+      if(r.status===401){setExpired(true);return;}
       if(!r.ok) throw new Error('Save failed');
       const body=await r.json() as ApiIntake;
       setStored(body);
       setAck(false);
       onChanged?.();
       setMessage(confirm?t.confirmed:t.saved);
-    }catch{setError(t.error);}
+    }catch{setError(t.error);setFailure(confirm?'confirm':'draft');}
     finally{setBusy(false);}
   }
   async function erase(){
-    if(busy||!window.confirm(t.resetConfirm))return;
-    setBusy(true);setError('');setMessage('');
+    if(busy||expired||!window.confirm(t.resetConfirm))return;
+    setBusy(true);setError('');setMessage('');setFailure(null);
     try{
       const r=await fetch('/api/cases/'+caseId+'/intake',{method:'DELETE',credentials:'same-origin'});
+      if(r.status===401){setExpired(true);return;}
       if(r.status!==204)throw new Error('Delete failed');
       setFacts({});setDate('');setAck(false);setStored(null);onChanged?.();setMessage(t.saved);
     }catch{setError(t.error);}
@@ -170,12 +177,12 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
     setStored(old=>old?{...old,confirmed:false}:old);
     setMessage('');
   }
-  return <section id="case-intake" aria-label={t.heading} style={{padding:20,marginTop:22,border:'1px solid #d6e5e8',borderRadius:12}}>
+  return <section id="case-intake" aria-label={t.heading} className="intake-sheet">
     <span className="tiny-eyebrow">{t.eyebrow}</span>
     <h3 style={{marginTop:10}}>{t.heading}</h3>
     <p>{t.intro}</p>
     <div className="message-box notice" style={{marginTop:12}}><div><p>{t.privacy}</p></div></div>
-    {loading?<p role="status">{t.saving}</p>:<>
+    {loading?<p className="editorial-pending" role="status">{locale === 'it' ? 'Caricamento…' : 'Loading…'}</p>:<>
       <div style={{display:'grid',gap:16,marginTop:20}}>
         {INTAKE_FIELDS.map(key=>{
           const field=key as FieldKey;
@@ -183,7 +190,7 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
           return <div key={field}>
             <label htmlFor={'intake-'+field} className="field-label">{t.fields[field]}</label>
             <select id={'intake-'+field} className="input" value={facts[field]??''}
-              disabled={busy}
+              disabled={busy||expired}
               onChange={e=>change(field,e.target.value)}>
               <option value="">{t.placeholder}</option>
               {INTAKE_OPTIONS[field].map(value=><option key={value} value={value}>
@@ -195,7 +202,7 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
         <div>
           <label htmlFor="intake-move-date" className="field-label">{t.date}</label>
           <input className="input" id="intake-move-date" type="date" value={date}
-            min="1900-01-01" max="2100-12-31" disabled={busy}
+            min="1900-01-01" max="2100-12-31" disabled={busy||expired}
             onChange={e=>{setDate(e.target.value);setStored(old=>old?{...old,confirmed:false}:old);setAck(false);setMessage('');}}/>
           <p style={{fontSize:12,opacity:0.8}}>{t.dateInfo}</p>
         </div>
@@ -206,16 +213,16 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
         {state==='outside_first_scenario'&&<p role="status">{t.outside}</p>}
         {state==='incomplete'&&<p role="status">{t.incomplete}</p>}
         <label style={{display:'flex',alignItems:'flex-start',gap:8}}>
-          <input type="checkbox" checked={ack} disabled={busy}
+          <input type="checkbox" checked={ack} disabled={busy||expired}
             onChange={e=>setAck(e.target.checked)}/>
           <span>{t.acknowledge}</span>
         </label>
         <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:12}}>
-          <button type="button" className="button button-outline" disabled={busy||!validDate}
+          <button type="button" className="button button-outline" disabled={busy||expired||!validDate}
             onClick={()=>void persist(false)}>{busy?t.saving:t.save}</button>
-          <button type="button" className="button button-primary" disabled={busy||!ack||!localComplete||!validDate}
+          <button type="button" className="button button-primary" disabled={busy||expired||!ack||!localComplete||!validDate}
             onClick={()=>void persist(true)}>{busy?t.saving:t.confirm}</button>
-          <button type="button" className="button button-outline" disabled={busy}
+          <button type="button" className="button button-outline" disabled={busy||expired}
             onClick={()=>void erase()}>{t.reset}</button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { isCaseId } from '@/lib/case-scope.js';
-import { caseError, proxyCaseRequest, proxyPrivateDocumentUpload } from '@/lib/case-proxy';
+import { caseError, proxyCaseRequest, proxyPrivateDocumentUpload, rejectCrossOrigin } from '@/lib/case-proxy';
 import {
   PRIVATE_DOCUMENT_MAX_BYTES, privateDocumentsUiEnabled, isPrivateUploadMeta,
 } from '@/lib/private-documents.js';
@@ -20,9 +20,8 @@ export async function POST(request: NextRequest, {params}: Context) {
   const {id} = await params;
   if (!isCaseId(id)) return caseError('Case not found', 404);
   // Strict origin check: missing origin is rejected for multipart writes.
-  if (request.headers.get('origin') !== new URL(request.url).origin) {
-    return caseError('Forbidden origin', 403);
-  }
+  const crossOrigin = rejectCrossOrigin(request);
+  if (crossOrigin) return crossOrigin;
   const bytes = Number(request.headers.get('content-length') || '0');
   if (!Number.isSafeInteger(bytes) || bytes < 1 || bytes > PRIVATE_DOCUMENT_MAX_BYTES + 16384) {
     return caseError('Upload too large or missing content length', 413);

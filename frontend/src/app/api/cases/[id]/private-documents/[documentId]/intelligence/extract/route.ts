@@ -13,5 +13,5 @@ export async function POST(request:NextRequest,{params}:Context){
   const {id,documentId}=await params;
   if(!isCaseId(id)||!isCaseId(documentId))return caseError('Not found',404);
   return proxyCaseRequest('POST',
-    '/api/v1/cases/'+id+'/private-documents/'+documentId+'/intelligence/extract');
+    '/api/v1/cases/'+id+'/private-documents/'+documentId+'/intelligence/extract', undefined, 35_000);
 }

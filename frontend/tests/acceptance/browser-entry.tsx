@@ -4,16 +4,14 @@
  */
 import {useEffect,useState} from 'react';
 import {createRoot} from 'react-dom/client';
-import {DemoProvider,useDemo} from '@/components/DemoProvider';
+import {DemoProvider} from '@/components/DemoProvider';
+import {SiteHeader} from '@/components/SiteHeader';
 import {SavedCasesView} from '@/components/SavedCasesView';
+import {PrivateDocumentsWorkspace} from '@/components/PrivateDocumentsWorkspace';
 import {SavedCaseWorkspace} from '@/components/SavedCaseWorkspace';
 
-function LanguageSwitch(){
-  const {locale,toggleLocale}=useDemo();
-  return <button type="button" onClick={toggleLocale}
-    aria-label="Toggle language" style={{
-      margin:12,padding:8,border:'1px solid #cbd6dc',borderRadius:6,
-    }}>Language: {locale.toUpperCase()}</button>;
+declare global {
+  interface Window { acceptancePrivateDocuments?: boolean }
 }
 
 function AcceptanceApp(){
@@ -23,14 +21,19 @@ function AcceptanceApp(){
     window.addEventListener('popstate',update);
     return ()=>window.removeEventListener('popstate',update);
   },[]);
-  const id=/^\/cases\/([0-9a-f]{8}-[0-9a-f-]{27,})$/i.exec(path)?.[1];
+  const route=/^\/cases\/([0-9a-f]{8}-[0-9a-f-]{27,})(\/documents)?$/i.exec(path);
+  const id=route?.[1];
+  const documentsEnabled=Boolean(window.acceptancePrivateDocuments);
+  const signedIn=/\bacceptance_subject=(alice|bob)\b/.test(document.cookie);
   return <DemoProvider>
-    <header><LanguageSwitch/></header>
-    {id?<SavedCaseWorkspace key={id} caseId={id}
-      configured={true} signedIn={true}
+    <SiteHeader/>
+    {documentsEnabled && route?.[2] && id ?
+      <PrivateDocumentsWorkspace key={id} caseId={id} configured signedIn={signedIn}/> :
+      id?<SavedCaseWorkspace key={id} caseId={id}
+      configured={true} signedIn={signedIn}
       assistantEnabled={false} preparationEnabled={false}
-      liveAIEnabled={false} privateDocumentsEnabled={false}/>:
-      <SavedCasesView key={path} configured={true} signedIn={true}
+      liveAIEnabled={false} privateDocumentsEnabled={documentsEnabled}/>:
+      <SavedCasesView key={path} configured={true} signedIn={signedIn}
         backendConfigured={true} liveAIEnabled={false}/>}
   </DemoProvider>;
 }

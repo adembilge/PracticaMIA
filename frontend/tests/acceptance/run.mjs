@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {join,resolve} from 'node:path';
 import {chromium} from 'playwright';
+import {runDocumentScenarios} from './documents.mjs';
 
 const origin=process.env.PRACTICAMIA_ACCEPTANCE_ORIGIN||'http://127.0.0.1:8765';
 if(!/^http:\/\/127\.0\.0\.1:\d+$/.test(origin)||
@@ -15,11 +16,13 @@ if(!/^http:\/\/127\.0\.0\.1:\d+$/.test(origin)||
 const output=resolve('.acceptance-results');
 mkdirSync(output,{recursive:true});
 
+const health=await fetch(origin+'/__acceptance/health').then(response=>response.json());
 const report={
   suite:'PracticaMIA synthetic browser-to-FastAPI acceptance',
   mode:'local-only; temporary RS256 identities; disposable PostgreSQL; synthetic approved-source fixture',
   externalAuth0Tested:false,
   realDocumentsTested:false,
+  syntheticVaultTested:health.private_documents===true,
   liveDeploymentTested:false,
   scenarios:[],
 };
@@ -28,8 +31,8 @@ const browser=await chromium.launch({headless:true});
 const contexts=[];
 let alicePage=null;
 let caseId=null;
-async function contextFor(subject){
-  const context=await browser.newContext({acceptDownloads:true,viewport:{width:1440,height:950}});
+async function contextFor(subject,viewport={width:1440,height:950}){
+  const context=await browser.newContext({acceptDownloads:true,viewport});
   await context.addCookies([{name:'acceptance_subject',value:subject,url:origin,sameSite:'Strict'}]);
   contexts.push(context);
   const page=await context.newPage();
@@ -85,7 +88,7 @@ async function createCase(page){
   await page.goto(origin+'/cases/saved');
   await page.getByRole('button',{name:'Create an empty demo case'}).click();
   await page.waitForURL(/\/cases\/[0-9a-f]{8}-/i,{timeout:15000});
-  const id=page.url().split('/').at(-1);
+  const id=new URL(page.url()).pathname.split('/').at(-1);
   assert.match(id,/^[0-9a-f]{8}-[0-9a-f-]{27,}$/);
   await page.getByText('QUESTION 1 / 5').waitFor({timeout:12000});
   return id;
@@ -116,19 +119,24 @@ try{
   await scenario('A1: a move within Milan reaches the signed checklist',async()=>{
     alicePage=await contextFor('alice');
     caseId=await createCase(alicePage);
-    const journey=alicePage.getByRole('navigation',{name:'Your case journey'});
-    const intakeStep=journey.getByRole('link',{name:/Confirm facts/});
-    await intakeStep.waitFor({timeout:12000});
-    assert.equal(await intakeStep.getAttribute('href'),'#case-scope');
+    const journey=alicePage.getByRole('navigation',{name:'Case progress'});
+    const intakeStep=journey.getByRole('button',{name:/^02 Case details/});
     assert.match(await intakeStep.innerText(),/Finish the initial questions first/);
+    await intakeStep.click();
+    await alicePage.getByRole('heading',{name:'Scope',exact:true}).waitFor();
     await alicePage.getByRole('heading',{
       name:'Before you moved, were you registered as a resident in Italy?',
     }).waitFor();
     await scopeAnswers(alicePage,['yes','yes','yes','no','yes']);
-    await alicePage.getByRole('heading',{name:'Your demo scope check is complete.'})
+    await alicePage.getByRole('heading',{name:'Case details',exact:true})
       .waitFor({timeout:12000});
-    assert.equal(await intakeStep.getAttribute('href'),'#case-intake');
+    await alicePage.getByRole('button',{name:/^01 Scope/}).click();
+    await alicePage.getByRole('heading',{name:'Your demo scope check is complete.'}).waitFor();
+    await alicePage.goBack();
+    await alicePage.getByRole('heading',{name:'Case details',exact:true}).waitFor();
+    assert.doesNotMatch(await intakeStep.innerText(),/Finish the initial questions first/);
     await confirmIntake(alicePage,facts);
+    await alicePage.getByRole('button',{name:'Requirements →',exact:true}).click();
     await alicePage.locator('#case-workflow-checklist input[type="checkbox"]')
       .first().waitFor({timeout:15000});
     const {status,body}=await readJson(alicePage,'/api/cases/'+caseId+'/workflow');
@@ -138,8 +146,13 @@ try{
     assert.equal(body.package.download_allowed,true);
     assert.equal(body.official_submission,false);
     assert.equal(body.eligibility_evaluated,false);
-    assert.equal(body.documents.enabled,false);
+    assert.equal(body.documents.enabled,health.private_documents);
     assert.equal(await alicePage.locator('#case-workflow-checklist input[type="checkbox"]').count(),5);
+    const requirement=alicePage.locator('.requirement-open').first();
+    await requirement.click();
+    await alicePage.getByRole('dialog').waitFor();
+    await alicePage.keyboard.press('Escape');
+    await requirement.evaluate(button=>new Promise(resolve=>requestAnimationFrame(()=>resolve(document.activeElement===button)))).then(focused=>assert.equal(focused,true));
   });
 
   await scenario('A9: an applicant moving from another Italian municipality can resume and reach the signed checklist',async()=>{
@@ -175,6 +188,7 @@ try{
       await alicePage.getByText('Actions read by you: '+(i+1)+' / 5')
         .waitFor({timeout:15000});
     }
+    await alicePage.getByRole('button',{name:/^05 PDF summary/}).click();
     const link=alicePage.getByRole('link',{name:'Download PDF draft'});
     await link.waitFor({timeout:12000});
     const [download]=await Promise.all([
@@ -185,6 +199,8 @@ try{
     const savedPath=await download.path();
     assert.equal(readFileSync(savedPath).subarray(0,5).toString('ascii'),'%PDF-');
     await alicePage.reload();
+    await alicePage.getByRole('heading',{name:'PDF summary',exact:true}).waitFor();
+    await alicePage.getByRole('button',{name:/^03 Requirements/}).click();
     await alicePage.getByText('Actions read by you: 5 / 5')
       .waitFor({timeout:16000});
     assert.equal(await alicePage.locator('#case-workflow-checklist input[type="checkbox"]:checked').count(),5);
@@ -216,15 +232,18 @@ try{
     const revoke=await alicePage.request.post(origin+'/__acceptance/sources/revoke');
     assert.equal(revoke.status(),200);
     await alicePage.getByRole('button',{name:'Refresh workflow'}).click();
-    await alicePage.getByText(
-      'The signed checklist is unavailable until the source evidence is approved.'
-    ).waitFor({timeout:16000});
+    await alicePage.getByRole('status').filter({
+      hasText:'The signed checklist is unavailable until the source evidence is approved.',
+    }).waitFor({timeout:16000});
+    await alicePage.getByRole('button',{name:/^05 PDF summary/}).click();
+    await alicePage.getByText('Preparation draft blocked').waitFor();
     assert.equal(await alicePage.getByRole('link',{name:'Download PDF draft'}).count(),0);
     assert.equal((await alicePage.request.get(
       origin+'/api/cases/'+caseId+'/package/pdf')).status(),409);
     const restore=await alicePage.request.post(origin+'/__acceptance/sources/restore');
     assert.equal(restore.status(),200);
     await alicePage.getByRole('button',{name:'Refresh workflow'}).click();
+    await alicePage.getByRole('button',{name:/^03 Requirements/}).click();
     await alicePage.getByText('Actions read by you: 0 / 5')
       .waitFor({timeout:16000});
     const state=(await readJson(alicePage,'/api/cases/'+caseId+'/workflow')).body;
@@ -234,6 +253,7 @@ try{
 
   await scenario('A5: edited intake blocks unsupported case and clears prior review',async()=>{
     assert.ok(alicePage&&caseId);
+    await alicePage.getByRole('button',{name:/^02 Case details/}).click();
     await alicePage.locator('#intake-housing_basis').selectOption('owner');
     await alicePage.getByRole('checkbox',{
       name:/I checked these entries and confirm they describe this fictional example/,
@@ -249,6 +269,7 @@ try{
       name:/I checked these entries and confirm they describe this fictional example/,
     }).check();
     await alicePage.getByRole('button',{name:'Confirm facts'}).click();
+    await alicePage.getByRole('button',{name:/^03 Requirements/}).click();
     await alicePage.getByText('Actions read by you: 0 / 5')
       .waitFor({timeout:16000});
   });
@@ -279,18 +300,38 @@ try{
 
   await scenario('A7: Italian UI preserves the same verified case logic',async()=>{
     assert.ok(alicePage&&caseId);
-    await alicePage.getByRole('button',{name:'Toggle language'}).click();
-    await alicePage.getByRole('heading',{name:'Percorso della pratica'})
+    await alicePage.getByRole('button',{name:'Switch to Italian'}).click();
+    await alicePage.getByRole('heading',{name:'Requisiti',exact:true})
       .waitFor({timeout:15000});
+    await alicePage.getByRole('button',{name:/^01 Ambito/}).click();
     await alicePage.getByRole('button',{
       name:/Prima del trasferimento, avevi la residenza anagrafica in Italia/,
     }).waitFor({timeout:12000});
+    await alicePage.getByRole('button',{name:/^03 Requisiti/}).click();
     await alicePage.getByText('Azioni lette: 0 / 5').waitFor({timeout:15000});
     const json=await readJson(alicePage,'/api/cases/'+caseId+'/workflow');
     assert.equal(json.body.official_submission,false);
     assert.equal(json.body.checklist.items.length,5);
     assert.equal(json.body.package.download_allowed,true);
     assert.equal(await alicePage.locator('#case-workflow-checklist input[type="checkbox"]').count(),5);
+  });
+
+  await scenario('Mobile: case progress opens a keyboard-accessible requirement sheet',async()=>{
+    const page=await contextFor('alice',{width:390,height:844});
+    await page.goto(origin+'/cases/'+caseId);
+    await page.getByRole('button',{name:/^03 Requirements/}).click();
+    const trigger=page.locator('.requirement-open').first();
+    await trigger.click();
+    const dialog=page.getByRole('dialog');
+    await dialog.waitFor();
+    assert.equal(await dialog.evaluate(panel=>panel.matches(':modal')),true);
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({state:'hidden'});
+    await trigger.evaluate(button=>new Promise(resolve=>requestAnimationFrame(()=>resolve(document.activeElement===button)))).then(focused=>assert.equal(focused,true));
+  });
+
+  if(health.private_documents) await runDocumentScenarios({
+    origin, scenario, contextFor, createCase, scopeAnswers, confirmIntake, facts, readJson,
   });
 
   await scenario('A8: browser runs without uncaught runtime errors',async()=>{
@@ -306,6 +347,7 @@ try{
     'Synthetic temporary JWT identity at the backend; not live Auth0 sign-in.',
     'Local first-route evidence resolver fixture; real signed-source registry tested separately.',
     'Real personal document processing remains release-gated.',
+    ...(health.private_documents ? ['Local real ClamAV binary with a harmless test-only signature; external scanning transport is a fixture.'] : []),
     'No deployed hostname or external government portal was contacted.',
   ];
   writeFileSync(join(output,'acceptance-report.json'),

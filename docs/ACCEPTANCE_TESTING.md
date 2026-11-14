@@ -10,12 +10,14 @@ The dedicated GitHub Actions workflow
 - An **isolated PostgreSQL 17 + pgvector** service with the repository's
   complete Alembic migrations (no Neon production connection).
 - The real FastAPI application with all case, scope, intake, workflow,
-  checklist-review and package-PDF endpoints enabled.
+  checklist-review and package-PDF endpoints enabled. The document run also
+  mounts the private upload, extraction, review, deletion and expiration routes
+  with fresh process-local keys and an isolated fixture scanner.
 - Ephemeral RSA-2048/RS256 signed bearer tokens for two synthetic principals
   (**alice** and **bob**), verified with the application's genuine JWT
   verifier. The JWT signer exists only in the local CI server process.
 - The real `SavedCasesView`, `SavedCaseWorkspace`, `CaseIntakePanel`,
-  `CaseJourneyPanel`, and `DemoProvider` React components bundled into a
+  `CaseJourneyPanel`, `PrivateDocumentsWorkspace`, and `DemoProvider` React components bundled into a
   localhost-only browser harness using pinned CI-only esbuild/Playwright.
 - Headless Chromium controlling the actual case screens, forwarding their
   API calls over HTTP to FastAPI. The only replacements are a minimal
@@ -38,6 +40,11 @@ The dedicated GitHub Actions workflow
 | A6 | Unsupported or uncertain initial answers cannot export | Chromium + real FastAPI + PostgreSQL |
 | A7 | Italian language uses the same verified case state and downloadable draft decisions | Chromium + real FastAPI + PostgreSQL |
 | A8 | No uncaught browser runtime errors | Chromium |
+| D1 | Explicit acknowledgement required, malformed uploads rejected, scanner outage/checksum/control verdict rejected, browser retry works | Chromium + real ClamAV with a harmless test signature + FastAPI + PostgreSQL |
+| D2 | Extract PDF fields, reject stale review, block PDF while a confirmed field conflicts, correct it and reopen the saved review | Chromium + FastAPI + PostgreSQL |
+| D3 | OCR of PNG, JPEG and scanned PDF, two supported fields matched on each, real PDF with status-only metadata and ANPR link | Chromium + local Tesseract/PDFium + FastAPI + PostgreSQL |
+| D4 | Anonymous and second-account read/write/export denied. Original bytes have no download handler | Chromium + FastAPI + PostgreSQL |
+| D5 | Seven-day timestamp, inaccessible expired review, authorized purge and immediate owner deletion | Chromium + FastAPI + PostgreSQL, locally advanced synthetic record only |
 | API | Document extraction/correction, conflicts, encrypted review tampering, expiry, citation URL/signature failures | FastAPI TestClient with synthetic fixture/scanner, in the dedicated acceptance job |
 
 The CI job produces `frontend/.acceptance-results/acceptance-report.json`,
@@ -56,7 +63,7 @@ This suite deliberately does **not** cover:
 - Vercel or another live deployment, hostname, production secrets or live
   health checks. No Vercel operations are authorized.
 - Real third-party malware scanning, controller/privacy approvals, backup
-  and retention operations, live identity uploads, production OCR or data
+  and retention operations, live identity uploads, the hosted OCR runtime or data
   processing agreements.
 - Current official municipal website content or legal completeness.
   A synthetic source fixture exercises downstream invalidation, while
@@ -95,6 +102,15 @@ follow its commands after setting:
 
 Never point these settings at Neon or a shared database. The bridge refuses
 non-loopback hosts and any unexpected database name.
+
+Pass `--private-documents` to the localhost acceptance bridge to include D1–D5.
+This run additionally needs `clamscan`, `pdftotext`, DejaVu Sans, and Tesseract
+with `ita` and `eng` language data. The app performs its actual request and
+checksum validation. Only the network transport to the external scanner is
+substituted. The local adapter invokes ClamAV using a dedicated harmless test
+signature. It does not use an external scanner, a malware sample, or a vendor
+signature database. The test-only controls are served solely by the loopback
+bridge and only accept generated fixtures and temporary test identities.
 
 The fixture contains only synthetic names, dates and typed fields; no
 private personal records or external government submissions are used.

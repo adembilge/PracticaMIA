@@ -233,3 +233,49 @@ test('the enabled fictional document link opens directly at the sample', {
     assert.match(await overview.text(), /Choose a demonstration scenario/);
   });
 });
+
+
+test('private-document production routes enforce release, origin, and session gates', {
+  timeout: 45000,
+}, async () => {
+  const base = '/api/cases/' + SAMPLE_ID + '/private-documents';
+  const document = base + '/' + SAMPLE_ID;
+  await withServer({ ENABLE_PRIVATE_DOCUMENT_UI: '0' }, async origin => {
+    assert.equal((await fetch(origin + base)).status, 404);
+  });
+  await withServer({
+    ENABLE_PRIVATE_DOCUMENT_UI: '1',
+    PRIVATE_DOCUMENT_PRIVACY_APPROVED: '1',
+    PRIVATE_DOCUMENT_CONTROLLER: 'Synthetic runtime smoke controller',
+    PRIVATE_DOCUMENT_CONTACT: 'privacy@example.invalid',
+  }, async origin => {
+    const crossOrigin = { Origin: 'https://wrong-origin.invalid' };
+    for (const [path, method] of [
+      [base, 'POST'], [document, 'DELETE'],
+      [document + '/intelligence/extract', 'POST'],
+      [document + '/intelligence/review', 'PUT'],
+    ]) {
+      const request = await fetch(origin + path, { method, headers: crossOrigin });
+      assert.equal(request.status, 403, method + ' ' + path);
+    }
+    assert.equal((await fetch(origin + base)).status, 503);
+    assert.equal((await fetch(origin + document + '/intelligence')).status, 503);
+    assert.equal((await fetch(origin + document)).status, 405);
+    const browserOrigin = origin.replace('127.0.0.1', 'localhost');
+    const sameOrigin = { Origin: browserOrigin, Host: new URL(browserOrigin).host };
+    const missingMultipart = await fetch(origin + base, {
+      method: 'POST', headers: sameOrigin,
+    });
+    assert.equal(missingMultipart.status, 413);
+    const validUpload = new FormData();
+    validUpload.set('category', 'housing_document');
+    validUpload.set('privacy_ack', 'true');
+    validUpload.set('consent_version', 'private-documents-2026-11-v1');
+    validUpload.set('file', new Blob(['%PDF-synthetic'], {type:'application/pdf'}), 'fictional.pdf');
+    const withoutSession = await fetch(origin + base, {
+      method: 'POST', headers: sameOrigin, body: validUpload,
+    });
+    assert.equal(withoutSession.status, 503, 'valid same-origin upload must stop at session/configuration');
+    assert.equal((await fetch(origin + document, {method:'DELETE', headers:sameOrigin})).status, 503);
+  });
+});

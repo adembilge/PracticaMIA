@@ -9,7 +9,10 @@ seven-day access expiry, scheduled purge and deletion remain prerequisites.
 
 For a private **housing document only**, after the file has been successfully
 uploaded and scanned, the owner can explicitly request local PDF extraction
-or, if Tesseract is installed, local image OCR. An allowlisted parser searches
+or local OCR of PNG/JPEG and image-only PDF pages with Tesseract and Italian and
+English language data. Text-bearing PDF pages use direct extraction. Scanned
+pages are rasterized at a bounded resolution, with a per-document OCR time
+budget. No rasterized page is persisted. An allowlisted parser searches
 only for clearly labeled:
 
 - Housing basis: registered private rental / owner / guest / other.

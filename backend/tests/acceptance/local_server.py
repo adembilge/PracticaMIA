@@ -26,6 +26,7 @@ from urllib.parse import urlsplit
 # The standalone script is launched from backend/ but lives in tests/.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+import httpx
 import jwt
 from cryptography.hazmat.primitives.asymmetric import rsa
 from fastapi.testclient import TestClient
@@ -35,6 +36,9 @@ from sqlalchemy.engine import make_url
 from app.cases import checklist_service
 from app.config import Settings
 from app.main import create_app
+from app.private_documents import security
+from app.private_documents.model import PrivateCaseDocument
+from document_fixtures import DocumentFixtures
 
 HOST = "127.0.0.1"
 ISSUER = "https://acceptance-identity.invalid/"
@@ -82,7 +86,7 @@ def synthetic_evidence(_db, *, citation_id, jurisdiction, procedure_id, language
     )
 
 
-def run(port: int, assets: Path):
+def run(port: int, assets: Path, *, private_documents: bool = False):
     database_url = validate_environment()
     if not assets.is_dir() or not (assets / "acceptance.js").is_file():
         raise SystemExit("Compiled browser acceptance assets missing")
@@ -100,6 +104,22 @@ def run(port: int, assets: Path):
         enable_knowledge_catalog_api=True,
         auth_issuer=ISSUER, auth_audience=AUDIENCE, auth_jwks_url=JWKS_URL,
     )
+    documents = DocumentFixtures() if private_documents else None
+    if documents:
+        settings = documents.settings(settings)
+        # Only the external HTTPS transport is substituted. The application
+        # still verifies the real scanner request, digest and verdict contract.
+        def fixture_http(**kwargs):
+            return httpx.Client(
+                transport=httpx.MockTransport(documents.scanner_response), **kwargs,
+            )
+        from unittest.mock import patch
+
+        # Replace only the module's HTTP client reference, not TestClient's.
+        scanner_patch = patch.object(
+            security, "httpx", SimpleNamespace(Client=fixture_http, HTTPError=httpx.HTTPError),
+        )
+        scanner_patch.start()
     api = create_app(settings)
     client = TestClient(api)
     client.__enter__()
@@ -124,13 +144,17 @@ def run(port: int, assets: Path):
         def reply(self, code, data: bytes, media: str, extra=None):
             self.send_response(code)
             self.send_header("Content-Type", media)
-            self.send_header("Cache-Control", "no-store")
+            if not extra or "Cache-Control" not in extra:
+                self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("Content-Length", str(len(data)))
             for key, value in (extra or {}).items():
                 self.send_header(key, value)
-            self.end_headers()
-            self.wfile.write(data)
+            try:
+                self.end_headers()
+                self.wfile.write(data)
+            except (BrokenPipeError, ConnectionResetError):
+                pass  # Browser navigation may cancel a pending localhost request.
 
         def json_reply(self, code, obj):
             self.reply(code, json.dumps(obj).encode(), "application/json")
@@ -147,7 +171,7 @@ def run(port: int, assets: Path):
         def handle_request(self):
             path = urlsplit(self.path).path
             if path == "/__acceptance/health":
-                self.json_reply(200, {"status": "ready", "synthetic": True})
+                self.json_reply(200, {"status": "ready", "synthetic": True, "private_documents": bool(documents)})
                 return
             if path in {
                 "/__acceptance/sources/revoke", "/__acceptance/sources/restore",
@@ -162,15 +186,25 @@ def run(port: int, assets: Path):
                 self.json_reply(200, {"approved": STATE["approved"]})
                 return
 
+            if path == "/acceptance-config.js" and self.command == "GET":
+                value = "true" if documents else "false"
+                self.reply(200, f"window.acceptancePrivateDocuments = {value};".encode(),
+                           "text/javascript; charset=utf-8")
+                return
+            if documents and path.startswith("/__acceptance/documents/"):
+                self.handle_document_fixture(path)
+                return
             if path == "/acceptance.js" and self.command == "GET":
                 self.reply(200, (assets / "acceptance.js").read_bytes(),
                            "text/javascript; charset=utf-8")
                 return
             if path == "/acceptance.css" and self.command == "GET":
-                css = Path(__file__).resolve().parents[3] / (
-                    "frontend/src/app/globals.css"
+                styles = Path(__file__).resolve().parents[3] / "frontend/src/app"
+                css = b"\n".join(
+                    (styles / name).read_bytes()
+                    for name in ("globals.css", "editorial.css")
                 )
-                self.reply(200, css.read_bytes(), "text/css; charset=utf-8")
+                self.reply(200, css, "text/css; charset=utf-8")
                 return
             if (path in {"/", "/cases/saved"} or
                 (path.startswith("/cases/") and len(path) < 120)) and (
@@ -183,6 +217,50 @@ def run(port: int, assets: Path):
                 self.forward_api()
                 return
             self.json_reply(404, {"error": "Local acceptance route not found"})
+
+        def handle_document_fixture(self, path):
+            suffix = path.removeprefix("/__acceptance/documents/")
+            if self.subject() != "alice":
+                self.json_reply(403, {"error": "Synthetic owner control only"})
+                return
+            if self.command == "GET" and suffix in documents.files:
+                media, body = documents.files[suffix]
+                self.reply(200, body, media)
+                return
+            if self.command == "POST" and suffix in {"normal", "unavailable", "bad_digest"}:
+                documents.verdict = suffix
+                self.json_reply(200, {"mode": suffix})
+                return
+            if self.command == "POST" and suffix.startswith("expire/"):
+                document_id = suffix.removeprefix("expire/")
+                with api.state.session_factory() as db:
+                    row = db.get(PrivateCaseDocument, document_id)
+                    if not row or row.owner_subject != "alice":
+                        self.json_reply(404, {"error": "Fixture document not found"})
+                        return
+                    row.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+                    db.commit()
+                self.json_reply(200, {"expired": True})
+                return
+            if self.command == "GET" and suffix.startswith("retained/"):
+                document_id = suffix.removeprefix("retained/")
+                with api.state.session_factory() as db:
+                    row = db.get(PrivateCaseDocument, document_id)
+                    if row and row.owner_subject != "alice":
+                        self.json_reply(404, {"error": "Fixture document not found"})
+                        return
+                    retained = bool(row)
+                self.json_reply(200, {"retained": retained})
+                return
+            if self.command == "POST" and suffix == "purge":
+                denied = client.get("/internal/retention/purge")
+                purged = client.get("/internal/retention/purge", headers={
+                    "Authorization": "Bearer " + documents.cron_secret,
+                })
+                self.json_reply(purged.status_code, {**purged.json(),
+                                                     "anonymous_status": denied.status_code})
+                return
+            self.json_reply(404, {"error": "Synthetic fixture not found"})
 
         def forward_api(self):
             mapped = "/api/v1" + self.path[4:]
@@ -246,11 +324,15 @@ def run(port: int, assets: Path):
         api.state.engine.dispose()
         PyJWKClient.fetch_data = original_jwks
         checklist_service.resolve_approved_passage = original_resolver
+        if documents:
+            scanner_patch.stop()
+            documents.temporary.cleanup()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--assets", type=Path, required=True)
+    parser.add_argument("--private-documents", action="store_true")
     args = parser.parse_args()
-    run(args.port, args.assets.resolve())
+    run(args.port, args.assets.resolve(), private_documents=args.private_documents)

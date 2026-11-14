@@ -61,7 +61,9 @@ merge **do not** activate private uploads.
    `PRIVATE_DOCUMENT_PRIVACY_APPROVED=1`,
    `PRIVATE_DOCUMENT_CONTROLLER`,
    `PRIVATE_DOCUMENT_CONTACT`, and `CRON_SECRET`.
-   Startup refuses incomplete config or a schema other than 0013.
+   Startup refuses incomplete configuration. The complete document review
+   flow requires schema 0015 or later among the explicitly supported
+   revisions. Use the current migrated schema for release validation.
 6. Configure matching non-secret frontend Production values:
    `ENABLE_PRIVATE_DOCUMENT_UI=1`,
    `PRIVATE_DOCUMENT_PRIVACY_APPROVED=1`,
@@ -79,6 +81,16 @@ merge **do not** activate private uploads.
 9. Release to a limited beta only when the privacy notice, vendor controls,
    operational monitoring, and browser E2E are all verified. Maintain the
    public fictional walkthrough independently.
+
+## Isolated acceptance
+
+The localhost acceptance suite exercises the real vault components, FastAPI,
+a disposable PostgreSQL database, local ClamAV and bilingual local Tesseract.
+It uses temporary signed identities and a test-only scanner transport. See
+[the acceptance runbook](ACCEPTANCE_TESTING.md#acceptance-scenarios) for
+reproduction and the remaining live Auth0 and scanner checks. An operator
+must still verify that the intended hosting runtime has the OCR binary and
+both language files.
 
 ## Operational limitations
 - No persistent per-user scanner-cost rate limiter yet; the five-document

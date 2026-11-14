@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useDemo } from '@/components/DemoProvider';
+import { Icon } from '@/components/Icon';
 import { LiveExampleAIGuide } from '@/components/LiveExampleAIGuide';
 
 type SavedCase = { id: string; status: string; created_at: string };
@@ -21,31 +22,32 @@ export function SavedCasesView({ configured, signedIn, backendConfigured, liveAI
   const [cases, setCases] = useState<SavedCase[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [error, setError] = useState('');
+  const [failure, setFailure] = useState<'list' | 'create' | 'expired' | null>(null);
 
   const canUseApi = configured && signedIn && backendConfigured;
   const refresh = useCallback(async () => {
     if (!canUseApi) return;
     setLoading(true);
-    setError('');
+    setFailure(null);
     try {
       const response = await fetch('/api/cases', { cache: 'no-store' });
+      if (response.status === 401) { setFailure('expired');return; }
       if (!response.ok) throw new Error('HTTP ' + response.status);
       const rows: SavedCase[] = await response.json();
       setCases(rows);
     } catch {
-      setError(t.savedError);
+      setFailure('list');
     } finally {
       setLoading(false);
     }
-  }, [canUseApi, t.savedError]);
+  }, [canUseApi]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
   async function createSyntheticCase() {
     if (!canUseApi || creating) return;
     setCreating(true);
-    setError('');
+    setFailure(null);
     try {
       const response = await fetch('/api/cases', {
         method: 'POST',
@@ -53,41 +55,50 @@ export function SavedCasesView({ configured, signedIn, backendConfigured, liveAI
         body: '{}',
         credentials: 'same-origin',
       });
+      if (response.status === 401) { setFailure('expired');return; }
       if (!response.ok) throw new Error('HTTP ' + response.status);
       const created = (await response.json()) as SavedCase;
       await refresh();
       router.push('/cases/' + encodeURIComponent(created.id));
     } catch {
-      setError(t.savedCreateError);
+      setFailure('create');
     } finally {
       setCreating(false);
     }
   }
 
+  const isItalian = locale === 'it';
+  const retry = isItalian ? 'Riprova' : 'Try again';
+  const displayStatus: Record<string,string> = {
+    incomplete: isItalian ? 'Da completare' : 'In progress',
+    needs_information: isItalian ? 'Servono informazioni' : 'More information needed',
+    unsupported: isItalian ? 'Fuori ambito' : 'Outside supported scope',
+    provisionally_in_scope: isItalian ? 'Ambito confermato' : 'Scope questions complete',
+  };
   return (
-    <main id="main-content" tabIndex={-1} className="subpage-background">
+    <main id="main-content" tabIndex={-1} className="case-page saved-cases-page">
       <div className="container account-shell">
-        <h1 className="subpage-title">{t.savedTitle}</h1>
+        <header className="case-header"><div><p className="editorial-label">{isItalian ? 'Milano · Cambio di residenza' : 'Milano · Change of residence'}</p><h1>{t.savedTitle}</h1></div></header>
         {!configured ? (
           <p role="status" className="message-box notice">{t.accountUnavailable}</p>
         ) : !signedIn ? (
           <section className="account-panel">
             <p>{t.savedSignIn}</p>
-            <a href="/auth/login" className="button button-primary">{t.accountLogin}</a>
+            <a href="/auth/login?returnTo=%2Fcases%2Fsaved" className="button button-primary">{t.accountLogin}</a>
           </section>
         ) : !backendConfigured ? (
           <p role="status" className="message-box notice">{t.savedBackendUnavailable}</p>
         ) : (
-          <section className="account-panel">
+          <section className="account-panel saved-index">
             <p>{t.savedSyntheticOnly}</p>
-            <button type="button" className="button button-primary" onClick={createSyntheticCase} disabled={creating || loading}>
+            <button type="button" className="button button-primary" onClick={createSyntheticCase} disabled={creating || loading || failure === 'expired'}>
               {creating ? t.savedCreating : t.savedCreate}
             </button>
-            {loading ? <p role="status">{t.savedLoading}</p> : (
+            {loading ? <p role="status" className="editorial-pending">{t.savedLoading}</p> : (
               <ul className="saved-case-list">
                 {cases.map((item) => (
                   <li key={item.id}>
-                    <span>{t.savedDraft}: {item.status}</span>
+                    <span><Icon name="file" size={18}/> {displayStatus[item.status] ?? t.savedDraft}</span>
                     <code>{item.id.slice(0, 8)}</code>
                     <Link href={'/cases/' + encodeURIComponent(item.id)} className="inline-link">
                       {t.savedResume}
@@ -96,8 +107,14 @@ export function SavedCasesView({ configured, signedIn, backendConfigured, liveAI
                 ))}
               </ul>
             )}
-            {!loading && cases.length === 0 && !error && <p>{t.savedEmpty}</p>}
-            {error && <p role="alert" className="error-text">{error}</p>}
+            {!loading && cases.length === 0 && !failure && <div className="case-state"><Icon name="file"/><p>{t.savedEmpty}</p></div>}
+            {failure && <div className="message-box warning" role="alert"><div>
+              <p>{failure === 'expired' ? (isItalian ? 'La sessione è scaduta.' : 'Your session has expired.') :
+                failure === 'list' ? t.savedError : t.savedCreateError}</p>
+              {failure === 'expired' ?
+                <a className="inline-link" href="/auth/login?returnTo=%2Fcases%2Fsaved">{t.accountLogin}</a> :
+                <button className="inline-link" type="button" onClick={() => void (failure === 'list' ? refresh() : createSyntheticCase())}>{retry}</button>}
+            </div></div>}
           </section>
         )}
         <div style={{marginTop: 20, marginBottom: 14}}>
