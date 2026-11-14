@@ -119,6 +119,9 @@ try{
   await scenario('A1: a move within Milan reaches the signed checklist',async()=>{
     alicePage=await contextFor('alice');
     caseId=await createCase(alicePage);
+    const accountLink=alicePage.getByRole('link',{name:'Example Applicant',exact:true});
+    await accountLink.waitFor({timeout:12000});
+    assert.equal(await accountLink.getAttribute('href'),'/account');
     const journey=alicePage.getByRole('navigation',{name:'Case progress'});
     const intakeStep=journey.getByRole('button',{name:/^02 Case details/});
     assert.match(await intakeStep.innerText(),/Finish the initial questions first/);
@@ -239,6 +242,14 @@ try{
     const anonymous=await browser.newContext();
     try{
       assert.equal((await anonymous.request.get(origin+'/api/cases/'+caseId)).status(),401);
+      const guestPage=await anonymous.newPage();
+      await guestPage.setViewportSize({width:375,height:812});
+      await guestPage.goto(origin+'/cases/saved');
+      const signIn=guestPage.getByRole('link',{name:'Sign in / Register',exact:true});
+      await signIn.waitFor({timeout:12000});
+      assert.equal(await signIn.getAttribute('href'),'/account');
+      await guestPage.getByRole('button',{name:'Switch to Italian'}).click();
+      await guestPage.getByRole('link',{name:'Accedi / Registrati',exact:true}).waitFor({timeout:12000});
     }finally{await anonymous.close();}
   });
 
