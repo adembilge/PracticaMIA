@@ -92,6 +92,28 @@ reproduction and the remaining live Auth0 and scanner checks. An operator
 must still verify that the intended hosting runtime has the OCR binary and
 both language files.
 
+### Hosted staging prerequisites
+
+- The existing authenticated preparation preview accepts synthetic files and
+  can exercise the image OCR code. Its uploads do not traverse the private
+  vault malware scanner, and the frontend private vault currently requires
+  production configuration.
+- Use an isolated, non-production database and a synthetic-only deployment for
+  hosted vault validation. Constrain test uploads to approved fixtures before
+  exposing any hosted staging route. Keep the real-document release gate
+  disabled while validating the staging setup.
+- Configure a private HTTPS scanner that authenticates the request and returns
+  its independently computed SHA-256 alongside an explicit verdict. Confirm
+  rejection on an unavailable scanner, a mismatched checksum and a harmless
+  test signature. Send only file bytes, without file names or account data.
+- Provision Tesseract and the English/Italian language data in the deployed OCR
+  runtime. The Python wrapper alone is insufficient. Confirm extraction on PNG,
+  JPEG and image-only PDF, then test whether correct and conflicting field
+  reviews respectively enable and block export.
+- The trusted Preview API requires the staging service identity on multipart
+  uploads, just as it does for JSON requests. Keep the frontend attachment of
+  this identity restricted to the existing allowlisted Preview API origin.
+
 ## Operational limitations
 - No persistent per-user scanner-cost rate limiter yet; the five-document
   per-case cap is not a global upload-frequency quota. Configure edge
