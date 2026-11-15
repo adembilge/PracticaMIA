@@ -521,7 +521,8 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
               <p>{it ? 'Usa solo dati e documenti inventati. L’invio ufficiale avviene su ANPR.' :
                 'Use fictional details and documents only. Official submission takes place on ANPR.'}</p>
             </div>
-            <section className={styles.panel} id={activeStep} aria-labelledby="preparation-step-title" aria-busy={busy || guideBusy}>
+            <section className={styles.panel} id={activeStep} aria-labelledby="preparation-step-title"
+              aria-busy={(busy && !documentOperation) || guideBusy}>
               <h2 id="preparation-step-title" ref={heading} tabIndex={-1}>{it ? step.it : step.en}</h2>
               {activeStep !== 'synthetic-documents' && message && <p role="status" className={styles.success}>{message}</p>}
               {activeStep !== 'synthetic-documents' && error && <p role="alert" className={styles.error}>{error}</p>}
