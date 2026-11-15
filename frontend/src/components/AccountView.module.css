@@ -1,0 +1,91 @@
+.shell {
+  max-width: 920px;
+  padding-block: clamp(18px, 5vw, 66px) clamp(24px, 6vw, 76px);
+}
+
+.card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 20px 44px #1528190d;
+  overflow: hidden;
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  background: var(--forest-dark);
+  color: #fffdf6;
+  padding: clamp(26px, 5vw, 60px);
+}
+
+.emblem {
+  color: #cbdcc6;
+  flex: none;
+  margin-bottom: clamp(16px, 3vw, 28px);
+}
+
+.intro h1 {
+  margin: 0;
+  max-width: 13ch;
+  font: 400 clamp(38px, 5.1vw, 66px)/.99 var(--serif);
+  letter-spacing: -.045em;
+}
+
+.intro p {
+  margin: 18px 0 0;
+  color: #e1e9df;
+  max-width: 31ch;
+}
+
+.access {
+  padding: clamp(22px, 4vw, 48px);
+  align-content: center;
+}
+
+.actions {
+  display: grid;
+  gap: 12px;
+}
+
+.actions a:first-child {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.actions svg, .privacy svg, .demoLink svg { flex: none; }
+
+.demoLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin: 12px 0;
+  color: var(--forest);
+  font-size: .875rem;
+  font-weight: 680;
+}
+
+.demoLink:hover { text-decoration: underline; text-underline-offset: 4px; }
+
+.privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: .8rem;
+}
+
+.privacy svg { margin-top: 2px; color: var(--forest); }
+
+@media (max-width: 700px) {
+  .shell { width: min(460px, calc(100% - 32px)); }
+  .card { grid-template-columns: minmax(0, 1fr); }
+}
