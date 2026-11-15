@@ -90,18 +90,23 @@ export function SavedCasesView({ configured, signedIn, backendConfigured, liveAI
           <p role="status" className="message-box notice">{t.savedBackendUnavailable}</p>
         ) : (
           <section className="account-panel saved-index">
-            <p>{t.savedSyntheticOnly}</p>
-            <button type="button" className="button button-primary" onClick={createSyntheticCase} disabled={creating || loading || failure === 'expired'}>
-              {creating ? t.savedCreating : t.savedCreate}
-            </button>
-            {loading ? <p role="status" className="editorial-pending">{t.savedLoading}</p> : (
+            <div className="saved-index-header">
+              <p>{isItalian ? 'Crea o riprendi un caso usando dati fittizi.' : 'Start or resume a case using fictional information.'}</p>
+              <button type="button" className="button button-primary" onClick={createSyntheticCase} disabled={creating || loading || failure === 'expired'}>
+                {creating ? t.savedCreating : t.savedCreate}
+                <Icon name="arrowRight" size={16}/>
+              </button>
+            </div>
+            {loading ? <p role="status" className="editorial-pending">{t.savedLoading}</p> : cases.length > 0 && (
               <ul className="saved-case-list">
                 {cases.map((item) => (
                   <li key={item.id}>
-                    <span><Icon name="file" size={18}/> {displayStatus[item.status] ?? t.savedDraft}</span>
-                    <code>{item.id.slice(0, 8)}</code>
-                    <Link href={'/cases/' + encodeURIComponent(item.id)} className="inline-link">
-                      {t.savedResume}
+                    <Link href={'/cases/' + encodeURIComponent(item.id)} className="saved-case-row">
+                      <span className="saved-case-symbol"><Icon name="file" size={19}/></span>
+                      <span className="saved-case-label"><strong>{displayStatus[item.status] ?? t.savedDraft}</strong>
+                        <code>{item.id.slice(0, 8)}</code>
+                      </span>
+                      <span className="saved-case-resume">{t.savedResume} <Icon name="arrowRight" size={16}/></span>
                     </Link>
                   </li>
                 ))}
@@ -117,11 +122,9 @@ export function SavedCasesView({ configured, signedIn, backendConfigured, liveAI
             </div></div>}
           </section>
         )}
-        <div style={{marginTop: 20, marginBottom: 14}}>
-          <p><Link href="/demo/synthetic" className="inline-link">
-            {locale === 'it' ? 'Esplora il percorso completo con un caso fittizio' : 'Explore a complete fictional case — no login or personal data required'}
-          </Link></p>
-        </div>
+        <Link href="/demo/synthetic" className="editorial-text-link saved-demo-link">
+          {isItalian ? 'Esplora un caso fittizio' : 'Explore a fictional case'} <Icon name="arrowRight" size={16}/>
+        </Link>
         {signedIn && liveAIEnabled && <LiveExampleAIGuide />}
         <p className="account-footnote">{t.accountDemoPrivacy}</p>
         <Link href="/account" className="back-link">{t.accountBack}</Link>

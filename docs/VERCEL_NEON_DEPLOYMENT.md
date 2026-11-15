@@ -9,6 +9,15 @@ PracticaMIA is organized as two deployable services sharing one reviewed Git com
 
 The API runs Python 3.12 and FastAPI. The web app uses Next.js and server-side Auth0 sessions. The API validates RS256 access tokens against the configured issuer, JWKS and audience. Neon PostgreSQL stores owned case records and source provenance.
 
+## Isolated Preview
+
+| Service | Stable branch alias |
+| --- | --- |
+| Web | [PracticaMIA Preview](https://practicamia-git-preview-auth-review-d32a00-firatadembilge-4729.vercel.app) |
+| API | [PracticaMIA API Preview](https://practicamia-api-git-preview-auth-rev-599637-firatadembilge-4729.vercel.app) |
+
+Both use branch `preview/auth-review-isolated`. The recorded synthetic preparation Neon branch is `preview-preparation-mvp-20261107`, at `20261109_0016` during the recorded staging setup. Recheck branch identity, current migration and Git SHA before any write. Preview uses its own Auth0 configuration, database, and deployment protection. When frontend-to-backend protection requires service identity, verify the allowed identity and expected backend host before testing. See [progress](PROGRESS.md#deployment-snapshot) for the dated alias check and [acceptance](ACCEPTANCE_TESTING.md#manual-staging-case-and-document-checks) for functional results.
+
 ## Configuration
 
 Use project-scoped, environment-specific variables; never commit or print credentials.
@@ -25,7 +34,7 @@ Automatic Vercel deployments from `main` and `test/private-document-e2e` are on 
 
 1. Confirm the intended team, two project IDs, protected branch, commit SHA, build environment and database target.
 2. Verify GitHub Actions (backend tests, frontend tests, TypeScript/build, and isolated browser acceptance). Inspect the exact code to be deployed.
-3. Create a restore point and migrate Neon through the repository's Alembic head using reviewed, non-destructive operations. Verify cases, reviewed source versions and table counts before and after.
+3. Verify the database schema for the release SHA. If a migration is required, rehearse it on an isolated clone, create a recoverable restore point and verify cases, reviewed source versions and table counts before and after the authorized migration.
 4. Deploy the **API** at the reviewed SHA, verify `GET /health` and protected routes in `/openapi.json`. Require the correct schema version.
 5. Deploy the **web app** at the **same SHA**. Check its environment values and Auth0 callback/redirect allowlist; do not substitute preview secrets for production.
 6. Sign in with authorized test accounts and execute the hosted case journey: create, scope, confirm intake, inspect current citations, mark actions read, resume, download PDF, and verify another account cannot access the case.

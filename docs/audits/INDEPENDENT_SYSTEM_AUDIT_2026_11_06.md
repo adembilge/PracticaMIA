@@ -3,6 +3,8 @@
 **Scope:** repository at PR #31, anonymous real Vercel production routes,
 isolated Neon staging, and disposable synthetic CI databases.
 
+This report preserves the 6 November baseline. See [progress and blockers](../PROGRESS.md) for later implementation and hosted checks.
+
 ## Executive verdict
 
 **NOT release-ready for real administrative advice.**

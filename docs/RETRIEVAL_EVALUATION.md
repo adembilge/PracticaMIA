@@ -61,7 +61,7 @@ PostgreSQL benchmark after upgrading its own disposable database to Alembic
 head. The test creates a synthetic approval event solely for testing; it does
 not approve any real source.
 
-## Next quality gates before user-facing administrative guidance
+## Open evaluation work
 
 1. Acquire authentic, permitted source snapshots and have a human reviewer
    verify originals and extraction. HTTP 403 or search snippets are **not**
@@ -73,8 +73,7 @@ not approve any real source.
    meaningful thresholds only after establishing a representative baseline.
 4. Benchmark the existing semantic embeddings and pgvector hybrid fusion
    against the lexical baseline on representative reviewed questions, without weakening source approval gates.
-5. Build deterministic verified administrative rules before allowing an agent
-   to derive personalized requirements.
+5. Evaluate the [signed first-route rules](REVIEWED_CASE_CHECKLIST.md) independently of retrieval. Record supported, unsupported, ambiguous and revoked-evidence outcomes. Use [progress and blockers](PROGRESS.md) for live EN/IT evaluation status.
 
 **Never publish a synthetic test score as a real user, RAG, or legal-accuracy
 metric.**

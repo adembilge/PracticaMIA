@@ -109,9 +109,13 @@ export async function proxyPrivateDocumentUpload(path: string, form: FormData) {
     if (!session) return caseError('Authentication required', 401);
     const credential = await auth0.getAccessToken();
     if (!credential.token) return caseError('Authentication needs renewal', 401);
+    const previewOidc = await previewIdentity(backend);
     const response = await fetch(backend + path, {
       method: 'POST',
-      headers: { Authorization: 'Bearer ' + credential.token },
+      headers: {
+        Authorization: 'Bearer ' + credential.token,
+        ...(previewOidc ? { 'x-vercel-trusted-oidc-idp-token': previewOidc } : {}),
+      },
       body: form,
       redirect: 'manual',
       cache: 'no-store',

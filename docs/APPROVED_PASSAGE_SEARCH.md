@@ -42,7 +42,7 @@ A candidate passage must pass **all** of these checks before it is returned:
 4. That version is still the **latest** source revision.
 5. The latest matching review audit event confirms approval of this exact content hash and reviewer.
 6. Stored snapshot URL matches its registered official URL; raw-byte hash and extraction version are verified.
-7. Every stored passage, offset, heading and SHA-256 matches a fresh extraction from the original HTML.
+7. Stored passage offsets, headings and SHA-256 values match the registered extractor’s output for the snapshot media and acquisition method.
 
 The existing `GET /api/v1/knowledge/sources` metadata catalog now applies the same review-history/integrity gate, preventing an unlogged status update from being treated as approved evidence. Unreviewed, withdrawn, tampered, superseded or out-of-scope data never enters the response.
 
@@ -82,4 +82,4 @@ A bounded, exact-token **SQLite fallback** exists solely for isolated unit tests
 5. Test `401`, `insufficient_evidence`, scope mismatch, citation resolution, revocation and source-change invalidation.
 6. Enable no user-facing AI guidance until source provenance and relevance fixtures have been reviewed.
 
-**Next:** A synthetic retrieval benchmark now covers Recall@K, MRR, abstention and citation resolution (see [Retrieval Evaluation](RETRIEVAL_EVALUATION.md)). Representative reviewed-source benchmarks and freshness monitoring remain essential; later modules provide hybrid retrieval and deterministic rules in separately gated workflows.
+A synthetic retrieval benchmark now covers Recall@K, MRR, abstention and citation resolution (see [Retrieval Evaluation](RETRIEVAL_EVALUATION.md)). Representative reviewed-source benchmarks and freshness monitoring remain essential; later modules provide hybrid retrieval and deterministic rules in separately gated workflows.

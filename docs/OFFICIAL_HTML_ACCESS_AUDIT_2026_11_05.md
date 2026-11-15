@@ -15,7 +15,7 @@ Every source returned **HTTP 403 Forbidden**.
 
 ## All 14 sources attempted
 
-Each link below is the exact URL currently registered in
+Each link below is the exact URL registered at the time in
 `backend/app/knowledge/candidate_sources.json`. The HTTP result was 403
 for **all** of them. Dates are from indexed official FAQ/service pages and
 are informational only, **not proof of original-byte capture**.
@@ -90,5 +90,4 @@ date and current municipal applicability. Then follow
 [OFFICIAL_SOURCE_INTAKE.md](OFFICIAL_SOURCE_INTAKE.md) to import as
 `pending_review` into the isolated Neon staging branch only.
 
-The trusted RAG collection stays empty until actual, validated original
-files are imported and a human reviewer approves the precise version.
+For subsequent approved evidence from other acquisition paths, see the [first-route activation record](MILAN_FIRST_ROUTE_OWNER_REVIEW_ACTIVATION_2026_11_08.md).

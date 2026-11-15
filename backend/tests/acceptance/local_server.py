@@ -204,6 +204,9 @@ def run(port: int, assets: Path, *, private_documents: bool = False):
                     (styles / name).read_bytes()
                     for name in ("globals.css", "editorial.css")
                 )
+                compiled = assets / "acceptance.css"
+                if compiled.is_file():
+                    css += b"\n" + compiled.read_bytes()
                 self.reply(200, css, "text/css; charset=utf-8")
                 return
             if (path in {"/", "/cases/saved"} or

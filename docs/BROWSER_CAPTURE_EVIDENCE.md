@@ -58,7 +58,7 @@ python -m app.knowledge.browser_capture_import --directory ./captures
 ```
 
 If validation succeeds, an operator may explicitly import into the **isolated
-Neon staging branch**, after applying Alembic migration `20261105_0009`:
+Neon staging branch**. Use the repository’s migration head or another revision explicitly accepted by [the staging guard](../backend/app/knowledge/staging_guard.py).
 
 ```sh
 export PRACTICAMIA_KNOWLEDGE_TARGET=staging

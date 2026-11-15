@@ -8,8 +8,10 @@
 **Initial jurisdiction:** Comune di Milano  
 **Initial supported task:** Preparation and guidance for selected individual changes of registered residence (*cambio di residenza*)  
 **Languages at launch:** English and Italian  
-**Status:** Product and engineering specification; functionality described here is **planned**, not an assertion that it has been implemented.  
-**Infrastructure direction:** Local development and conventional VPS hosting; **no AWS dependency**.  
+**Status:** Product intent, architecture and acceptance plan. [Progress and blockers](docs/PROGRESS.md) records verified implementation and deployment evidence.
+
+**Infrastructure:** Local development, Vercel frontend and API deployments, Neon PostgreSQL.
+
 **Primary audience:** Users, product collaborators, reviewers, and coding agents such as OpenAI Codex.
 
 > **Product promise:** PracticaMIA helps people turn confusing government procedures into understandable, evidence-backed, manageable workflows. A specialized AI agent investigates the user's situation, uses approved official knowledge, checks documents, prepares application materials, and guides the user to an official submission channel—with the user retaining control of consequential actions.
@@ -76,7 +78,7 @@ PracticaMIA is **not** a government authority, legal representative, or replacem
 | 12-stage, 94-task development roadmap | Agreed planning baseline |
 | LangGraph agent, tools, RAG, document intelligence | Planned architecture |
 | Verified local administrative requirements | **Must be independently reviewed and versioned before production** |
-| Deployed app, completed integrations, measured accuracy | **Not claimed** |
+| Deployed app and measured evidence | See [progress and blockers](docs/PROGRESS.md) and [acceptance testing](docs/ACCEPTANCE_TESTING.md) |
 | Government portal authentication or submission by agent | Not included in MVP |
 
 ---
@@ -176,7 +178,7 @@ Make government paperwork easier to understand and prepare, especially for peopl
 
 ## 5.1 Initial boundary
 
-The first release supports **reviewed, explicitly whitelisted individual residence-change scenarios for Milan**. The exact decision branches must be established during administrative research and approved before they become production rules. The application should not infer eligibility solely from a user's nationality, residence permit, or an LLM answer.
+The first release supports **reviewed, explicitly whitelisted individual residence-change scenarios for Milan**. The exact decision branches must be established during administrative research and approved before they become production rules. The [signed first route](docs/REVIEWED_CASE_CHECKLIST.md) covers one adult Italian citizen already registered in Italy, moving alone to Comune di Milano as the holder of a registered private rental contract. This boundary governs the product example, while administrative eligibility remains with the authority.
 
 | Dimension | Initial direction |
 |---|---|
@@ -189,7 +191,7 @@ The first release supports **reviewed, explicitly whitelisted individual residen
 | Main output | Personalized checklist, reviewed application data, supporting package, official handoff instructions |
 | External submission | Performed by user on government channel |
 | Persistence | Authenticated, resumable cases |
-| Infrastructure | Docker, PostgreSQL, VPS/local environment; no AWS |
+| Infrastructure | Local containers, paired Vercel services, Neon PostgreSQL |
 
 ## 5.2 Explicit MVP exclusions
 
@@ -203,7 +205,7 @@ The first release supports **reviewed, explicitly whitelisted individual residen
 
 ## 5.3 Boundary of completion
 
-`submission_ready` means *the user has reviewed an internally validated preparation package*. It does **not** mean `submitted`, `received_by_government`, or `approved`. Those states require appropriate external evidence and should be represented separately.
+The implemented first route exports a [reviewable draft](docs/CASE_PREPARATION_EXPORT.md). In this specification, a future `submission_ready` state would mean the user has reviewed an internally validated preparation package. It does **not** mean `submitted`, `received_by_government`, or `approved`. Those states require appropriate external evidence and should be represented separately.
 
 ---
 
@@ -213,14 +215,14 @@ The first release supports **reviewed, explicitly whitelisted individual residen
 
 | Feature | User-facing behavior | Main implementation |
 |---|---|---|
-| Account and profile | Secure sign-in, relevant profile details | FastAPI, PostgreSQL, auth |
+| Account and profile | Secure sign-in and account navigation | Auth0, Next.js session, FastAPI token checks |
 | Case creation | Explain objective, open a new case | Intent analysis, case API |
 | Procedure identification | Identify supported route or flag uncertainty | Verified rules, agent |
 | Conversational intake | Ask targeted, contextual questions | LangGraph, typed forms |
 | Official-source research | Explain requirements with citations | Hybrid RAG, source registry |
 | Personalized checklist | Show required and conditional actions | Rules evaluator, checklist service |
 | Document upload | Privately attach documents | File validation, storage |
-| Document intelligence | Extract fields and request confirmation | PDF/OCR, LLM extraction |
+| Document intelligence | Propose typed fields for user confirmation | Local PDF/OCR and deterministic extraction |
 | Cross-document validation | Highlight conflicting details | Deterministic validators |
 | Application preparation | Prepare selected form fields and attachments | Templates, approved data |
 | Progress and persistence | Resume unfinished cases | PostgreSQL, checkpoints |
@@ -334,8 +336,9 @@ A **single stateful LangGraph agent plus narrowly scoped tools** is the default.
 
 ```mermaid
 flowchart TB
-    UI[Next.js interface] --> API[FastAPI backend]
-    API --> AUTH[Authentication and authorization]
+    UI[Next.js UI and server proxy] --> API[FastAPI backend]
+    UI --> AUTH[Auth0 session]
+    API --> AUTHZ[Token and ownership checks]
     API --> CASE[Case management]
     API --> AGENT[LangGraph agent service]
     API --> DOC[Private document service]
@@ -347,7 +350,7 @@ flowchart TB
     SEARCH --> DB[(PostgreSQL + pgvector + text search)]
     RULES --> DB
     CASE --> DB
-    DOC --> FILES[(Private encrypted file storage)]
+    DOC --> DB
     INGEST[Controlled official-source ingestion] --> DB
     EVAL[Evaluation and CI] --> API
     EVAL --> AGENT
@@ -365,8 +368,8 @@ flowchart TB
 | Rules engine | Deterministic evaluation of approved conditions | Generating new administrative law from retrieved text |
 | Document service | Validated ingest, OCR, extraction, field evidence | Automatic verification of inherently uncertain OCR outputs |
 | Case service | Persistent case state, checklist statuses, audit events | External-government submission success |
-| PostgreSQL | Durable application metadata, official knowledge, agent checkpoints | Unlimited file-binary storage by default |
-| Private file store | Document binaries and generated artifacts | Public media serving |
+| PostgreSQL | Case data, official knowledge, bounded encrypted vault rows | Unbounded file storage |
+| Private document vault | Bounded encrypted document data and field review | Public media or persistent copies of generated drafts |
 
 ## 9.3 Runtime assumptions
 
@@ -379,7 +382,8 @@ flowchart TB
 
 ## 9.4 Environments
 
-`development`: local Docker Compose, synthetic data, mocked model where possible.  
+`development`: local FastAPI and Next.js, synthetic data and a disposable PostgreSQL instance when needed.
+
 `test/CI`: disposable PostgreSQL, deterministic fixtures, isolated file storage.  
 `staging`: representative deployment with synthetic or expressly approved test data.  
 `production`: restricted access, secure secrets, backup/restore, alerting, minimized logs, approved knowledge versions.
@@ -552,13 +556,12 @@ Retrieval-Augmented Generation provides the agent with relevant, current-as-revi
 flowchart LR
     A[Candidate official pages and PDFs] --> B[Authority and access review]
     B --> C[Content extraction]
-    C --> D[Structure-aware chunking]
-    D --> E[Embedding generation]
-    E --> F[(pgvector index)]
-    D --> G[(PostgreSQL full-text index)]
-    C --> H[Versioned source snapshots]
-    H --> I[Human review and approval]
-    I --> J[Approved searchable corpus]
+    C --> D[Versioned snapshots and passages]
+    D --> E[Human review and approval]
+    E --> F[Approved corpus]
+    F --> G[Lexical retrieval]
+    F --> H[Explicit embedding batch]
+    H --> I[(pgvector)]
 ```
 
 ### Runtime retrieval
@@ -583,9 +586,9 @@ flowchart LR
 3. **Parsing:** Extract titles, heading hierarchy, tables/lists where possible, attachment links, and section anchors.
 4. **Normalization:** Preserve administrative terminology and exact identifiers; avoid transforming legal meaning.
 5. **Chunking:** Split by heading/section and semantic coherence, with stable passage IDs and context metadata.
-6. **Embedding:** Create vectors with a configured model; record embedding model and version.
-7. **Indexing:** Maintain pgvector similarity search and PostgreSQL full-text search; optionally store lexical variants.
-8. **Review:** Review source provenance, conflicting statements, and approval status; mark updated content pending review.
+6. **Review:** An authorized human checks the exact source version and its provenance, scope and conflicting statements. Updated content starts pending review.
+7. **Embedding:** After approval, index eligible public passages through the [explicit staging batch](docs/APPROVED_EMBEDDING_INDEXING.md). Record the model and version.
+8. **Retrieval:** Apply approval, version and integrity checks to full-text results and any pgvector results.
 9. **Versioning and reindexing:** Detect changed content; retain old versions for audit but exclude revoked versions from trusted retrieval.
 
 ## 12.4 Metadata model
@@ -594,7 +597,7 @@ Every chunk should include: `source_id`, `source_version_id`, `passage_id`, `ins
 
 ## 12.5 Retrieval approach
 
-Use **hybrid retrieval** because official material mixes semantically related explanations with exact administrative terms and document names. Candidate flow:
+The current Preview assistant uses approved topic passages and lexical retrieval. The hybrid helper supports explicit query vectors. The candidate flow below describes optional vector retrieval and reranking; see [the implementation notes](docs/CASE_AWARE_AI_GUIDANCE.md#authenticated-preview-chat).
 
 1. Determine known procedure, jurisdiction, and language from verified case state.
 2. Enforce source approval, applicability, and active version filters **before** ranking trusted results.
@@ -692,7 +695,7 @@ This output is an **illustrative format**, not verified legal guidance.
 
 ## 14.1 Document pipeline
 
-`Upload → MIME/content validation → private storage → antivirus/malware screening where available → text extraction/OCR → classification → typed field extraction → confidence/consistency checks → user review → confirmed facts → form preparation`.
+`Upload → MIME/content validation → required malware scan → encrypted private storage → owner-requested PDF text extraction/OCR → bounded field suggestions → explicit user review → comparison with confirmed intake → draft preparation`. See the [vault release controls](docs/PRIVATE_DOCUMENT_VAULT_RELEASE.md).
 
 ## 14.2 Supported types at launch
 
@@ -700,9 +703,9 @@ Start with only the documents needed for approved residence-change scenarios. Ca
 
 ## 14.3 Extraction approach
 
-- **Digital PDFs:** Prefer direct text extraction with PyMuPDF.
-- **Scans/images:** OCR, image quality checks, orientation normalization when appropriate.
-- **Field extraction:** Structured LLM output or deterministic parser, chosen by evidence and document type.
+- **Digital PDFs:** The implementation uses pypdf for direct text extraction.
+- **Scans/images:** The private housing workflow uses PDFium rasterization for scanned PDF pages and Tesseract with English and Italian language data for OCR.
+- **Field extraction:** The implemented private workflow proposes typed housing basis and move-in date through a [deterministic local parser](docs/PRIVATE_DOCUMENT_INTELLIGENCE.md).
 - **Provenance:** Store source document, page, approximate span/bounding box if possible, raw text, normalized value, and review state.
 - **Validation:** Check date formats, address components, identifier syntax where safe, presence/absence, and consistency with case facts.
 
@@ -810,7 +813,7 @@ Record action type, timestamp, actor type (user/system/agent/reviewer), previous
 
 ## 16.3 Interface styling
 
-Proposed visual approach: restrained European civic-tech aesthetic; clean typography, warm neutral backgrounds, slate text, muted blue accents, clear badges for genuine statuses, and a structured information hierarchy. Avoid decorative robot imagery or visual design suggesting official government affiliation.
+The frontend uses an editorial civic-tech design with warm neutral backgrounds, serif headings, restrained status labels and a linked case journey. See the [frontend guide](frontend/README.md#architecture) for styling and localization files. Avoid decorative robot imagery or visual design suggesting official government affiliation.
 
 ---
 
@@ -878,7 +881,7 @@ Version: rulesets, procedures, official source snapshots, form templates, embedd
 
 ## 19.1 Proposed endpoints
 
-The following route names are illustrative and may be refined when contracts are approved.
+The table is a proposed design. For implemented routes use the [Auth0 integration](docs/AUTHENTICATION_INTEGRATION.md), [saved-case workflow](docs/UNIFIED_CASE_WORKFLOW.md), and [private document intelligence](docs/PRIVATE_DOCUMENT_INTELLIGENCE.md) references.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
@@ -1021,7 +1024,7 @@ Design processes for transparent collection, export, access, correction, restric
 
 | Layer | Examples | Suggested tool | Trigger |
 |---|---|---|---|
-| Unit | Condition logic, schema validation, state changes | pytest, Vitest | Every change |
+| Unit | Condition logic, schema validation, state changes | pytest, Node.js test runner | Every change |
 | Integration | API + DB + auth, retrieval + source filters | pytest with disposable PostgreSQL | PR/CI |
 | Browser E2E | Sign in, open case, upload, correct, review | Playwright | PR/CI and release |
 | RAG retrieval | Expected passage recall, approval filters, citation resolution | Custom evaluation scripts | Relevant PR/CI |
@@ -1047,7 +1050,7 @@ Design processes for transparent collection, export, access, correction, restric
 - Submission-state honesty: zero cases where UI claims government confirmation without evidence.
 - Source revocation: affected trusted retrieval results and rules stop being used as current.
 - Document extraction: field-specific targets set after representative fixtures and a realistic error baseline exist.
-- Agent performance: publish actual measured results with confidence intervals/sample sizes where useful; do not invent a "94% accuracy" target/result for CV use.
+- Agent performance: publish actual measured results with confidence intervals/sample sizes where useful; report accuracy only when it is measured on a defined evaluation set.
 
 ## 21.4 Evaluation methodology
 
@@ -1071,7 +1074,7 @@ Most tests should not depend on real LLM APIs, live government sites, or paid to
 
 # 22. Ten cross-functional test scenarios
 
-The previously developed PaperPilot test collection remains useful under the new **PracticaMIA** brand. Rename the scenarios in the repository without changing their behavioral intent. The existing files can be placed under `evals/scenarios/`.
+These scenarios define product acceptance intent. Run the [implemented acceptance suite](docs/ACCEPTANCE_TESTING.md) and use [progress and blockers](docs/PROGRESS.md) to see which outcomes have evidence.
 
 | Scenario | Test focus | Key positive / negative outcomes |
 |---|---|---|
@@ -1124,23 +1127,23 @@ required_assertions:
 | Layer | Primary choice | Reason |
 |---|---|---|
 | Agent orchestration | **LangGraph** | Stateful, conditional tool workflows and resumability |
-| Reasoning | Configurable **OpenAI or Anthropic LLM API** | Language understanding and bounded tool selection |
+| Reasoning | Configurable OpenAI or OpenRouter through the implemented adapters | Language understanding and bounded tool selection |
 | Backend | **Python, FastAPI, Pydantic** | Typed contracts, tools, business APIs |
 | Frontend | **Next.js, TypeScript** | Accessible application, case workspace |
 | Database | **PostgreSQL** | Durable user, case, rules and provenance data |
 | Vector retrieval | **pgvector** | Semantic search in same DB |
 | Keyword retrieval | PostgreSQL full-text search | Exact government terms/document titles |
 | Rules | Deterministic Python evaluator | Auditable, testable conditions |
-| Document text | **PyMuPDF** | Digital PDF extraction |
+| Document text | **pypdf** and **PDFium** | Digital text extraction and bounded rasterization |
 | OCR | **Tesseract** or evaluated alternative | Scanned document extraction |
 | Data validation | Pydantic and domain validators | Strong field and tool contracts |
 | Application artifacts | Python PDF/template tooling | Reviewable package generation |
-| File storage | Private local volume initially; optional S3-compatible non-AWS store | Controlled document management |
+| File storage | Encrypted PostgreSQL rows in the gated vault | Bounded, owner-scoped document management |
 | Local environment | **Docker Compose** | Reproducible services |
-| Testing | **pytest, Playwright, Vitest** | Backend, user journey, frontend checks |
+| Testing | **pytest, Playwright, Node.js test runner** | Backend, browser and frontend checks |
 | Agent evaluation | Custom fixtures, optional LangSmith | Traces and outcome evaluations |
 | CI | **GitHub Actions** | Independent automated checks |
-| Deployment | **Conventional VPS + HTTPS reverse proxy** | Simple and AWS-independent |
+| Deployment | **Vercel + Neon PostgreSQL** | Paired web and API services with isolated Preview data |
 
 ## 23.2 Technologies intentionally not required
 
@@ -1152,7 +1155,7 @@ The Model Context Protocol could standardize external tool integrations in a lat
 
 ## 23.4 Deployment shape
 
-Initial production stack can be a single modest VPS running a reverse proxy, Next.js, FastAPI, PostgreSQL, and restricted private storage. Use containers, backups, encrypted transport, firewall rules, health monitoring, and separate staging/production settings. Choose resource sizing after performance tests, not by guesswork.
+See the [deployment runbook](docs/VERCEL_NEON_DEPLOYMENT.md) for web and API projects, staged Auth0/Neon isolation, and approved release and recovery steps.
 
 ---
 
@@ -1164,45 +1167,7 @@ Codex should repeatedly select the next approved and unblocked task, make focuse
 
 ## 24.2 Repository layout
 
-```text
-practicamia/
-├── AGENTS.md
-├── README.md
-├── docs/
-│   ├── PRODUCT.md
-│   ├── MASTER_PLAN.md
-│   ├── TASKS.yaml
-│   ├── PROGRESS.md
-│   ├── DECISIONS.md
-│   ├── ARCHITECTURE.md
-│   ├── SECURITY.md
-│   └── OFFICIAL_SOURCES_POLICY.md
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   ├── agent/
-│   │   ├── knowledge/
-│   │   ├── rules/
-│   │   ├── documents/
-│   │   ├── cases/
-│   │   └── auth/
-│   └── tests/
-├── frontend/
-│   ├── src/
-│   └── tests/
-├── requirements/
-│   └── milan-residence-change/
-│       ├── sources.json
-│       ├── rules.json
-│       └── reference-cases.json
-├── evals/
-│   ├── scenarios/
-│   ├── fixtures/
-│   └── results/
-├── scripts/
-├── docker-compose.yml
-└── .github/workflows/ci.yml
-```
+See the [repository map](README.md#repository-structure) and the [documentation index](docs/README.md). The two application roots are `frontend/` and `backend/`. Alembic migrations and local Compose configuration live under `backend/`. The task registry and canonical roadmap excerpt live under `docs/`.
 
 ## 24.3 Files that control development
 
@@ -1585,66 +1550,7 @@ Only expand after the first supported flow achieves documented correctness, acce
 
 # 30. Open decisions and next actions
 
-This document intentionally leaves several implementation choices and policy questions open rather than guessing.
-
-## 30.1 Decisions requiring explicit owner/reviewer input
-
-1. **Exact supported residence-change branches:** Which variants are validated and eligible for MVP support?
-2. **Official dossier:** Which specific pages, documents, versions, and interpretations have been approved?
-3. **Authentication:** Managed identity provider or self-hosted solution; password and recovery policy.
-4. **LLM provider:** OpenAI, Anthropic, or model-agnostic adapter with chosen default.
-5. **Embedding model:** Provider/model, vector dimension, indexing and reindex policy.
-6. **Source review policy:** Approval roles, re-review cadence, stale-content behavior.
-7. **Document handling:** Supported file categories, necessary fields, data minimization and retention.
-8. **Forms:** Which officially accepted forms can be meaningfully prefilled and exported?
-9. **Hosting:** Specific VPS/provider, backups, private storage and observability services.
-10. **Privacy/compliance:** Applicable legal basis, notices, processors, retention and professional review.
-11. **Testing targets:** Release-blocking thresholds after benchmark baseline and source review.
-12. **User validation:** Who will participate in interviews and beta, how consent is collected, and what constitutes product success?
-
-## 30.2 Recommended first Codex session
-
-Codex should **not** immediately build the whole application. Its first session should:
-
-1. Create the repository, `AGENTS.md`, `docs/MASTER_PLAN.md`, `docs/TASKS.yaml`, `docs/PROGRESS.md`, and `docs/DECISIONS.md`.
-2. Copy this specification into the appropriate project documentation, preserving the 94 task IDs and the 45/50 subtasks.
-3. Validate internal task numbering, dependencies, and completion definitions.
-4. Identify any conflict between this specification and other approved project decisions.
-5. Stop for approval before executing the product research and implementation plan.
-
-## 30.3 Suggested initial instruction to Codex
-
-```text
-You are setting up PracticaMIA, a multilingual Italian bureaucracy
-navigation AI agent. The attached document is the project specification.
-
-Do not implement product functionality in this setup session.
-
-1. Save the approved master plan as docs/MASTER_PLAN.md.
-2. Create AGENTS.md with task execution, security, legal-source, and
-   testing constraints.
-3. Generate TASKS.yaml preserving the 12 stages and 94 parent task IDs.
-4. Add the 45.1-45.6 and 50.1-50.6 RAG subtasks.
-5. Define explicit task dependencies, deliverables, acceptance criteria,
-   verification methods, and human approval gates.
-6. Create PROGRESS.md and DECISIONS.md.
-7. Verify that every parent task is represented exactly once.
-8. Report unresolved decisions and request approval before Task 1.
-
-Critical constraints:
-- The application uses LangGraph, RAG, approved deterministic rules,
-  narrowly scoped tools, persistent cases, and user-reviewed outputs.
-- The MVP is Milan residence-change preparation and official handoff.
-- Never invent official rules or claim automatic government submission.
-- Never claim tests passed unless executed.
-- Do not use AWS or unnecessary distributed infrastructure.
-```
-
-## 30.4 Proposed working order
-
-Treat the 12-stage, 94-task roadmap as **the execution source of truth**, not as 94 separate prompts. Codex expands the next task into an executable plan, implements and tests it, records evidence, and proceeds when permitted. Human review remains necessary for administrative truth, material risk, user research and production release.
-
----
+See the [decision log](docs/DECISIONS.md) for settled choices and unresolved owner or reviewer decisions. See [progress and blockers](docs/PROGRESS.md) for remaining MVP acceptance evidence and [the canonical task tracker](docs/TASKS.yaml) for execution status. The numbered roadmap in §25 remains the planning baseline. Its historical tool choices and planned deliverable names should be checked against implementation evidence before marking tasks complete.
 
 # 31. Glossary
 

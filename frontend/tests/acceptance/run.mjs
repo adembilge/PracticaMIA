@@ -363,6 +363,55 @@ try{
     origin, scenario, contextFor, createCase, scopeAnswers, confirmIntake, facts, readJson,
   });
 
+  await scenario('Preparation Preview: mobile deep link, OCR feedback, and load recovery',async()=>{
+    const page=await contextFor('alice',{width:360,height:820});
+    const id='11111111-1111-4111-8111-111111111111';
+    const path='/cases/'+id+'/preparation';
+    let unavailable=false;
+    await page.route('**/api'+path+'**',async route=>{
+      const endpoint=new URL(route.request().url()).pathname;
+      if(endpoint.endsWith('/extract')) return route.fulfill({status:503,json:{}});
+      if(endpoint.endsWith('/documents')) return route.fulfill({json:[{
+        id,document_type:'fictional_agreement',extraction_status:'not_processed',
+        status:'uploaded',candidates:[],confirmed_fields:{},
+      }]});
+      if(endpoint !== '/api'+path) return route.fulfill({status:404,json:{}});
+      if(unavailable) return route.fulfill({status:503,json:{}});
+      return route.fulfill({json:{
+        is_demo:true,confirmed_facts:{},user_reviewed:false,
+        intake:{is_legal_assessment:false,status:'needs_information',answered_count:0,total_questions:5,
+          next_question:{field:'citizenship_class',label_en:'Citizenship for this example',
+            label_it:'Cittadinanza per questo esempio',
+            options:[{value:'italian',label_en:'Italian',label_it:'Italiana'}]}},
+        workflow:{status:'needs_information',blocking_issues:[],package:null,
+          rules:{decision:'needs_information',checklist:[],missing_fields:[]}},
+      }});
+    });
+    await page.goto(origin+path+'#synthetic-documents');
+    await page.getByRole('heading',{name:'Synthetic documents',exact:true}).waitFor();
+    assert.equal(await page.getByRole('heading',{name:'Guided intake',exact:true}).isVisible(),false);
+    await page.getByRole('button',{name:'Extract text',exact:true}).click();
+    await page.getByRole('alert').filter({hasText:'Text extraction is unavailable. Your file is saved.'}).waitFor();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    await page.getByRole('button',{name:'Case details',exact:true}).click();
+    await page.getByLabel('Citizenship for this example').selectOption('italian');
+    await page.getByRole('button',{name:'Case guide',exact:true}).click();
+    await page.getByRole('heading',{name:'Case guide',exact:true}).waitFor();
+    await page.goBack();
+    assert.equal(await page.getByLabel('Citizenship for this example').inputValue(),'italian');
+    await page.getByRole('button',{name:'Synthetic documents',exact:true}).click();
+    await page.getByRole('button',{name:'Switch to Italian'}).click();
+    await page.getByRole('heading',{name:'Documenti sintetici',exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    unavailable=true;
+    await page.reload();
+    await page.getByRole('heading',{name:'Could not load the preview'}).waitFor();
+    assert.equal(await page.getByRole('button',{name:'Upload',exact:true}).isVisible(),false);
+    unavailable=false;
+    await page.getByRole('button',{name:'Try again',exact:true}).click();
+    await page.getByRole('heading',{name:'Synthetic documents',exact:true}).waitFor();
+  });
+
   await scenario('A8: browser runs without uncaught runtime errors',async()=>{
     assert.deepEqual(errors,[]);
   });

@@ -4,9 +4,9 @@
 government knowledge base. A source URL is not equivalent to an ingested,
 reviewed, current document.
 
-## Last automated acquisition attempt (5 November 2026)
+## Recorded acquisition audit (5 November 2026)
 
-A controlled GitHub Actions job attempted all 14 registered HTML URLs
+Run the commands in this guide from `backend/`. A controlled GitHub Actions job attempted all 14 registered HTML URLs
 exactly once. **All 14 returned HTTP 403**, so none were imported.
 The result and per-source URLs are recorded in
 [the official HTML access audit](OFFICIAL_HTML_ACCESS_AUDIT_2026_11_05.md).
@@ -21,12 +21,9 @@ Only files that pass original-response and extraction checks may be used as
 input to the existing `batch_import` workflow. A 403 means no source
 file was obtained, not that a snapshot should be reconstructed.
 
-## Current constraints
+## Current operator checks
 
-At the time of this change, staging contains 17 registered source URLs,
-one original historical Allegato A PDF in `pending_review`, three extracted
-passages, **zero approved versions**, and **zero embeddings**. The historical
-PDF must not be approved just to enable the assistant.
+Inspect the queue in the selected environment before import. For prior source states, see the [dated Milan inventory](MILAN_OFFICIAL_SOURCE_ACQUISITION.md) and the [first-route activation record](MILAN_FIRST_ROUTE_OWNER_REVIEW_ACTIVATION_2026_11_08.md).
 
 Comune di Milano official website and support FAQ pages include:
 - [Cambio di residenza service](https://www.comune.milano.it/servizi/anagrafe/cambio-di-residenza) (page last updated 16 June 2026)
@@ -51,7 +48,7 @@ It is never stored as original HTTP HTML or automatically approved.
 Run from `backend/`:
 
 ```sh
-# Without DATABASE_URL: all 17 registered URLs, no database status
+# Without DATABASE_URL: curated registry metadata only
 python -m app.knowledge.batch_import --queue
 
 # With DATABASE_URL pointing to the isolated Neon staging branch:
@@ -85,9 +82,7 @@ official-server bytes, not text copied from search results, scraped snippets,
 rewritten browser saves, machine-generated HTML or a rendered page screenshot.
 Do not put user-submitted personal data in this directory.
 
-The project cannot retrieve blocked municipal resources in the present
-execution environment (DNS failures, prior HTTP 403). Operator network
-access may differ. **Do not import a reconstructed substitute.**
+If a permitted original is unavailable, leave the source pending acquisition.
 
 ## 3. Validate a batch without database changes
 
@@ -116,8 +111,7 @@ python -m app.knowledge.batch_import \
 ```
 
 The CLI requires the explicit staging designation, rejects Vercel
-production, requires PostgreSQL schema revision `20261105_0009`,
-requires registered DB URLs to match the curated catalogue and processes
+production, requires a PostgreSQL schema accepted by [the staging guard](../backend/app/knowledge/staging_guard.py), requires registered DB URLs to match the curated catalogue and processes
 all validated originals inside **one transaction**. No partial import
 is retained if any source fails. A changed version is marked
 `pending_review` and invalidates any prior active approval; an unchanged
@@ -162,5 +156,4 @@ LEFT JOIN LATERAL (
 ORDER BY s.id;
 ```
 
-No automatic fetching, approval, production schema migration, user-data
-submission, or model configuration is performed by this milestone.
+Use the [review workflow](KNOWLEDGE_REVIEW_WORKFLOW.md) for later source decisions.

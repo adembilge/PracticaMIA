@@ -12,10 +12,7 @@ The next recommended product action is calculated server-side from the
 **actual saved case** and **currently approved source evidence**, never
 from an LLM or a browser-supplied administrative decision.
 
-This release does not enable real files, turn on assistant privileges,
-automatically submit to authorities, or claim legal eligibility. The
-existing AI panel remains informational and, if enabled, provides prose
-only. The signed rules always control the source-backed checklist.
+The signed rules control the checklist. Optional AI guidance is informational, private files require their own release controls, and the user handles any official submission through ANPR.
 
 ## APIs and persistence
 
@@ -46,8 +43,7 @@ only. The signed rules always control the source-backed checklist.
 
 ## Integrated website
 
-The prior parallel checklist and package panels are replaced by one
-case-journey panel. It shows stage status and navigation, one safe next
+The case-journey panel shows stage status and navigation, one safe next
 action, citation-linked signed actions with persistent review checkboxes,
 document-review link when available, explicit outstanding package
 warnings, an authenticated draft PDF download and official ANPR handoff
@@ -65,10 +61,4 @@ Frontend tests reject forged rule IDs, links, fake approvals, and
 client-injected facts. Run PostgreSQL migration smoke tests, TypeScript,
 and Next.js build.
 
-**No Vercel calls, builds or deployments are permitted for this task.**
-Production Neon revision `0016` should only be applied after CI passes,
-after clone preflight, and with recoverability checked.
-
-This is a synthetic-only thesis MVP vertical slice. Real documents need
-separately verified privacy/scanner/retention operations and authenticated
-two-account browser E2E. Live deployment is separate from GitHub merge.
+See the [hosted acceptance record](ACCEPTANCE_TESTING.md) for the two-account case checks. Real document handling requires the separate [vault release checks](PRIVATE_DOCUMENT_VAULT_RELEASE.md).

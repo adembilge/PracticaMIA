@@ -1,11 +1,6 @@
 # Official Milan PDF ingestion — safe manual source workflow
 
-**Status:** PDF support merged. On 5 November 2026, one user-uploaded
-non-EU Allegato A PDF was saved to isolated Neon staging as `pending_review`;
-its PDF metadata dates to 2013 and current applicability is unverified.
-The other 16 source records remain link-only candidates. All 17 sources
-remain unapproved, and production is unchanged.
-See [Allegato A import record](ALLEGATO_A_STAGING_INGESTION.md).
+This runbook imports official-source PDF originals for human review. See the dated [Allegato A import](ALLEGATO_A_STAGING_INGESTION.md) and [ANPR activation record](MILAN_FIRST_ROUTE_OWNER_REVIEW_ACTIVATION_2026_11_08.md) for distinct acquisition and approval histories.
 
 ## What the importer now supports
 
@@ -15,7 +10,7 @@ See [Allegato A import record](ALLEGATO_A_STAGING_INGESTION.md).
   indicate **Page N**, with text offsets and individual SHA-256 hashes.
 - An individual registered HTTPS source URL, strict host allowlist, no
   redirects, no proxies, no crawling and no HTTP 403 bypass.
-- Maximum HTML input **512 KiB**; maximum PDF input **4 MiB**, **20 pages**,
+- Maximum HTML input **512 KiB**; maximum PDF input **4 MiB**, **40 pages**,
   **250,000 extracted characters** and **300 passages**.
 - Rejects malformed, encrypted, textless/image-only, unbounded or incorrectly
   typed source files. PDFs whose tables, small print or checkboxes are
@@ -64,8 +59,7 @@ using it. The existing importer refuses redirects intentionally.
    writes no database state.
 
 4. Set `DATABASE_URL` **privately** to the isolated Neon staging branch,
-   never production. Do not paste passwords into ChatGPT, commit them or
-   include them in terminal transcripts.
+   and set `PRACTICAMIA_KNOWLEDGE_TARGET=staging`. Use the repository’s migration head or another revision explicitly accepted by [the staging guard](../backend/app/knowledge/staging_guard.py). Keep credentials out of Git and logs.
 5. After inspecting the actual PDF and its extracted text, run the same
    command with `--apply`. This creates a new **pending_review** revision,
    not a trusted or approved official document.
@@ -77,10 +71,7 @@ using it. The existing importer refuses redirects intentionally.
 
 ## Known limitations
 
-- The current execution environment could not download the official Milan
-  HTML/PDF originals: the sites rejected automated access, and alternate
-  download attempts failed. This is an **external acquisition blocker**, not
-  a database migration issue.
+- The dated [acquisition audit](OFFICIAL_HTML_ACCESS_AUDIT_2026_11_05.md) records HTTP 403 from automated requests. Verify permitted official access before any new acquisition.
 - Text extraction cannot certify the meaning of visual page structure,
   fillable fields, scanned text, diagrams or multi-column layouts. Such PDFs
   may need a separately reviewed workflow.
@@ -89,4 +80,4 @@ using it. The existing importer refuses redirects intentionally.
   current or reusable.
 - A pass in the synthetic test suite is not evidence of real-world government
   document completeness or legal advice quality.
-- No LangChain RAG or embeddings are enabled by this work.
+- Ingestion creates a pending source version. [Reviewer approval](KNOWLEDGE_REVIEW_WORKFLOW.md) precedes use in retrieval or embedding.
