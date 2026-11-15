@@ -46,7 +46,7 @@ Auth0, the Next.js server-side case bridge and Neon persistence support the sign
 
 | Path | Behavior |
 | --- | --- |
-| `/account` | Shows Auth0 sign-in/register or signed-in account controls. The shared header shows the account display name when available. |
+| `/account` | Offers sign-in, registration and the public demo when signed out, or account controls when signed in. The shared header shows the account display name when available. |
 | `/cases/saved` | Lists synthetic cases, creates a case, and opens a saved case workspace |
 | `/cases/{id}` | Owner-scoped scope, typed intake, checklist acknowledgement, package export and official handoff for supported fictional cases |
 | `/api/cases` | Same-origin BFF GET and CSRF-protected POST. Returns 503 if unconfigured and 401 if signed out; never exposes access tokens |
@@ -55,6 +55,8 @@ Auth0, the Next.js server-side case bridge and Neon persistence support the sign
 | `/cases/new` and `/cases/demo` | Public example flow |
 
 Auth0 routes `/auth/login`, `/auth/logout`, and `/auth/callback` are mounted by SDK middleware only when configured. Browser navigation to login/logout uses normal anchors, not client-side prefetch.
+
+The app's account entry uses PracticaMIA's design and passes the selected `en` or `it` locale to Auth0. Registration also passes `screen_hint=signup`. Auth0 Universal Login renders the credential form and applies its tenant's branding and enabled languages.
 
 ## Verification
 
