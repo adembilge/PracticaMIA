@@ -7,11 +7,11 @@ The paired isolated staging aliases reported Ready at [`90abb8b`](https://github
 | Check | Observation |
 | --- | --- |
 | Case owner opens saved case | Workspace loaded. All five requirements were still marked read. |
-| Desktop and 390 px viewport | The draft PDF control and official ANPR handoff were available. Clicking the draft control returned the UI to its idle state without a visible error. The browser did not expose a completed download event or readable saved file. |
-| Second Auth0 account | A second signed-in session was unavailable during the repeat. The previous two-account staging result reports denied case listing and direct access, and 404 on scope PATCH and PDF GET. |
+| Desktop and 390 px viewport | The draft PDF control and official ANPR handoff were available. The project owner later confirmed that the PDF downloaded. The confirmation did not specify a viewport or whether the file was opened. |
+| Second Auth0 account | The project owner signed in with a different account. That session could list its own cases, but the owner’s case was absent. The direct workspace showed `Case unavailable`, the case GET returned `Case not found`, and the PDF GET returned `Preparation package unavailable`. The current repeat did not exercise a write. |
 | Local contract checks | Package, checklist, assistant and Milan evaluation tests passed together (`31 passed`). The prior PR CI passed the full synthetic Chromium/API suite. |
 
-The staging acceptance remains open pending an opened PDF and a repeat with two actual Auth0 sessions. See [acceptance history](ACCEPTANCE_TESTING.md#manual-staging-case-and-document-checks).
+The repeat confirms the owner download and cross-account read isolation. An opened-file check at each viewport and a two-account scope PATCH remain unverified on this revision. The earlier staging run covered scope PATCH denial. See [acceptance history](ACCEPTANCE_TESTING.md#manual-staging-case-and-document-checks).
 
 ## Bilingual evaluation
 
