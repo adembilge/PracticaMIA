@@ -24,7 +24,7 @@ from app.knowledge.search import resolve_approved_passage
 from app.preparation.crypto import decrypt_blob, encrypt_blob
 from app.preparation.extract import (
     DocumentRejected, ExtractionUnavailable, MAX_FILE_BYTES,
-    extract_document, validate_document, verify_confirmation,
+    extract_document, unique_page_candidates, validate_document, verify_confirmation,
 )
 from app.preparation.models import CaseDocument, CasePreparation
 from app.preparation.intake import scope_intake, validate_scope_facts
@@ -160,7 +160,7 @@ def _summary(request: Request, doc: CaseDocument) -> dict:
         "media_type": doc.media_type,
         "sha256": doc.content_sha256,
         "extraction_status": extraction.get("status", "not_processed"),
-        "candidates": extraction.get("candidates", []),
+        "candidates": unique_page_candidates(extraction.get("candidates", [])),
         "confirmed_fields": review.get("confirmed_fields", {}),
         "status": "confirmed" if review.get("confirmed_document") is True else
                   extraction.get("status", "uploaded"),
@@ -464,7 +464,7 @@ def extract_saved_document(
             owner_subject=doc.owner_subject, document_id=doc.id,
             expected_digest=doc.content_sha256,
         )
-        extraction = extract_document(original, doc.media_type)
+        extraction = extract_document(original, doc.media_type, ocr_pdf_scans=True)
     except ExtractionUnavailable as exc:
         raise HTTPException(503, str(exc)) from None
     except (DocumentRejected, ValueError):
