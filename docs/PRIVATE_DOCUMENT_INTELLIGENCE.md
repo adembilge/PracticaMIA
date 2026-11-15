@@ -2,8 +2,7 @@
 
 ## Scope and user-visible behavior
 
-This change extends the **currently disabled** opt-in private-document vault.
-It does not activate real-document collection. The existing scanner contract,
+The opt-in vault supports this workflow in isolated acceptance. Real-document collection is disabled. The existing scanner contract,
 user privacy acknowledgement, account ownership checks, encryption keys,
 seven-day access expiry, scheduled purge and deletion remain prerequisites.
 
@@ -16,7 +15,7 @@ budget. No rasterized page is persisted. An allowlisted parser searches
 only for clearly labeled:
 
 - Housing basis: registered private rental / owner / guest / other.
-- Move-in date: ISO YYYY-MM-DD.
+- Move-in date: canonical ISO YYYY-MM-DD, with supported explicitly labeled Italian date formats normalized to ISO.
 
 Raw page text is processed in memory and discarded. No identity numbers,
 names, rental addresses, arbitrary free text or original document bytes are
@@ -57,29 +56,9 @@ long-lived table. The review disappears with the original private document
 on owner deletion, case deletion or seven-day purge. Backups/PITR may outlive
 active storage per the provider's own retention period.
 
-## Verification and activation gates
+## Verification and activation
 
-1. GitHub Actions backend + frontend suites pass (including TypeScript/build).
-2. Apply additive migration on a disposable Neon clone. Check existing cases,
-   reviewed sources and vault rows; use recovery branch before production.
-3. Merge PR without triggering **any manual Vercel calls, builds or deploys**.
-   A GitHub merge alone is not proof of a live website update.
-4. Before **any real upload or parsing**, independently review the full data
-   controller privacy notice and lawful basis, DPA/subprocessors, scanner
-   service, log redaction, encryption-key management, abuse limits,
-   deletion monitoring, OCR availability, international data transfers and
-   actual backup retention. Operator approval flags alone do not substitute
-   for this review.
-5. Run full authenticated two-user browser E2E with **fictional** housing PDFs,
-   identity-document extraction denial, malformed/unsafe PDFs, scanner outages,
-   stale candidate rejection, cross-account access, expired-file deletion,
-   misaligned move dates, ambiguous labels and source-review fail-closed behavior.
-6. Release only through approved deployment. The existing Vercel-hosted
-   production site is not updated by this task unless the host deploys it.
-
-The next milestone remains preparing an **exportable, user-reviewed package**,
-with official handoff instructions and no simulated government approval.
-
+The [isolated acceptance suite](ACCEPTANCE_TESTING.md) exercises housing PDF text extraction, PNG/JPEG/scanned-PDF OCR, stale review rejection, corrections, expiry and account isolation. Hosted OCR and scanner acceptance remain open. Follow the [vault release controls](PRIVATE_DOCUMENT_VAULT_RELEASE.md) before enabling any real upload or processing. The [draft package](CASE_PREPARATION_EXPORT.md) uses bounded review information and explicit blockers.
 
 ## Review corrections and document-type boundaries
 

@@ -3,7 +3,7 @@
 ## Purpose
 
 Give a signed-in user clear navigation based on their **actual five persisted scope
-answers**, instead of the old fixed-fictional-topic OpenRouter demonstration.
+answers**, with an optional OpenRouter explanation.
 The case backend remains the authority for which account owns a case.
 
 ## Flow
@@ -36,26 +36,24 @@ The case backend remains the authority for which account owns a case.
 - Current approved-source provenance remains visible in the separately
   authenticated `ReviewedSourcesPanel`. The historical ANPR guide is
   explicitly labeled as archived, not guaranteed current.
-- Real address, lease, move-in-date and identity fields are not currently
-  stored in the saved-case core. A future audited intake model will be
-  needed before the assistant can safely guide on those details.
+- The [structured intake](STRUCTURED_CASE_INTAKE.md) stores categorical facts and an optional move date. This guidance endpoint classifies the five scope answers and sends only the bounded derived context described above.
 - OpenRouter free models can return irrelevant or inaccurate explanations.
   The hard-coded workflow next action must be treated as the product's
   controlled result; AI text never authorizes actions.
 
+## Authenticated Preview chat
+
+The case assistant at `/cases/{id}/assistant` is a separate, Preview/development-gated chat. It accepts bounded EN/IT questions through `POST /api/cases/{id}/assistant/ask`. The backend checks case ownership and uses active reviewed Italian passages, a narrow English term fallback, and exact quote verification. Unsupported questions, unavailable providers and unverified output have explicit fallback states. Optional synthetic preparation guidance and encrypted history have independent flags.
+
+Use `ENABLE_ASSISTANT_UI` on the frontend and the backend case, catalog, search and assistant settings documented in [the backend configuration](../backend/app/config.py). Review model input processing and provider terms before expanding access. See [retrieval evaluation](RETRIEVAL_EVALUATION.md) for the bilingual acceptance gap.
+
 ## Release and testing
 
-- No new database migration or Vercel environment variable is necessary.
-  The new endpoint uses existing production `OPENROUTER_API_KEY`,
+- The endpoint needs no additional schema. It uses the production `OPENROUTER_API_KEY`,
   `ENABLE_PUBLIC_SYNTHETIC_AI`, `BACKEND_API_URL`, and Auth0 settings.
 - `frontend/tests/case-guidance.test.mjs` tests saved-answer statuses,
   uncertain and unsupported paths, strict body shape, ID validation, and
   that model prompts exclude raw case data.
 - Frontend GitHub CI should run `npm test`, `npm run typecheck`,
   and `npm run build`.
-- **Do not build or deploy via Vercel for this development task.**
-  Existing Vercel-GitHub integration may still report blocked deployments
-  due to the quota; it is not a substitute for GitHub CI.
-- Before live activation, verify Auth0 sign-in, case ownership, edit
-  invalidation, provider failure fallback, and no user data in outbound
-  OpenRouter requests in a controlled end-to-end test.
+- Use [progress and blockers](PROGRESS.md) for hosted evidence. Cover Auth0 sign-in, case ownership, edit invalidation, provider failure fallback, and the outbound prompt boundary in controlled tests. Conversational Preview retrieval is a separate feature.

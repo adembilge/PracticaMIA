@@ -39,6 +39,8 @@ The SQL import created the version, original `bytea` snapshot, and all three pas
 
 **No production database changes, approval events, or trusted RAG retrieval exposure occurred.** The raw PDF has deliberately *not* been committed to the public GitHub repository.
 
+For the reusable importer and current schema prerequisites, see [PDF source ingestion](PDF_SOURCE_INGESTION.md). The following are the pending checks recorded for this exact version.
+
 ## Pending independent review
 
 1. Verify the original PDF against a current official Comune di Milano or national government publication, including any newer replacements.

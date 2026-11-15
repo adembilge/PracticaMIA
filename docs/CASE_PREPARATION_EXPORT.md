@@ -32,19 +32,13 @@ checklist, or submission receipt.** Neither the user nor the AI can mark
   a clearly marked **reviewable draft** with `no_documents_reviewed` or
   `private_document_processing_not_enabled` warnings. It is NEVER labeled
   `submission_ready`.
-- Existing private documents with incomplete extraction, unsupported category,
-  ambiguous labels, unreadability, mismatch against current intake, missing
-  confirmed facts, unscanned status or corrupted encrypted metadata block the
-  PDF export. The JSON preview still explains what needs resolution, except
-  that corrupted encryption fails closed with HTTP 503.
+- An incomplete or conflicting review of a supported housing document can block PDF export. The JSON preview reports the blockers. Corrupted encrypted metadata fails closed with HTTP 503. Identity and miscellaneous categories are handled as warnings as described below.
 - Document data is used only when the existing default-off privacy/scanner
   vault gate is explicitly enabled. PDF never contains original document
   bytes, OCR page text, filenames, full case IDs, file IDs or identity data.
 - User-controlled "reviewed" never means that a document is authentic or
   legally sufficient.
-- No new database table or migration is required (current Neon revision
-  `20261109_0015` is sufficient). Only `reportlab` moves from optional
-  dev dependencies to production Python dependencies.
+- Package routes use the existing case, intake and private review schema. ReportLab generates the PDF on demand. The integrated journey uses revision `20261109_0016` for persisted read acknowledgements.
 
 ## Routes
 - `GET /api/v1/cases/{id}/package` -> private no-store manifest.
@@ -54,26 +48,19 @@ checklist, or submission receipt.** Neither the user nor the AI can mark
   BFF obtains Auth0 credentials on the server and relays bytes with strict
   PDF magic, Content-Type and size validation. Browser tokens are never
   exposed.
-- New saved-case intake UI shows package preview, blockers, source/action
-  count and a download link that activates only for an allowed draft.
+- The [saved-case journey](UNIFIED_CASE_WORKFLOW.md) shows package status, blockers and an authenticated download for an allowed draft.
 
 ## Verification and release
 - GitHub Actions backend pytest (with real PDF text extraction and negative
   auth/scenario/source/document tests); frontend node tests; TypeScript and
   Next.js build. Run E2E separately before beta.
-- No Vercel calls, sandboxes or deployments. A GitHub merge does not make
-  the package appear on the Vercel-hosted website until a permitted deployment
-  succeeds.
+- See [hosted acceptance](ACCEPTANCE_TESTING.md) for the verified owner download and second-account denial.
 - User's security release gate for real private documents stays unchanged:
   controller/privacy notice, contracts, malware scanner, key management,
   retention monitoring and two-account end-to-end validation.
 - No external forms have been adopted or officially certified. Official
   application form prefill would require a separately reviewed template.
 
-## Following milestone
-Connect case navigation, cited checklist, document review and package status
-into one coherent journey, with persistent user-only checklist progress,
-then perform controlled E2E tests and release acceptance.
 
 
 ## Draft export and unsupported attachments

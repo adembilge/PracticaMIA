@@ -28,7 +28,7 @@ The product owner approved aligning the entry flow with the existing signed rout
 ## Decisions still unresolved
 
 - Currency and applicability reviews for the approved first Milan scenario, especially the officially required attachments and exceptions.
-- Real browser Auth0 and two-account session acceptance against the deployed frontend and backend.
+- Live reviewer authorization, refresh/resumption, and private-document isolation beyond the completed manual Auth0 case checks. See [acceptance evidence](ACCEPTANCE_TESTING.md).
 - Full conversational-agent and retrieval quality benchmarks, provider routing and privacy of model inputs.
 - Operational authorization to enable private documents, scanner, encryption/retention lifecycle and live personal-data handling.
 - Backup and restore exercise, observability coverage, private user validation, and explicit production release sign-off.

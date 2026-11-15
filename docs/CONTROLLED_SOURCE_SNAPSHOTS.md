@@ -1,12 +1,10 @@
 # Controlled HTML snapshots — milestone 45.1–45.3
 
-**Status:** Feature branch, awaiting CI and review. Nothing ingested into production automatically.
-
 ## Purpose
 
-Turn curated municipal **source candidates** into reproducible, versioned, reviewable HTML snapshots and exact-offset text passages. The output remains **untrusted pending human review**: it is not yet RAG, an approved knowledge base, or an administrative rules engine.
+Turn curated municipal **source candidates** into reproducible, versioned, reviewable HTML snapshots and exact-offset text passages. Each changed snapshot starts in `pending_review`. The [review workflow](KNOWLEDGE_REVIEW_WORKFLOW.md) governs entry into approved retrieval.
 
-Source registry milestone 44 already provides source/version provenance and a disabled-by-default read-only approved-source metadata endpoint. This task adds snapshot storage, manual acquisition, deterministic extraction, and change invalidation.
+This workflow builds on the [source registry](OFFICIAL_SOURCE_REGISTRY.md). Use [PDF ingestion](PDF_SOURCE_INGESTION.md) or [browser captures](BROWSER_CAPTURE_EVIDENCE.md) for their respective acquisition paths.
 
 ## Data model
 
@@ -38,14 +36,14 @@ Curated municipal URL / manually saved HTML file
                                  |
                   invalidate active approval if any
                                  |
-                    human source review (future PR)
+                    human source review
                                  |
-                    indexed retrieval (future PR)
+                    approved passage retrieval
 ```
 
-## Operator workflow — development database only
+## Operator workflow — isolated staging
 
-1. Apply both catalog and snapshot revisions with Alembic on a **disposable development database** (production migration requires a separate review).
+1. Verify the isolated PostgreSQL staging connection before running any writes. Use the repository’s migration head or another revision explicitly accepted by [the staging guard](../backend/app/knowledge/staging_guard.py).
 2. Validate and register the existing candidate sources.
 3. Obtain one HTML file through a permitted manual process, or explicitly opt in to a single URL fetch after reviewing the municipality's terms and `robots.txt`. Do not bypass access controls.
 4. Dry-run extraction before writing. Review source validity and extracted passage integrity.
@@ -53,6 +51,9 @@ Curated municipal URL / manually saved HTML file
 ```bash
 cd backend
 python -m alembic -c alembic.ini upgrade head
+
+# DATABASE_URL must point to verified isolated staging.
+export PRACTICAMIA_KNOWLEDGE_TARGET=staging
 
 # Candidate registration (only when needed)
 python -m app.knowledge.seed_candidates --apply
@@ -88,8 +89,4 @@ The operator's HTML file must be a faithful snapshot of the official page. Never
 
 GitHub CI runs unit tests with synthetic HTML and a mocked network transport, including rejection of redirects/oversized pages/invalid media, exact-span integrity, idempotency, change invalidation, and tampering. PostgreSQL migration smoke confirms the new tables exist.
 
-**Production deployment remains intentionally deferred:** check Neon backup and migration strategy, apply versions `0003` and `0004` on a reviewed database/branch, and only then consider candidate registration. Do not turn on the approved-source API without a reviewer-authenticated approval workflow and verified official snapshots.
-
-## Next milestone
-
-Review and merge the [reviewer-only approval and audit feature](KNOWLEDGE_REVIEW_WORKFLOW.md), then implement review-filtered lexical retrieval and vector embeddings with evaluation fixtures. No verified administrative requirement or government decision can be inferred merely from extracted text.
+See the [deployment runbook](VERCEL_NEON_DEPLOYMENT.md) for migration and release checks and [approved passage search](APPROVED_PASSAGE_SEARCH.md) for runtime integrity checks.
