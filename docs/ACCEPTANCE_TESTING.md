@@ -39,6 +39,7 @@ The dedicated GitHub Actions workflow
 | A5 | Edited intake outside the route blocks draft; restored facts need fresh review marks | Chromium + real FastAPI + PostgreSQL |
 | A6 | Unsupported or uncertain initial answers cannot export | Chromium + real FastAPI + PostgreSQL |
 | A7 | Italian language uses the same verified case state and downloadable draft decisions | Chromium + real FastAPI + PostgreSQL |
+| Preparation Preview | Mobile deep link, 503 feedback, back navigation, draft retention and load retry | Chromium with stubbed preparation responses |
 | A8 | No uncaught browser runtime errors | Chromium |
 | D1 | Explicit acknowledgement required, malformed uploads rejected, scanner outage/checksum/control verdict rejected, browser retry works | Chromium + real ClamAV with a harmless test signature + FastAPI + PostgreSQL |
 | D2 | Extract PDF fields, reject stale review, block PDF while a confirmed field conflicts, correct it and reopen the saved review | Chromium + FastAPI + PostgreSQL |
