@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useDemo } from '@/components/DemoProvider';
+import { Icon } from '@/components/Icon';
+import styles from './AccountView.module.css';
 
 type Props = {
   configured: boolean;
@@ -11,31 +13,57 @@ type Props = {
 };
 
 export function AccountView({ configured, signedIn, name, backendConfigured }: Props) {
-  const { t } = useDemo();
+  const { locale, t } = useDemo();
+
+  if (!signedIn) {
+    const language = new URLSearchParams({ ui_locales: locale });
+    const signIn = '/auth/login?' + language.toString();
+    language.set('screen_hint', 'signup');
+    const register = '/auth/login?' + language.toString();
+
+    return (
+      <main id="main-content" tabIndex={-1} className="subpage-background">
+        <div className={`container ${styles.shell}`}>
+          <div className={styles.card}>
+            <div className={styles.intro}>
+              <Icon name="file" size={28} className={styles.emblem} />
+              <h1>{t.accountSignInTitle}</h1>
+              <p>{t.accountSignInIntro}</p>
+            </div>
+            <section className={styles.access} aria-label={t.navSignIn}>
+              {configured ? (
+                <div className={styles.actions}>
+                  <a href={signIn} className="button button-primary">
+                    {t.accountLogin}<Icon name="arrowRight" size={19} />
+                  </a>
+                  <a href={register} className="button button-outline">
+                    {t.accountRegister}
+                  </a>
+                </div>
+              ) : <p role="status" className="message-box notice">{t.accountUnavailable}</p>}
+              <Link href="/cases/new" className={styles.demoLink}>
+                {t.accountDemoLink}<Icon name="arrowRight" size={16} />
+              </Link>
+              <p className={styles.privacy}><Icon name="info" size={17} />{t.accountDemoPrivacy}</p>
+            </section>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main id="main-content" tabIndex={-1} className="subpage-background">
       <div className="container account-shell">
         <h1 className="subpage-title">{t.accountTitle}</h1>
-        {!configured ? (
-          <p role="status" className="message-box notice">{t.accountUnavailable}</p>
-        ) : signedIn ? (
-          <section className="account-panel">
-            <p>{t.accountWelcome}{name ? ', ' + name : ''}.</p>
-            <p>{backendConfigured ? t.accountConnectedBackend : t.accountBackendUnavailable}</p>
-            <div className="account-actions">
-              <Link href="/cases/saved" className="button button-primary">{t.accountSaved}</Link>
-              <a href="/auth/logout" className="button button-outline">{t.accountLogout}</a>
-            </div>
-          </section>
-        ) : (
-          <section className="account-panel">
-            <p>{t.accountSignInIntro}</p>
-            <div className="account-actions">
-              <a href="/auth/login" className="button button-primary">{t.accountLogin}</a>
-              <a href="/auth/login?screen_hint=signup" className="button button-outline">{t.accountRegister}</a>
-            </div>
-          </section>
-        )}
+        <section className="account-panel">
+          <p>{t.accountWelcome}{name ? ', ' + name : ''}.</p>
+          <p>{backendConfigured ? t.accountConnectedBackend : t.accountBackendUnavailable}</p>
+          <div className="account-actions">
+            <Link href="/cases/saved" className="button button-primary">{t.accountSaved}</Link>
+            <a href="/auth/logout" className="button button-outline">{t.accountLogout}</a>
+          </div>
+        </section>
         <p className="account-footnote">{t.accountDemoPrivacy}</p>
         <Link href="/cases/new" className="back-link">{t.accountDemoLink}</Link>
       </div>
