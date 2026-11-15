@@ -135,3 +135,45 @@ def test_reviewed_quote_selection(
         assert response["sources"][0]["excerpt"] == PASSAGE_CONTENT["0000"]
     else:
         assert response["answer"] is None
+
+
+@pytest.mark.parametrize("language", ["en", "it"])
+@pytest.mark.parametrize("approved", [True, False])
+def test_product_submission_handoff_uses_only_current_reviewed_evidence(
+    assistant_client, auth_headers, monkeypatch, language, approved,
+):
+    def resolve(db, *, citation_id, **kwargs):
+        if not approved:
+            return None
+        assert citation_id == CASES["MIL-06"]["passage_candidates"][0]
+        return EvidencePassage(
+            citation_id=citation_id, passage_id=citation_id, source_id="synthetic",
+            source_version_id=citation_id.split(":")[0], source_revision=1,
+            institution="Synthetic fixture", title="Synthetic ANPR fixture",
+            official_url="https://example.invalid", jurisdiction=assistant_router.JURISDICTION,
+            procedure_id=assistant_router.PROCEDURE, language="it", section_path="Riepilogo",
+            content='Verifica la correttezza dei dati della dichiarazione; '
+                    'Seleziona il tasto “Invio dichiarazione”.',
+            passage_sha256="a" * 64, source_sha256="b" * 64,
+            reviewed_at=TIMESTAMP, retrieved_at=TIMESTAMP,
+        )
+
+    def unexpected_model():
+        pytest.fail("The fixed product handoff must not call the model")
+
+    monkeypatch.setattr(assistant_router, "resolve_approved_passage", resolve)
+    assistant_client.app.state.assistant_model_factory = unexpected_model
+    headers = auth_headers()
+    cid = case_id(assistant_client, headers)
+    answer = post(
+        assistant_client, cid, headers, question=CASES["MIL-06"]["queries"][language],
+        language=language,
+    ).json()
+    if approved:
+        assert answer["status"] == "answer_generated"
+        assert "Invio dichiarazione" in answer["answer"]
+        assert len(answer["sources"]) == 1
+    else:
+        assert answer["status"] == "insufficient_evidence"
+        assert answer["answer"] is None
+        assert answer["sources"] == []

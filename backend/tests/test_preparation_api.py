@@ -15,7 +15,7 @@ from app.config import Settings
 from app.database import Base
 from app.main import create_app
 from app.preparation.models import CaseDocument, CasePreparation
-from app.preparation import router as preparation_router
+from app.preparation import extract, router as preparation_router
 from conftest import ISSUER, AUDIENCE, JWKS_URL
 from test_preparation_rules import synthetic_catalog
 
@@ -26,6 +26,22 @@ def fixture_pdf():
     pdf.drawString(25, 750, "Property address: Synthetic Via 10 Milano")
     pdf.save()
     return buffer.getvalue()
+
+
+def test_document_ocr_keeps_distinct_addresses_and_pages(monkeypatch):
+    monkeypatch.setattr(extract, "_extract_pdf", lambda *args, **kwargs: [
+        {"page": 1, "text": "Property address: Synthetic Via 10 Milano\n"
+                           "Indirizzo immobile: Synthetic  Via 10 Milano\n"
+                           "Property address: Synthetic Via 20 Milano\n"},
+        {"page": 2, "text": "Property address: Synthetic Via 10 Milano\n"},
+    ])
+    result = extract.extract_document(fixture_pdf(), "application/pdf")
+    assert [(item["page"], item["raw_value"]) for item in result["candidates"]] == [
+        (1, "Synthetic Via 10 Milano"),
+        (1, "Synthetic Via 20 Milano"),
+        (2, "Synthetic Via 10 Milano"),
+    ]
+    assert result["candidates"][0]["evidence_span"].startswith("Property address")
 
 
 @pytest.fixture

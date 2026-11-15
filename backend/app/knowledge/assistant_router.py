@@ -40,6 +40,15 @@ ENGLISH_RETRIEVAL_ALIASES = (
 # A source approval or version change still has to pass the normal resolver.
 _MILAN_FAQ = "e139e910-3a89-4994-b450-b5107d8db7dd"
 _ANPR_GUIDE = "c89b4c40-4c41-48d5-ad52-be08e9630277"
+_SUBMISSION_QUOTES = (
+    (f"{_ANPR_GUIDE}:0021", r"Verifica la correttezza.*?della dichiarazione;"),
+    (f"{_ANPR_GUIDE}:0021", r"Seleziona il tasto “Invio dichiarazione”\."),
+)
+_PRACTICAMIA_SUBMISSION_QUESTION = re.compile(
+    r"(?:can practicamia submit (?:my |the )?residence declaration(?: for me)?"
+    r"|practicamia può inviare (?:per me )?la dichiarazione di residenza(?: per me)?)\??",
+    re.IGNORECASE,
+)
 _TOPICS = (
     (r"\btari\b", (
         (f"{_MILAN_FAQ}:0005", r"Inoltre, è necessario dichiarare[^.]+\."),
@@ -52,10 +61,7 @@ _TOPICS = (
      r"\blocazione\b.*\bregistrato\b", (
         (f"{_ANPR_GUIDE}:0015", r"seleziona il punto 2[^]+"),
     )),
-    (r"\b(submit|inviare)\b.*\b(declaration|dichiarazione)\b", (
-        (f"{_ANPR_GUIDE}:0021", r"Verifica la correttezza.*?della dichiarazione;"),
-        (f"{_ANPR_GUIDE}:0021", r"Seleziona il tasto “Invio dichiarazione”\."),
-    )),
+    (r"\b(submit|inviare)\b.*\b(declaration|dichiarazione)\b", _SUBMISSION_QUOTES),
     (r"\b(when must|how many days|entro quando|entro quanti giorni)\b"
      r"(?=.*\b(milan|milano)\b)(?=.*\b(address|residence|indirizzo|residenza)\b)", (
         (f"{_MILAN_FAQ}:0000", r"Comunicare all'Ufficio Anagrafe[^.]+\."),
@@ -207,7 +213,10 @@ def ask_case_question(
     # are evaluated. Never change source scope based on an LLM's inference.
     if _REQUIRES_CURRENT_OR_PERSONAL_DECISION.search(payload.question):
         return AskAnswer(status="insufficient_evidence", sources=[])
-    topic = _reviewed_topic(payload.question)
+    asks_about_product_submission = bool(
+        _PRACTICAMIA_SUBMISSION_QUESTION.fullmatch(payload.question.strip())
+    )
+    topic = _SUBMISSION_QUOTES if asks_about_product_submission else _reviewed_topic(payload.question)
     quotes: tuple[str, ...] = ()
     if topic:
         passages, quotes = _resolve_topic(db, topic)
@@ -240,6 +249,11 @@ def ask_case_question(
         )
         for item in passages
     ]
+
+    if asks_about_product_submission:
+        # The product never submits a declaration. The UI states this fixed
+        # boundary, and the approved excerpts explain the user's ANPR handoff.
+        return AskAnswer(status="answer_generated", answer="\n".join(quotes), sources=sources)
 
     model = None
     try:

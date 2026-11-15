@@ -159,6 +159,16 @@ def _extract_image(content: bytes, media_type: str) -> str:
         raise DocumentRejected("Image could not be safely processed") from exc
 
 
+def unique_page_candidates(candidates: list[dict]) -> list[dict]:
+    """Keep the first evidence span for each value on a page."""
+    unique = {}
+    for candidate in candidates:
+        key = (candidate["field_name"], candidate["page"],
+               " ".join(candidate["raw_value"].split()))
+        unique.setdefault(key, candidate)
+    return list(unique.values())
+
+
 def extract_document(content: bytes, media_type: str, *, ocr_pdf_scans: bool = False) -> dict:
     validate_document(content, media_type)
     pages = (_extract_pdf(content, ocr_pdf_scans=ocr_pdf_scans)
@@ -181,7 +191,7 @@ def extract_document(content: bytes, media_type: str, *, ocr_pdf_scans: bool = F
     return {
         "status": "needs_user_confirmation",
         "pages": pages,
-        "candidates": candidates[:10],
+        "candidates": unique_page_candidates(candidates)[:10],
     }
 
 
