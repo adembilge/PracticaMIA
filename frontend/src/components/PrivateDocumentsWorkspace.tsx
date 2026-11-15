@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {useCallback, useEffect, useState} from 'react';
 import {useDemo} from '@/components/DemoProvider';
 import {Icon} from '@/components/Icon';
+import {DocumentProgress} from '@/components/DocumentProgress';
 import {PrivateDocumentIntelligence} from '@/components/PrivateDocumentIntelligence';
 import {
   PRIVATE_DOCUMENT_CONSENT_VERSION,
@@ -83,7 +84,8 @@ export function PrivateDocumentsWorkspace({caseId, configured, signedIn}: Props)
   const [category,setCategory] = useState('housing_document');
   const [file,setFile] = useState<File|null>(null);
   const [agreed,setAgreed] = useState(false);
-  const [busy,setBusy] = useState(false);
+  const [operation,setOperation] = useState<'upload'|'delete'|null>(null);
+  const busy = operation !== null;
   const [loading,setLoading] = useState(true);
   const [error,setError] = useState('');
   const [notice,setNotice] = useState('');
@@ -126,7 +128,7 @@ export function PrivateDocumentsWorkspace({caseId, configured, signedIn}: Props)
 
   async function upload() {
     if (!file || !agreed || busy || expired || fileInvalid || wrongType) return;
-    setBusy(true);setError('');setNotice('');setFailure(null);
+    setOperation('upload');setError('');setNotice('');setFailure(null);
     const form = new FormData();
     form.set('file',file);
     form.set('category',category);
@@ -157,12 +159,12 @@ export function PrivateDocumentsWorkspace({caseId, configured, signedIn}: Props)
       if (input) input.value = '';
       await load();
     } catch {setError(t.failed);setFailure('upload');}
-    finally {setBusy(false);}
+    finally {setOperation(null);}
   }
 
   async function erase(id:string) {
     if (busy || !window.confirm(t.confirmDelete)) return;
-    setBusy(true);setError('');setNotice('');setFailure(null);
+    setOperation('delete');setError('');setNotice('');setFailure(null);
     try {
       const r = await fetch('/api/cases/' + caseId + '/private-documents/' + id,{
         method:'DELETE',credentials:'same-origin',
@@ -171,7 +173,7 @@ export function PrivateDocumentsWorkspace({caseId, configured, signedIn}: Props)
       if (r.status !== 204) throw new Error('Delete failed');
       await load();
     } catch {setError(t.failed);setFailure('delete');}
-    finally {setBusy(false);}
+    finally {setOperation(null);}
   }
 
   return <main className="case-page document-page" id="main-content" tabIndex={-1}>
@@ -238,7 +240,7 @@ export function PrivateDocumentsWorkspace({caseId, configured, signedIn}: Props)
               <span>{t.consent}</span>
             </label>
             <button className="button button-primary" type="submit" disabled={busy || !file || !agreed || fileInvalid || wrongType}>{t.upload}</button>
-            {busy && file && <p className="editorial-pending" role="status">{t.uploading}</p>}
+            {operation === 'upload' && <DocumentProgress label={t.uploading}/>}
             {notice && <p className="case-confirmation" role="status">{notice}</p>}
           </form>
           <p className="document-lead">{t.note}</p>

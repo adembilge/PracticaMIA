@@ -35,6 +35,7 @@
   font-size: .88rem;
   font-weight: 650;
   text-align: left;
+  transition: background-color .22s, border-color .22s, color .22s;
 }
 
 .navigation svg, .safety svg, .state svg, .error svg, .documentIntro svg, .file svg {
@@ -237,6 +238,7 @@
 .file {
   padding-block: 14px;
   border-top: 1px solid var(--line);
+  animation: reveal .28s var(--ease-out) both;
 }
 
 .file h4, .error {
@@ -258,6 +260,7 @@
   padding: 10px 12px;
   border-radius: 6px;
   font-size: .9rem;
+  animation: reveal .22s var(--ease-out) both;
 }
 
 .success {
@@ -303,7 +306,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .panel > div:not([hidden]) {
+  .state h2, .panel > div:not([hidden]), .file, .success, .error {
     animation: none;
   }
 }
