@@ -101,6 +101,8 @@ The manual check covers live Auth0 sign-in, saved-case persistence and read isol
 
 The synthetic preparation route has its own extractor and storage. It does not call the private vault scanner. The [private-document release checklist](PRIVATE_DOCUMENT_VAULT_RELEASE.md) covers the scanner and vault acceptance.
 
+See the [15 November repeat and bilingual evaluation](MILAN_MVP_ACCEPTANCE_2026_11_15.md) for desktop and 390 px PDF observations, the open Auth0 isolation repeat and the live assistant results.
+
 ## Run locally
 
 The dedicated CI workflow runs on PRs, pushes to main, or manual dispatch.
