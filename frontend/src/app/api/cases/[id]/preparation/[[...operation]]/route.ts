@@ -46,7 +46,8 @@ async function handle(request: NextRequest, context: Context, method: string) {
     return proxyCaseRequest(method, route.path);
   }
   if (route.action === 'document/extract') {
-    return proxyCaseRequest('POST', route.path);
+    // Scanned PDFs use a bounded 25-second OCR budget in FastAPI.
+    return proxyCaseRequest('POST', route.path, undefined, 35_000);
   }
   const declaredLength = Number(request.headers.get('content-length'));
   if (!Number.isFinite(declaredLength) || declaredLength < 1 ||
