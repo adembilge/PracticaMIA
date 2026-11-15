@@ -61,7 +61,7 @@ This suite deliberately does **not** cover:
   The harness tests the genuine FastAPI JWT verifier but not the Auth0
   provider and Next.js BFF session wiring.
 - Vercel or another live deployment, hostname, production secrets or live
-  health checks. No Vercel operations are authorized.
+  health checks. Hosted checks use the separate workflows below.
 - Real third-party malware scanning, controller/privacy approvals, backup
   and retention operations, live identity uploads, the hosted OCR runtime or data
   processing agreements.
@@ -88,6 +88,15 @@ treated as passed merely because synthetic E2E is green.
 | Second account opens the owner's PDF link | The PDF endpoint returned `Preparation package unavailable` as JSON. No PDF was served. |
 
 The manual check covers live Auth0 sign-in, saved-case persistence and read isolation for the selected case and preparation draft. It does not exercise cross-account writes, private document upload or reviewer authorization. The [authenticated Preview runbook](AUTHENTICATED_PREVIEW_E2E_RUNBOOK.md) covers a separate staging workflow.
+
+## Manual staging case and document checks
+
+| Date | Observed result | Coverage |
+| --- | --- | --- |
+| 14 Nov 2026 | Owner reopened a fictional case with all five acknowledgements, saw the ANPR handoff and confirmed the PDF download. A separate unsupported case blocked export. The second account could not list or open the owner's case, and the owner reported 404 on the second account's scope PATCH and PDF GET. | Saved-case journey and selected ownership checks. See [progress](PROGRESS.md#verified-engineering-evidence) for the tested revisions. |
+| 15 Nov 2026 | On [isolated Preview `a493d46`](https://github.com/adembilge/PracticaMIA/commit/a493d46bf768d07d196d29789e99d51b3b181a86), an authenticated user uploaded a fictional PNG. **Extract text** returned 503 and the document stayed `not_processed`. | Synthetic upload passed. The browser showed only the response status. Hosted OCR success, the private-document upload proxy, and the live malware scanner have no pass evidence. |
+
+The synthetic preparation route has its own extractor and storage. It does not call the private vault scanner. The [private-document release checklist](PRIVATE_DOCUMENT_VAULT_RELEASE.md) covers the scanner and vault acceptance.
 
 ## Run locally
 

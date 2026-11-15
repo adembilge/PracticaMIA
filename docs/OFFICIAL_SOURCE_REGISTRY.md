@@ -25,11 +25,11 @@ A reviewer decision is a privileged operation; it is never inferred from a user 
 
 Authenticated clients can read active approved source metadata through `GET /api/v1/knowledge/sources` when the case and catalog APIs are configured. Search and citation resolution have separate gates. Reviewer-only operations require a distinct allowlist and enabled review API. Consult `backend/app/config.py` and `backend/app/main.py` for the actual environment flags and startup validation; do not assume the repository's code is activated in any particular deployment.
 
-An isolated development database can be migrated and candidate metadata inspected using:
+After setting `DATABASE_URL` for a [disposable local PostgreSQL with pgvector](../backend/README.md#local-setup), migrate and inspect candidate metadata with:
 
 ```bash
 cd backend
-alembic -c alembic.ini upgrade head
+python -m alembic -c alembic.ini upgrade head
 python -m app.knowledge.seed_candidates
 ```
 
@@ -44,4 +44,4 @@ Seeding candidates with `--apply` is an explicit write; use it only on an author
 - [Embedding indexing](APPROVED_EMBEDDING_INDEXING.md)
 - [Retrieval evaluation](RETRIEVAL_EVALUATION.md)
 
-PracticaMIA is independent of government authorities. Review status and provenance are engineering controls, not certification that any administrative decision will be accepted. 
+PracticaMIA is independent of government authorities. Review status and provenance are engineering controls, not certification that any administrative decision will be accepted.

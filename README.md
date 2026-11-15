@@ -16,7 +16,7 @@ The current domain focus is **`cambio di residenza`** (change of registered resi
 - **Document intelligence:** process supported private documents, extract candidate fields, compare them against case facts, and request explicit user confirmation.
 - **Application preparation:** assemble reviewable information and PDF artifacts when the supported workflow's evidence and review conditions are satisfied.
 
-The implementation is evolving. Some services are deliberately disabled outside controlled environments until source review, privacy controls, and deployment prerequisites have been satisfied. A feature's presence in the repository does not imply that it is available for public use.
+The reviewed example path covers one adult Italian citizen already registered in Italy, moving alone to Comune di Milano as the holder of a registered private rental contract. The signed-in example uses fictional data and produces a preparation draft for user review. Real document uploads are disabled. See [release evidence](docs/PROGRESS.md) for the deployed revisions and open acceptance gates.
 
 ## How the system works
 
@@ -24,7 +24,7 @@ The implementation is evolving. Some services are deliberately disabled outside 
 User (English / Italian)
     |
     v
-Next.js interface and authenticated case workspace
+Next.js interface, Auth0 session and server-side API proxy
     |
     v
 FastAPI — authentication, case ownership and typed services
@@ -33,7 +33,7 @@ FastAPI — authentication, case ownership and typed services
     +--> LangGraph assistant and constrained tool selection
     |       +--> Source-grounded retrieval and quote verification
     |       +--> Deterministic administrative rules
-    +--> Private document extraction and human review
+    +--> Release-gated private document extraction and user review
     +--> Reviewable preparation and PDF output
     |
     v
@@ -64,7 +64,7 @@ The codebase contains deployment configuration for Vercel and PostgreSQL infrast
 backend/       FastAPI application, domain services, migrations and tests
 frontend/      Next.js pages, components, API proxies and tests
 requirements/  Reviewed and candidate procedure catalogs and public verification keys
- docs/          Architecture, source-review, research, workflow and governance documentation
+docs/          Architecture, source-review, research, workflow and governance documentation
 evals/         Evaluation inputs and fixtures
 audit/         Security and end-to-end audit utilities
 scripts/       Repository validation utilities
@@ -74,7 +74,7 @@ AGENTS.md      Repository development and safety instructions
 
 ## Local development
 
-**Prerequisites:** Node.js 22, npm, Python 3.12, and Docker for the local PostgreSQL service.
+**Prerequisites:** Node.js 22, npm, Python 3.12, and Docker if running a local database.
 
 Frontend:
 
@@ -93,11 +93,10 @@ cd backend
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[dev]'
-docker compose up -d db
 uvicorn app.main:app --reload
 ```
 
-On Windows, activate the environment using `.venv\Scripts\Activate.ps1`. The public `/health` endpoint runs without enabling private APIs. To use protected case, knowledge, or document services, configure the required identity, database, feature flags and migration level as described in `backend/.env.example` and [backend documentation](backend/README.md). Do not copy credentials into the repository.
+On Windows, activate the environment using `.venv\Scripts\Activate.ps1`. The public `GET /health` endpoint runs without private APIs. For a PostgreSQL-backed local run, set the connection and apply migrations as shown in the backend setup. To use protected case, knowledge, or document services, configure the required identity, database, feature flags and migration level as described in [backend setup](backend/README.md#local-setup) and [backend environment settings](backend/.env.example). Do not copy credentials into the repository.
 
 ## Verification
 
@@ -120,7 +119,7 @@ Some integration and browser checks additionally require an isolated PostgreSQL 
 
 ## Trust and scope
 
-Administrative guidance must be grounded in human-reviewed, versioned official material. Missing, revoked, or conflicting evidence is a reason to stop or request review. User-uploaded information is private; extracted fields are not considered confirmed without the required validation and user action.
+Administrative guidance must be grounded in human-reviewed, versioned official material. Missing, revoked, or conflicting evidence is a reason to stop or request review. Document extraction proposes fields that require explicit user confirmation. The current release does not accept real personal documents.
 
 PracticaMIA is **not an official municipal service, legal representative, or application-submission channel**. Users remain responsible for reviewing their information and completing any submission through the appropriate government service.
 

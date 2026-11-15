@@ -4,16 +4,13 @@ The purpose is to index only public municipal passages whose exact
 source versions have already been reviewed and approved. The indexer
 **does not approve sources** and does not process personal case records.
 
-**State when implemented:** 12 browser-rendered Comune di Milano captures
-and one historical PDF were pending review in isolated Neon staging. No
-approved versions or embeddings exist. The approval process requires a
-verified Auth0 reviewer with the server-side allowlist; a chat instruction
-or direct SQL write is not a substitute.
+The dry-run queries the selected staging branch for approved, unindexed passages. For dated source approval evidence, see [first-route activation](MILAN_FIRST_ROUTE_OWNER_REVIEW_ACTIVATION_2026_11_08.md). Approval requires a verified Auth0 reviewer on the server allowlist.
 
 ## Dry-run with zero provider calls
 
 From `backend/`, after securely configuring `DATABASE_URL` for the
-isolated Neon staging branch (Alembic revision `20261105_0009`):
+isolated Neon staging branch. Use the repository’s migration head or another revision explicitly accepted by [the staging guard](../backend/app/knowledge/staging_guard.py).
+
 
 ```sh
 export PRACTICAMIA_KNOWLEDGE_TARGET=staging
@@ -22,9 +19,7 @@ python -m app.knowledge.approved_embedding_index
 
 The command outputs only approved passage IDs, content hashes and counts.
 It does not print the full text, write to the database or contact a model.
-On the currently unapproved staging database, the correct result is **0
-passages**. The model name is fixed to `text-embedding-3-small` with 1,536
-dimensions to match the existing pgvector index.
+A zero result means there are no eligible unindexed passages in that run. The fixed model is `text-embedding-3-small` with 1,536 dimensions.
 
 ## Explicit indexing after legitimate review approval
 
@@ -78,12 +73,4 @@ provider call is required for the dry-run.
 
 ## Remaining milestones
 
-1. Finish source-by-source Auth0 reviewer approval of the current municipal
-   documents; do not autoapprove the historical Allegato A.
-2. Run quality evaluation of embedding model and sample queries before
-   explicitly transferring any official passages to an external provider.
-3. Add query-time embeddings and evaluate English questions over Italian
-   sources. This will involve potential external transmission of user
-   questions, requiring an explicit privacy review and consent design.
-4. Validate end-to-end Auth0 sign-in and preview deployment before
-   enabling an assistant. Production feature gates remain disabled.
+Continue source-by-source approval for new material. The [hybrid retrieval helper](../backend/app/knowledge/vector_search.py) accepts caller-provided query vectors. The current [Preview assistant endpoint](../backend/app/knowledge/assistant_router.py) uses approved topic passages or lexical retrieval and does not generate a query embedding. Benchmark the vector path with labeled bilingual examples and review any external query transfer before adding it to the endpoint. See [retrieval evaluation](RETRIEVAL_EVALUATION.md).

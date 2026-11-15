@@ -1,6 +1,10 @@
 # PracticaMIA — implementation and release evidence
 
-**Updated:** 14 November 2026. The production checks below used a fictional saved case.
+**Reviewed:** 15 November 2026. The hosted case and document checks used fictional data.
+
+## Deployment snapshot
+
+Vercel alias metadata on 15 November 2026 reported both production services ready at [`53bc1ee`](https://github.com/adembilge/PracticaMIA/commit/53bc1ee02cb177d7f0e60e2542d5786e01b965ba) and both isolated Preview services ready at [`a493d46`](https://github.com/adembilge/PracticaMIA/commit/a493d46bf768d07d196d29789e99d51b3b181a86). The Preview tree matches the [#78](https://github.com/adembilge/PracticaMIA/pull/78) merge tree at `018b70a`. See [deployment configuration](VERCEL_NEON_DEPLOYMENT.md) for the aliases.
 
 ## Verified engineering evidence
 
@@ -14,6 +18,8 @@
 | Production deployment at the time of the Auth0 check | Web and API both reported Ready on [`24ee003`](https://github.com/adembilge/PracticaMIA/commit/24ee003050c13eab6b5ca40e14f7f3ff87a93514). [Web deployment](https://vercel.com/firatadembilge-4729/practicamia/9W8k1ZXLPybxsfCVUXsMUtxU3wh1) · [API deployment](https://vercel.com/firatadembilge-4729/practicamia-api/AAo41VkywCJQk8Ac9J5uA7oumkMu) | Production revision `20261109_0016` was previously recorded on 9 November. The migration revision was outside the 14 November browser check. |
 | Live Auth0 and case isolation | Two distinct authenticated identities verified on 14 November. The owner reopened the fictional case with 5/5 acknowledgements and confirmed successful PDF download. The second account could not list, open or download that case. [Manual run and limitations](ACCEPTANCE_TESTING.md#manual-production-auth0-check) | Covers read access to the selected fictional case and PDF. Write, upload, and reviewer permission paths require separate evidence. |
 | Milan scope alignment | [PR #74](https://github.com/adembilge/PracticaMIA/pull/74) aligns the entry questions with the signed route for moves within Milan and moves into Milan from another Italian municipality. Both paths passed browser acceptance. The production frontend and API reached [`8449440`](https://github.com/adembilge/PracticaMIA/commit/8449440469d79cea48543076cb2204dd23b15f4b). | The post-deployment smoke check covered homepage copy and API health. The full scope scenarios ran in CI. |
+| Staging account navigation and unavailable case screen | PRs [#77](https://github.com/adembilge/PracticaMIA/pull/77) and [#78](https://github.com/adembilge/PracticaMIA/pull/78). The isolated Preview verified the signed-in display name and the signed-out entry point. | Verified on Preview. See deployment snapshot for the production revision. |
+| Hosted synthetic upload and OCR attempt | On 15 November an authenticated fictional PNG uploaded successfully. Extract text returned HTTP 503, and the file remained `not_processed`. [Observed result](ACCEPTANCE_TESTING.md#manual-staging-case-and-document-checks) | Successful synthetic storage only. Exact OCR runtime failure, private multipart upload and the live scanner are unverified. |
 | Official source and AI evaluation preparation | The 14 November review compared public Comune di Milano and ANPR materials, prepared 14 cases with 28 EN/IT inputs, and ran 15 offline scope and quotation checks. The companion review is titled *PracticaMIA Milano MVP kaynak incelemesi ve AI değerlendirme seti*. | Live ANPR form behavior and current upload limit remain unconfirmed. Live model quality was not measured. |
 
 ## Outstanding MVP and release gates
@@ -21,7 +27,7 @@
 | Gate | Remaining acceptance evidence |
 | --- | --- |
 | Bilingual AI evaluation | Run the EN/IT evaluation and record actual answer correctness, citation and source-version validity, and abstention. |
-| Document processing and access controls | Repeat the document acceptance flow in isolated hosted staging with two Auth0 accounts and the intended scanner and OCR runtime. Broaden OCR evaluation beyond the generated acceptance fixtures. The earlier production check covers case and PDF read access. |
+| Document processing and access controls | Diagnose the hosted OCR 503 and retest the stored fictional file. Verify the intended scanner, then run hosted private-document access, review, deletion and expiry checks with two Auth0 accounts under the required release controls. Broaden OCR evaluation beyond the generated fixtures. |
 | Personal-document beta | Keep production uploads disabled until the responsible review and operational checks for privacy, malware scanning, key management, retention/deletion, backup/restore, and monitoring are evidenced. Complete the consented beta and document findings before broader release. [Document vault release checklist](PRIVATE_DOCUMENT_VAULT_RELEASE.md) |
 | Roadmap and release decision | Reconcile the [task registry](TASKS.yaml) against evidence and required approvals. Record staging results, rollback readiness and explicit owner go/no-go under [specification §26](../PracticaMIA_Complete_Project_Specification.md#26-mvp-acceptance-criteria-and-release-gates). |
 

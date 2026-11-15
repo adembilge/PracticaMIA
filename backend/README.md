@@ -15,24 +15,30 @@ Sensitive routes are **disabled by default** and require the appropriate environ
 
 ## Local setup
 
-Requires Python 3.12 and Docker Compose.
+Requires Python 3.12. Docker is used for the optional local PostgreSQL database.
 
 ```bash
 cd backend
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install -e '.[dev]'
-docker compose up -d db
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-The unprotected `GET /health` endpoint is available with private features disabled. For authenticated APIs, populate the settings documented in `.env.example` with real trusted OIDC values and an isolated database. Apply migrations to the **intended non-production database only** after reviewing them:
+The unprotected `GET /health` endpoint starts with private features disabled and needs no database. For a disposable local database with the full migration chain, use the same pgvector image as CI. The plain PostgreSQL service in `compose.yaml` lacks the vector extension required by revision `20261105_0007`. Run the following from `backend/` with local port 5432 free.
 
 ```bash
-alembic -c alembic.ini upgrade head
+docker run --rm -d --name practicamia-local-db -p 127.0.0.1:5432:5432 \
+  -e POSTGRES_DB=practicamia -e POSTGRES_USER=practicamia \
+  -e POSTGRES_PASSWORD=local_development_only pgvector/pgvector:pg17
+docker exec practicamia-local-db pg_isready -U practicamia -d practicamia
+export DATABASE_URL='postgresql+psycopg://practicamia:local_development_only@127.0.0.1:5432/practicamia'
+python -m alembic -c alembic.ini upgrade head
 ```
 
-Setting values in an example file alone does not load them into the process; export them or use a supported environment loader. Never put actual credentials, user identity documents, or private signing keys into Git.
+Wait for PostgreSQL readiness before migrating. To run authenticated APIs, export the case flag and trusted OIDC settings from [`.env.example`](.env.example) and start the API in the configured shell.
+
+Use `docker stop practicamia-local-db` when you no longer need the disposable database. Keep credentials, identity documents and private signing keys out of Git.
 
 ## Validation
 
@@ -41,7 +47,7 @@ cd backend
 python -m pytest -q
 ```
 
-The test suite covers authenticated access, case state, knowledge provenance, retrieval, document review, and preparation behavior using isolated or synthetic inputs. PostgreSQL integration and browser acceptance workflows are also defined under `.github/workflows/`.
+The test suite covers authenticated access, case state, knowledge provenance, retrieval, document review, and preparation. The [acceptance workflow](../docs/ACCEPTANCE_TESTING.md) uses disposable PostgreSQL with pgvector. Image OCR requires a Tesseract executable and both `ita` and `eng` language data. PostgreSQL integration and browser acceptance workflows are also defined under `.github/workflows/`.
 
 ## Project boundaries
 

@@ -3,8 +3,7 @@
 **Evidence class: browser-rendered text observed through the user's connected
 browser, not an original HTTP response or an approved knowledge snapshot.**
 This research note is **not** input to the trusted RAG passage tables. It is
-intended to help a human reviewer reconcile an eventual verified original
-with the current official procedure.
+intended to help a human reviewer reconcile an eventual verified original with the official procedure. For subsequent source work, see [browser evidence capture](../BROWSER_CAPTURE_EVIDENCE.md) and [first-route activation](../MILAN_FIRST_ROUTE_OWNER_REVIEW_ACTIVATION_2026_11_08.md).
 
 ## Browser access result
 
@@ -74,8 +73,7 @@ be presented as universal required documents.
 
 ## Next evidence acquisition step
 
-The 12 other registered FAQ webpages were not opened in the connected
-browser at this review. Their original HTTP contents also remain uncollected.
+The 12 other registered FAQ webpages were outside this session’s browser review.
 
 To ingest official evidence in the current approved-only system:
 

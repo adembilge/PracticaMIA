@@ -49,7 +49,7 @@ The product specification at `PracticaMIA_Complete_Project_Specification.md` is 
 ## Current release constraints (verify afresh)
 
 - A limited, owner-reviewed Milan ruleset and approved source records exist; every trusted instruction still requires a current, integrity-checked citation and explicit support for the saved case.
-- The isolated browser-to-FastAPI acceptance suite passed its synthetic cases; live Auth0 two-account browser sessions and complete production E2E have not been established by that suite.
+- The isolated browser-to-FastAPI suite uses synthetic identities. Separate manual two-account Auth0 checks covered saved-case read isolation in production and scope/PDF isolation in staging. Check `docs/ACCEPTANCE_TESTING.md` for exact coverage and remaining reviewer/document gates.
 - Real-document upload is disabled until independent privacy, malware scanner, key management, retention, backups, and operational reviews pass.
 - The signed administrative rules, user-read checklist, and generated PDF do not establish eligibility, legal-document validity, or submission to a public authority.
 - A backend deployment, database migration, and GitHub merge do not establish that the frontend serves the same revision. Recheck deployment SHA, routing and live sessions before claiming release.
