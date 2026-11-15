@@ -25,6 +25,7 @@ dependencies = [
     "cryptography>=44,<47",
     "Pillow>=11,<13",
     "pytesseract>=0.3.13,<1",
+    "tesserocr==2.10.0; sys_platform == 'linux'",
 ]
 
 [project.optional-dependencies]
@@ -39,6 +40,9 @@ include = ["app*"]
 [tool.setuptools.package-data]
 "app.knowledge" = ["candidate_sources.json"]
 "app.rules" = ["catalog.json"]
+
+[tool.vercel.scripts]
+build = "python build_ocr.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
