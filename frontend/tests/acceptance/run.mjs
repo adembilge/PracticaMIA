@@ -368,9 +368,19 @@ try{
     const id='11111111-1111-4111-8111-111111111111';
     const path='/cases/'+id+'/preparation';
     let unavailable=false;
+    let finishExtraction, finishUpload;
+    const extractionResponse=new Promise(resolve=>{finishExtraction=resolve;});
+    const uploadResponse=new Promise(resolve=>{finishUpload=resolve;});
     await page.route('**/api'+path+'**',async route=>{
       const endpoint=new URL(route.request().url()).pathname;
-      if(endpoint.endsWith('/extract')) return route.fulfill({status:503,json:{}});
+      if(endpoint.endsWith('/extract')){
+        await extractionResponse;
+        return route.fulfill({status:503,json:{}});
+      }
+      if(endpoint.endsWith('/documents')&&route.request().method()==='POST'){
+        await uploadResponse;
+        return route.fulfill({status:201,json:{}});
+      }
       if(endpoint.endsWith('/documents')) return route.fulfill({json:[{
         id,document_type:'fictional_agreement',extraction_status:'not_processed',
         status:'uploaded',candidates:[],confirmed_fields:{},
@@ -390,8 +400,30 @@ try{
     await page.goto(origin+path+'#synthetic-documents');
     await page.getByRole('heading',{name:'Synthetic documents',exact:true}).waitFor();
     assert.equal(await page.getByRole('heading',{name:'Guided intake',exact:true}).isVisible(),false);
-    await page.getByRole('button',{name:'Extract text',exact:true}).click();
+    await page.locator('input[type=file]').setInputFiles({
+      name:'synthetic.pdf',mimeType:'application/pdf',buffer:Buffer.from('synthetic test'),
+    });
+    await page.getByRole('checkbox',{name:'I confirm that this file contains no real personal information'}).check();
+    const uploading=page.getByRole('status').filter({hasText:'Uploading file…'});
+    try{
+      await page.getByRole('button',{name:'Upload',exact:true}).click();
+      await uploading.waitFor();
+      const track=uploading.locator('.document-progress-track');
+      assert.equal(await track.isVisible(),true);
+      await page.emulateMedia({reducedMotion:'reduce'});
+      assert.equal(await track.isVisible(),false);
+      assert.equal(await uploading.isVisible(),true);
+      await page.emulateMedia({reducedMotion:null});
+    }finally{finishUpload();}
+    await page.getByRole('status').filter({hasText:'Synthetic file uploaded.'}).waitFor();
+    await uploading.waitFor({state:'hidden'});
+    const extracting=page.getByRole('status').filter({hasText:'Extracting text…'});
+    try{
+      await page.getByRole('button',{name:'Extract text',exact:true}).click();
+      await extracting.waitFor();
+    }finally{finishExtraction();}
     await page.getByRole('alert').filter({hasText:'Text extraction is unavailable. Your file is saved.'}).waitFor();
+    await extracting.waitFor({state:'hidden'});
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     await page.getByRole('button',{name:'Case details',exact:true}).click();
     await page.getByLabel('Citizenship for this example').selectOption('italian');

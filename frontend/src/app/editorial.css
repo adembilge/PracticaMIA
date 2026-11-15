@@ -100,6 +100,7 @@ input[type=checkbox] { accent-color: var(--forest); }
   animation: editorial-enter .78s .14s var(--ease-out) both;
 }
 .specimen-folder { position: relative; margin-inline: auto; max-width: 480px; }
+.specimen-folder { animation: folder-settle .64s .26s var(--ease-out) both; }
 .specimen-tab { display: flex; align-items: center; gap: 9px; width: fit-content; padding: 9px 15px; background: var(--forest); color: #fffdf4; font-size: 11px; text-transform: uppercase; letter-spacing: .12em; font-weight: 740; border-radius: 5px 13px 0 0; }
 .specimen-paper { position: relative; background: var(--paper); border: 1px solid #c1c7b7; box-shadow: 7px 8px #d2d8c5, 8px 9px #b9c3ae; padding: clamp(16px, 2.5vw, 31px); }
 .specimen-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -108,6 +109,7 @@ input[type=checkbox] { accent-color: var(--forest); }
 .specimen-switch { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); border-bottom: 1px solid #afbaa8; }
 .specimen-switch button { color: var(--muted); background: transparent; border: 0; border-bottom: 2px solid transparent; padding: 8px 4px; font-size: .73rem; line-height: 1.2; font-weight: 720; min-height: 44px; }
 .specimen-switch button[aria-pressed=true] { color: var(--forest); border-bottom-color: var(--forest); background: var(--blue-pale); }
+.specimen-switch button, .specimen-row:is(button) { transition: background-color .2s, color .2s, border-color .2s; }
 .specimen-switch button:hover, .specimen-row:is(button):hover { background: var(--blue-pale); }
 .specimen-body { min-height: 223px; padding-top: 6px; }
 .specimen-view { animation: slide-in .2s var(--ease-out) both; }
@@ -179,6 +181,7 @@ input[type=checkbox] { accent-color: var(--forest); }
 .case-progress button { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; color: var(--ink-2); font-size: .84rem; font-weight: 720; background: transparent; border: 0; width: 100%; text-align: left; min-height: 56px; padding: 8px; }
 .case-progress button:hover { background: #eeeee3; }
 .case-progress button[aria-current=step] { color: var(--forest); background: var(--mint); box-shadow: inset 3px 0 var(--forest); }
+.case-progress button { transition: background-color .22s, color .22s, box-shadow .22s; }
 .case-step-number { font: 17px/1 var(--serif); font-variant-numeric: tabular-nums; color: var(--forest); }
 .case-progress button small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); }
 .case-content { min-width: 0; grid-column: 2 / 4; max-width: 770px; }
@@ -187,7 +190,7 @@ input[type=checkbox] { accent-color: var(--forest); }
 .case-stage-header h2 { font: 400 clamp(37px,4.4vw,63px)/1.03 var(--serif); letter-spacing: -.056em; margin: 5px 0 7px; }
 .case-stage-next { display: flex; align-items: baseline; gap: 5px 12px; flex-wrap: wrap; color: var(--muted); margin: 0; font-size: 14px; }
 .case-stage[hidden] { display: none; }
-.case-stage:not([hidden]), .scope-motion { animation: slide-in .23s var(--ease-out) both; }
+.case-stage:not([hidden]), .scope-motion { animation: slide-in .29s var(--ease-out) both; }
 [data-direction=back] { --slide-start: -8px; }
 .scope-question, .scope-review { background: var(--paper); padding: clamp(20px,4vw,40px); border: 1px solid var(--line); }
 .scope-question h3, .scope-review h3 { font: 400 clamp(28px,3.4vw,47px)/1.12 var(--serif); letter-spacing: -.04em; margin: 10px 0; }
@@ -209,6 +212,9 @@ input[type=checkbox] { accent-color: var(--forest); }
 .case-state[role=alert] { border-left-color: var(--warning); }
 .case-confirmation, .editorial-pending { display: flex; align-items: center; gap: 8px; color: var(--forest); font-size: 13px; }
 .editorial-pending::before { content: ''; width: 13px; height: 13px; border: 2px solid #c6d1c3; border-right-color: var(--forest); border-radius: 50%; animation: pending 1s linear infinite; flex: none; }
+.document-progress { display: grid; gap: 8px; max-width: 22rem; margin-top: 12px; padding: 10px 12px; background: var(--blue-pale); border: 1px solid var(--line); border-radius: 4px; animation: editorial-enter .22s var(--ease-out) both; }
+.document-progress-track { position: relative; overflow: hidden; height: 3px; border-radius: 3px; background: #c6d1c3; }
+.document-progress-track::after { content: ''; position: absolute; inset: 0 auto 0 0; width: 38%; border-radius: inherit; background: var(--forest); animation: document-progress 1.4s ease-in-out infinite; }
 .case-more { border-top: 1px solid var(--line); margin-top: 18px; padding-block: 10px; }
 .case-more summary { cursor: pointer; font-size: 13px; font-weight: 720; }
 .case-settings { margin-top: 36px; color: var(--muted); }
@@ -246,6 +252,8 @@ input[type=checkbox] { accent-color: var(--forest); }
 .package-issues { list-style: none; padding: 0; }
 .package-issues li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 3px 14px; border-top: 1px solid var(--line); padding: 8px 0; font-size: 14px; }
 @keyframes editorial-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes folder-settle { from { opacity: 0; transform: translateY(10px) rotate(-1.25deg); } to { opacity: 1; transform: none; } }
+@keyframes document-progress { from { transform: translateX(-100%); } to { transform: translateX(265%); } }
 @keyframes slide-in { from { opacity: 0; transform: translateX(var(--slide-start, 8px)); } to { opacity: 1; transform: none; } }
 @keyframes sheet-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes pending { to { transform: rotate(360deg); } }
@@ -298,7 +306,8 @@ input[type=checkbox] { accent-color: var(--forest); }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .editorial-intro > *, .specimen-stage, .specimen-view, .case-stage, .scope-motion, .case-detail, .editorial-pending::before { animation: none !important; }
+  .editorial-intro > *, .specimen-stage, .specimen-folder, .specimen-view, .case-stage, .scope-motion, .case-detail, .editorial-pending::before, .document-progress, .document-progress-track::after { animation: none !important; }
+  .document-progress-track { display: none; }
   .button { transition: none; }
 }
 

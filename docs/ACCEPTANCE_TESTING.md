@@ -39,7 +39,7 @@ The dedicated GitHub Actions workflow
 | A5 | Edited intake outside the route blocks draft; restored facts need fresh review marks | Chromium + real FastAPI + PostgreSQL |
 | A6 | Unsupported or uncertain initial answers cannot export | Chromium + real FastAPI + PostgreSQL |
 | A7 | Italian language uses the same verified case state and downloadable draft decisions | Chromium + real FastAPI + PostgreSQL |
-| Preparation Preview | Mobile deep link, 503 feedback, back navigation, draft retention and load retry | Chromium with stubbed preparation responses |
+| Preparation Preview | Mobile deep link, upload and OCR waiting states, reduced motion, 503 feedback, back navigation, draft retention and load retry | Chromium with stubbed preparation responses |
 | A8 | No uncaught browser runtime errors | Chromium |
 | D1 | Explicit acknowledgement required, malformed uploads rejected, scanner outage/checksum/control verdict rejected, browser retry works | Chromium + real ClamAV with a harmless test signature + FastAPI + PostgreSQL |
 | D2 | Extract PDF fields, reject stale review, block PDF while a confirmed field conflicts, correct it and reopen the saved review | Chromium + FastAPI + PostgreSQL |
@@ -100,6 +100,8 @@ The manual check covers live Auth0 sign-in, saved-case persistence and read isol
 | 15 Nov 2026 | On [isolated Preview `90abb8b`](https://github.com/adembilge/PracticaMIA/commit/90abb8bae6a98986b39ca9581276e0570319ff1c), the same stored PNG moved to **Fields to confirm** after **Extract text**. The expected address `Via Esempio Fittizia 10 Milano` appeared twice as a page 1 candidate and persisted on reopening. | One hosted synthetic PNG passed extraction. Duplicate suggestions remain visible. Hosted private vault, scanner, JPEG, and scanned PDF checks remain open. |
 
 The synthetic preparation route has its own extractor and storage. It does not call the private vault scanner. The [private-document release checklist](PRIVATE_DOCUMENT_VAULT_RELEASE.md) covers the scanner and vault acceptance.
+
+On [isolated Preview `1c89f6f`](https://github.com/adembilge/PracticaMIA/commit/1c89f6f7172724d2e75c9cd5e3189a6fc57abea2), the owner uploaded a synthetic JPEG and an image-only PDF. Each returned one page-one address candidate for the expected fictional address. The field and document reviews persisted after reload. The case PDF action remained available and completed without a visible error. The browser did not verify a newly saved file on this repeat. The earlier owner-confirmed PDF download applies to the saved case draft. See the [package documentation](CASE_PREPARATION_EXPORT.md) for the separate private-document review path.
 
 See the [15 November repeat and bilingual evaluation](MILAN_MVP_ACCEPTANCE_2026_11_15.md) for desktop and 390 px PDF observations, the open Auth0 isolation repeat and the live assistant results.
 
