@@ -7,9 +7,7 @@ confirmed set of facts supporting the **reviewed first-route decision
 conditions**. The canonical facts are stored in a dedicated, case-owner-scoped
 database row; they are not inferred from chat messages or document OCR.
 
-This milestone is the next stage of the MVP, **not a full real-person intake**.
-Until the identity-document privacy release is approved, the UI explicitly
-asks for **fictional example data**. Names, street addresses, tax IDs,
+The saved-case UI asks for **fictional example data**. Names, street addresses, tax IDs,
 passport numbers, free-text notes, document bytes and arbitrary JSON fields
 are never accepted by these endpoints. The move-in date is optional and does
 not trigger any legal deadline calculation.
@@ -40,7 +38,7 @@ citizenship or that every rental agreement is registered.**
   writes and bounds request bodies. The browser receives no API token.
 - Saved values are tagged as `user_entered`, with either `draft` or
   `user_confirmed` verification state.
-- Scope edits **delete** downstream intake, preventing stale confirmations.
+- Changed scope answers clear downstream intake and review marks.
 - Case deletion also deletes the corresponding intake row.
 - Review, correction, save, resume, and erase are available in English and
   Italian in the saved-case workspace.
@@ -49,22 +47,9 @@ citizenship or that every rental agreement is registered.**
 - No new prompts, LLM requests, official submissions, attachment requirements,
   or authorization to upload identity documents are introduced.
 
-## Operational sequencing
+## Persistence and downstream use
 
-1. GitHub Actions CI must pass backend PostgreSQL migration tests, frontend
-   unit tests, types, and Next.js build. **No direct Vercel calls or builds.**
-2. Apply additive Alembic `20261109_0014` on a disposable Neon clone.
-   Preserve existing cases, approved sources and document-vault schema.
-3. Create a recovery branch and apply the migration to production through
-   Neon's native SQL interface; do not copy staging data.
-4. Merge GitHub PR after all available CI checks pass.
-5. **Deployment remains separate.** The existing production URL is hosted
-   by Vercel; pushing code to GitHub does not establish a successful
-   deployment. With Vercel use prohibited by the operator, do not claim
-   that the new code is live unless independently verified.
-6. Real-life address fields and documents should be added only with
-   appropriate privacy, secure storage and deletion controls; detailed
-   rules/checklist wiring is the subsequent milestone.
+Revision `20261109_0014` introduces case intake. Revision `20261109_0016` adds acknowledgement state on the same row. The [checklist](REVIEWED_CASE_CHECKLIST.md), [case workflow](UNIFIED_CASE_WORKFLOW.md) and [draft export](CASE_PREPARATION_EXPORT.md) use confirmed intake. Use the [deployment runbook](VERCEL_NEON_DEPLOYMENT.md) for environment and schema checks.
 
 ## Acceptance tests
 

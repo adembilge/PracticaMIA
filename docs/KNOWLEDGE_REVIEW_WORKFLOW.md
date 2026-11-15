@@ -75,18 +75,17 @@ The API exposes **read-only** audit history. Application code does not modify or
 
 ## Staged rollout and operational checklist
 
-- [ ] Review and merge the feature branch after GitHub CI passes.
 - [ ] Confirm backups or a tested Neon restore point; test on a disposable Neon branch.
-- [ ] Apply migrations `20261104_0003`, `20261105_0004`, then `20261105_0005` in order.
-- [ ] Register only curated official candidate metadata and ingest faithful, permitted HTML snapshots after confirming site usage conditions.
+- [ ] Verify the isolated target schema against the reviewed release. The registry, snapshots and review events originated in revisions `0003`–`0005`.
+- [ ] Register curated official candidate metadata and use the [source intake runbook](OFFICIAL_SOURCE_INTAKE.md) for acquisition.
 - [ ] Test the queue, preview, hash mismatch, reviewer denied, approval, revocation and audit history with *synthetic fixtures*.
 - [ ] Provision the exact trusted reviewer Auth0 `sub` allowlist and enable backend flags only after verification.
 - [ ] Independently review each acquired official snapshot before approving; no bulk automatic approval.
-- [ ] Verify that the user-facing approved catalog contains **zero** sources until actual human approval, and hides changed or revoked sources.
+- [ ] Verify the selected approved catalog includes only currently approved versions and hides changed or revoked sources.
 - [ ] Monitor access, audit changes, restore capability, failures and permissions.
 
-Do not run migrations or enable reviewer endpoints in production as part of merging this PR. The production application can continue its synthetic-case workflow without any knowledge flags.
+Keep reviewer access scoped to Preview. The production example journey may consume read-only approved evidence without enabling reviewer endpoints.
 
-## Follow-up
+## Downstream use
 
-The follow-up [approved-passage lexical search](APPROVED_PASSAGE_SEARCH.md) adds PostgreSQL full-text indexing, jurisdiction/procedure/version filters and exact resolvable citation IDs. pgvector and hybrid retrieval can follow once human-reviewed evidence fixtures and retrieval evaluations exist.
+[Lexical passage search](APPROVED_PASSAGE_SEARCH.md) and [pgvector indexing](APPROVED_EMBEDDING_INDEXING.md) consume only active, integrity-verified approved evidence. Review decisions neither generate vectors nor measure answer quality. See [retrieval evaluation](RETRIEVAL_EVALUATION.md).

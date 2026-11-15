@@ -14,7 +14,7 @@ npm run dev
 
 Visit `http://localhost:3000`. The initial page can render without external credentials; protected case operations require Auth0 and an accessible FastAPI service.
 
-Copy the variable names from `.env.example` into your local environment and configure only the services you intend to use. Auth0 secrets and backend access tokens must stay server-side. Do not enable restricted document or administrative-review features without their corresponding backend safeguards.
+Copy [`.env.example`](.env.example) to `.env.local` if you need local Auth0 and backend access, then supply the authorized development values. The frontend allows loopback HTTP for local APIs and uses HTTPS for remote APIs. Auth0 secrets and backend access tokens must stay server-side. Do not enable restricted document or administrative-review features without their corresponding backend safeguards.
 
 ## Checks
 
@@ -24,13 +24,15 @@ npm run typecheck
 npm run build
 ```
 
-GitHub Actions also exercises a browser-based acceptance suite in an isolated environment.
+The [frontend CI workflow](../.github/workflows/frontend-ci.yml) runs a built-server HTTP smoke test. The [browser acceptance suite](../docs/ACCEPTANCE_TESTING.md) uses a separate local harness.
 
 ## Architecture
 
 - `src/app/` — routes and server-side API proxies.
 - `src/components/` — reusable case, document, assistant, and layout components.
 - `src/lib/` — authentication configuration, request validation, state helpers, and domain clients.
+- `src/app/globals.css` and `src/app/editorial.css` — shared styles and the editorial UI.
+- `src/lib/i18n.ts` — English and Italian interface copy.
 - `tests/` — unit and browser acceptance infrastructure.
 
 The Next.js server obtains authorized backend access tokens; the browser does not receive raw API bearer credentials. For backend setup and environmental safeguards, see [backend documentation](../backend/README.md) and [the project overview](../README.md).

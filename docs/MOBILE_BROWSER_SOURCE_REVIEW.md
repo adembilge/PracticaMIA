@@ -29,8 +29,7 @@ reviewer who cannot conveniently approve 12 source versions one at a time.
 
 ## Preview-only configuration
 
-1. Point a preview backend to **Neon isolated staging**, migrated to
-   `20261105_0009`; never connect review to the production DB.
+1. Point the Preview backend to **isolated Neon staging** at the reviewed deployment’s schema. See [deployment configuration](VERCEL_NEON_DEPLOYMENT.md#isolated-preview).
 2. Configure existing Auth0 verification variables:
    `AUTH_ISSUER`, `AUTH_AUDIENCE`, `AUTH_JWKS_URL`.
 3. Set backend preview `ENABLE_DEMO_CASE_API=1`,
@@ -43,25 +42,12 @@ reviewer who cannot conveniently approve 12 source versions one at a time.
    `BACKEND_API_URL` pointing to that preview backend, and
    `ENABLE_REVIEW_UI=1`.
 5. Open `/knowledge/review` on a phone, sign in as an allowlisted
-   reviewer, inspect the excerpts and linked official pages, select the
-   reviewed articles, enter a rationale and explicitly attest correctness
-   before submitting the batch. This is not a blind approval control.
+   reviewer, open the full verified article for each source, compare it with the linked official page, select the articles actually reviewed, then enter a rationale and attest before submitting.
 6. Verify each `knowledge_review_events` record contains the correct
    authenticated actor subject, source hash and review reason.
 
-Do not set preview review flags on Vercel production; deployment and live
-Auth0 round-trip have not yet been verified. When Vercel deployment limits
-prevent a fresh preview, the UI remains untested live even if CI succeeds.
+The [hosted case acceptance record](ACCEPTANCE_TESTING.md#manual-staging-case-and-document-checks) covers ordinary case operations. Use the [authenticated Preview runbook](AUTHENTICATED_PREVIEW_E2E_RUNBOOK.md) for reviewer and non-reviewer authorization evidence.
 
 ## Content scope
 
-The staging batch has 12 Comune di Milano FAQ captures with page dates
-ranging from 2025–2026. The queue is not proof they are currently legally
-applicable. Review the exact text and any newer conflicting municipal forms.
-The 2013 historical Allegato A remains pending for independent verification.
-The two initially open source pages were not in the 12-record capture batch.
-
-The user requested bulk approval in chat. That is a **product request and
-instruction to assist**, not an Auth0 reviewer login. Neither this tool nor
-the assistant should fabricate a verified reviewer identity or create
-fake approval audit entries directly in SQL.
+Use the live queue to see pending captures in the selected environment. The [5 November observations](research/BROWSER_OBSERVED_MILANO_RESIDENCE_2026_11_05.md) record the initial source discovery. Review the exact text and check for newer or conflicting official forms before approving a version.

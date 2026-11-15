@@ -26,10 +26,8 @@
 - Backend tests: authenticated owner isolation, missing intake, user confirmation, five signed actions, invalidation on scope edits, unsupported tenancy, citation revocation, malicious URL and public-key signature tampering.
 - Frontend tests: five expected rule IDs, version and URL allowlists, no invented attachment categories, no malicious citation URL, and blocked states with no instructions.
 - Browser acceptance covers the supported move within Milan, correction of a saved answer for a move into Milan from another Italian municipality, and rejection of a destination outside Milan.
-- Both GitHub Actions test/build pipelines must pass. No Vercel testing, sandbox or deployment requests.
-- The endpoint reads the existing `20261109_0014` Neon schema; **no new database migration**.
-- Merging on GitHub does **not** prove the current Vercel-hosted production website has deployed this code. Browser E2E and a separate production release remain necessary.
+- The checklist reads typed intake introduced by `20261109_0014`. The integrated journey stores read acknowledgements using the later `20261109_0016` migration. See [acceptance evidence](ACCEPTANCE_TESTING.md) for what was tested in CI and on hosted environments.
 
-## Beyond this milestone
+## User review marks
 
-Checklist action state is **not yet persisted as user-completed**. These are source-backed actions presented for manual review, not a completed application checklist or a generated package. A later milestone should add owner-controlled progress with reset on facts/rules/source changes and complete document-review and package-generation steps.
+The [unified case workflow](UNIFIED_CASE_WORKFLOW.md) persists user read acknowledgements against confirmed facts and current evidence. The signed actions keep their `needs_user` state. The [downloadable draft](CASE_PREPARATION_EXPORT.md) has separate readiness checks.

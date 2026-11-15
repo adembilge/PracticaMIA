@@ -4,6 +4,10 @@
 
 Use a short-lived branch for a scoped change and open a pull request to `main`. Keep production and review-only feature flags separate. Do not infer that a GitHub merge automatically updates a live deployment.
 
+## GitHub branch protection
+
+The owner can configure an Active ruleset for the default branch in [repository settings](https://github.com/adembilge/PracticaMIA/settings/rules). Require a pull request, block force pushes and branch deletion, and use unique check names from actual runs. A solo maintainer can set zero required approvals if that matches their review practice. Match path-filtered workflows to the changes that trigger them so an absent check cannot block unrelated PRs. Vercel Preview checks tell you about deployment builds. Review GitHub Actions results and release evidence independently.
+
 ## Required checks
 
 - **Backend:** `python -m pytest -q` and PostgreSQL migration smoke checks.

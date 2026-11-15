@@ -16,12 +16,9 @@ the available retrieval service failed with **HTTP 403**. The search index can
 help discover and triage pages, but **cannot be treated as an original HTML
 snapshot or evidence of successful ingestion**.
 
-Neon staging `staging-knowledge-0003-0006-2026-11-05` now has **17**
-candidate source records, up from four. All remain `candidate`, with no active
-version. On 5 November 2026, one user-uploaded 2013 Allegato A PDF was
+On 5 November, Neon staging `staging-knowledge-0003-0006-2026-11-05` held **17** source records, up from four. All were `candidate` with no active version. On 5 November 2026, one user-uploaded 2013 Allegato A PDF was
 stored as a **pending-review** version and raw snapshot with **three** extracted
-passages; **zero** approval events. See [Allegato A import](ALLEGATO_A_STAGING_INGESTION.md). Production remains on Alembic
-`20261104_0002` without the knowledge tables.
+passages; **zero** approval events. See [Allegato A import](ALLEGATO_A_STAGING_INGESTION.md). Production was then at Alembic `20261104_0002`.
 
 The thirteen new source records (ten service/FAQ pages and three PDF leads) are version-controlled in
 `backend/app/knowledge/candidate_sources.json`. The existing four records

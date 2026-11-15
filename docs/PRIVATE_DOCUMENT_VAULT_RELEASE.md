@@ -37,9 +37,7 @@ merge **do not** activate private uploads.
 - No official submission or eligibility inference is performed.
 
 ## Prerequisites BEFORE enabling real users
-1. Execute additive Alembic migration `20261109_0013` on an isolated
-   production clone and test preservation of cases; then snapshot and
-   apply to production. Never copy Preview applicants or test document bytes.
+1. The vault begins at Alembic `20261109_0013` and encrypted review at `20261109_0015`. Verify the target schema against the release SHA. Rehearse any required migration on an isolated clone and keep a recovery point before an authorized production change. Keep Preview records and test document bytes isolated.
 2. Obtain **independent operator/legal privacy review**: verify controller
    identity, lawful basis, processor/subprocessor contracts and DPA,
    data residency/transfers, backup erasure windows, access/deletion rights,

@@ -4,11 +4,11 @@
 
 The project owner explicitly stated on 8 November 2026: **"ok approved i reviewed the six proposed rules; finish remaining"**.
 This is an owner-provided review attestation in ChatGPT, **not an Auth0 rules-approval audit event and not a government approval**.
-The owner separately approved the exact 29-page public ANPR documentation version in the dedicated Auth0 review screen on 7 November 2026 at 23:50:57 UTC, using subject `google-oauth2|113439370376814005256`; that source's approval is independently recorded in Neon with a review audit event.
+The owner separately approved the exact 29-page public ANPR documentation version in the dedicated Auth0 review screen on 7 November 2026 at 23:50:57 UTC; that source's approval is independently recorded in Neon with a review audit event.
 
 Only the first P0 scope is covered: one adult Italian citizen already registered in Italy, moving alone into **Comune di Milano** without family aggregation and as named holder of a **registered private residential rental contract**.
 All other pathways must remain unsupported or request more information.
-This is **synthetic-data-only Preview**, not a live legal advice service and not an official ANPR submission client.
+The activation described here used synthetic Preview cases. The [signed checklist](REVIEWED_CASE_CHECKLIST.md) documents the integrated saved-case behavior.
 
 The owner-reviewed rules are the six entries in
 `requirements/milan-residence-change/italian_individual_registered_rental_candidate_v3_approved_evidence.json`.
