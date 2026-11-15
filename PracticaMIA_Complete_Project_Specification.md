@@ -215,14 +215,14 @@ The implemented first route exports a [reviewable draft](docs/CASE_PREPARATION_E
 
 | Feature | User-facing behavior | Main implementation |
 |---|---|---|
-| Account and profile | Secure sign-in, relevant profile details | FastAPI, PostgreSQL, auth |
+| Account and profile | Secure sign-in and account navigation | Auth0, Next.js session, FastAPI token checks |
 | Case creation | Explain objective, open a new case | Intent analysis, case API |
 | Procedure identification | Identify supported route or flag uncertainty | Verified rules, agent |
 | Conversational intake | Ask targeted, contextual questions | LangGraph, typed forms |
 | Official-source research | Explain requirements with citations | Hybrid RAG, source registry |
 | Personalized checklist | Show required and conditional actions | Rules evaluator, checklist service |
 | Document upload | Privately attach documents | File validation, storage |
-| Document intelligence | Extract fields and request confirmation | PDF/OCR, LLM extraction |
+| Document intelligence | Propose typed fields for user confirmation | Local PDF/OCR and deterministic extraction |
 | Cross-document validation | Highlight conflicting details | Deterministic validators |
 | Application preparation | Prepare selected form fields and attachments | Templates, approved data |
 | Progress and persistence | Resume unfinished cases | PostgreSQL, checkpoints |
@@ -336,8 +336,9 @@ A **single stateful LangGraph agent plus narrowly scoped tools** is the default.
 
 ```mermaid
 flowchart TB
-    UI[Next.js interface] --> API[FastAPI backend]
-    API --> AUTH[Authentication and authorization]
+    UI[Next.js UI and server proxy] --> API[FastAPI backend]
+    UI --> AUTH[Auth0 session]
+    API --> AUTHZ[Token and ownership checks]
     API --> CASE[Case management]
     API --> AGENT[LangGraph agent service]
     API --> DOC[Private document service]
@@ -349,7 +350,7 @@ flowchart TB
     SEARCH --> DB[(PostgreSQL + pgvector + text search)]
     RULES --> DB
     CASE --> DB
-    DOC --> FILES[(Private encrypted file storage)]
+    DOC --> DB
     INGEST[Controlled official-source ingestion] --> DB
     EVAL[Evaluation and CI] --> API
     EVAL --> AGENT
@@ -381,7 +382,8 @@ flowchart TB
 
 ## 9.4 Environments
 
-`development`: local Docker Compose, synthetic data, mocked model where possible.  
+`development`: local FastAPI and Next.js, synthetic data and a disposable PostgreSQL instance when needed.
+
 `test/CI`: disposable PostgreSQL, deterministic fixtures, isolated file storage.  
 `staging`: representative deployment with synthetic or expressly approved test data.  
 `production`: restricted access, secure secrets, backup/restore, alerting, minimized logs, approved knowledge versions.
@@ -554,13 +556,12 @@ Retrieval-Augmented Generation provides the agent with relevant, current-as-revi
 flowchart LR
     A[Candidate official pages and PDFs] --> B[Authority and access review]
     B --> C[Content extraction]
-    C --> D[Structure-aware chunking]
-    D --> E[Embedding generation]
-    E --> F[(pgvector index)]
-    D --> G[(PostgreSQL full-text index)]
-    C --> H[Versioned source snapshots]
-    H --> I[Human review and approval]
-    I --> J[Approved searchable corpus]
+    C --> D[Versioned snapshots and passages]
+    D --> E[Human review and approval]
+    E --> F[Approved corpus]
+    F --> G[Lexical retrieval]
+    F --> H[Explicit embedding batch]
+    H --> I[(pgvector)]
 ```
 
 ### Runtime retrieval
@@ -585,9 +586,9 @@ flowchart LR
 3. **Parsing:** Extract titles, heading hierarchy, tables/lists where possible, attachment links, and section anchors.
 4. **Normalization:** Preserve administrative terminology and exact identifiers; avoid transforming legal meaning.
 5. **Chunking:** Split by heading/section and semantic coherence, with stable passage IDs and context metadata.
-6. **Embedding:** Create vectors with a configured model; record embedding model and version.
-7. **Indexing:** Maintain pgvector similarity search and PostgreSQL full-text search; optionally store lexical variants.
-8. **Review:** Review source provenance, conflicting statements, and approval status; mark updated content pending review.
+6. **Review:** An authorized human checks the exact source version and its provenance, scope and conflicting statements. Updated content starts pending review.
+7. **Embedding:** After approval, index eligible public passages through the [explicit staging batch](docs/APPROVED_EMBEDDING_INDEXING.md). Record the model and version.
+8. **Retrieval:** Apply approval, version and integrity checks to full-text results and any pgvector results.
 9. **Versioning and reindexing:** Detect changed content; retain old versions for audit but exclude revoked versions from trusted retrieval.
 
 ## 12.4 Metadata model
@@ -596,7 +597,7 @@ Every chunk should include: `source_id`, `source_version_id`, `passage_id`, `ins
 
 ## 12.5 Retrieval approach
 
-Use **hybrid retrieval** because official material mixes semantically related explanations with exact administrative terms and document names. Candidate flow:
+The current Preview assistant uses approved topic passages and lexical retrieval. The hybrid helper supports explicit query vectors. The candidate flow below describes optional vector retrieval and reranking; see [the implementation notes](docs/CASE_AWARE_AI_GUIDANCE.md#authenticated-preview-chat).
 
 1. Determine known procedure, jurisdiction, and language from verified case state.
 2. Enforce source approval, applicability, and active version filters **before** ranking trusted results.
@@ -880,7 +881,7 @@ Version: rulesets, procedures, official source snapshots, form templates, embedd
 
 ## 19.1 Proposed endpoints
 
-The following route names are illustrative and may be refined when contracts are approved.
+The table is a proposed design. For implemented routes use the [Auth0 integration](docs/AUTHENTICATION_INTEGRATION.md), [saved-case workflow](docs/UNIFIED_CASE_WORKFLOW.md), and [private document intelligence](docs/PRIVATE_DOCUMENT_INTELLIGENCE.md) references.
 
 | Method | Endpoint | Purpose |
 |---|---|---|
@@ -1049,7 +1050,7 @@ Design processes for transparent collection, export, access, correction, restric
 - Submission-state honesty: zero cases where UI claims government confirmation without evidence.
 - Source revocation: affected trusted retrieval results and rules stop being used as current.
 - Document extraction: field-specific targets set after representative fixtures and a realistic error baseline exist.
-- Agent performance: publish actual measured results with confidence intervals/sample sizes where useful; do not invent a "94% accuracy" target/result for CV use.
+- Agent performance: publish actual measured results with confidence intervals/sample sizes where useful; report accuracy only when it is measured on a defined evaluation set.
 
 ## 21.4 Evaluation methodology
 
@@ -1073,7 +1074,7 @@ Most tests should not depend on real LLM APIs, live government sites, or paid to
 
 # 22. Ten cross-functional test scenarios
 
-The previously developed PaperPilot test collection remains useful under the new **PracticaMIA** brand. Rename the scenarios in the repository without changing their behavioral intent. The existing files can be placed under `evals/scenarios/`.
+These scenarios define product acceptance intent. Run the [implemented acceptance suite](docs/ACCEPTANCE_TESTING.md) and use [progress and blockers](docs/PROGRESS.md) to see which outcomes have evidence.
 
 | Scenario | Test focus | Key positive / negative outcomes |
 |---|---|---|
