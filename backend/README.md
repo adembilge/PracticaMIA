@@ -47,7 +47,7 @@ cd backend
 python -m pytest -q
 ```
 
-The test suite covers authenticated access, case state, knowledge provenance, retrieval, document review, and preparation. The [acceptance workflow](../docs/ACCEPTANCE_TESTING.md) uses disposable PostgreSQL with pgvector. Image OCR requires a Tesseract executable and both `ita` and `eng` language data. PostgreSQL integration and browser acceptance workflows are also defined under `.github/workflows/`.
+The test suite covers authenticated access, case state, knowledge provenance, retrieval, document review, and preparation. The [acceptance workflow](../docs/ACCEPTANCE_TESTING.md) uses disposable PostgreSQL with pgvector. Local image OCR uses a Tesseract executable with `ita` and `eng` language data. The isolated Vercel preview bundles those languages at build time via `build_ocr.py` and runs Tesseract through the Linux `tesserocr` wheel. PostgreSQL integration and browser acceptance workflows are also defined under `.github/workflows/`.
 
 ## Project boundaries
 

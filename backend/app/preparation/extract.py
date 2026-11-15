@@ -2,7 +2,7 @@
 
 Only available in isolated, synthetic-only preview. No document text goes to
 an LLM, and extracted text is never an approved case fact without user action.
-For images, OCR requires a separately installed Tesseract executable.
+Image OCR uses Tesseract with Italian and English language data.
 """
 from __future__ import annotations
 
@@ -10,10 +10,14 @@ from contextlib import closing
 from io import BytesIO
 from math import isfinite
 import re
+import subprocess
+import sys
 from threading import Lock
 from time import monotonic
 
 from pypdf import PdfReader
+
+from app.preparation.ocr_worker import TESSDATA_DIR
 
 MAX_FILE_BYTES = 2 * 1024 * 1024
 MAX_PAGES = 15
@@ -61,6 +65,20 @@ def validate_document(content: bytes, media_type: str) -> None:
 
 
 def _ocr_image(image, *, timeout: float = OCR_TIMEOUT) -> str:
+    if TESSDATA_DIR.is_dir():
+        buffer = BytesIO()
+        with image.convert("RGB") as rgb:
+            rgb.save(buffer, format="PNG")
+        try:
+            result = subprocess.run(
+                [sys.executable, str(TESSDATA_DIR.with_name("ocr_worker.py"))],
+                input=buffer.getvalue(), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                timeout=timeout, check=True,
+            )
+            return result.stdout.decode("utf-8")
+        except (OSError, subprocess.SubprocessError, UnicodeError) as exc:
+            raise ExtractionUnavailable("Bundled OCR did not complete") from exc
+
     try:
         import pytesseract
     except ImportError as exc:
