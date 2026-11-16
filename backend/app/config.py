@@ -14,6 +14,10 @@ class Settings:
     enable_preparation_api: bool = False
     enable_agent_history_api: bool = False
     enable_private_document_api: bool = False
+    private_document_fixture_mode: bool = False
+    private_document_fixture_subject_hashes: str = ""
+    private_document_fixture_file_hashes: str = ""
+    deployment_git_branch: str = ""
     private_document_key: str = ""
     private_document_scan_url: str = ""
     private_document_scan_host: str = ""
@@ -57,6 +61,10 @@ class Settings:
             in {"1", "true", "yes"},
             enable_private_document_api=environ.get("ENABLE_PRIVATE_DOCUMENT_API", "").lower()
             in {"1", "true", "yes"},
+            private_document_fixture_mode=environ.get("PRIVATE_DOCUMENT_FIXTURE_MODE") == "1",
+            private_document_fixture_subject_hashes=environ.get("PRIVATE_DOCUMENT_FIXTURE_SUBJECT_HASHES", ""),
+            private_document_fixture_file_hashes=environ.get("PRIVATE_DOCUMENT_FIXTURE_FILE_HASHES", ""),
+            deployment_git_branch=environ.get("VERCEL_GIT_COMMIT_REF", ""),
             private_document_key=environ.get("PRIVATE_DOCUMENT_KEY", ""),
             private_document_scan_url=environ.get("PRIVATE_DOCUMENT_SCAN_URL", ""),
             private_document_scan_host=environ.get("PRIVATE_DOCUMENT_SCAN_HOST", ""),

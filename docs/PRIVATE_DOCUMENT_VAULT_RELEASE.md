@@ -92,14 +92,10 @@ both language files.
 
 ### Hosted staging prerequisites
 
-- The existing authenticated preparation preview accepts synthetic files and
-  can exercise the image OCR code. Its uploads do not traverse the private
-  vault malware scanner, and the frontend private vault currently requires
-  production configuration.
-- Use an isolated, non-production database and a synthetic-only deployment for
-  hosted vault validation. Constrain test uploads to approved fixtures before
-  exposing any hosted staging route. Keep the real-document release gate
-  disabled while validating the staging setup.
+- Use the branch- and account-scoped, fixture-only mode documented in the
+  [Milan P0 acceptance record](MILAN_P0_ACCEPTANCE.md#private-vault-fixture-only-preview).
+  The authenticated synthetic preparation preview still uses its own extractor
+  and storage. Its upload results do not establish a pass for the vault scanner.
 - Configure a private HTTPS scanner that authenticates the request and returns
   its independently computed SHA-256 alongside an explicit verdict. Confirm
   rejection on an unavailable scanner, a mismatched checksum and a harmless

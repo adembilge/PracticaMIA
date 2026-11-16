@@ -27,10 +27,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         return response
     if settings.enable_private_document_api:
-        from app.private_documents.security import validate_release_settings
-        # The operator must approve a reviewed notice, configure an external
-        # malware scanner, cron credential, and a separate encryption key.
+        from app.private_documents.security import fixture_hashes, validate_release_settings
+
         api.state.private_document_key = validate_release_settings(settings)
+        api.state.private_document_fixture_subjects = None
+        api.state.private_document_fixture_files = None
+        if settings.private_document_fixture_mode:
+            api.state.private_document_fixture_subjects = fixture_hashes(
+                settings.private_document_fixture_subject_hashes
+            )
+            api.state.private_document_fixture_files = fixture_hashes(
+                settings.private_document_fixture_file_hashes
+            )
     if settings.enable_agent_history_api and not settings.enable_preparation_api:
         raise ValueError("Agent history requires isolated preparation Preview")
     if settings.enable_preparation_api:

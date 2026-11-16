@@ -18,13 +18,13 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.auth.tokens import Principal, get_principal
+from app.auth.tokens import Principal
 from app.cases.router import get_case
 from app.cases.intake_model import CaseIntake
 from app.database import get_session
 from app.preparation.extract import DocumentRejected, ExtractionUnavailable
 from app.private_documents.model import PrivateCaseDocument
-from app.private_documents.security import open_bytes, seal_bytes
+from app.private_documents.security import open_bytes, require_vault_principal, seal_bytes
 from app.private_documents import intelligence as intel
 
 def _now():
@@ -33,7 +33,7 @@ def _now():
 
 router = APIRouter(
     prefix="/api/v1/cases", tags=["private-document-intelligence"],
-    dependencies=[Depends(get_principal)],
+    dependencies=[Depends(require_vault_principal)],
 )
 
 
@@ -122,7 +122,7 @@ def _response(db: Session, doc: PrivateCaseDocument, key: bytes) -> JSONResponse
 def get_document_intelligence(
     case_id: UUID, document_id: UUID, request: Request,
     db: Session = Depends(get_session),
-    principal: Principal = Depends(get_principal),
+    principal: Principal = Depends(require_vault_principal),
 ):
     doc = _document(db, case_id, document_id, principal.subject)
     return _response(db, doc, request.app.state.private_document_key)
@@ -132,7 +132,7 @@ def get_document_intelligence(
 def extract_private_document(
     case_id: UUID, document_id: UUID, request: Request,
     db: Session = Depends(get_session),
-    principal: Principal = Depends(get_principal),
+    principal: Principal = Depends(require_vault_principal),
 ):
     doc = _document(db, case_id, document_id, principal.subject, lock=True)
     if doc.category != "housing_document":
@@ -170,7 +170,7 @@ def confirm_private_document_review(
     case_id: UUID, document_id: UUID, payload: ConfirmReview,
     request: Request,
     db: Session = Depends(get_session),
-    principal: Principal = Depends(get_principal),
+    principal: Principal = Depends(require_vault_principal),
 ):
     doc = _document(db, case_id, document_id, principal.subject, lock=True)
     if doc.category != "housing_document" or payload.confirm is not True:

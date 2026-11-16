@@ -5,8 +5,18 @@ export const PRIVATE_DOCUMENT_CATEGORIES = Object.freeze([
   'housing_document', 'identity_document', 'other_supporting_document',
 ]);
 
+export function privateDocumentFixtureMode(env) {
+  return env.VERCEL_ENV === 'preview' &&
+    env.VERCEL_GIT_COMMIT_REF === 'preview/auth-review-isolated' &&
+    env.ENABLE_PRIVATE_DOCUMENT_UI === '1' &&
+    env.PRIVATE_DOCUMENT_FIXTURE_MODE === '1' &&
+    env.BACKEND_API_URL === 'https://practicamia-api-git-preview-auth-rev-599637-firatadembilge-4729.vercel.app';
+}
+
 export function privateDocumentsUiEnabled(env) {
-  return env.VERCEL_ENV === 'production' &&
+  if (privateDocumentFixtureMode(env)) return true;
+  return env.PRIVATE_DOCUMENT_FIXTURE_MODE !== '1' &&
+    env.VERCEL_ENV === 'production' &&
     env.ENABLE_PRIVATE_DOCUMENT_UI === '1' &&
     env.PRIVATE_DOCUMENT_PRIVACY_APPROVED === '1' &&
     Boolean(env.PRIVATE_DOCUMENT_CONTROLLER?.trim()) &&

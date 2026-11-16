@@ -24,6 +24,8 @@ Vercel alias metadata on 15 November 2026 reported both production services read
 | Official source and AI evaluation preparation | The 14 November review compared public Comune di Milano and ANPR materials, prepared 14 cases with 28 EN/IT inputs, and ran 15 offline scope and quotation checks. The companion review is titled *PracticaMIA Milano MVP kaynak incelemesi ve AI değerlendirme seti*. | Live ANPR form behavior and current upload limit remain unconfirmed. Live model quality was not measured. |
 | Staging repeat and bilingual evaluation | The project owner confirmed the PDF download. A second signed-in account could not list or open the owner's case or obtain its PDF. Nine of ten support prompts returned the expected citations and four of four abstention prompts withheld an answer. [Results and source review](MILAN_MVP_ACCEPTANCE_2026_11_15.md) | The English ANPR submission prompt withheld the generated answer. Current signed-in ANPR form behavior and the two-account scope-write repeat remain open. |
 
+See the [P0 acceptance record](MILAN_P0_ACCEPTANCE.md) for the reviewed worksheet boundaries, two-language output checks and hosted fixture-only vault runbook.
+
 ## Outstanding MVP and release gates
 
 | Gate | Remaining acceptance evidence |

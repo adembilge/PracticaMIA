@@ -3,6 +3,7 @@
  * No Auth0 login, Vercel request, real personal data or government submission.
  */
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {join,resolve} from 'node:path';
 import {chromium} from 'playwright';
@@ -201,6 +202,10 @@ try{
     assert.equal(download.suggestedFilename(),'practicamia-preparation-draft.pdf');
     const savedPath=await download.path();
     assert.equal(readFileSync(savedPath).subarray(0,5).toString('ascii'),'%PDF-');
+    const text = execFileSync('pdftotext',[savedPath,'-'],{encoding:'utf8'});
+    assert.match(text, /What to prepare for ANPR/);
+    assert.match(text, /Ufficio di/);
+    await alicePage.getByRole('heading',{name:'What to prepare for ANPR'}).waitFor();
     await alicePage.reload();
     await alicePage.getByRole('heading',{name:'PDF summary',exact:true}).waitFor();
     await alicePage.getByRole('button',{name:/^03 Requirements/}).click();
@@ -357,6 +362,23 @@ try{
     await page.keyboard.press('Escape');
     await dialog.waitFor({state:'hidden'});
     await trigger.evaluate(button=>new Promise(resolve=>requestAnimationFrame(()=>resolve(document.activeElement===button)))).then(focused=>assert.equal(focused,true));
+  });
+
+  await scenario('Mobile Italian: a downloaded PDF opens with the cited ANPR worksheet',async()=>{
+    const page=await contextFor('alice',{width:390,height:844});
+    await page.goto(origin+'/cases/'+caseId);
+    await page.getByRole('button',{name:'Switch to Italian'}).click();
+    await page.getByRole('button',{name:/^05 Riepilogo PDF/}).click();
+    await page.getByRole('heading',{name:'Dati da preparare per ANPR'}).waitFor();
+    const [download]=await Promise.all([
+      page.waitForEvent('download',{timeout:15000}),
+      page.locator('#case-workflow-package a[href$="lang=it"]').click(),
+    ]);
+    const file=await download.path();
+    const text=execFileSync('pdftotext',[file,'-'],{encoding:'utf8'});
+    assert.match(text,/Dati da preparare per ANPR/);
+    assert.match(text,/BOZZA - NON INVIATA/);
+    assert.match(text,/Al numero/);
   });
 
   if(health.private_documents) await runDocumentScenarios({

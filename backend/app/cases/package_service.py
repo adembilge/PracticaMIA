@@ -19,6 +19,7 @@ from app.cases.checklist_service import build_case_checklist
 from app.cases.intake_model import CaseIntake
 from app.cases.intake_schemas import IntakeFacts, REQUIRED_FIELDS
 from app.cases.model import CaseRecord
+from app.preparation.anpr_draft import FIELDS
 from app.private_documents.model import PrivateCaseDocument
 
 ANPR_PORTAL = "https://www.anagrafenazionale.interno.it/"
@@ -32,11 +33,37 @@ FACT_LABELS = {
     "housing_basis": "Housing basis",
     "move_in_date": "Move-in date (user-entered; not validated against official records)",
 }
+# Labels shown in the reviewed public ANPR guide's title 2 section (p. 12).
+_ANPR_RENTAL_FIELDS = {
+    "rental_registration_office_municipality": "Ufficio di",
+    "rental_contract_date": "In data",
+    "rental_registration_number": "Al numero",
+}
 DOCUMENT_STATUS = frozenset({
     "needs_extraction", "unreadable", "no_supported_fields", "needs_user_confirmation",
     "needs_manual_review", "conflict", "needs_confirmed_intake",
     "needs_case_information", "user_reviewed_unverified", "unsupported_category",
 })
+
+
+def _anpr_rental_worksheet(checklist: list[dict]) -> dict | None:
+    """Use the exact approved title 2 citation without collecting portal values."""
+    for action in checklist:
+        if action["id"] != "registered_rental_anpr_fields":
+            continue
+        for evidence in action["evidence"]:
+            if (evidence["source_id"] == "anpr-public-docs-residence-guide"
+                    and evidence["citation_id"] == f"{evidence['source_version_id']}:0015"):
+                return {
+                    "source": evidence,
+                    "section": "Immobile · Titolo 2",
+                    "fields": [
+                        {"key": key, "label_en": en, "label_it": it,
+                         "portal_label": _ANPR_RENTAL_FIELDS[key]}
+                        for _, key, en, it, _, _, _ in FIELDS if key in _ANPR_RENTAL_FIELDS
+                    ],
+                }
+    return None
 
 
 def build_package_manifest(
@@ -167,6 +194,7 @@ def build_package_manifest(
         "reviewed_ruleset": checklist["ruleset_version"],
         "confirmed_facts": facts if actionable else [],
         "checklist": checklist["items"] if actionable else [],
+        "anpr_worksheet": _anpr_rental_worksheet(checklist["items"]) if actionable else None,
         "documents": documents,
         "outstanding_issues": sorted(set(issues)),
         "official_handoff": {

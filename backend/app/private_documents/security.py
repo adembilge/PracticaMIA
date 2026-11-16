@@ -18,6 +18,9 @@ import httpx
 from PIL import Image, UnidentifiedImageError
 from pypdf import PdfReader
 
+from fastapi import Depends, HTTPException, Request
+
+from app.auth.tokens import Principal, get_principal
 from app.preparation.extract import DocumentRejected, MAX_FILE_BYTES, validate_document
 
 RETENTION_DAYS = 7
@@ -56,16 +59,48 @@ def _scanner_url_valid(url: str, allowed_host: str) -> bool:
         return False
 
 
+def fixture_hashes(value: str) -> frozenset[str]:
+    hashes = frozenset(entry.strip() for entry in value.split(",") if entry.strip())
+    if not hashes or not all(re.fullmatch(r"[0-9a-f]{64}", entry) for entry in hashes):
+        raise ValueError("Private vault fixture mode requires SHA-256 allowlists")
+    return hashes
+
+
+def require_vault_principal(
+    request: Request, principal: Principal = Depends(get_principal),
+) -> Principal:
+    subjects = request.app.state.private_document_fixture_subjects
+    if subjects is not None and sha256(principal.subject.encode()).hexdigest() not in subjects:
+        raise HTTPException(404, "Document service unavailable")
+    return principal
+
+
 def validate_release_settings(settings) -> bytes:
     """Reject incomplete configurations before mounting any private-file routes."""
     if not settings.enable_demo_case_api:
         raise ValueError("Private documents require authenticated cases")
-    if not settings.private_document_privacy_approved:
-        raise ValueError("Private documents require explicit operator privacy review")
-    if not settings.private_document_controller.strip():
-        raise ValueError("Private documents require a named data controller")
-    if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", settings.private_document_contact):
-        raise ValueError("Private documents require a privacy contact address")
+    if settings.private_document_fixture_mode:
+        if not (
+            settings.deployment_environment == "preview"
+            and settings.deployment_git_branch == "preview/auth-review-isolated"
+            and settings.enable_preparation_api
+            and settings.preparation_target == "isolated_staging"
+            and settings.database_url.startswith(("postgresql://", "postgresql+psycopg://"))
+            and re.fullmatch(r"[0-9a-f]{64}", settings.preparation_database_fingerprint)
+        ):
+            raise ValueError("Private vault fixture mode requires the isolated PostgreSQL Preview")
+        if (len(fixture_hashes(settings.private_document_fixture_subject_hashes)) != 2
+                or not 3 <= len(fixture_hashes(settings.private_document_fixture_file_hashes)) <= 12):
+            raise ValueError("Private vault fixture mode requires two test accounts and three to twelve fixture hashes")
+    else:
+        if settings.deployment_environment == "preview":
+            raise ValueError("Private documents in Preview require fixture mode")
+        if not settings.private_document_privacy_approved:
+            raise ValueError("Private documents require explicit operator privacy review")
+        if not settings.private_document_controller.strip():
+            raise ValueError("Private documents require a named data controller")
+        if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", settings.private_document_contact):
+            raise ValueError("Private documents require a privacy contact address")
     if len(settings.private_document_cron_secret) < 32:
         raise ValueError("Private documents require a protected retention cron secret")
     if len(settings.private_document_scan_token) < 32:
@@ -77,7 +112,8 @@ def validate_release_settings(settings) -> bytes:
         key = base64.b64decode(settings.private_document_key, validate=True)
     except Exception as exc:
         raise ValueError("Private documents require a separate base64 AES-256 key") from exc
-    if len(key) != 32:
+    if len(key) != 32 or (settings.preparation_document_key and
+                          settings.private_document_key == settings.preparation_document_key):
         raise ValueError("Private documents require a separate base64 AES-256 key")
     return key
 

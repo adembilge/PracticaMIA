@@ -4,6 +4,7 @@ The source-verified checklist is re-evaluated for both endpoints. Nothing is
 written to a database; no model or external portal is contacted. PDF download
 requires a supported first-route case and no unresolved uploaded-file review.
 """
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -51,6 +52,7 @@ def read_package_preview(
 def download_package_draft(
     case_id: UUID, request: Request, db: Session = Depends(get_session),
     principal: Principal = Depends(get_principal),
+    lang: Literal["en", "it"] = "en",
 ):
     manifest = _build(case_id, request, db, principal)
     if not manifest["download_allowed"]:
@@ -58,12 +60,13 @@ def download_package_draft(
             status_code=409,
             detail="Resolve confirmed-case or document-review blockers before export",
         )
-    pdf = render_preparation_pdf(manifest)
+    pdf = render_preparation_pdf(manifest, lang=lang)
     return Response(
         content=pdf,
         media_type="application/pdf",
         headers={
             **PRIVATE_HEADERS,
+            "Content-Language": lang,
             "Content-Disposition": 'attachment; filename="practicamia-preparation-draft.pdf"',
             "Content-Security-Policy": "default-src 'none'; sandbox",
             "Referrer-Policy": "no-referrer",
