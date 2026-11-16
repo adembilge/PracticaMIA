@@ -24,6 +24,23 @@ test('private document UI is unavailable unless production operator gates are ex
   assert.equal(privateDocumentsUiEnabled({}), false);
 });
 
+test('fixture-only vault UI is limited to the paired isolated Preview', () => {
+  const env = {
+    VERCEL_ENV: 'preview',
+    VERCEL_GIT_COMMIT_REF: 'preview/auth-review-isolated',
+    ENABLE_PRIVATE_DOCUMENT_UI: '1',
+    PRIVATE_DOCUMENT_FIXTURE_MODE: '1',
+    BACKEND_API_URL: 'https://practicamia-api-git-preview-auth-rev-599637-firatadembilge-4729.vercel.app',
+  };
+  assert.equal(privateDocumentsUiEnabled(env), true);
+  for (const changed of [
+    {VERCEL_ENV: 'production', PRIVATE_DOCUMENT_PRIVACY_APPROVED: '1',
+      PRIVATE_DOCUMENT_CONTROLLER: 'Test', PRIVATE_DOCUMENT_CONTACT: 'privacy@example.test'},
+    {VERCEL_GIT_COMMIT_REF: 'feature/other'}, {BACKEND_API_URL: 'https://example.test'},
+    {ENABLE_PRIVATE_DOCUMENT_UI: '0'}, {PRIVATE_DOCUMENT_FIXTURE_MODE: '0'},
+  ]) assert.equal(privateDocumentsUiEnabled({...env, ...changed}), false);
+});
+
 test('uploads require exact consent version, approved category, positive size and MIME', () => {
   assert.equal(isPrivateUploadMeta('housing_document','true',
     PRIVATE_DOCUMENT_CONSENT_VERSION,PRIVATE_DOCUMENT_MAX_BYTES,'application/pdf'),true);

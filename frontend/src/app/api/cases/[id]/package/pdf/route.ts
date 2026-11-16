@@ -5,8 +5,10 @@ import {caseError, proxyCasePdf} from '@/lib/case-proxy';
 export const dynamic = 'force-dynamic';
 type Context = {params: Promise<{id: string}>};
 
-export async function GET(_request: NextRequest, {params}: Context) {
+export async function GET(request: NextRequest, {params}: Context) {
   const {id} = await params;
   if (!isCaseId(id)) return caseError('Case not found', 404);
-  return proxyCasePdf('/api/v1/cases/' + id + '/package/pdf');
+  const lang = request.nextUrl.searchParams.get('lang') ?? 'en';
+  if (lang !== 'en' && lang !== 'it') return caseError('Unsupported PDF language', 400);
+  return proxyCasePdf('/api/v1/cases/' + id + '/package/pdf?lang=' + lang);
 }

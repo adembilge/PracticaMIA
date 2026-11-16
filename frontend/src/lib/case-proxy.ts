@@ -175,6 +175,7 @@ export async function proxyCasePdf(path: string) {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
+        'Content-Language': upstream.headers.get('content-language') === 'it' ? 'it' : 'en',
         'Content-Disposition': 'attachment; filename="practicamia-preparation-draft.pdf"',
         'Content-Length': String(bytes.byteLength),
         'Cache-Control': 'private, no-store',

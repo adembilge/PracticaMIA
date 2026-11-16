@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { auth0 } from '@/lib/auth0';
 import { backendOrigin } from '@/lib/auth-configuration.js';
 import { isCaseId } from '@/lib/case-scope.js';
-import { privateDocumentsUiEnabled } from '@/lib/private-documents.js';
+import { privateDocumentFixtureMode, privateDocumentsUiEnabled } from '@/lib/private-documents.js';
 import { PrivateDocumentsWorkspace } from '@/components/PrivateDocumentsWorkspace';
 
 export const dynamic = 'force-dynamic';
@@ -17,6 +17,7 @@ export default async function PrivateDocumentsPage({
   return <PrivateDocumentsWorkspace
     caseId={id}
     signedIn={Boolean(session)}
+    fixtureMode={privateDocumentFixtureMode(process.env)}
     configured={Boolean(auth0 && backendOrigin(process.env.BACKEND_API_URL, process.env.NODE_ENV))}
   />;
 }
