@@ -218,8 +218,8 @@
       "surface": "assistant",
       "expected_kind": "unverified_answer",
       "queries": {
-        "en": "Which details should I prepare for my registered private lease?",
-        "it": "Quali dati devo preparare per il mio contratto di locazione registrato?"
+        "en": "How many days do I have to report a Milan address change?",
+        "it": "Entro quanti giorni va comunicato il cambio di residenza a Milano?"
       },
       "acceptance": "Inject a fabricated quotation or swap its citation ID in a deterministic model response. Expect unverified_answer, no answer body. Relevant sources may still appear.",
       "references": [
@@ -235,8 +235,8 @@
       "surface": "assistant",
       "expected_kind": "generation_unavailable",
       "queries": {
-        "en": "When must I report my Milan address change?",
-        "it": "Entro quando devo comunicare il cambio di indirizzo a Milano?"
+        "en": "Which details are needed for a registered lease?",
+        "it": "Quali dati servono per una locazione privata con contratto registrato?"
       },
       "acceptance": "With valid evidence and an injected model timeout, expect generation_unavailable and no answer body. No leaked provider details and saved-case checklist remains usable.",
       "references": [

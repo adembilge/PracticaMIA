@@ -1,5 +1,6 @@
 """Authenticated, owner-scoped synthetic-demo case routes."""
 from datetime import datetime, timezone
+from typing import Literal
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -9,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.auth.tokens import Principal, get_principal
 from app.cases.model import CaseRecord
 from app.cases.intake_model import CaseIntake
-from app.cases.schemas import CaseOut, CreateCase, ScopeUpdate
+from app.cases.schemas import ArchiveUpdate, CaseOut, CreateCase, ScopeUpdate
 from app.cases.scope import classify_scope
 from app.database import get_session
 
@@ -54,11 +55,15 @@ def create_case(
 def list_cases(
     db: Session = Depends(get_session),
     principal: Principal = Depends(get_principal),
+    view: Literal["active", "archived"] = "active",
 ):
+    state = (CaseRecord.archived_at.is_not(None)
+             if view == "archived" else CaseRecord.archived_at.is_(None))
+    sort_date = CaseRecord.archived_at if view == "archived" else CaseRecord.created_at
     return db.scalars(
         select(CaseRecord)
-        .where(CaseRecord.owner_subject == principal.subject)
-        .order_by(CaseRecord.created_at.desc(), CaseRecord.id.desc())
+        .where(CaseRecord.owner_subject == principal.subject, state)
+        .order_by(sort_date.desc(), CaseRecord.id.desc())
         .limit(50)
     ).all()
 
@@ -96,6 +101,26 @@ def update_scope(
     record.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(record)
+    return record
+
+
+@router.patch("/{case_id}/archive", response_model=CaseOut)
+def set_case_archived(
+    case_id: UUID,
+    payload: ArchiveUpdate,
+    db: Session = Depends(get_session),
+    principal: Principal = Depends(get_principal),
+):
+    record = db.scalar(select(CaseRecord).where(
+        CaseRecord.id == str(case_id),
+        CaseRecord.owner_subject == principal.subject,
+    ).with_for_update())
+    if record is None:
+        raise HTTPException(404, "Case not found")
+    if payload.archived != (record.archived_at is not None):
+        record.archived_at = datetime.now(timezone.utc) if payload.archived else None
+        db.commit()
+        db.refresh(record)
     return record
 
 

@@ -19,6 +19,7 @@ type StoredCase = {
   scope_answers: Answer[];
   created_at: string;
   updated_at: string;
+  archived_at?: string | null;
 };
 
 type Props = { caseId: string; configured: boolean; signedIn: boolean; assistantEnabled: boolean; preparationEnabled: boolean; liveAIEnabled: boolean; privateDocumentsEnabled: boolean; fictionalDocumentsEnabled?: boolean };
@@ -37,7 +38,8 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState<'unavailable' | 'load' | 'save' | 'delete' | null>(null);
+  const [archiving, setArchiving] = useState(false);
+  const [error, setError] = useState<'unavailable' | 'load' | 'save' | 'delete' | 'archive' | null>(null);
   const [notice, setNotice] = useState('');
   const [journeyRevision, setJourneyRevision] = useState(0);
 
@@ -137,6 +139,26 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
     }
   }
 
+  async function changeArchive(archived: boolean) {
+    setArchiving(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/cases/' + caseId + '/archive', {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({archived}),
+      });
+      if (response.status === 401) { setExpired(true); return; }
+      if (!response.ok) throw new Error('Archive update failed');
+      const updated: StoredCase = await response.json();
+      setRecord(current => current && {...current, archived_at: updated.archived_at});
+    } catch {
+      setError('archive');
+    } finally {
+      setArchiving(false);
+    }
+  }
+
   async function deleteCase() {
     if (!record || deleting || expired || !window.confirm(t.savedDeleteConfirm)) return;
     setDeleting(true);
@@ -203,6 +225,9 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
         <p><a className="inline-link" href={login}>{locale === 'it' ? 'Accedi di nuovo' : 'Sign in again'}</a></p>
       </div></div>}
       {loading && <p className="editorial-pending" role="status">{t.savedLoading}</p>}
+      {record?.archived_at && <p className="case-confirmation" role="status">
+        {locale === 'it' ? 'Pratica archiviata.' : 'Case archived.'}
+      </p>}
       {record && <CaseJourneyPanel caseId={caseId} refreshKey={journeyRevision}
         scopeComplete={Boolean(scopeComplete)} privateDocumentsEnabled={privateDocumentsEnabled}
         fictionalDocumentsEnabled={fictionalDocumentsEnabled} preparationEnabled={preparationEnabled} assistantEnabled={assistantEnabled}
@@ -254,9 +279,18 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
       {record && <details className="case-settings case-more">
         <summary>{locale === 'it' ? 'Gestisci la pratica' : 'Manage this case'}</summary><p>{t.savedSyntheticOnly}</p>
         <div className="case-actions">
-          <button type="button" className="button button-outline" disabled={saving || deleting || expired}
+          <button type="button" className="button button-outline" disabled={saving || deleting || archiving || expired}
+            onClick={() => void changeArchive(!record.archived_at)}>
+            {record.archived_at
+              ? (locale === 'it' ? 'Ripristina tra le attive' : 'Restore to active cases')
+              : (locale === 'it' ? 'Archivia pratica' : 'Archive case')}
+          </button>
+          <button type="button" className="button button-outline" disabled={saving || deleting || archiving || expired}
             onClick={() => void deleteCase()}>{deleting ? t.savedDeleting : t.savedDelete}</button>
         </div>
+        {error === 'archive' && <p className="error-text" role="alert">
+          {locale === 'it' ? 'Impossibile aggiornare l’archivio. Riprova.' : 'Could not update the archive. Try again.'}
+        </p>}
         {error === 'delete' && <p className="error-text" role="alert">{t.savedDeleteError}</p>}
       </details>}
     </div>

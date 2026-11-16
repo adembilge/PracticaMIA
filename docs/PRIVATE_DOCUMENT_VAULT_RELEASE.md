@@ -108,6 +108,10 @@ both language files.
   uploads, just as it does for JSON requests. Keep the frontend attachment of
   this identity restricted to the existing allowlisted Preview API origin.
 
+## Recovery evidence
+
+The Chromium acceptance workflow runs an isolated PostgreSQL logical dump and restores it into a second disposable database. Its assertions cover the schema revision, the saved archive timestamp, stored vault ciphertext columns and expiry preservation. This checks the backup format. Validate the operational Neon recovery path, retention alerts and key recovery separately before admitting personal documents.
+
 ## Operational limitations
 - No persistent per-user scanner-cost rate limiter yet; the five-document
   per-case cap is not a global upload-frequency quota. Configure edge
