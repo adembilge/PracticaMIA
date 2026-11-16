@@ -74,13 +74,13 @@ export function getCaseGuidancePlan(caseRecord, language = 'en') {
     nextStep = it ? 'Chiarisci la risposta evidenziata prima di proseguire.' :
       'Clarify the highlighted answer before continuing.';
   } else if (status === 'unsupported') {
-    summary = it ? 'La situazione descritta non corrisponde all’unico scenario gestito da questa demo. Non significa che la domanda sia inammissibile.' :
-      'Your situation differs from this product’s supported example. This does not mean your official application is ineligible.';
+    summary = it ? 'Questa situazione richiede un altro percorso. L’ammissibilità della domanda viene valutata dalle autorità.' :
+      'Your situation needs a different preparation route. This does not mean your official application is ineligible.';
     nextStep = it ? 'Controlla direttamente le istruzioni ufficiali o correggi la risposta se era inesatta.' :
       'Consult the official service or correct the answer if it was inaccurate.';
   } else {
-    summary = it ? 'Le cinque risposte salvate corrispondono allo scenario limitato della demo; non sono una verifica dei requisiti legali.' :
-      'Your five saved answers match this demo’s narrow scenario; they do not establish legal eligibility.';
+    summary = it ? 'Le cinque risposte salvate corrispondono al percorso di preparazione disponibile. I requisiti legali vanno verificati presso le fonti ufficiali.' :
+      'Your five saved answers match the available preparation route. Check the official sources for eligibility requirements.';
     nextStep = it ? 'Consulta le fonti comunali e ANPR. Nazionalità, contratto registrato e allegati applicabili non sono stati verificati.' :
       'Review the official Milan and ANPR guidance. Citizenship, rental registration and applicable attachments have not been verified.';
   }
@@ -114,8 +114,8 @@ export function makeCaseGuidanceMessages(plan, request) {
   const stages = {
     incomplete: 'The product is still gathering its five initial scope answers.',
     needs_information: 'A user needs to clarify an uncertain scope answer.',
-    unsupported: 'The saved answers describe a case outside the limited product demo. This is not legal ineligibility.',
-    provisionally_in_scope: 'All five product scope questions match the demonstration. Legal eligibility and documents remain unverified.',
+    unsupported: 'The saved answers describe a case outside the available preparation route. This is not legal ineligibility.',
+    provisionally_in_scope: 'All five product scope questions match the available preparation route. Legal eligibility and documents remain unverified.',
   };
   const topic = parsed.topic === 'next_step'
     ? 'Explain why the user should take the next product workflow step.'

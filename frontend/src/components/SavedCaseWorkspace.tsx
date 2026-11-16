@@ -211,12 +211,16 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
     </main>;
   }
 
+  const answerOutcome = selected ? classifySingleAnswer(questionIndex, selected) : 'none';
+  const saveAnswerLabel = answerOutcome === 'pass'
+    ? t.savedSaveContinue
+    : locale === 'it' ? 'Salva risposta' : 'Save answer';
   const scopeComplete = record?.status === 'provisionally_in_scope' && record.scope_answers.length === 5;
   const login = '/auth/login?returnTo=' + encodeURIComponent('/cases/' + caseId);
   return <main className="case-page" id="main-content" tabIndex={-1}>
     <div className="container">
       <header className="case-header">
-        <div><p className="editorial-label">{locale === 'it' ? 'Milano · Pratica di esempio' : 'Milano · Example case'}{record && ' / ' + record.id.slice(0, 8)}</p>
+        <div><p className="editorial-label">{locale === 'it' ? 'Milano · Cambio di residenza' : 'Milano · Change of residence'}{record && ' / ' + record.id.slice(0, 8)}</p>
           <h1>{t.savedWorkspaceTitle}</h1></div>
         <Link className="editorial-text-link" href="/cases/saved">← {t.savedBackToCases}</Link>
       </header>
@@ -258,16 +262,16 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
                 {option === 'yes' ? t.answerYes : option === 'no' ? t.answerNo : t.answerUnsure}
               </button>)}
             </div>
-            {selected && classifySingleAnswer(questionIndex, selected) === 'unsupported' &&
+            {answerOutcome === 'unsupported' &&
               <div role="status" className="message-box warning"><div><strong>{t.blockedTitle}</strong><p>{t.blockedBody}</p></div></div>}
-            {selected === 'unsure' && <div role="status" className="message-box notice"><div><strong>{t.unsureTitle}</strong><p>{t.unsureBody}</p></div></div>}
+            {answerOutcome === 'needs_information' && <div role="status" className="message-box notice"><div><strong>{t.unsureTitle}</strong><p>{t.unsureBody}</p></div></div>}
             <details className="why-disclosure"><summary>{t.questionWhy}</summary><p>{t.questionWhyBody}</p></details>
           </div>
           <div className="case-actions">
             <button type="button" className="button button-outline" disabled={saving || deleting || expired}
               onClick={() => questionIndex === 0 ? router.push('/cases/saved') : openQuestion(questionIndex - 1)}>{t.back}</button>
             <button type="button" className="button button-primary" disabled={!selected || saving || deleting || expired}
-              onClick={() => void saveAnswer()}>{saving ? t.savedSavingAnswer : t.savedSaveContinue}</button>
+              onClick={() => void saveAnswer()}>{saving ? t.savedSavingAnswer : saveAnswerLabel}</button>
           </div>
           {error === 'save' && <div className="message-box warning" role="alert"><div><p>{t.savedAnswerError}</p>
             <button type="button" className="inline-link" onClick={() => void saveAnswer()}>{t.savedRetry}</button>

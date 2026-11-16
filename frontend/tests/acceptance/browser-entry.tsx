@@ -6,6 +6,8 @@ import {useEffect,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {DemoProvider} from '@/components/DemoProvider';
 import {SiteHeader} from '@/components/SiteHeader';
+import {StartCaseView} from '@/components/StartCaseView';
+import {SyntheticDemoWorkspace} from '@/components/SyntheticDemoWorkspace';
 import {SavedCasesView} from '@/components/SavedCasesView';
 import {PrivateDocumentsWorkspace} from '@/components/PrivateDocumentsWorkspace';
 import {SavedCaseWorkspace} from '@/components/SavedCaseWorkspace';
@@ -28,7 +30,9 @@ function AcceptanceApp(){
   const signedIn=/\bacceptance_subject=(alice|bob)\b/.test(document.cookie);
   return <DemoProvider>
     <SiteHeader signedIn={signedIn} accountName={signedIn ? 'Example Applicant' : undefined}/>
-    {route?.[2] === '/preparation' && id ?
+    {path === '/cases/new' ? <StartCaseView signedIn={signedIn} canSave canExplore/> :
+      path === '/demo/synthetic' ? <SyntheticDemoWorkspace/> :
+      route?.[2] === '/preparation' && id ?
       <PreparationPreview key={id} caseId={id} configured signedIn={signedIn}/> :
       documentsEnabled && route?.[2] === '/documents' && id ?
       <PrivateDocumentsWorkspace key={id} caseId={id} configured signedIn={signedIn}/> :
@@ -37,7 +41,7 @@ function AcceptanceApp(){
       assistantEnabled={false} preparationEnabled={false}
       liveAIEnabled={false} privateDocumentsEnabled={documentsEnabled}/>:
       <SavedCasesView key={path} configured={true} signedIn={signedIn}
-        backendConfigured={true} liveAIEnabled={false}/>}
+        backendConfigured={true} liveAIEnabled={false} canExplore/>}
   </DemoProvider>;
 }
 

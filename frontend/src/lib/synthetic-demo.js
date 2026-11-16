@@ -64,8 +64,8 @@ export const SYNTHETIC_DOCUMENT = Object.freeze({
 });
 
 const VALID_REGISTRATIONS = new Set(['in_milan_example', 'unknown', 'arriving_abroad_example']);
-const VALID_HOUSEHOLDS = new Set(['alone_example', 'joining_household_example']);
-const VALID_HOUSING = new Set(['fictional_rental', 'unknown']);
+const VALID_HOUSEHOLDS = new Set(['alone_example', 'joining_household_example', 'unknown']);
+const VALID_HOUSING = new Set(['fictional_rental', 'other_housing_example', 'unknown']);
 const VALID_ADDRESSES = new Set([FICTIONAL_ADDRESS, OTHER_FICTIONAL_ADDRESS]);
 const ALLOWED_FACT_FIELDS = new Set([
   'previous_registration_context', 'household_context', 'housing_arrangement',
@@ -73,8 +73,8 @@ const ALLOWED_FACT_FIELDS = new Set([
 ]);
 export const SYNTHETIC_FACT_OPTIONS = Object.freeze({
   registrations: ['in_milan_example', 'unknown', 'arriving_abroad_example'],
-  households: ['alone_example', 'joining_household_example'],
-  housing: ['fictional_rental', 'unknown'],
+  households: ['alone_example', 'joining_household_example', 'unknown'],
+  housing: ['fictional_rental', 'other_housing_example', 'unknown'],
   addresses: [FICTIONAL_ADDRESS, OTHER_FICTIONAL_ADDRESS],
 });
 
@@ -187,7 +187,8 @@ export function evaluateSyntheticCase(state) {
     blocking_issues: [],
   };
   if (facts.previous_registration_context === 'arriving_abroad_example' ||
-      facts.household_context === 'joining_household_example') {
+      facts.household_context === 'joining_household_example' ||
+      facts.housing_arrangement === 'other_housing_example') {
     return {
       ...base,
       decision: 'unsupported',
@@ -199,7 +200,7 @@ export function evaluateSyntheticCase(state) {
       facts.previous_registration_context === 'unknown') {
     missing.push('previous_registration_context');
   }
-  if (!VALID_HOUSEHOLDS.has(facts.household_context)) {
+  if (!VALID_HOUSEHOLDS.has(facts.household_context) || facts.household_context === 'unknown') {
     missing.push('household_context');
   }
   if (!VALID_HOUSING.has(facts.housing_arrangement) ||
@@ -241,16 +242,16 @@ export function evaluateSyntheticCase(state) {
       blocking_issues: ['Confirm or correct the simulated document extraction'],
     };
   }
-  if (!state.document_reviewed) {
-    return {
-      ...supported, status: 'needs_document_review',
-      blocking_issues: ['Explicitly review the sample document'],
-    };
-  }
   if (state.confirmed_document_value !== facts.property_address) {
     return {
       ...supported, status: 'needs_review',
       blocking_issues: ['Conflicting property addresses in the fictional intake and sample document'],
+    };
+  }
+  if (!state.document_reviewed) {
+    return {
+      ...supported, status: 'needs_document_review',
+      blocking_issues: ['Explicitly review the sample document'],
     };
   }
   return {

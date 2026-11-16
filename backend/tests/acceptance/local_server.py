@@ -209,7 +209,7 @@ def run(port: int, assets: Path, *, private_documents: bool = False):
                     css += b"\n" + compiled.read_bytes()
                 self.reply(200, css, "text/css; charset=utf-8")
                 return
-            if (path in {"/", "/cases/saved"} or
+            if (path in {"/", "/cases/saved", "/demo/synthetic"} or
                 (path.startswith("/cases/") and len(path) < 120)) and (
                 self.command == "GET"
             ):

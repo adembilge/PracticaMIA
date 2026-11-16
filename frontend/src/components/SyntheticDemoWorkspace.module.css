@@ -163,3 +163,23 @@
 @media (prefers-reduced-motion: reduce) {
   .primary { animation: none !important; }
 }
+
+.question { border: 0; border-bottom: 1px solid var(--line); min-width: 0; margin: 0 0 20px; padding: 0 0 14px; }
+.question legend { font-weight: 650; padding: 0; }
+.question :global(.answer-grid) { margin: 10px 0 0; }
+.documentFields { margin-top: 23px; }
+.summaryRows { padding: 0 16px; margin: 20px 0; }
+.summaryRows > div { padding: 10px 0; }
+.summaryRows > div + div { border-top: 1px solid var(--line); }
+.summaryRows dt { color: var(--muted); font-size: 13px; }
+.summaryRows dd { margin: 3px 0 0; color: var(--ink); font-size: 15px; overflow-wrap: anywhere; }
+.status p { margin: 0; }
+.scenario { min-height: 135px; }
+.scenario svg { color: var(--forest); }
+.sidebar .sidePanel h3 { margin-top: 0; margin-bottom: 8px; }
+@media (max-width: 420px) {
+  .shell { width: calc(100% - 32px); }
+  .question :global(.answer-grid) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .question :global(.answer-option) { gap: 4px; padding: 8px 4px; justify-content: center; }
+  .question :global(.answer-radio) { display: none; }
+}

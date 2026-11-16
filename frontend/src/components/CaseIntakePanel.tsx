@@ -18,7 +18,7 @@ const labels = {
     eyebrow:'STEP 2 · SAVED CASE INTAKE',
     heading:'Confirm the details of this example case',
     intro:'Your five initial answers identify the product scenario. Confirm these separate facts before we can assess which reviewed workflow applies.',
-    privacy:'Use only fictional examples for now. This stage does not collect real addresses, names, identity numbers, or uploaded documents.',
+    privacy:'Keep personal addresses, names, ID numbers and documents out of this form.',
     fields:{
       citizenship_class:'Citizenship category for this example',
       registration_context:'Previous registered residence in Italy',
@@ -35,8 +35,7 @@ const labels = {
     },
     placeholder:'Choose an answer',
     date:'Move-in date (optional)',
-    dateInfo:'For the demonstration only; no legal deadline is calculated.',
-    acknowledge:'I checked these entries and confirm they describe this fictional example.',
+    acknowledge:'I have reviewed the information above.',
     save:'Save draft',
     confirm:'Confirm facts',
     saving:'Saving…',
@@ -58,7 +57,7 @@ const labels = {
     eyebrow:'FASE 2 · RACCOLTA DATI SALVATA',
     heading:'Conferma i dati di questa pratica dimostrativa',
     intro:'Le cinque risposte iniziali definiscono lo scenario del prodotto. Conferma separatamente questi dati per individuare il percorso revisionato applicabile.',
-    privacy:'Per ora usa soltanto esempi inventati. Non inserire indirizzi reali, nomi, documenti di identità o file personali.',
+    privacy:'Non inserire indirizzi, nomi, numeri identificativi o documenti personali.',
     fields:{
       citizenship_class:'Categoria di cittadinanza dell’esempio',
       registration_context:'Precedente residenza registrata in Italia',
@@ -75,8 +74,7 @@ const labels = {
     },
     placeholder:'Scegli una risposta',
     date:'Data del trasferimento (facoltativa)',
-    dateInfo:'Solo per la dimostrazione; nessun termine legale viene calcolato.',
-    acknowledge:'Ho verificato questi dati e confermo che descrivono l’esempio fittizio.',
+    acknowledge:'Ho controllato le informazioni qui sopra.',
     save:'Salva bozza',
     confirm:'Conferma i dati',
     saving:'Salvataggio…',
@@ -204,7 +202,6 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
           <input className="input" id="intake-move-date" type="date" value={date}
             min="1900-01-01" max="2100-12-31" disabled={busy||expired}
             onChange={e=>{setDate(e.target.value);setStored(old=>old?{...old,confirmed:false}:old);setAck(false);setMessage('');}}/>
-          <p style={{fontSize:12,opacity:0.8}}>{t.dateInfo}</p>
         </div>
       </div>
       <div style={{marginTop:18}}>
