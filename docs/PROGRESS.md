@@ -31,13 +31,16 @@ See the [P0 acceptance record](MILAN_P0_ACCEPTANCE.md) for the reviewed workshee
 - The project owner deferred signed-in ANPR observation. The archived guide remains the source for the rental field labels. The app directs users to ANPR for current attachment rules.
 - Saved cases can be archived and restored by their owner. The additive migration is `20261116_0017`. Archiving changes list placement and leaves checklist marks and PDF availability tied to the existing evidence.
 - The checked-in assistant fixture now runs all seven questions in English and Italian against the API using synthetic sources. Reviewed FAQ entry points use approved excerpts directly. Separate tests retain model selection, invalid answer and timeout coverage for other questions. The opt-in hosted audit has a separate live matrix.
-- The disposable PostgreSQL acceptance workflow tests a logical backup and restore of an archived synthetic case and vault payload columns.
+- [Chromium and PostgreSQL acceptance](https://github.com/adembilge/PracticaMIA/actions/runs/43867990130) passed 18 scenarios, including archived-case restoration, and a logical dump/restore of the archived case, vault payload columns and expiry.
+- Protected staging web and API ran [`74208a0`](https://github.com/adembilge/PracticaMIA/commit/74208a0d1f62dfcb7633112f45a1d66c53f9501f) on Neon migration `20261116_0017`. Seven saved cases were retained. An authenticated user archived and restored an existing fictional case through the web interface.
+- The same staging assistant returned the expected citations for all ten answerable English/Italian fixture prompts and deferred all four out-of-scope prompts. The Italian TARI result was verified with a fresh request after a stale displayed response was captured in the first pass. These checks cover the reviewed prompts, while model selection and failure behavior have local coverage.
+- The hosted vault is awaiting its configured HTTPS scanner and two dedicated accounts. The [pilot guide](MILAN_PILOT.md) is ready for participant sessions.
 
 ## Outstanding MVP and release gates
 
 | Gate | Remaining acceptance evidence |
 | --- | --- |
-| Bilingual AI evaluation | Repeat the live English and Italian fixture and record provider outcomes. Signed-in ANPR attachment inspection is deferred by the owner. |
+| Bilingual AI evaluation | The fourteen reviewed staging prompts passed. Further testing of open-ended wording and provider behavior remains useful. Signed-in ANPR attachment inspection is deferred by the owner. |
 | Document processing and access controls | Verify the intended scanner, then run hosted private-document access, review, deletion and expiry checks with two Auth0 accounts under the required release controls. Earlier staging JPEG and image-only PDF results were from the separate synthetic preparation flow. The private vault still requires a hosted scanner and two dedicated test sessions. |
 | Personal-document beta | Keep production uploads disabled until the responsible review and operational checks for privacy, malware scanning, key management, retention/deletion, backup/restore, and monitoring are evidenced. Complete the consented beta and document findings before broader release. [Document vault release checklist](PRIVATE_DOCUMENT_VAULT_RELEASE.md) |
 | Roadmap and release decision | Reconcile the [task registry](TASKS.yaml) against evidence and required approvals. Record staging results, rollback readiness and explicit owner go/no-go under [specification §26](../PracticaMIA_Complete_Project_Specification.md#26-mvp-acceptance-criteria-and-release-gates). |
