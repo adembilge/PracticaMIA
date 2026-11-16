@@ -1,7 +1,7 @@
 """Opt-in synthetic two-account browser check against an exact allowlisted Vercel preview.
 
 Never call this against production, real personal cases, or an untrusted login host.
-No sources are approved and no LLM is called by this program.
+The optional assistant matrix sends only the committed fictional fixture queries.
 """
 from __future__ import annotations
 
@@ -94,10 +94,51 @@ def login(context, base: str, auth0_host: str, email: str, password: str):
         raise Blocked("Auth0 login did not complete: MFA, CAPTCHA or preview callback may need operator setup") from exc
 
 
+def run_assistant_matrix(context, case_url: str, headers: dict) -> list[dict]:
+    fixture_path = Path(__file__).resolve().parents[1] / "evals/fixtures/milan_mvp_bilingual.json"
+    rows = json.loads(fixture_path.read_text(encoding="utf-8"))["cases"]
+    results = []
+    for row in rows:
+        if row["surface"] != "assistant":
+            continue
+        for language, question in row["queries"].items():
+            response = context.request.post(
+                case_url + "/assistant/ask",
+                data={"question": question, "language": language}, headers=headers,
+                timeout=30000,
+            )
+            status_is(response, 200, "staging assistant matrix")
+            body = response.json()
+            state = body.get("status")
+            answer = body.get("answer")
+            sources = {item["citation_id"]: " ".join(item["excerpt"].split())
+                       for item in body.get("sources", [])}
+            cites = set()
+            if row["expected_kind"] == "abstain":
+                passed = state == "insufficient_evidence" and answer is None and not sources
+            else:
+                lines = answer.splitlines() if isinstance(answer, str) else []
+                passed = state == "answer_generated" and bool(lines)
+                for line in lines:
+                    match = re.fullmatch(r'\[([^\]]+)\] "(.+)"', line)
+                    if not match:
+                        passed = False
+                        continue
+                    citation, quote = match.groups()
+                    cites.add(citation)
+                    if (citation not in row["passage_candidates"] or
+                            " ".join(quote.split()) not in sources.get(citation, "")):
+                        passed = False
+            results.append({"id": row["id"], "language": language, "status": state,
+                            "citation_count": len(cites), "passed": passed})
+    return results
+
+
 def run_checks(base: str, auth0_host: str, env: dict[str, str]) -> dict[str, object]:
     from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
     completed: list[str] = []
+    assistant_results: list[dict] = []
     created: list[tuple[object, str]] = []
     headers = {"Origin": base, "Content-Type": "application/json"}
     with sync_playwright() as p:
@@ -147,6 +188,12 @@ def run_checks(base: str, auth0_host: str, env: dict[str, str]) -> dict[str, obj
                 page_a.reload(wait_until="domcontentloaded")
                 status_is(a.request.get(base + f"/api/cases/{id_a}"), 200, "case persists after reload")
                 completed.append("browser reload and saved-case resumption")
+
+                if env.get("E2E_ASSISTANT_MATRIX") == "YES":
+                    assistant_results = run_assistant_matrix(
+                        a, base + f"/api/cases/{id_a}", headers,
+                    )
+                    completed.append("EN/IT assistant matrix recorded")
 
                 # The first real preparation integration uses a separate, isolated
                 # Preview-only backend. All inputs below are invented test fixtures.
@@ -294,7 +341,8 @@ def run_checks(base: str, auth0_host: str, env: dict[str, str]) -> dict[str, obj
                     completed.append("created synthetic cases deleted")
         finally:
             browser.close()
-    return {"completed_checks": completed, "approval_performed": False, "llm_called": False}
+    return {"completed_checks": completed, "approval_performed": False,
+            "assistant_evaluated": bool(assistant_results), "assistant_results": assistant_results}
 
 
 def main() -> int:
@@ -309,8 +357,9 @@ def main() -> int:
                                env.get("E2E_AUTH0_HOST", ""))
         require_test_accounts(env)
         summary.update(run_checks(base, env["E2E_AUTH0_HOST"], env))
-        summary["verdict"] = "pass"
-        return_code = 0
+        failed_assistant = any(not row["passed"] for row in summary["assistant_results"])
+        summary["verdict"] = "fail" if failed_assistant else "pass"
+        return_code = 1 if failed_assistant else 0
     except Blocked as exc:
         summary.update(verdict="blocked", reason=str(exc))
         return_code = 2

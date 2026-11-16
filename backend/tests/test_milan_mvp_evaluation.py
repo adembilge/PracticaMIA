@@ -127,7 +127,7 @@ def test_reviewed_quote_selection(
     headers = auth_headers()
     cid = case_id(assistant_client, headers)
     response = post(
-        assistant_client, cid, headers, question=CASES["MIL-01"]["queries"]["en"], language="en",
+        assistant_client, cid, headers, question="How many days do I have to report a Milan address change?", language="en",
     ).json()
     assert response["status"] == expected_status
     if selection == "1":
@@ -177,3 +177,56 @@ def test_product_submission_handoff_uses_only_current_reviewed_evidence(
         assert answer["status"] == "insufficient_evidence"
         assert answer["answer"] is None
         assert answer["sources"] == []
+
+
+@pytest.mark.parametrize("language", ["en", "it"])
+@pytest.mark.parametrize("item", [f"MIL-{index:02}" for index in range(1, 8)])
+def test_bilingual_assistant_matrix(
+    assistant_client, auth_headers, monkeypatch, item, language,
+):
+    # Minimal synthetic passage texts exercise exact-quotation and routing
+    # contracts. Live source integrity and provider quality are evaluated in Preview.
+    lines = {
+        "0000": PASSAGE_CONTENT["0000"],
+        "0005": "Inoltre, è necessario dichiarare la nuova situazione abitativa ai fini Tari.",
+        "0015": PASSAGE_CONTENT["0015"],
+        "0017": "Per agevolare gli accertamenti (contratto e assenso del proprietario).",
+        "0018": "Gli allegati non sono obbligatori",
+        "0021": "Verifica la correttezza dei dati della dichiarazione; "
+                "Seleziona il tasto “Invio dichiarazione”.",
+    }
+
+    def resolve(db, *, citation_id, **kwargs):
+        sample = resolve_topic_passage(
+            db, citation_id=CASES["MIL-01"]["passage_candidates"][0], **kwargs,
+        )
+        version, ordinal = citation_id.split(":")
+        reviewed = fake_resolver(citation_id)
+        return replace(
+            sample, citation_id=citation_id, passage_id=citation_id,
+            source_id=reviewed.source_id, source_version_id=version,
+            official_url=reviewed.official_url, content=lines[ordinal],
+        )
+
+    def no_model():
+        pytest.fail("Reviewed exact prompts and deferrals must not call the model")
+
+    monkeypatch.setattr(assistant_router, "resolve_approved_passage", resolve)
+    assistant_client.app.state.assistant_model_factory = no_model
+    headers = auth_headers()
+    cid = case_id(assistant_client, headers)
+    fixture = CASES[item]
+    response = post(
+        assistant_client, cid, headers,
+        question=fixture["queries"][language], language=language,
+    )
+    assert response.status_code == 200
+    answer = response.json()
+    if fixture["expected_kind"] == "abstain":
+        assert answer["status"] == "insufficient_evidence"
+        assert answer["answer"] is None and answer["sources"] == []
+    else:
+        assert answer["status"] == "answer_generated"
+        sources = {entry["citation_id"]: entry["excerpt"] for entry in answer["sources"]}
+        assert sources and set(sources) <= set(fixture["passage_candidates"])
+        assert assistant_router.verify_exact_quotations(answer["answer"], sources)
