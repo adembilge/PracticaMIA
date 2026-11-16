@@ -26,12 +26,19 @@ Vercel alias metadata on 15 November 2026 reported both production services read
 
 See the [P0 acceptance record](MILAN_P0_ACCEPTANCE.md) for the reviewed worksheet boundaries, two-language output checks and hosted fixture-only vault runbook.
 
+## November 16 follow-up
+
+- The project owner deferred signed-in ANPR observation. The archived guide remains the source for the rental field labels. The app directs users to ANPR for current attachment rules.
+- Saved cases can be archived and restored by their owner. The additive migration is `20261116_0017`. Archiving changes list placement and leaves checklist marks and PDF availability tied to the existing evidence.
+- The checked-in assistant fixture now runs all seven questions in English and Italian against the API using synthetic sources and a controlled model. The opt-in hosted audit has a separate live matrix.
+- The disposable PostgreSQL acceptance workflow tests a logical backup and restore of an archived synthetic case and vault payload columns.
+
 ## Outstanding MVP and release gates
 
 | Gate | Remaining acceptance evidence |
 | --- | --- |
-| Bilingual AI evaluation | Investigate the English ANPR submission prompt and repeat the bilingual check. Obtain human confirmation of current signed-in ANPR attachment behavior and source applicability. |
-| Document processing and access controls | Verify the intended scanner, then run hosted private-document access, review, deletion and expiry checks with two Auth0 accounts under the required release controls. Broaden hosted OCR coverage to JPEG, image-only PDF and varied generated fixtures. Check repeated field candidates within the document review. |
+| Bilingual AI evaluation | Repeat the live English and Italian fixture and record provider outcomes. Signed-in ANPR attachment inspection is deferred by the owner. |
+| Document processing and access controls | Verify the intended scanner, then run hosted private-document access, review, deletion and expiry checks with two Auth0 accounts under the required release controls. Earlier staging JPEG and image-only PDF results were from the separate synthetic preparation flow. The private vault still requires a hosted scanner and two dedicated test sessions. |
 | Personal-document beta | Keep production uploads disabled until the responsible review and operational checks for privacy, malware scanning, key management, retention/deletion, backup/restore, and monitoring are evidenced. Complete the consented beta and document findings before broader release. [Document vault release checklist](PRIVATE_DOCUMENT_VAULT_RELEASE.md) |
 | Roadmap and release decision | Reconcile the [task registry](TASKS.yaml) against evidence and required approvals. Record staging results, rollback readiness and explicit owner go/no-go under [specification §26](../PracticaMIA_Complete_Project_Specification.md#26-mvp-acceptance-criteria-and-release-gates). |
 

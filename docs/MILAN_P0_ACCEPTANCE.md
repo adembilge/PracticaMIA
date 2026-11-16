@@ -6,7 +6,7 @@ The [Comune di Milano FAQ](https://servizicrm.comune.milano.it/centro-supporto/K
 
 The already reviewed [public ANPR guide](https://public-anpr.github.io/anpr-docs-cittadino/src/docs/guide/guida_compilazione_cambio_residenza.pdf), p. 12, shows the **Immobile · Titolo 2** section and the labels **Ufficio di**, **In data**, **Al numero**. They correspond to the municipality of the registration office, rental contract date and rental registration number. Use the pinned, active passage ending in `:0015` for this worksheet. The guide is archived and its labels may differ from the signed-in form.
 
-The public guide describes a per-file size limit, while the [older government-hosted guide](https://sc.anpr.interno.it/serviziCittadino/dist/docs/guida_compilazione_cambio_residenza.pdf) describes an aggregate one. Use the current signed-in form for attachment requirements, supported formats and upload limits. The app does not assert a numeric portal limit. An authorized person must still record the observed live labels, attachment prompts and any stated limits from their own ANPR session, without including personal details or submitting a declaration. If the observed form differs, attach a redacted note to the evidence review and update the mapping through the existing review procedure. The code change neither adds nor approves sources or rules.
+The public guide describes a per-file size limit, while the [older government-hosted guide](https://sc.anpr.interno.it/serviziCittadino/dist/docs/guida_compilazione_cambio_residenza.pdf) describes an aggregate one. Use the current signed-in form for attachment requirements, supported formats and upload limits. The app does not assert a numeric portal limit. The owner deferred inspection of the signed-in form on 16 November. Keep the worksheet tied to the archived guide until an authorized observer can record the current labels and attachment behavior. If the observed form differs, attach a redacted note to the evidence review and update the mapping through the existing review procedure. The code change neither adds nor approves sources or rules.
 
 ## Preparation package
 
@@ -26,6 +26,6 @@ Sign in with the first dedicated account, create and confirm the synthetic case,
 
 ## Release evidence still required
 
-- Authorized human observation of the signed-in ANPR form.
+- Live ANPR form observation is deferred. The worksheet continues to cite the archived guide and refers users to the current portal for applicable attachments and limits.
 - Hosted two-account fixture acceptance with the configured HTTPS scanner and the deployed OCR engine.
 - Independent review of the controller/privacy notice, legal basis, scanner/processor terms and retention. Exercise key management, backup recovery and retention monitoring before authorizing real uploads.

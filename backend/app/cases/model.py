@@ -25,6 +25,7 @@ class CaseRecord(Base):
     )
     status: Mapped[str] = mapped_column(String(40), nullable=False, default="draft")
     scope_answers: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
     )

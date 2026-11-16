@@ -19,30 +19,36 @@ type Props = {
 export function SavedCasesView({ configured, signedIn, backendConfigured, liveAIEnabled }: Props) {
   const { t, locale } = useDemo();
   const router = useRouter();
+  const [view, setView] = useState<'active' | 'archived'>('active');
   const [cases, setCases] = useState<SavedCase[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   const [failure, setFailure] = useState<'list' | 'create' | 'expired' | null>(null);
 
   const canUseApi = configured && signedIn && backendConfigured;
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (signal?: AbortSignal) => {
     if (!canUseApi) return;
     setLoading(true);
     setFailure(null);
     try {
-      const response = await fetch('/api/cases', { cache: 'no-store' });
+      const response = await fetch('/api/cases?view=' + view, { cache: 'no-store', signal });
+      if (signal?.aborted) return;
       if (response.status === 401) { setFailure('expired');return; }
       if (!response.ok) throw new Error('HTTP ' + response.status);
       const rows: SavedCase[] = await response.json();
-      setCases(rows);
+      if (!signal?.aborted) setCases(rows);
     } catch {
-      setFailure('list');
+      if (!signal?.aborted) setFailure('list');
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
-  }, [canUseApi]);
+  }, [canUseApi, view]);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    const controller = new AbortController();
+    void refresh(controller.signal);
+    return () => controller.abort();
+  }, [refresh]);
 
   async function createSyntheticCase() {
     if (!canUseApi || creating) return;
@@ -58,7 +64,6 @@ export function SavedCasesView({ configured, signedIn, backendConfigured, liveAI
       if (response.status === 401) { setFailure('expired');return; }
       if (!response.ok) throw new Error('HTTP ' + response.status);
       const created = (await response.json()) as SavedCase;
-      await refresh();
       router.push('/cases/' + encodeURIComponent(created.id));
     } catch {
       setFailure('create');
@@ -97,6 +102,22 @@ export function SavedCasesView({ configured, signedIn, backendConfigured, liveAI
                 <Icon name="arrowRight" size={16}/>
               </button>
             </div>
+            <div className="case-actions" role="group" aria-label={isItalian ? 'Visualizza pratiche' : 'Case view'}>
+              {(['active', 'archived'] as const).map(option => <button
+                key={option}
+                type="button"
+                className={option === view ? 'button button-primary' : 'button button-outline'}
+                aria-pressed={option === view}
+                disabled={creating || loading || failure === 'expired'}
+                onClick={() => {
+                  if (option === view) return;
+                  setCases([]);
+                  setLoading(true);
+                  setView(option);
+                }}>
+                {option === 'active' ? (isItalian ? 'Attive' : 'Active') : (isItalian ? 'Archiviate' : 'Archived')}
+              </button>)}
+            </div>
             {loading ? <p role="status" className="editorial-pending">{t.savedLoading}</p> : cases.length > 0 && (
               <ul className="saved-case-list">
                 {cases.map((item) => (
@@ -112,7 +133,7 @@ export function SavedCasesView({ configured, signedIn, backendConfigured, liveAI
                 ))}
               </ul>
             )}
-            {!loading && cases.length === 0 && !failure && <div className="case-state"><Icon name="file"/><p>{t.savedEmpty}</p></div>}
+            {!loading && cases.length === 0 && !failure && <div className="case-state"><Icon name="file"/><p>{view === 'archived' ? (isItalian ? 'Nessuna pratica archiviata.' : 'No archived cases.') : t.savedEmpty}</p></div>}
             {failure && <div className="message-box warning" role="alert"><div>
               <p>{failure === 'expired' ? (isItalian ? 'La sessione è scaduta.' : 'Your session has expired.') :
                 failure === 'list' ? t.savedError : t.savedCreateError}</p>

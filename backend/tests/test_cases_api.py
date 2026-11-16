@@ -174,3 +174,33 @@ def test_case_api_refuses_unencrypted_jwks_url():
         create_app(Settings(database_url="sqlite+pysqlite:///ignored.db", enable_demo_case_api=True,
                             auth_issuer=ISSUER, auth_audience=AUDIENCE,
                             auth_jwks_url="http://untrusted.example.test/keys"))
+
+
+def test_case_archive_is_reversible_private_and_idempotent(client, auth_headers):
+    alice, bob = auth_headers("alice"), auth_headers("bob")
+    base = "/api/v1/cases"
+    created = client.post(base, json={}, headers=alice).json()
+    url = f"{base}/{created['id']}"
+    assert created["archived_at"] is None
+    assert client.patch(url + "/archive", json={"archived": True}, headers=bob).status_code == 404
+    assert client.patch(url + "/archive", json={"archived": True}).status_code == 401
+    assert client.patch(url + "/archive", json={"archived": "true"}, headers=alice).status_code == 422
+    assert client.patch(url + "/archive", json={"archived": True, "other": 1}, headers=alice).status_code == 422
+
+    saved = client.patch(url + "/scope", json={"answers": ["unsure"]}, headers=alice).json()
+    archived = client.patch(url + "/archive", json={"archived": True}, headers=alice).json()
+    assert archived["archived_at"]
+    assert archived["scope_answers"] == saved["scope_answers"]
+    assert archived["status"] == saved["status"]
+    repeat = client.patch(url + "/archive", json={"archived": True}, headers=alice).json()
+    assert repeat["archived_at"] == archived["archived_at"]
+    assert client.get(base, headers=alice).json() == []
+    assert client.get(base + "?view=archived", headers=bob).json() == []
+    assert [case["id"] for case in client.get(base + "?view=archived", headers=alice).json()] == [created["id"]]
+    assert client.get(url, headers=alice).json()["archived_at"] == archived["archived_at"]
+
+    restored = client.patch(url + "/archive", json={"archived": False}, headers=alice).json()
+    assert restored["archived_at"] is None
+    assert restored["scope_answers"] == saved["scope_answers"]
+    assert [case["id"] for case in client.get(base, headers=alice).json()] == [created["id"]]
+    assert client.get(base + "?view=archived", headers=alice).json() == []

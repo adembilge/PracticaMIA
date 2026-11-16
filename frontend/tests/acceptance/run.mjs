@@ -381,6 +381,31 @@ try{
     assert.match(text,/Al numero/);
   });
 
+  await scenario('Saved case archive: restore a completed case with its checklist and PDF',async()=>{
+    const owner=await contextFor('alice');
+    const second=await contextFor('bob');
+    const casePath='/cases/'+caseId;
+    const api='/api'+casePath;
+    const original=(await readJson(owner,api+'/workflow')).body;
+    await owner.goto(origin+casePath);
+    await owner.getByText('Manage this case',{exact:true}).click();
+    await owner.getByRole('button',{name:'Archive case',exact:true}).click();
+    await owner.getByText('Case archived.',{exact:true}).waitFor();
+    assert.equal((await second.request.patch(origin+api+'/archive',{data:{archived:false}})).status(),404);
+    assert.equal((await readJson(owner,'/api/cases')).body.some(row=>row.id===caseId),false);
+    assert.equal((await readJson(owner,'/api/cases?view=archived')).body.some(row=>row.id===caseId),true);
+    await owner.goto(origin+'/cases/saved');
+    await owner.getByRole('button',{name:'Archived',exact:true}).click();
+    await owner.locator('.saved-case-list a[href="'+casePath+'"]').click();
+    await owner.getByText('Case archived.',{exact:true}).waitFor();
+    await owner.getByText('Manage this case',{exact:true}).click();
+    await owner.getByRole('button',{name:'Restore to active cases',exact:true}).click();
+    await owner.getByRole('button',{name:'Archive case',exact:true}).waitFor();
+    const restored=(await readJson(owner,api+'/workflow')).body;
+    assert.deepEqual(restored.checklist.reviewed_items,original.checklist.reviewed_items);
+    assert.equal((await owner.request.get(origin+api+'/package/pdf')).status(),200);
+  });
+
   if(health.private_documents) await runDocumentScenarios({
     origin, scenario, contextFor, createCase, scopeAnswers, confirmIntake, facts, readJson,
   });
