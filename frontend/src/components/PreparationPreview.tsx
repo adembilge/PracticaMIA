@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDemo } from '@/components/DemoProvider';
 import { Icon } from '@/components/Icon';
+import { DocumentProgress } from '@/components/DocumentProgress';
 import styles from './PreparationPreview.module.css';
 import { serializeReviewedPreparationPackage, serializeSyntheticAnprDraft, serializeSyntheticAnprText } from '@/lib/preparation-preview';
 
@@ -83,6 +84,7 @@ type DocumentSummary = {
   confirmed_fields: Record<string, string>;
   status: string;
 };
+type DocumentOperation = { kind: 'upload' } | { kind: 'extract'; id: string };
 type GuideResult = {
   action: 'intake' | 'evidence' | 'case_status' | 'documents' | 'next_step';
   status: string;
@@ -199,6 +201,7 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [documentOperation, setDocumentOperation] = useState<DocumentOperation | null>(null);
   const [handoff, setHandoff] = useState<{ links: { title: string; official_url: string }[] } | null>(null);
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
@@ -382,8 +385,14 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
     await mutate(base + '/facts', 'PUT', { confirmed_facts });
   }
 
-  async function run(action: () => Promise<void>, success: string, failure?: (error: unknown) => string) {
+  async function run(
+    action: () => Promise<void>,
+    success: string,
+    failure?: (error: unknown) => string,
+    operation?: DocumentOperation,
+  ) {
     setBusy(true);
+    if (operation) setDocumentOperation(operation);
     setError('');
     setMessage('');
     setHandoff(null);
@@ -394,6 +403,7 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
     } catch (err) {
       setError(feedback(err, failure?.(err) ?? (it ? 'Non è stato possibile completare l’operazione. Riprova.' : 'This action could not be completed. Try again.')));
     } finally {
+      if (operation) setDocumentOperation(null);
       setBusy(false);
     }
   }
@@ -511,7 +521,8 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
               <p>{it ? 'Usa solo dati e documenti inventati. L’invio ufficiale avviene su ANPR.' :
                 'Use fictional details and documents only. Official submission takes place on ANPR.'}</p>
             </div>
-            <section className={styles.panel} id={activeStep} aria-labelledby="preparation-step-title" aria-busy={busy || guideBusy}>
+            <section className={styles.panel} id={activeStep} aria-labelledby="preparation-step-title"
+              aria-busy={(busy && !documentOperation) || guideBusy}>
               <h2 id="preparation-step-title" ref={heading} tabIndex={-1}>{it ? step.it : step.en}</h2>
               {activeStep !== 'synthetic-documents' && message && <p role="status" className={styles.success}>{message}</p>}
               {activeStep !== 'synthetic-documents' && error && <p role="alert" className={styles.error}>{error}</p>}
@@ -860,9 +871,12 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
                   }, it ? 'File sintetico caricato.' : 'Synthetic file uploaded.', error =>
                     error instanceof PreviewRequestError && [413, 415, 422].includes(error.status)
                       ? (it ? 'Controlla formato, dimensione e categoria del file.' : 'Check the file format, size and category.')
-                      : (it ? 'Caricamento non riuscito. Riprova.' : 'The file could not be uploaded. Try again.'))}>
+                      : (it ? 'Caricamento non riuscito. Riprova.' : 'The file could not be uploaded. Try again.'),
+                  { kind: 'upload' })}>
                     {it ? 'Carica' : 'Upload'}
                   </button>
+                  {documentOperation?.kind === 'upload' &&
+                    <DocumentProgress label={it ? 'Caricamento del file…' : 'Uploading file…'} />}
                 </div>
                 {documents.length > 0 && <h3 className={styles.fileHeading}>{it ? 'File caricati' : 'Uploaded files'}</h3>}
                 {message && <p className={styles.success} role="status">{message}</p>}
@@ -884,9 +898,12 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
                           ? (it ? 'Il servizio di estrazione non è disponibile. Il file è salvato. Riprova più tardi.' :
                             'Text extraction is unavailable. Your file is saved. Try again later.')
                           : (it ? 'Impossibile leggere il file. Riprova o scegli un altro documento.' :
-                            'The file could not be read. Try again or choose another document.'))}>
+                            'The file could not be read. Try again or choose another document.'),
+                      { kind: 'extract', id: doc.id })}>
                       {it ? 'Estrai il testo' : 'Extract text'}
                     </button>}
+                  {documentOperation?.kind === 'extract' && documentOperation.id === doc.id &&
+                    <DocumentProgress label={it ? 'Estrazione del testo…' : 'Extracting text…'} />}
                   {doc.candidates.map((item, i) => {
                     const correctionKey = doc.id + ':' + i;
                     return <div key={correctionKey} style={{ marginTop: 12 }}>
