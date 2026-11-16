@@ -11,9 +11,12 @@ The export contains:
 - Case reference prefix and generation timestamp.
 - Six or fewer explicitly user-confirmed categorical residence facts, including
   an optional move date; no personal addresses, names or document numbers.
-- Five exact signed English action descriptions and per-item links/citation
-  IDs/review dates to the originally approved official source versions.
-  The historical ANPR guide is visibly marked archived.
+- Five signed actions with per-item citation IDs, review dates and source links.
+  The English PDF preserves the signed text and the Italian PDF displays a
+  translation. The historical ANPR guide is visibly marked archived.
+- The three labels in the archived ANPR title 2 rental worksheet. The user
+  keeps the field values and checks current form labels and attachment limits
+  directly in ANPR.
 - Counts, limited review status and comparison outcomes for encrypted private
   documents, when the opt-in private vault is operational.
 - Outstanding issues and missing document-review signals.
@@ -42,7 +45,7 @@ checklist, or submission receipt.** Neither the user nor the AI can mark
 
 ## Routes
 - `GET /api/v1/cases/{id}/package` -> private no-store manifest.
-- `GET /api/v1/cases/{id}/package/pdf` -> private no-store PDF attachment
+- `GET /api/v1/cases/{id}/package/pdf?lang=en|it` -> private no-store PDF attachment
   only after live owner/requirements/review checks.
 - Both routes authenticate and check ownership in the backend; the Next.js
   BFF obtains Auth0 credentials on the server and relays bytes with strict

@@ -151,6 +151,7 @@ def assemble_workflow(*, case, intake, manifest: dict,
             "status": manifest["status"],
             "download_allowed": manifest["download_allowed"],
             "outstanding_issues": issues,
+            "anpr_worksheet": manifest.get("anpr_worksheet"),
         },
         "documents": {
             "enabled": private_documents_enabled,

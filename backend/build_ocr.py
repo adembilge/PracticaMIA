@@ -1,4 +1,4 @@
-"""Bundle public, pinned OCR language data for the isolated Vercel preview."""
+"""Bundle pinned OCR language data for permitted document runtimes."""
 
 from hashlib import sha256
 import os
@@ -26,7 +26,17 @@ def install_tessdata(directory: Path) -> None:
 
 
 if __name__ == "__main__":
-    if (os.environ.get("VERCEL_ENV") == "preview"
-            and os.environ.get("VERCEL_GIT_COMMIT_REF") == "preview/auth-review-isolated"):
+    environment = os.environ.get("VERCEL_ENV")
+    isolated_preview = (
+        environment == "preview"
+        and os.environ.get("VERCEL_GIT_COMMIT_REF") == "preview/auth-review-isolated"
+    )
+    approved_vault_build = (
+        environment == "production"
+        and os.environ.get("ENABLE_PRIVATE_DOCUMENT_API") == "1"
+        and os.environ.get("PRIVATE_DOCUMENT_PRIVACY_APPROVED") == "1"
+        and os.environ.get("PRIVATE_DOCUMENT_FIXTURE_MODE") != "1"
+    )
+    if isolated_preview or approved_vault_build:
         install_tessdata(Path(__file__).parent / "app" / "preparation" / "tessdata")
-        print("Bundled English and Italian OCR language data for isolated preview.")
+        print("Bundled English and Italian OCR language data.")

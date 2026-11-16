@@ -72,6 +72,13 @@ def test_owner_can_download_a_cited_reviewable_draft(client, auth_headers, appro
     assert len(manifest["confirmed_facts"]) == 6
     assert len(manifest["checklist"]) == 5
     assert manifest["documents"] == []
+    worksheet = manifest["anpr_worksheet"]
+    assert worksheet["source"]["citation_id"].endswith(":0015")
+    assert worksheet["source"]["archived_reference"] is True
+    assert [field["portal_label"] for field in worksheet["fields"]] == [
+        "Ufficio di", "In data", "Al numero",
+    ]
+    assert all("value" not in field for field in worksheet["fields"])
     assert manifest["official_submission"] is False
     assert manifest["official_acceptance"] is False
     assert manifest["document_requirements_verified"] is False
@@ -98,6 +105,23 @@ def test_owner_can_download_a_cited_reviewable_draft(client, auth_headers, appro
     assert case_id not in content
     assert "alice" not in content
     assert "officially approved" not in content.lower()
+    assert "What to prepare for ANPR" in content
+    assert "Ufficio di" in content
+    assert "current ANPR form" in content
+    assert download.headers["content-language"] == "en"
+
+    italian = client.get(base + "/pdf?lang=it", headers=alice)
+    assert italian.status_code == 200
+    assert italian.headers["content-language"] == "it"
+    translated = pdf_text(italian.content)
+    assert "Bozza di preparazione della pratica" in translated
+    assert "Dati da preparare per ANPR" in translated
+    assert "BOZZA - NON INVIATA" in translated
+    assert "modulo ANPR attuale" in translated
+    assert "identità" in translated
+    assert case_id not in translated
+    assert client.get(base + "/pdf?lang=it", headers=bob).status_code == 404
+    assert client.get(base + "/pdf?lang=fr", headers=alice).status_code == 422
 
 
 def test_unconfirmed_unsupported_and_revoked_evidence_block_pdf(
@@ -134,6 +158,7 @@ def test_unconfirmed_unsupported_and_revoked_evidence_block_pdf(
     revoked = client.get(base, headers=alice).json()
     assert revoked["status"] == "blocked"
     assert revoked["checklist"] == []
+    assert revoked["anpr_worksheet"] is None
     assert client.get(base + "/pdf", headers=alice).status_code == 409
 
     # Changing the scope erases downstream confirmed intake.

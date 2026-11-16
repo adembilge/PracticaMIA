@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
-from app.auth.tokens import Principal, get_principal
+from app.auth.tokens import Principal
 from app.cases.model import CaseRecord
 from app.cases.router import get_case
 from app.database import get_session
@@ -22,12 +22,12 @@ from app.private_documents.model import PrivateCaseDocument
 from app.private_documents.security import (
     CONSENT_VERSION, DOC_CATEGORIES, MAX_DOCS_PER_CASE,
     MalwareDetected, ScanUnavailable, expiry_from,
-    scan_bytes, seal_bytes, validate_private_file,
+    require_vault_principal, scan_bytes, seal_bytes, validate_private_file,
 )
 
 router = APIRouter(
     prefix="/api/v1/cases", tags=["private-documents"],
-    dependencies=[Depends(get_principal)],
+    dependencies=[Depends(require_vault_principal)],
 )
 retention_router = APIRouter(tags=["private-document-retention"])
 
@@ -57,7 +57,7 @@ async def add_private_document(
     consent_version: str = Form(""),
     file: UploadFile = File(...),
     db: Session = Depends(get_session),
-    principal: Principal = Depends(get_principal),
+    principal: Principal = Depends(require_vault_principal),
 ):
     get_case(db, case_id, principal.subject)
     if privacy_ack is not True or consent_version != CONSENT_VERSION:
@@ -78,6 +78,11 @@ async def add_private_document(
         raise HTTPException(422, str(exc)) from None
     finally:
         await file.close()
+
+    digest = sha256(body).hexdigest()
+    fixture_files = request.app.state.private_document_fixture_files
+    if fixture_files is not None and (digest not in fixture_files or category != "housing_document"):
+        raise HTTPException(422, "Use an approved fictional housing fixture")
 
     # Infected/unavailable scanners always fail closed, before storing bytes.
     try:
@@ -118,7 +123,7 @@ async def add_private_document(
         owner_subject=principal.subject,
         category=category,
         media_type=file.content_type,
-        content_sha256=sha256(body).hexdigest(),
+        content_sha256=digest,
         ciphertext=seal_bytes(
             body, key=request.app.state.private_document_key,
             case_id=case_str, owner=principal.subject, document_id=document_id,
@@ -138,7 +143,7 @@ async def add_private_document(
 @router.get("/{case_id}/private-documents")
 def list_private_documents(
     case_id: UUID, db: Session = Depends(get_session),
-    principal: Principal = Depends(get_principal),
+    principal: Principal = Depends(require_vault_principal),
 ):
     get_case(db, case_id, principal.subject)
     docs = db.scalars(select(PrivateCaseDocument).where(
@@ -154,7 +159,7 @@ def list_private_documents(
 def delete_private_document(
     case_id: UUID, document_id: UUID,
     db: Session = Depends(get_session),
-    principal: Principal = Depends(get_principal),
+    principal: Principal = Depends(require_vault_principal),
 ):
     get_case(db, case_id, principal.subject)
     result = db.execute(delete(PrivateCaseDocument).where(

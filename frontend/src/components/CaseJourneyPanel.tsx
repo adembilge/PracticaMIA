@@ -18,6 +18,11 @@ type Action={
   id:string;status:string;description:string;evidence:Evidence[];
 };
 type Step={id:string;status:string};
+type AnprWorksheet = {
+  section: string;
+  source: Evidence;
+  fields: {key: string; portal_label: string; label_en: string; label_it: string}[];
+};
 type Workflow={
   case_reference:string;next_action:string;steps:Step[];
   checklist:{
@@ -26,6 +31,7 @@ type Workflow={
   };
   package:{
     status:string;download_allowed:boolean;outstanding_issues:string[];
+    anpr_worksheet?: AnprWorksheet | null;
   };
   documents:{enabled:boolean;uploaded_count:number;reviewed_count:number};
 };
@@ -386,7 +392,8 @@ export function CaseJourneyPanel({
   }
 
   const activeRule = current === 'checklist' ? data?.checklist.items.find(item => item.id === selectedRule) ?? null : null;
-  const pdfUrl = '/api/cases/' + encodeURIComponent(caseId) + '/package/pdf';
+  const pdfUrl = '/api/cases/' + encodeURIComponent(caseId) + '/package/pdf?lang=' + locale;
+  const worksheet = data?.package.anpr_worksheet;
 
   async function downloadPdf(event?: MouseEvent<HTMLAnchorElement>) {
     if (event?.altKey || event?.ctrlKey || event?.metaKey || event?.shiftKey) return;
@@ -524,6 +531,24 @@ export function CaseJourneyPanel({
             {data.package.download_allowed && <button className="inline-link" type="button" disabled={pdfBusy || loading}
               onClick={() => void downloadPdf()}>{c.retry}</button>}
           </div></div>}
+        </div>}
+        {worksheet && <div className="case-state">
+          <div>
+            <h3>{locale === 'it' ? 'Dati da preparare per ANPR' : 'What to prepare for ANPR'}</h3>
+            <p>{worksheet.section}</p>
+            <dl>
+              {worksheet.fields.map(field => <div key={field.key}>
+                <dt lang="it"><strong>{field.portal_label}</strong></dt>
+                <dd>{locale === 'it' ? field.label_it : field.label_en}</dd>
+              </div>)}
+            </dl>
+            <p>{locale === 'it'
+              ? 'Tieni a portata di mano questi dati. Controlla nel modulo ANPR attuale anche gli allegati e i limiti di caricamento.'
+              : 'Have these details to hand. Check the current ANPR form for attachments and upload limits.'}</p>
+            <a className="inline-link" href={worksheet.source.official_url} target="_blank" rel="noopener noreferrer">
+              {locale === 'it' ? 'Guida ANPR archiviata, p. 12' : 'Archived ANPR guide, p. 12'}
+            </a>
+          </div>
         </div>}
         <div className="case-handoff" id="case-handoff">
           <h3>{c.manual}</h3><p>{c.notSent}</p>

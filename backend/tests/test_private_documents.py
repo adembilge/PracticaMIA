@@ -3,6 +3,7 @@
 Entirely synthetic fixtures. These tests do not authorize real-identity uploads.
 """
 import base64
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from io import BytesIO
@@ -41,7 +42,7 @@ def enabled_settings(database_url="sqlite+pysqlite:///:memory:"):
         database_url=database_url,
         enable_demo_case_api=True,
         enable_private_document_api=True,
-        deployment_environment="preview",
+        deployment_environment="production",
         private_document_key=base64.b64encode(bytes(range(32))).decode(),
         private_document_scan_url="https://scanner.example.test/check",
         private_document_scan_host="scanner.example.test",
@@ -93,9 +94,71 @@ def test_default_off_and_require_all_release_gates():
         {"private_document_controller": ""},
         {"private_document_contact": "invalid"},
     ]:
-        from dataclasses import replace
         with pytest.raises(ValueError):
             validate_release_settings(replace(enabled_settings(), **bad))
+
+
+def test_hosted_fixture_mode_only_accepts_the_isolated_preview_configuration():
+    fixture = replace(
+        enabled_settings("postgresql://staging.example.test/test"),
+        deployment_environment="preview",
+        deployment_git_branch="preview/auth-review-isolated",
+        enable_preparation_api=True,
+        preparation_target="isolated_staging",
+        preparation_database_fingerprint="f" * 64,
+        private_document_fixture_mode=True,
+        private_document_privacy_approved=False,
+        private_document_fixture_subject_hashes="a" * 64 + "," + "b" * 64,
+        private_document_fixture_file_hashes=",".join(c * 64 for c in "cde"),
+    )
+    assert len(validate_release_settings(fixture)) == 32
+    for changed in (
+        {"deployment_environment": "production"},
+        {"deployment_git_branch": "feature/untrusted"},
+        {"enable_preparation_api": False},
+        {"database_url": "sqlite://"},
+        {"private_document_fixture_subject_hashes": "a" * 64},
+        {"private_document_fixture_file_hashes": "c" * 64},
+        {"private_document_fixture_mode": False},
+        {"preparation_document_key": fixture.private_document_key},
+    ):
+        with pytest.raises(ValueError):
+            validate_release_settings(replace(fixture, **changed))
+
+
+def test_hosted_fixture_restrictions_apply_before_scanner(
+    document_client, auth_headers, monkeypatch,
+):
+    app = document_client.app
+    app.state.private_document_fixture_subjects = {
+        sha256(value.encode()).hexdigest() for value in ("alice", "bob")
+    }
+    app.state.private_document_fixture_files = {sha256(PDF_BYTES).hexdigest()}
+    scanned = []
+    monkeypatch.setattr(document_router, "scan_bytes", lambda body, _: scanned.append(body))
+
+    alice, bob, outsider = (auth_headers(value) for value in ("alice", "bob", "other"))
+    first = document_client.post("/api/v1/cases", json={}, headers=alice).json()["id"]
+    other = document_client.post("/api/v1/cases", json={}, headers=outsider).json()["id"]
+    url = f"/api/v1/cases/{first}/private-documents"
+    other_url = f"/api/v1/cases/{other}/private-documents"
+    assert document_client.get(other_url, headers=outsider).status_code == 404
+    assert upload(document_client, other_url, outsider).status_code == 404
+    assert document_client.get(url, headers=bob).status_code == 404
+    assert upload(document_client, url, bob).status_code == 404
+
+    app.state.private_document_fixture_files = {"0" * 64}
+    assert upload(document_client, url, alice).status_code == 422
+    assert not scanned
+
+    app.state.private_document_fixture_files = {sha256(PDF_BYTES).hexdigest()}
+    result = upload(document_client, url, alice)
+    assert result.status_code == 201, result.text
+    assert len(scanned) == 1
+    document = result.json()["id"]
+    assert document_client.get(f"{url}/{document}/intelligence", headers=bob).status_code == 404
+    assert document_client.delete(f"{url}/{document}", headers=bob).status_code == 404
+    assert document_client.delete(f"{url}/{document}", headers=alice).status_code == 204
 
 
 def test_document_upload_requires_consent_and_scanner_then_encrypts(document_client, auth_headers):

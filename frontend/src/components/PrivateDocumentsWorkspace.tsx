@@ -20,7 +20,7 @@ type Doc = {
   review_status: 'stored_unverified';
   official_submission: false;
 };
-type Props = {caseId: string; configured: boolean; signedIn: boolean};
+type Props = {caseId: string; configured: boolean; signedIn: boolean; fixtureMode?: boolean};
 
 const messages = {
   en: {
@@ -77,7 +77,7 @@ const messages = {
   },
 } as const;
 
-export function PrivateDocumentsWorkspace({caseId, configured, signedIn}: Props) {
+export function PrivateDocumentsWorkspace({caseId, configured, signedIn, fixtureMode = false}: Props) {
   const {locale} = useDemo();
   const t = messages[locale];
   const [docs,setDocs] = useState<Doc[]>([]);
@@ -183,7 +183,10 @@ export function PrivateDocumentsWorkspace({caseId, configured, signedIn}: Props)
           <h1>{t.title}</h1></div>
         <Link className="editorial-text-link" href={back + '#case-workflow-documents'}>← {t.back}</Link>
       </header>
-      <p className="document-lead">{t.lead}</p>
+      <p className="document-lead">{fixtureMode
+        ? (it ? 'Ambiente di prova. Carica solo i file di alloggio fittizi forniti per il test.'
+              : 'Test environment. Use only the fictional housing files provided for this test.')
+        : t.lead}</p>
       {(!signedIn || expired) && configured && <div className="message-box warning" role="alert">
         <div><p>{expired ? (it ? 'La sessione è scaduta.' : 'Your session has expired.') : t.signIn}</p>
           <a className="inline-link" href={login}>{it ? 'Accedi' : 'Sign in'}</a></div>
@@ -220,8 +223,8 @@ export function PrivateDocumentsWorkspace({caseId, configured, signedIn}: Props)
             <select className="input" id="private-document-category" disabled={busy}
               value={category} onChange={e => setCategory(e.target.value)}>
               <option value="housing_document">{t.housing_document}</option>
-              <option value="identity_document">{t.identity_document}</option>
-              <option value="other_supporting_document">{t.other_supporting_document}</option>
+              {!fixtureMode && <option value="identity_document">{t.identity_document}</option>}
+              {!fixtureMode && <option value="other_supporting_document">{t.other_supporting_document}</option>}
             </select>
             <p>{t.categoryNote}</p>
             <label htmlFor="private-document-file" className="field-label">{t.choose}</label>

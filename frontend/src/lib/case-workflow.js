@@ -26,6 +26,24 @@ export function validReviewMark(value){
     /^[0-9a-f]{64}$/.test(value.fingerprint);
 }
 
+export function validAnprWorksheet(value) {
+  const source = value?.source;
+  return value?.section === 'Immobile · Titolo 2' &&
+    source?.source_id === 'anpr-public-docs-residence-guide' &&
+    source?.archived_reference === true &&
+    source?.citation_id === source?.source_version_id + ':0015' &&
+    verifiedChecklistEvidence(source) &&
+    Array.isArray(value.fields) && value.fields.length === 3 &&
+    value.fields.every((field, index) => field &&
+      field.key === [
+        'rental_registration_office_municipality', 'rental_contract_date',
+        'rental_registration_number',
+      ][index] &&
+      field.portal_label === ['Ufficio di', 'In data', 'Al numero'][index] &&
+      [field.label_en, field.label_it].every(label =>
+        typeof label === 'string' && label.length > 0 && label.length <= 100));
+}
+
 export function validCaseWorkflow(value){
   if(!value||typeof value!=='object'||Array.isArray(value)||
      value.workflow_version!=='case-journey-v1'||
@@ -49,6 +67,7 @@ export function validCaseWorkflow(value){
      !Number.isInteger(d.reviewed_count)||!Number.isInteger(d.uploaded_count))
     return false;
   if(p.download_allowed !== (p.status==='reviewable_draft'))return false;
+  if(p.anpr_worksheet != null && !validAnprWorksheet(p.anpr_worksheet))return false;
   if(c.status==='unavailable')
     return c.total===0&&c.items.length===0&&c.reviewed_count===0&&
       c.fingerprint===null&&Object.keys(c.reviewed_items).length===0;
