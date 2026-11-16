@@ -30,7 +30,7 @@ See the [P0 acceptance record](MILAN_P0_ACCEPTANCE.md) for the reviewed workshee
 
 - The project owner deferred signed-in ANPR observation. The archived guide remains the source for the rental field labels. The app directs users to ANPR for current attachment rules.
 - Saved cases can be archived and restored by their owner. The additive migration is `20261116_0017`. Archiving changes list placement and leaves checklist marks and PDF availability tied to the existing evidence.
-- The checked-in assistant fixture now runs all seven questions in English and Italian against the API using synthetic sources and a controlled model. The opt-in hosted audit has a separate live matrix.
+- The checked-in assistant fixture now runs all seven questions in English and Italian against the API using synthetic sources. Reviewed FAQ entry points use approved excerpts directly. Separate tests retain model selection, invalid answer and timeout coverage for other questions. The opt-in hosted audit has a separate live matrix.
 - The disposable PostgreSQL acceptance workflow tests a logical backup and restore of an archived synthetic case and vault payload columns.
 
 ## Outstanding MVP and release gates

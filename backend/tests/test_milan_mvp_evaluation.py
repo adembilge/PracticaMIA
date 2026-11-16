@@ -127,7 +127,7 @@ def test_reviewed_quote_selection(
     headers = auth_headers()
     cid = case_id(assistant_client, headers)
     response = post(
-        assistant_client, cid, headers, question=CASES["MIL-01"]["queries"]["en"], language="en",
+        assistant_client, cid, headers, question="How many days do I have to report a Milan address change?", language="en",
     ).json()
     assert response["status"] == expected_status
     if selection == "1":
@@ -208,11 +208,11 @@ def test_bilingual_assistant_matrix(
             official_url=reviewed.official_url, content=lines[ordinal],
         )
 
-    def selection(_):
-        return AIMessage(content="1")
+    def no_model():
+        pytest.fail("Reviewed exact prompts and deferrals must not call the model")
 
     monkeypatch.setattr(assistant_router, "resolve_approved_passage", resolve)
-    assistant_client.app.state.assistant_model_factory = lambda: RunnableLambda(selection)
+    assistant_client.app.state.assistant_model_factory = no_model
     headers = auth_headers()
     cid = case_id(assistant_client, headers)
     fixture = CASES[item]

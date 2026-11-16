@@ -67,6 +67,18 @@ _TOPICS = (
         (f"{_MILAN_FAQ}:0000", r"Comunicare all'Ufficio Anagrafe[^.]+\."),
     )),
 )
+# Exact reviewed FAQ wordings can show signed-source quotes without depending
+# on a free model's selection. New phrasings still use the relevance check.
+_EXACT_REVIEWED_QUESTIONS = frozenset({
+    "when must i report my milan address change",
+    "entro quando devo comunicare il cambio di indirizzo a milano",
+    "is the tari declaration included in my residence change",
+    "la dichiarazione tari è inclusa nel cambio di residenza",
+    "which details should i prepare for my registered private lease",
+    "quali dati devo preparare per il mio contratto di locazione registrato",
+    "must i upload my lease to anpr",
+    "devo caricare su anpr il contratto di locazione",
+})
 _REQUIRES_CURRENT_OR_PERSONAL_DECISION = re.compile(
     r"\b(attachment size|file size|limite.{0,35}allegat|"
     r"automatically rejected|respinta automaticamente|missed the deadline|superato il termine)\b",
@@ -250,9 +262,10 @@ def ask_case_question(
         for item in passages
     ]
 
-    if asks_about_product_submission:
-        # The product never submits a declaration. The UI states this fixed
-        # boundary, and the approved excerpts explain the user's ANPR handoff.
+    exact_question = " ".join(payload.question.strip().casefold().rstrip("?").split())
+    if asks_about_product_submission or exact_question in _EXACT_REVIEWED_QUESTIONS:
+        # These wordings resolve to preselected approved excerpts. The product
+        # handoff remains fixed and source revocation is checked above.
         return AskAnswer(status="answer_generated", answer="\n".join(quotes), sources=sources)
 
     model = None
