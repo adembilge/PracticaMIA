@@ -102,7 +102,7 @@ function saveSummary(value: unknown) {
 export function SyntheticDemoWorkspace({ startAtDocument = false }: { startAtDocument?: boolean }) {
   const { locale } = useDemo();
   const t = copy[locale];
-  const [state, setState] = useState(() => {
+  const [state, setState] = useState<ReturnType<typeof createSyntheticCase>>(() => {
     const sample = createSyntheticCase('standard');
     return startAtDocument ? confirmSyntheticFacts(sample) : sample;
   });
@@ -113,6 +113,7 @@ export function SyntheticDemoWorkspace({ startAtDocument = false }: { startAtDoc
   const stage = useRef<HTMLElement>(null);
   const assessment = evaluateSyntheticCase(state);
   const summary = buildSyntheticPackage(state);
+  const missingFields = new Set<string>(assessment.missing_fields);
   const outside = assessment.decision === 'unsupported';
   const supported = assessment.decision === 'supported';
   const complete = assessment.status === 'simulated_handoff';
@@ -204,7 +205,7 @@ export function SyntheticDemoWorkspace({ startAtDocument = false }: { startAtDoc
               <strong>{supported ? t.ready : outside ? t.outside : t.missing}</strong>
               <p>{supported ? t.readyLead : outside ? t.outsideLead : t.missingLead}</p>
               {assessment.missing_fields.length > 0 && <ul>{fields.map(({key}, index) =>
-                assessment.missing_fields.includes(key) && <li key={key}>{t.factLabels[index]}</li>)}</ul>}
+                missingFields.has(key) && <li key={key}>{t.factLabels[index]}</li>)}</ul>}
             </div>
             <div className={styles.actions}>
               <button className={'button ' + (supported ? 'button-outline' : 'button-primary')}
