@@ -15,7 +15,7 @@ export function SiteHeader({ signedIn, accountName }: { signedIn: boolean; accou
       <Brand />
       <nav className="header-nav" aria-label={locale === 'it' ? 'Navigazione principale' : 'Main navigation'}>
         <Link href="/#how-it-works" className="nav-link">{t.navHow}</Link>
-        <Link href="/cases/saved" className="nav-link">{t.navStart}</Link>
+        <Link href="/cases/new" className="nav-link">{t.navStart}</Link>
         <Link href="/account" className="nav-link nav-account">
           <span>{signedIn ? accountName || t.navAccount : t.navSignIn}</span>
         </Link>

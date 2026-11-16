@@ -13,7 +13,7 @@ type Props = {
 const translations = {
   en: {
     title:'AI guidance for this saved case',
-    subtitle:'The next step below is calculated from the answers saved in your case, not a fictional example.',
+    subtitle:'See the next step based on your saved answers.',
     modelNotice:'OpenRouter receives only the abstract workflow status and question number. It does not receive your answers, identity, addresses, documents or case ID.',
     summary:'Case status',
     next:'Recommended product action',
@@ -29,7 +29,7 @@ const translations = {
   },
   it: {
     title:'Guida AI per questa pratica salvata',
-    subtitle:'Il prossimo passo deriva dalle risposte salvate nella pratica, non da un esempio inventato.',
+    subtitle:'Vedi il prossimo passo in base alle risposte salvate.',
     modelNotice:'OpenRouter riceve solo lo stato astratto e il numero della domanda. Non riceve risposte, identità, indirizzi, documenti o ID della pratica.',
     summary:'Stato della pratica',
     next:'Prossima azione consigliata nel prodotto',

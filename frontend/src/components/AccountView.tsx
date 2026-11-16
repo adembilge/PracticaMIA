@@ -44,7 +44,6 @@ export function AccountView({ configured, signedIn, name, backendConfigured }: P
               <Link href="/cases/new" className={styles.demoLink}>
                 {t.accountDemoLink}<Icon name="arrowRight" size={16} />
               </Link>
-              <p className={styles.privacy}><Icon name="info" size={17} />{t.accountDemoPrivacy}</p>
             </section>
           </div>
         </div>
@@ -64,7 +63,6 @@ export function AccountView({ configured, signedIn, name, backendConfigured }: P
             <a href="/auth/logout" className="button button-outline">{t.accountLogout}</a>
           </div>
         </section>
-        <p className="account-footnote">{t.accountDemoPrivacy}</p>
         <Link href="/cases/new" className="back-link">{t.accountDemoLink}</Link>
       </div>
     </main>

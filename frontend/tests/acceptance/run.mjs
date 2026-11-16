@@ -79,7 +79,8 @@ async function scopeAnswers(page,values){
   for(let i=0;i<values.length;i++){
     const choice=values[i]==='yes'?'Yes':values[i]==='no'?'No':'Not sure';
     await page.getByRole('button',{name:choice,exact:true}).click();
-    await page.getByRole('button',{name:'Save and continue'}).click();
+    const continues = values[i] === (i === 3 ? 'no' : 'yes');
+    await page.getByRole('button',{name:continues ? 'Save and continue' : 'Save answer',exact:true}).click();
     if(i<values.length-1){
       await page.getByText('QUESTION '+(i+2)+' / 5').waitFor({timeout:12000});
     }
@@ -87,7 +88,7 @@ async function scopeAnswers(page,values){
 }
 async function createCase(page){
   await page.goto(origin+'/cases/saved');
-  await page.getByRole('button',{name:'Create an empty demo case'}).click();
+  await page.getByRole('button',{name:'Start case'}).click();
   await page.waitForURL(/\/cases\/[0-9a-f]{8}-/i,{timeout:15000});
   const id=new URL(page.url()).pathname.split('/').at(-1);
   assert.match(id,/^[0-9a-f]{8}-[0-9a-f-]{27,}$/);
@@ -103,7 +104,7 @@ async function confirmIntake(page,facts){
     }
   }
   await page.getByRole('checkbox',{
-    name:/I checked these entries and confirm they describe this fictional example/,
+    name:/I have reviewed the information above/,
   }).check();
   await page.getByRole('button',{name:'Confirm facts'}).click();
 }
@@ -117,6 +118,66 @@ const facts={
 };
 
 try{
+  await scenario('Public case walkthrough: all four routes, corrections and restart',async()=>{
+    const context=await browser.newContext({acceptDownloads:true,viewport:{width:390,height:800}});
+    contexts.push(context);
+    const page=await context.newPage();
+    page.on('pageerror',error=>errors.push({subject:'visitor',error:String(error).slice(0,350)}));
+    await page.goto(origin+'/cases/new');
+    await page.getByRole('heading',{name:'Start a case',level:1}).waitFor();
+    await page.getByRole('link',{name:/Explore a fictional case/}).click();
+    const button=(name)=>page.getByRole('button',{name,exact:true});
+    const choose=async(name)=>{
+      await page.getByRole('button',{name:new RegExp('^'+name)}).click();
+      await page.getByRole('heading',{name:'Questions',level:2}).waitFor();
+      assert.doesNotMatch(await page.locator('section').innerText(),/\bdemo\b|fictional|simulat/i);
+      await button('Continue').click();
+    };
+    const change=async()=>page.locator('section').getByRole('button',{name:'Choose another scenario'}).click();
+    const documentStep=async()=>{
+      await button('Review document').click();
+      await button('Open sample document').click();
+      await button('Confirm address').click();
+    };
+    const finish=async()=>{
+      await button('Mark as reviewed').click();
+      await button('Review draft').click();
+      await page.getByRole('checkbox',{name:'I have checked the information above.'}).check();
+      await button('Finish review').click();
+      const downloadEvent=page.waitForEvent('download');
+      await button('Download summary (JSON)').click();
+      const download=await downloadEvent;
+      const exported=JSON.parse(readFileSync(await download.path(),'utf8'));
+      assert.equal(exported.simulation_only,true);
+      assert.equal(exported.government_submission_status,'NOT_SUBMITTED');
+      await page.getByRole('navigation',{name:'Case progress'}).getByRole('button',{name:/Review/}).click();
+      await button('View summary').click();
+      await page.getByRole('heading',{name:'Review complete'}).waitFor();
+      await change();
+    };
+    await choose('Standard move');
+    await documentStep();
+    await finish();
+    await choose('Missing information');
+    await page.getByRole('status').getByText('More information needed').waitFor();
+    await button('Review answers').click();
+    const registration=page.getByRole('group',{name:'Were you already registered in Italy?'});
+    await registration.getByRole('button',{name:'Yes',exact:true}).click();
+    await button('Continue').click();
+    await page.getByRole('status').getByText('Review a housing document').waitFor();
+    await page.getByRole('navigation',{name:'Case progress'}).getByRole('button',{name:/Scenario/}).click();
+    await choose('Different circumstances');
+    await page.getByRole('status').getByText('This situation needs a different route').waitFor();
+    await change();
+    await choose('Document mismatch');
+    await documentStep();
+    await page.getByRole('status').getByText(/The addresses differ/).waitFor();
+    assert.equal(await button('Review draft').isEnabled(),false);
+    await page.getByLabel('Address to use').selectOption({index:0});
+    await button('Confirm address').click();
+    await finish();
+  });
+
   await scenario('A1: a move within Milan reaches the signed checklist',async()=>{
     alicePage=await contextFor('alice');
     caseId=await createCase(alicePage);
@@ -135,7 +196,7 @@ try{
     await alicePage.getByRole('heading',{name:'Case details',exact:true})
       .waitFor({timeout:12000});
     await alicePage.getByRole('button',{name:/^01 Scope/}).click();
-    await alicePage.getByRole('heading',{name:'Your demo scope check is complete.'}).waitFor();
+    await alicePage.getByRole('heading',{name:'Initial questions complete.'}).waitFor();
     await alicePage.goBack();
     await alicePage.getByRole('heading',{name:'Case details',exact:true}).waitFor();
     assert.doesNotMatch(await intakeStep.innerText(),/Finish the initial questions first/);
@@ -227,7 +288,7 @@ try{
     await bobPage.goto(origin+'/cases/'+caseId);
     const unavailable=bobPage.getByRole('heading',{level:1,name:'Case unavailable'});
     await unavailable.waitFor({timeout:12000});
-    assert.equal(await bobPage.getByRole('heading',{name:'Saved case workspace'}).count(),0);
+    assert.equal(await bobPage.getByRole('heading',{name:'Milan residence change'}).count(),0);
     assert.equal(await bobPage.getByRole('button',{name:'Try again'}).count(),0);
     const back=bobPage.getByRole('link',{name:'Back to saved cases'});
     assert.equal(await back.getAttribute('href'),'/cases/saved');
@@ -290,7 +351,7 @@ try{
     await alicePage.getByRole('button',{name:/^02 Case details/}).click();
     await alicePage.locator('#intake-housing_basis').selectOption('owner');
     await alicePage.getByRole('checkbox',{
-      name:/I checked these entries and confirm they describe this fictional example/,
+      name:/I have reviewed the information above/,
     }).check();
     await alicePage.getByRole('button',{name:'Confirm facts'}).click();
     await alicePage.getByText(
@@ -300,7 +361,7 @@ try{
       origin+'/api/cases/'+caseId+'/package/pdf')).status(),409);
     await alicePage.locator('#intake-housing_basis').selectOption('registered_private_rental');
     await alicePage.getByRole('checkbox',{
-      name:/I checked these entries and confirm they describe this fictional example/,
+      name:/I have reviewed the information above/,
     }).check();
     await alicePage.getByRole('button',{name:'Confirm facts'}).click();
     await alicePage.getByRole('button',{name:/^03 Requirements/}).click();
@@ -312,7 +373,7 @@ try{
     const bobPage=await contextFor('bob');
     const unsupported=await createCase(bobPage);
     await bobPage.getByRole('button',{name:'No',exact:true}).click();
-    await bobPage.getByRole('button',{name:'Save and continue'}).click();
+    await bobPage.getByRole('button',{name:'Save answer',exact:true}).click();
     const first=await awaitSavedCaseStatus(bobPage,unsupported,'unsupported');
     assert.equal(first.status,'unsupported');
     assert.equal((await bobPage.request.get(

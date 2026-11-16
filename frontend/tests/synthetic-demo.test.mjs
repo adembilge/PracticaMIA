@@ -160,3 +160,16 @@ test('manipulated or incomplete scenario state fails closed', () => {
   assert.equal(evaluateSyntheticCase(invalidAddress).status, 'needs_information');
   assert.equal(buildSyntheticPackage(invalidAddress), null);
 });
+
+test('all answer options reach an explicit assessment status', () => {
+  const cases = [
+    [{ household_context: 'unknown' }, 'needs_information'],
+    [{ housing_arrangement: 'unknown' }, 'needs_information'],
+    [{ housing_arrangement: 'other_housing_example' }, 'unsupported'],
+  ];
+  for (const [facts, expected] of cases) {
+    const state = confirmSyntheticFacts(updateSyntheticFacts(createSyntheticCase(), facts));
+    assert.equal(evaluateSyntheticCase(state).status, expected);
+    assert.equal(buildSyntheticPackage(state), null);
+  }
+});

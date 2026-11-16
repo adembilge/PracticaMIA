@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useDemo } from '@/components/DemoProvider';
+import { createSavedCase } from '@/lib/create-saved-case';
 import { Icon } from '@/components/Icon';
 import { LiveExampleAIGuide } from '@/components/LiveExampleAIGuide';
 
@@ -14,9 +15,10 @@ type Props = {
   signedIn: boolean;
   backendConfigured: boolean;
   liveAIEnabled: boolean;
+  canExplore: boolean;
 };
 
-export function SavedCasesView({ configured, signedIn, backendConfigured, liveAIEnabled }: Props) {
+export function SavedCasesView({ configured, signedIn, backendConfigured, liveAIEnabled, canExplore }: Props) {
   const { t, locale } = useDemo();
   const router = useRouter();
   const [view, setView] = useState<'active' | 'archived'>('active');
@@ -50,20 +52,13 @@ export function SavedCasesView({ configured, signedIn, backendConfigured, liveAI
     return () => controller.abort();
   }, [refresh]);
 
-  async function createSyntheticCase() {
+  async function startCase() {
     if (!canUseApi || creating) return;
     setCreating(true);
     setFailure(null);
     try {
-      const response = await fetch('/api/cases', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: '{}',
-        credentials: 'same-origin',
-      });
-      if (response.status === 401) { setFailure('expired');return; }
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      const created = (await response.json()) as SavedCase;
+      const created = await createSavedCase();
+      if ('expired' in created) { setFailure('expired');return; }
       router.push('/cases/' + encodeURIComponent(created.id));
     } catch {
       setFailure('create');
@@ -96,8 +91,8 @@ export function SavedCasesView({ configured, signedIn, backendConfigured, liveAI
         ) : (
           <section className="account-panel saved-index">
             <div className="saved-index-header">
-              <p>{isItalian ? 'Crea o riprendi un caso usando dati fittizi.' : 'Start or resume a case using fictional information.'}</p>
-              <button type="button" className="button button-primary" onClick={createSyntheticCase} disabled={creating || loading || failure === 'expired'}>
+              <p>{isItalian ? 'Crea una pratica o riprendi da dove eri arrivato.' : 'Start a case or pick up where you left off.'}</p>
+              <button type="button" className="button button-primary" onClick={startCase} disabled={creating || loading || failure === 'expired'}>
                 {creating ? t.savedCreating : t.savedCreate}
                 <Icon name="arrowRight" size={16}/>
               </button>
@@ -139,15 +134,14 @@ export function SavedCasesView({ configured, signedIn, backendConfigured, liveAI
                 failure === 'list' ? t.savedError : t.savedCreateError}</p>
               {failure === 'expired' ?
                 <a className="inline-link" href="/auth/login?returnTo=%2Fcases%2Fsaved">{t.accountLogin}</a> :
-                <button className="inline-link" type="button" onClick={() => void (failure === 'list' ? refresh() : createSyntheticCase())}>{retry}</button>}
+                <button className="inline-link" type="button" onClick={() => void (failure === 'list' ? refresh() : startCase())}>{retry}</button>}
             </div></div>}
           </section>
         )}
-        <Link href="/demo/synthetic" className="editorial-text-link saved-demo-link">
+        {canExplore && <Link href="/demo/synthetic" className="editorial-text-link saved-demo-link">
           {isItalian ? 'Esplora un caso fittizio' : 'Explore a fictional case'} <Icon name="arrowRight" size={16}/>
-        </Link>
+        </Link>}
         {signedIn && liveAIEnabled && <LiveExampleAIGuide />}
-        <p className="account-footnote">{t.accountDemoPrivacy}</p>
         <Link href="/account" className="back-link">{t.accountBack}</Link>
       </div>
     </main>

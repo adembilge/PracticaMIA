@@ -10,8 +10,8 @@ const copy = {
   en: {
     region: 'Milano · Change of residence', title: 'Moving to', accent: 'a new address?',
     description: 'Prepare your Milan residence change, check your documents and put together a draft before you file.',
-    start: 'Prepare my case', resume: 'Continue my case', cases: 'Open my cases', demo: 'Try a fictional case',
-    specimen: 'Example case', specimenTitle: 'Change of residence', caption: 'Fictional data for this preview',
+    start: 'Prepare my case', resume: 'Continue my case', cases: 'Open my cases', demo: 'Explore a fictional case',
+    specimen: 'Example case', specimenTitle: 'Change of residence',
     tabs: ['Requirements', 'Document check', 'Summary'],
     requirements: ['Residence details', 'Housing information'], selected: 'Selected requirement',
     explanations: ['Review the previous and new address details for this example.', 'Compare the housing entry with the sample document.'],
@@ -24,8 +24,8 @@ const copy = {
   it: {
     region: 'Milano · Cambio di residenza', title: 'Ti trasferisci', accent: 'a un nuovo indirizzo?',
     description: 'Prepara il cambio di residenza a Milano, controlla i documenti e organizza una bozza prima dell’invio.',
-    start: 'Prepara la mia pratica', resume: 'Continua la pratica', cases: 'Apri le mie pratiche', demo: 'Prova un caso fittizio',
-    specimen: 'Pratica di esempio', specimenTitle: 'Cambio di residenza', caption: 'Anteprima con dati fittizi',
+    start: 'Prepara la mia pratica', resume: 'Continua la pratica', cases: 'Apri le mie pratiche', demo: 'Esplora un caso fittizio',
+    specimen: 'Pratica di esempio', specimenTitle: 'Cambio di residenza',
     tabs: ['Requisiti', 'Controllo documenti', 'Riepilogo'],
     requirements: ['Dati di residenza', 'Dati dell’alloggio'], selected: 'Requisito selezionato',
     explanations: ['Controlla i dati del vecchio e del nuovo indirizzo di esempio.', 'Confronta il dato sull’alloggio con il documento di esempio.'],
@@ -69,7 +69,7 @@ export function HomeView({ signedIn, canList, syntheticDemo }: { signedIn: boole
   }
 
   const oneCase = cases?.length === 1 ? cases[0] : null;
-  const caseHref = oneCase ? '/cases/' + encodeURIComponent(oneCase) : '/cases/saved';
+  const caseHref = oneCase ? '/cases/' + encodeURIComponent(oneCase) : signedIn && cases?.length !== 0 ? '/cases/saved' : '/cases/new';
 
   return <main className="editorial-home" id="main-content" tabIndex={-1}>
     <section className="container editorial-hero">
@@ -123,7 +123,7 @@ export function HomeView({ signedIn, canList, syntheticDemo }: { signedIn: boole
                 </>}
               </div>
             </div>
-            <p className="specimen-foot"><Icon name="info" size={15}/>{c.caption}</p>
+
           </div>
         </div>
       </div>

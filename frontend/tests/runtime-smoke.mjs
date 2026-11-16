@@ -225,12 +225,18 @@ test('the enabled fictional document link opens directly at the sample', {
   timeout: 45000,
 }, async () => {
   await withServer({ ENABLE_PUBLIC_SYNTHETIC_DEMO: '1' }, async (origin) => {
+    const start = await fetch(origin + '/cases/new');
+    assert.equal(start.status, 200);
+    const html = await start.text();
+    assert.match(html, /<h1>Start a case<\/h1>/);
+    assert.match(html, /Explore a fictional case/);
+    assert.doesNotMatch(html, /NEW DEMO CASE|NEW DEMONSTRATION/);
     const document = await fetch(origin + '/demo/synthetic?step=document');
     assert.equal(document.status, 200);
-    assert.match(await document.text(), /Load fictional sample/);
+    assert.match(await document.text(), /Open sample document/);
     const overview = await fetch(origin + '/demo/synthetic');
     assert.equal(overview.status, 200);
-    assert.match(await overview.text(), /Choose a demonstration scenario/);
+    assert.match(await overview.text(), /Choose a scenario/);
   });
 });
 

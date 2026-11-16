@@ -6,8 +6,8 @@ import { SyntheticDemoWorkspace } from '@/components/SyntheticDemoWorkspace';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'PracticaMIA — fictional end-to-end demonstration',
-  description: 'Synthetic browser-only demonstration with no legal advice or submission.',
+  title: 'PracticaMIA — Explore a fictional case',
+  description: 'Explore the steps of preparing a case, from questions to final review.',
   robots: { index: false, follow: false },
 };
 

@@ -7,8 +7,8 @@ type Topic = 'scope' | 'documents' | 'handoff';
 
 const labels = {
   en: {
-    title: 'Try the live AI explainer',
-    detail: 'This feature contacts OpenRouter using fixed fictional examples only. No case information, documents or personal details are sent to the model.',
+    title: 'Ask about the process',
+    detail: 'OpenRouter receives the selected topic without case information or personal details.',
     scope: 'Explain how intake works',
     documents: 'Explain why conflicting documents need review',
     handoff: 'Explain the official handoff boundary',
@@ -18,8 +18,8 @@ const labels = {
     warning: 'Illustrative explanation, not a verified requirement or legal decision.',
   },
   it: {
-    title: 'Prova la spiegazione AI dal vivo',
-    detail: 'La funzione usa OpenRouter e solo esempi fittizi predefiniti. Non invia al modello dati della pratica, documenti o dati personali.',
+    title: 'Scopri come funziona',
+    detail: 'OpenRouter riceve l’argomento scelto senza informazioni sulla pratica o dati personali.',
     scope: 'Spiega come funziona la raccolta dati',
     documents: 'Spiega perché verificare i documenti discordanti',
     handoff: 'Spiega la differenza tra preparazione e invio ufficiale',
