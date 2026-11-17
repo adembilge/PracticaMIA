@@ -1,6 +1,6 @@
 # Phase 2 — Real user case research
 
-**Roadmap reference:** [11.1–11.3 · Collect real user cases](phase-02-user-research-and-scope.md#11-collect-real-user-cases)
+**Roadmap reference:** [11.1–11.4 · Collect real user cases](phase-02-user-research-and-scope.md#11-collect-real-user-cases)
 
 **17 November 2026:** Collection materials ready. **0 participants and 0 eligible cases recorded.**
 
@@ -53,6 +53,24 @@ Record the stage at the time of the conversation for the participant's stated go
 
 Ask what the participant set out to achieve when they say they are done. If the goal was a decision and the participant is waiting for it after submitting, record the case as ongoing and the submission as the last action. Identify participant-reported milestones as such and note corroborating evidence when available. When the stage stays unclear, keep the intake pending and report it separately from eligible cases. If a participant later reports a change, update the same case ID and retain the earlier stage and observation period.
 
+## Reconstruct steps with redacted evidence
+
+1. Start with the participant’s account. Ask permission to view each relevant redacted official notice, portal screenshot, form or receipt and record de-identified observations. Ask separately before retaining a copy and follow the approved research handling process. Viewing and taking notes are sufficient for this step. If permission is declined or the artifact is unavailable, continue with the participant account and record the reason the evidence is unavailable if known.
+2. Use only the pages or screen area needed for the step. Before viewing, ask the participant to remove names, contact details, addresses, identity and case numbers, barcodes or QR codes, and session links or tokens. If identifying information is still visible or recoverable in the file’s text, layers or metadata, set the copy aside. Keep any permitted copy and related notes in restricted research storage. Use an internal evidence ID in the case card when a copy is retained.
+3. Match the displayed office, service and document context to the case with the participant. For each relevant artifact record its type, the page or screen section, its place in the timeline, and the minimum visible words or controls that explain the step. Mark an unreadable passage, unclear date, or uncertain match as unresolved. Leave an unmatched item out of the corroborated timeline until the match is clear.
+4. Ask what the participant understood at the time and what they did afterwards. Give the visible content, the participant’s interpretation, and their reported action each its own field. Keep any disagreement or missing context visible in the record. A receipt supports only the event it explicitly acknowledges. Record any authority decision from evidence that actually shows the decision.
+
+### Synthetic rehearsal
+
+The following fictional portal excerpts and role-play responses illustrate how the same case card can preserve the order of events and a difference in interpretation.
+
+| Step and locator | What was visible | What the role-play participant understood | Reported action or gap |
+| --- | --- | --- | --- |
+| 1. Receipt, status line | “Invio ricevuto” | “I thought my request was approved.” | Stopped checking the portal. The text acknowledges receipt. The decision is unobserved. |
+| 2. Notice, message body | “Integrare la documentazione.” The attachment name is outside the visible area. | “I realised the office needed something else, but I didn’t know what.” | Reopened the portal to look for details. The required item and next action remain unclear. |
+
+With the goal of receiving a decision, this example remains ongoing. The latest reported action is reopening the portal. Record the missing attachment name as unresolved. Count this rehearsal separately from participant sessions.
+
 ## Case card template
 
 ```markdown
@@ -67,7 +85,8 @@ Ask what the participant set out to achieve when they say they are done. If the 
 - Observation period (approximate), first action and subsequent actions or channels in order
 - Stage detail (route and outcome signal / last action and next uncertainty / stopping point and reason)
 - Obstacle
-- Evidence (participant account or permitted redacted material; restricted reference if available)
+- Evidence status (participant account only or redacted material viewed, with a restricted evidence ID if retained)
+- Evidence by step (type, page or screen section, what was visible, participant interpretation, reported action and unresolved gaps)
 - Help sought (role or service) and current workaround
 - Expected outcome (what the participant was trying to achieve)
 ```
