@@ -6,7 +6,7 @@ Recorded on 17 November 2026 for [Phase 1, task 1](phase-01-repo-foundation.md#1
 
 - `main` and the starting point of [`rebuild/phase-01-repo-foundation`](https://github.com/adembilge/PracticaMIA/tree/rebuild/phase-01-repo-foundation) were pinned at [`93f769fff89eb40f12ffd44ebeb63d01b4d8b7d3`](https://github.com/adembilge/PracticaMIA/commit/93f769fff89eb40f12ffd44ebeb63d01b4d8b7d3), the merge of roadmap PR #91. This commit contains 358 tracked files, including 51 Markdown files.
 - GitHub showed zero open PRs before the rebuild branch was opened, so there was no open cleanup overlap at the snapshot.
-- The remote [archive branch](https://github.com/adembilge/PracticaMIA/tree/archive/practicamia-v1-baseline) preserves the baseline commit. The tag `archive/practicamia-v1` points to the same commit locally. Publishing the tag requires Git push access. Verify the remote tag with `git ls-remote --exit-code --tags origin refs/tags/archive/practicamia-v1` after pushing it.
+- The published [`archive/practicamia-v1` tag](https://github.com/adembilge/PracticaMIA/tree/archive/practicamia-v1) and the [archive branch](https://github.com/adembilge/PracticaMIA/tree/archive/practicamia-v1-baseline) point to the pinned baseline commit. Verify the tag with `git ls-remote --exit-code --tags origin refs/tags/archive/practicamia-v1`.
 
 | Check at the pinned `main` SHA | Result |
 | --- | --- |
