@@ -37,6 +37,8 @@ The [21.6 legacy-source migration contract](phase-03-legacy-source-migration.md)
 
 ## 22. Import Italian authority and geography identifiers
 
+The [22.1 official-identifier source contract](phase-03-official-identifiers.md) selects the IPA and Istat datasets and records exact batch provenance before any import.
+
 - **22.1** Use [IPA](https://indicepa.gov.it/ipa-dati/dataset/amministrazioni) for authorities and [ISTAT](https://www.istat.it/classificazione/codici-dei-comuni-delle-province-e-delle-regioni/) for administrative units. Record the release, URL, and ingestion time.
 - **22.2** Keep external IDs, catalogue IDs, and display names independent. Preserve case links through name changes.
 - **22.3** Match official and former names, acronyms, languages, and spelling variants. Return candidates and ask for a distinguishing location when ambiguous.
