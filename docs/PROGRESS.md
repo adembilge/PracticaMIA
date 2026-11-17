@@ -49,4 +49,6 @@ The [PracticaMIA 2.0 Phase 3.1 authority-role design](../planning/practicamia-2/
 
 The [Phase 3.2 service-channel design](../planning/practicamia-2/phase-03-service-channels.md) records public channel examples by step and applicability. Review of the proposed channel assignments and validation through participant journeys remain pending. Signed-in screens and actual appointments were outside this review.
 
+The [Phase 3.3 source-version design](../planning/practicamia-2/phase-03-source-versioning.md) uses the existing registry and approved retrieval behavior. Structured citation persistence and an owner-scoped history read across a source revision change still require implementation and verification.
+
 For implementation details see [the documentation index](README.md).
