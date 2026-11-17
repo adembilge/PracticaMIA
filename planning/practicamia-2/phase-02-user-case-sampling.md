@@ -1,6 +1,6 @@
 # Phase 2 — Real user case research
 
-**Roadmap reference:** [11.1–11.4 · Collect real user cases](phase-02-user-research-and-scope.md#11-collect-real-user-cases)
+**Roadmap reference:** [11.1–11.5 · Collect real user cases](phase-02-user-research-and-scope.md#11-collect-real-user-cases)
 
 **17 November 2026:** Collection materials ready. **0 participants and 0 eligible cases recorded.**
 
@@ -24,7 +24,7 @@ Check coverage across at least three regions, with cases from northern, central 
 1. Ask the person to name a specific administrative task they personally attempted in Italy, where it took place, and roughly when they last acted or heard back. Use the [case outcome instructions](#record-the-case-outcome) to establish its stage. Keep the location at the level needed to understand the procedure.
 2. Ask which recruitment group applies, how comfortable they were with the Italian used in the process, and whether they could use the digital service independently. Offer a conversation in Italian or English and a phone or in-person option where available.
 3. Explain the purpose of the study and ask permission to record de-identified notes. Keep contact details and permission records in restricted storage separate from the case cards. Use the approved research process for any optional follow-up or redacted evidence. Keep completed case cards, raw notes, documents and screenshots out of GitHub.
-4. Count a case once the participant has described a distinct task they attempted, agreed to the notes, and provided enough detail to identify the stage and obstacle. Record an unknown authority or unavailable evidence explicitly. Keep the number of participants and the number of eligible cases visible as separate totals.
+4. Count a case once the participant has described a distinct task they attempted, agreed to the notes, and provided enough detail to identify the stage and assess the obstacle. Use the [obstacle instructions](#identify-the-underlying-obstacle) to record what is supported. Keep the number of participants and the number of eligible cases visible as separate totals.
 
 ## Core interview questions
 
@@ -71,6 +71,30 @@ The following fictional portal excerpts and role-play responses illustrate how t
 
 With the goal of receiving a decision, this example remains ongoing. The latest reported action is reopening the portal. Record the missing attachment name as unresolved. Count this rehearsal separately from participant sessions.
 
+## Identify the underlying obstacle
+
+1. Start from the participant’s goal and the point in the timeline where progress slowed, stopped or took a detour. Write the symptom in the participant’s words where possible. Then describe what the participant was trying to do at that step, what made it difficult, and what happened as a result.
+2. Link the explanation to a note from the interview, a reported action, or a permitted redacted artifact. Identify which details the participant reported and which the artifact corroborates. If the cause is uncertain, mark it as unresolved and record what would clarify it. Use “no obstacle reported” when the participant explicitly describes proceeding without difficulty.
+3. Use the category that best explains the supported obstacle. When several appear, use the one that best explains the effect on progress as the primary obstacle and record other independently supported obstacles as secondary. If evidence supports an obstacle outside the listed categories, describe it in plain language. Keep uncertainty explicit when the record cannot distinguish plausible causes.
+
+| Category | Use when the obstacle concerns |
+| --- | --- |
+| Authority selection | Identifying which office or service handles the task |
+| Administrative terminology | Understanding the meaning of a term or instruction |
+| Document requirements | Determining which attachment applies or whether an available document fits |
+| Form completion | Determining what value to enter or how to enter it in a particular field |
+| Case tracking | Finding or interpreting the status of an existing case, including what to do after a submission or handoff |
+
+### Synthetic obstacle rehearsal
+
+| Scenario | Obstacle assessment | Basis and follow-up |
+| --- | --- | --- |
+| The participant stopped checking after reading “Invio ricevuto” as approval. | Case tracking. The participant mistook a submission milestone for a decision and stopped checking for a response. | The fictional receipt shows the acknowledgement. The interpretation and action come from the role-play account. |
+| The participant could read the request for more documentation but could not tell which attachment to supply. | Document requirements. The participant reopened the portal to identify the item. | The fictional excerpt shows a request for more documents. The reason the participant could not identify the item is unresolved because the full notice is unavailable. |
+| The participant says only “The portal didn’t work” and cannot recall the last screen or action. | Unresolved. | Ask what they last tried to do and what appeared afterwards before assigning a category. |
+
+These examples rehearse the coding method using fictional material.
+
 ## Case card template
 
 ```markdown
@@ -84,7 +108,9 @@ With the goal of receiving a decision, this example remains ongoing. The latest 
 - Stage (completed / ongoing / abandoned)
 - Observation period (approximate), first action and subsequent actions or channels in order
 - Stage detail (route and outcome signal / last action and next uncertainty / stopping point and reason)
-- Obstacle
+- Obstacle (symptom, affected step, explanation and effect on progress). Record “unresolved” or “no obstacle reported” where applicable.
+- Obstacle category (primary and any supported secondary categories)
+- Obstacle basis (related interview note or evidence step and anything still to clarify)
 - Evidence status (participant account only or redacted material viewed, with a restricted evidence ID if retained)
 - Evidence by step (type, page or screen section, what was visible, participant interpretation, reported action and unresolved gaps)
 - Help sought (role or service) and current workaround
