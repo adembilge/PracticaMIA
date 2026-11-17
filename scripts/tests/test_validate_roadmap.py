@@ -5,7 +5,7 @@ import unittest
 
 import yaml
 
-from scripts.validate_roadmap import validate
+from scripts.validate_roadmap import validate, validate_reconciliation_record
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -53,8 +53,21 @@ class RoadmapGovernanceTests(unittest.TestCase):
 
     def test_global_execution_cannot_resume_while_unreconciled(self):
         mutated = deepcopy(self.base)
+        mutated["tasks"][0]["evidence_review"] = "unreconciled"
         mutated["execution_blocked_until_reconciled"] = False
         self.assertTrue(any("Execution cannot resume" in x for x in validate(mutated, self.source)))
+
+    def test_unreconciled_subtask_cannot_clear_hold(self):
+        mutated = deepcopy(self.base)
+        mutated["tasks"][44]["subtasks"][0]["evidence_review"] = "unreconciled"
+        self.assertTrue(any("Reconciliation cannot be cleared" in x for x in validate(mutated, self.source)))
+
+    def test_reconciliation_record_must_cover_every_task(self):
+        record = (ROOT / "docs" / "ROADMAP_RECONCILIATION.md").read_text(encoding="utf-8")
+        self.assertEqual(validate_reconciliation_record(record), [])
+        shortened = record.replace("| 94 | B |", "| 95 | B |")
+        self.assertTrue(any("all 94" in x for x in
+                            validate_reconciliation_record(shortened)))
 
 
 if __name__ == "__main__":
