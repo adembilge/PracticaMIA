@@ -55,4 +55,6 @@ The [Phase 3.4 source-date design](../planning/practicamia-2/phase-03-source-dat
 
 The [Phase 3.5 claim-evidence design](../planning/practicamia-2/phase-03-claim-evidence.md) requires review of each assertion against exact applicable passages. Existing version-scoped citations support the narrow signed first route, while general claim records, support decisions and invalidation across the proposed catalogue remain unimplemented.
 
+The [Phase 3.6 legacy-source migration design](../planning/practicamia-2/phase-03-legacy-source-migration.md) defines inventory, scope-preserving mapping and re-review of uncertain approvals. No hosted Phase 1 database inventory, 2.0 import or migration approval has been performed.
+
 For implementation details see [the documentation index](README.md).
