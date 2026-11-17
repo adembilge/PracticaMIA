@@ -59,14 +59,16 @@ The [Phase 3.5 claim-evidence design](../planning/practicamia-2/phase-03-claim-e
 
 The [Phase 3.6 legacy-source migration design](../planning/practicamia-2/phase-03-legacy-source-migration.md) defines inventory, scope-preserving mapping and re-review of uncertain approvals. No hosted Phase 1 database inventory, 2.0 import or migration approval has been performed.
 
-The [Phase 3.7 official-identifier design](../planning/practicamia-2/phase-03-official-identifiers.md) selects IPA Enti for authority IDs and dated Istat/SITUAS exports for geography IDs. No official data file has been imported; release, resource URL, timestamps and digest remain to be recorded for an actual batch.
+The [Phase 3.7 official-identifier design](../planning/practicamia-2/phase-03-official-identifiers.md) selects IPA Enti for authority IDs and dated Istat/SITUAS exports for geography IDs. The original workbooks were later loaded into the isolated review database described below.
 
-The [Phase 3.8 stable-identity design](../planning/practicamia-2/phase-03-stable-entity-ids.md) separates internal entity IDs, dated external codes and display names. The general entity catalogue, name history and saved-case migration remain unimplemented.
+The [Phase 3.8 stable-identity design](../planning/practicamia-2/phase-03-stable-entity-ids.md) separates internal entity IDs, dated external codes and display names. The offline importer now persists directory identities and per-batch name history. Hosted catalogue integration and saved-case migration remain open.
 
 The [Phase 3.9 name-matching design](../planning/practicamia-2/phase-03-name-matching.md) defines reviewed name variants, candidate resolution and distinguishing questions. An isolated matching module now returns stable-ID candidates from supplied synthetic/reviewed records, with exact-name resolution, conservative spelling suggestions and ambiguity handling. No general name index, imported directory or candidate-resolution endpoint has been implemented.
 
 The [Phase 3.10 service-area design](../planning/practicamia-2/phase-03-service-areas.md) separates physical office addresses from procedure-specific coverage. An isolated resolver uses confirmed case location roles and trusted passage IDs in synthetic tests; persisted assignments, source-review binding and a user-facing route remain unimplemented.
 
 On 17 November, PR #117 merged the Phase 3.10 isolated resolver after seven CI checks passed. Phase 3 is still open against its closure checklist: the general catalogue, directory import, review/freshness workflow, shared search API, Official Sources view and pilot evidence are incomplete. Phase 4 Task 31 has a [proposed API contract](../planning/practicamia-2/phase-04-agent-api-contract.md) for review. Its implementation and task completion remain blocked by the Phase 3 integration and review gates. No hosted agent or document capability was enabled.
+
+The [Phase 3 official directory import](../planning/practicamia-2/phase-03-official-identifiers.md#isolated-import-and-acceptance-scenarios) loaded 31,795 identities from two publisher workbooks into a disposable review database. A repeat import left the count and batch identities unchanged. The [closure evidence table](../planning/practicamia-2/phase-03-official-sources-and-catalog.md#closure-evidence-and-outstanding-decisions) records the application integration, human evidence review and real pilot work still required.
 
 For implementation details see [the documentation index](README.md).
