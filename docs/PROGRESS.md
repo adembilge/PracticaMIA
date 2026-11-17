@@ -51,4 +51,6 @@ The [Phase 3.2 service-channel design](../planning/practicamia-2/phase-03-servic
 
 The [Phase 3.3 source-version design](../planning/practicamia-2/phase-03-source-versioning.md) uses the existing registry and approved retrieval behavior. Structured citation persistence and an owner-scoped history read across a source revision change still require implementation and verification.
 
+The [Phase 3.4 source-date design](../planning/practicamia-2/phase-03-source-dates.md) separates stated publication and update dates from capture, review and claim-level effective dates. General normalized date fields and temporal applicability checks remain unimplemented; missing dates and unresolved source wording must not be inferred.
+
 For implementation details see [the documentation index](README.md).
