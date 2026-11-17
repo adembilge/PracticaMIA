@@ -31,6 +31,8 @@ The [administrative domain map](phase-02-administrative-domains.md) lists a refe
 
 The [12.3 authority map](phase-02-administrative-domains.md#identify-the-responsible-authority) records which bodies handle the reference tasks and which location or situation details determine where each case belongs.
 
+The [12.4 service-channel map](phase-02-administrative-domains.md#map-service-channels-by-step) lists published channels by purpose and provides a method for recording the route used in each case.
+
 ## 13. Define how conversations start and progress
 
 | User input | Agent's first job | Visible result |
