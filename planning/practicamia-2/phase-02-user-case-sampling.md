@@ -1,6 +1,6 @@
 # Phase 2 — Real user case research
 
-**Roadmap reference:** [11.1–11.5 · Collect real user cases](phase-02-user-research-and-scope.md#11-collect-real-user-cases)
+**Roadmap reference:** [11.1–11.6 · Collect real user cases](phase-02-user-research-and-scope.md#11-collect-real-user-cases)
 
 **17 November 2026:** Collection materials ready. **0 participants and 0 eligible cases recorded.**
 
@@ -95,6 +95,24 @@ With the goal of receiving a decision, this example remains ongoing. The latest 
 
 These examples rehearse the coding method using fictional material.
 
+## Define what the agent can do
+
+1. Start with the supported obstacle and the participant’s current workaround. Describe the step the agent could make easier as an action with a visible result. Leave the proposal pending if the underlying obstacle is unresolved. If the participant reported no difficulty, leave the proposal blank.
+2. List the minimum inputs and their sources. Use the matched notice or form to show what the participant received. For requirements or submission instructions, use a current, reviewed and approved official source that applies to the authority, procedure and jurisdiction. Mark a missing or uncertain input and state what would resolve it.
+3. Specify what the agent would show, what the participant would review or do, and one observable completion check. When evidence is incomplete, give the useful result supported so far or ask for the specific missing detail. Leave official sign-in and submission to the participant.
+
+### Synthetic agent work rehearsal
+
+Extend the fictional documentation request above with a readable page that names a “signed copy of the application”. Assume a participant has permitted review of an available sample file. The rows are proposals for the same obstacle and depend on the evidence in each row.
+
+| Agent action | Evidence needed | Visible result and completion check |
+| --- | --- | --- |
+| Highlight the requested attachment. | The matched notice contains a legible attachment name. | Show the exact words and the page or screen area. The participant can point to the item. If the words are cropped or unreadable, ask for the relevant redacted portion and keep the item unresolved. |
+| Compare an available file with the requested attachment. | The requested item is known and the participant has permitted review of the file. | Show which visible features match and what remains to check. The participant can confirm or reject the candidate. If the file is unavailable or incomplete, explain what to check when it is available. |
+| Find the submission channel. | A current, reviewed and approved official source identifies the channel for the authority, procedure and jurisdiction. | Show the official link or instructions together with the source. The participant can identify where to submit. If the source leaves the applicable channel uncertain, state what is unknown and what to verify before submitting. |
+
+With the original cropped notice, the next useful action is to ask for the section that names the attachment. The file comparison depends on that name. The submission channel requires its own applicable source. This rehearsal checks the proposal format with fictional material.
+
 ## Case card template
 
 ```markdown
@@ -115,6 +133,8 @@ These examples rehearse the coding method using fictional material.
 - Evidence by step (type, page or screen section, what was visible, participant interpretation, reported action and unresolved gaps)
 - Help sought (role or service) and current workaround
 - Expected outcome (what the participant was trying to achieve)
+- Proposed agent work (linked obstacle, action, required inputs and evidence, and what the participant would see)
+- User review or remaining action, completion check and fallback if evidence is missing
 ```
 
 ## Collection status
