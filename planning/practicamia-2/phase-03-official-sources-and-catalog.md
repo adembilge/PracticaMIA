@@ -29,6 +29,8 @@ The [21.2 service-channel contract](phase-03-service-channels.md) defines how to
 
 The [21.3 source-version contract](phase-03-source-versioning.md) defines revision identity and how a saved case keeps the exact citation it used.
 
+The [21.4 source-date contract](phase-03-source-dates.md) separates publisher-stated, observation, review and effective dates and records missing dates explicitly.
+
 ## 22. Import Italian authority and geography identifiers
 
 - **22.1** Use [IPA](https://indicepa.gov.it/ipa-dati/dataset/amministrazioni) for authorities and [ISTAT](https://www.istat.it/classificazione/codici-dei-comuni-delle-province-e-delle-regioni/) for administrative units. Record the release, URL, and ingestion time.
