@@ -19,7 +19,7 @@ The question must distinguish the *territorial unit or body's identity* from the
 
 ## Current status and acceptance scenarios
 
-The current Milan registry has source IDs, a jurisdiction string and a procedure ID, but no general authority/geography name index or candidate-resolution endpoint. This is a matching contract, not an imported directory, deployed search feature or approval of new aliases. The [Phase 3 search evaluation](phase-03-official-sources-and-catalog.md#28-build-search-over-the-catalogue-and-evidence) will measure recall and ranking when the catalogue exists; task 22.6 will test the broader identifier import and multi-municipality cases.
+The current Milan registry has source IDs, a jurisdiction string and a procedure ID, but no general authority/geography name index or candidate-resolution endpoint. The isolated [candidate matcher](../../backend/app/knowledge/entity_matching.py) implements exact reviewed-name matching, conservative spelling suggestions and ambiguity handling against supplied in-memory records; [synthetic tests](../../backend/tests/test_entity_matching.py) exercise those boundaries. There is still no imported directory, deployed search feature, persisted name review or approval of new aliases. The [Phase 3 search evaluation](phase-03-official-sources-and-catalog.md#28-build-search-over-the-catalogue-and-evidence) will measure recall and ranking when the catalogue exists; task 22.6 will test the broader identifier import and multi-municipality cases.
 
 | Synthetic scenario | Expected result |
 | --- | --- |

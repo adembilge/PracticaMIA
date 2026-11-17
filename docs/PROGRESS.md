@@ -63,6 +63,6 @@ The [Phase 3.7 official-identifier design](../planning/practicamia-2/phase-03-of
 
 The [Phase 3.8 stable-identity design](../planning/practicamia-2/phase-03-stable-entity-ids.md) separates internal entity IDs, dated external codes and display names. The general entity catalogue, name history and saved-case migration remain unimplemented.
 
-The [Phase 3.9 name-matching design](../planning/practicamia-2/phase-03-name-matching.md) defines reviewed name variants, candidate resolution and distinguishing questions. No general name index, imported directory or candidate-resolution endpoint has been implemented.
+The [Phase 3.9 name-matching design](../planning/practicamia-2/phase-03-name-matching.md) defines reviewed name variants, candidate resolution and distinguishing questions. An isolated matching module now returns stable-ID candidates from supplied synthetic/reviewed records, with exact-name resolution, conservative spelling suggestions and ambiguity handling. No general name index, imported directory or candidate-resolution endpoint has been implemented.
 
 For implementation details see [the documentation index](README.md).
