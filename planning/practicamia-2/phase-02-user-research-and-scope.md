@@ -13,7 +13,7 @@
 
 **Output and acceptance.** Each case card contains an anonymous ID, opening sentence, authority, location, stage, obstacle, evidence, current workaround, and expected outcome. Each proposed feature relates to an observed obstacle. The case count is a discovery target and does not estimate demand across Italy.
 
-See the [11.1 sampling plan and case card](phase-02-user-case-sampling.md) for recruitment targets and collection status, the [11.2 outcome instructions](phase-02-user-case-sampling.md#record-the-case-outcome) for what to capture at each stage, and the [11.3 core interview questions](phase-02-user-case-sampling.md#core-interview-questions) for the shared English and Italian prompts.
+See the [11.1 sampling plan and case card](phase-02-user-case-sampling.md) for recruitment targets and collection status, the [11.2 outcome instructions](phase-02-user-case-sampling.md#record-the-case-outcome) for what to capture at each stage, the [11.3 core interview questions](phase-02-user-case-sampling.md#core-interview-questions) for the shared English and Italian prompts, and the [11.4 evidence instructions](phase-02-user-case-sampling.md#reconstruct-steps-with-redacted-evidence) for reconstructing steps from redacted material.
 
 ## 12. Map Italian administrative domains
 
