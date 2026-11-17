@@ -6,6 +6,8 @@
 
 ## 31. Define the agent API and interface contract
 
+The [Task 31 contract proposal](phase-04-agent-api-contract.md) describes the request, event, result, retry, and trust boundaries for review. It does not activate an agent endpoint or satisfy the Phase 3 catalogue dependency.
+
 - **31.1** Use a `thread_id`, `run_id`, optional `case_id`, and increasing event sequence number. A thread can link to multiple cases.
 - **31.2** Define typed requests for sending a message, stopping, retrieving a result, and responding to pending approval. Identify retries by client message ID.
 - **31.3** Define user-visible events. Proposed types include `run.started`, `progress.updated`, `question.requested`, `approval.requested`, `answer.completed`, and `run.failed`. Adapt provider and graph events to the application contract.

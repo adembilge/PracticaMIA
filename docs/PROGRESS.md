@@ -67,4 +67,6 @@ The [Phase 3.9 name-matching design](../planning/practicamia-2/phase-03-name-mat
 
 The [Phase 3.10 service-area design](../planning/practicamia-2/phase-03-service-areas.md) separates physical office addresses from procedure-specific coverage. An isolated resolver uses confirmed case location roles and trusted passage IDs in synthetic tests; persisted assignments, source-review binding and a user-facing route remain unimplemented.
 
+On 17 November, PR #117 merged the Phase 3.10 isolated resolver after seven CI checks passed. Phase 3 is still open against its closure checklist: the general catalogue, directory import, review/freshness workflow, shared search API, Official Sources view and pilot evidence are incomplete. Phase 4 Task 31 has a [proposed API contract](../planning/practicamia-2/phase-04-agent-api-contract.md) for review. Its implementation and task completion remain blocked by the Phase 3 integration and review gates. No hosted agent or document capability was enabled.
+
 For implementation details see [the documentation index](README.md).
