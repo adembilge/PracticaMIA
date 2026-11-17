@@ -1,116 +1,116 @@
-# PracticaMIA 2.0 — Faz 1: Repo temizliği ve yeniden kurulum
+# PracticaMIA 2.0 — Phase 1 · Repository cleanup and rebuild foundation
 
-Bu fazın sonucu PracticaMIA 2.0 geliştirmesine başlanabilecek temiz bir repodur. Milano prototipinin ekranları, sabit kuralları ve önceki proje dokümantasyonu aktif kod tabanından çıkarılır. Yeniden kullanılabilir altyapı, doğrulanabilir resmî kaynak kayıtları ve güvenli test belgeleri incelenip korunur. Faz, temiz bir checkout’tan çalışan uygulama ve boş veritabanı kurulabildiğinde kapanır.
+This phase leaves a clean repository ready for PracticaMIA 2.0 development. Remove the Milan prototype screens, fixed rules, and previous project documentation from the active codebase. Review and retain reusable infrastructure, verifiable official-source records, and safe test documents. Close the phase when the application and an empty database can be set up from a clean checkout.
 
-**Başlangıç envanteri.** Önceki repo taramasında 348 dosya ve 41 Markdown dosyası vardı. Eski 94 görevlik plan `AGENTS.md`, `docs/MASTER_PLAN.md`, `docs/TASKS.yaml` ve CI doğrulamasına bağlı. Uygulamaya başlarken envanteri güncelle. Temizlik kapsamı aktif kod tabanıdır. Önceki sürümün Git referansı geri dönüş ve karar geçmişi için saklanır.
+**Starting inventory.** The earlier repository inventory found 348 files and 41 Markdown documents. The old 94-task plan is linked to `AGENTS.md`, `docs/MASTER_PLAN.md`, `docs/TASKS.yaml`, and CI validation. Refresh the inventory when implementation begins. Cleanup covers the active codebase. Retain the previous Git reference for rollback and decision history.
 
-## 1. Mevcut sürümü sabitle ve çalışma dalını aç
+## 1. Pin the existing release and open the working branch
 
-- **1.1** `main` commit’ini, açık PR’ları ve son başarılı frontend, backend ve tarayıcı testlerini kaydet. Açık PR’ların temizlenecek dosyalarla çakışıp çakışmadığını kontrol et.
-- **1.2** Canlı web ve API dağıtım kimliklerini, bağlı alan adlarını ve veritabanı migration sürümünü kaydet. Ortam değişkenlerinin adlarını envantere al. Gizli değerleri repo ve PR dışında tut.
-- **1.3** Başlangıç commit’ini `archive/practicamia-v1` gibi bir Git etiketiyle işaretle. Eski plan, kaynak kayıtları ve çalışan sürümün koduna bu referanstan ulaşılabilsin.
-- **1.4** Sabitlenen commit’ten `rebuild/phase-01-repo-foundation` gibi bir çalışma dalı aç. Preview ve CI tetikleyicilerini incele ve testlerin koşacağı ayrı ortamı doğrula.
+- **1.1** Record the `main` commit, open pull requests, and the latest successful frontend, backend, and browser tests. Check whether open PRs overlap files scheduled for cleanup.
+- **1.2** Record live web and API deployment IDs, linked domains, and the database migration revision. Inventory the names of environment variables. Keep secret values out of the repository and PR.
+- **1.3** Mark the baseline commit with a Git tag such as `archive/practicamia-v1`. The previous plan, source records, and working release code must remain reachable from that reference.
+- **1.4** Branch from the pinned commit, for example to `rebuild/phase-01-repo-foundation`. Review preview and CI triggers and verify the isolated environment where tests will run.
 
-**Kabul ölçütü.** Eski kod sürümü, canlı dağıtımlar ve veritabanı sürümü ayrı ayrı tanımlanır. Temizlik dalının başlangıç commit’i bilinir.
+**Acceptance.** The old code, live deployments, and database revision are independently identified. The cleanup branch has a known starting commit.
 
-## 2. Repoyu dosya ve bağımlılık düzeyinde incele
+## 2. Audit files and dependencies
 
-- **2.1** `frontend/`, `backend/`, `requirements/`, `audit/`, `evals/`, `scripts/`, `docs/` ve `.github/workflows/` için envanter çıkar. Her öğeye Sil, Koru, Taşı veya Test edip karar ver durumu ver.
-- **2.2** Frontend’de sayfa rotalarını, API proxy’lerini, oturum kontrolünü, çeviri anahtarlarını ve paylaşılan bileşenleri eşleştir. Her eski ekranın hangi bileşenlere ve API’ye bağlı olduğunu çıkar.
-- **2.3** Backend’de endpoint, servis, tablo, migration ve test bağımlılıklarını haritala. Milano’ya sabitlenen kurallarla ortak kullanılabilecek güvenlik ve veri erişimi parçalarını belirle.
-- **2.4** CI, derleme komutları, deployment ayarları ve fixture’ların tükettiği yolları kontrol et. Üretim kodunca kullanılmayan dosyaları test ve derleme bağımlılıkları açısından da incele.
+- **2.1** Inventory `frontend/`, `backend/`, `requirements/`, `audit/`, `evals/`, `scripts/`, `docs/`, and `.github/workflows/`. Mark each item Delete, Keep, Move, or Test before deciding.
+- **2.2** Map frontend routes, API proxies, authentication, translation keys, and shared components. Identify the components and API endpoints behind each legacy screen.
+- **2.3** Map backend endpoints, services, tables, migrations, and tests. Identify Milan-specific rules and reusable security or data-access components.
+- **2.4** Check paths consumed by CI, build commands, deployment configuration, and fixtures. Inspect files with no production callers for build or test dependencies.
 
-**Kabul ölçütü.** Her dosya grubu için çağıran kod, beklenen değişiklik etkisi ve doğrulama adımı bilinir.
+**Acceptance.** Each file group has known callers, an expected change impact, and a verification step.
 
-## 3. Korunacak resmî belgeleri ve kanıtları ayır
+## 3. Identify official documents and evidence to retain
 
-| Malzeme | Faz 1 işlemi |
+| Material | Phase 1 action |
 | --- | --- |
-| Eski ürün planı, ilerleme raporu veya runbook | Aktif daldan çıkar |
-| Resmî form, kamuya açık kılavuz veya kaynak kaydı | Kaynağı ve sürümü doğrulanabiliyorsa koru |
-| İnceleme kararı veya resmî kaynak kanıtı | İlgili kaynak, sürüm ve kapsamla birlikte koru |
-| Yapay PDF, fotoğraf veya OCR fixture’ı | Tekrarlanabilir bir testte kullanılıyorsa koru |
-| Kullanıcı belgesi veya kişisel veri içeren çıktı | Özel veri envanterine al, repo ağacının dışında tut |
+| Previous product plan, progress report, or runbook | Remove from the active branch |
+| Official form, public guide, or source record | Keep when origin and version are verifiable |
+| Review decision or evidence from an official source | Keep with the associated source, version, and scope |
+| Synthetic PDF, image, or OCR fixture | Keep when used in a reproducible test |
+| User document or output containing personal data | Track in the private-data inventory and keep outside the repo |
 
-- **3.1** Kaynak kayıtlarının ve belge kopyalarının repoya ek olarak veritabanı veya depolamada bulunup bulunmadığını kontrol et.
-- **3.2** Korunacak kaynak için kurum, resmî URL, belge adı, kapsam, sürüm, varsa alınma tarihi ve inceleme durumunu kaydet. Dosya saklanıyorsa içerik parmak izini al.
-- **3.3** Eski bir kaynağa verilmiş onayı yalnızca onaylandığı işlem ve yetki alanıyla birlikte taşı. Belirli bir Milano senaryosuna ait onayın geçerlilik kapsamı kayıt üzerinde görünsün.
-- **3.4** Resmî kayıtlarla test fixture’larını ayrı konumlarda tut. Sentetik OCR metninin resmî kataloğa giremediğini doğrula.
+- **3.1** Check for source records and document copies in the database or storage as well as in the repository.
+- **3.2** Record the authority, official URL, document title, scope, version, retrieval date if known, and review status. Fingerprint any retained file.
+- **3.3** Carry forward an old approval only with the procedure and jurisdiction it covered. Make any Milan-specific scope visible on the record.
+- **3.4** Keep official records and test fixtures in separate locations. Verify that synthetic OCR text cannot enter the official catalogue.
 
-**Kabul ölçütü.** Her korunmuş belgenin veya kaynak kaydının kökeni ve kullanım amacı izlenebilir. Bu kayıtlar eski dokümantasyon çıkarıldıktan sonra erişilebilir.
+**Acceptance.** Each retained document or source record has traceable provenance and purpose. These records remain accessible after legacy documentation is removed.
 
-## 4. Eski dokümantasyonu ve roadmap otomasyonunu kaldır
+## 4. Remove previous documentation and roadmap automation
 
-- **4.1** `docs/` içindeki eski plan, ilerleme raporu, uygulama kılavuzu ve pilot raporlarını aktif daldan çıkar. Kökteki `PracticaMIA_Complete_Project_Specification.md` ile eski frontend ve backend dokümanlarını envantere göre kaldır.
-- **4.2** `docs/TASKS.yaml`, `scripts/validate_roadmap.py`, script testleri ve `.github/workflows/roadmap-governance.yml` dosyalarını aynı değişiklik grubunda ele al. Silinen scriptleri çağıran işleri de temizle.
-- **4.3** Eski CI kontrolünün dal korumasında zorunlu olup olmadığını doğrula. Zorunluysa yeni kontrolü çalıştır ve başarıyı gördükten sonra eski referansı değiştir.
-- **4.4** Eski `AGENTS.md` yerine kısa bir çalışma kılavuzu oluştur. Yeni `README.md` ürün amacı, repo yapısı ve kurulum komutlarını içersin. Yüz görevlik plan için bir güncel ana dosya kullan.
-- **4.5** `MASTER_PLAN.md`, `TASKS.yaml`, `validate_roadmap` ve eski spesifikasyon başvurularını ara. CI, import, script, uygulama metni ve Markdown bağlantılarındaki kalıntıları gider.
+- **4.1** Remove previous plans, progress reports, guides, and pilot reports from `docs/`. Apply the inventory decisions to the root `PracticaMIA_Complete_Project_Specification.md` and old frontend and backend documentation.
+- **4.2** Handle `docs/TASKS.yaml`, `scripts/validate_roadmap.py`, its tests, and `.github/workflows/roadmap-governance.yml` as one change group. Clean up jobs that call removed scripts.
+- **4.3** Check whether branch protection requires the legacy CI check. If so, run and verify the replacement check before updating the required check reference.
+- **4.4** Replace the old `AGENTS.md` with a short working guide. Make the new `README.md` cover product purpose, repository layout, and setup. Use one up-to-date primary file for the 100-task roadmap.
+- **4.5** Search for `MASTER_PLAN.md`, `TASKS.yaml`, `validate_roadmap`, and references to the old specification. Remove dangling references in CI, imports, scripts, application copy, and Markdown links.
 
-**Kabul ölçütü.** Aktif dal eski plana başvurmadan kurulup derlenir ve test edilir. Yeni dokümantasyonun başlangıç noktası açıktır.
+**Acceptance.** The active branch installs, builds, and tests without referring to the old plan. The entry point to the new documentation is clear.
 
-## 5. Milano prototipini uygulama kodundan çıkar
+## 5. Remove the Milan prototype from the application
 
-- **5.1** Eski Start a case, kurgu senaryolar, sabit Yes/No süreci ve hazırlık PDF’i için sayfa → bileşen → proxy → backend → veri zincirini çıkar.
-- **5.2** Yalnız eski akışa ait menü, bağlantı, yönlendirme, çeviri ve görsel varlıkları kaldır. Geçiş için gerekli eski URL’leri belirle ve ilgili yeni girişe yönlendir.
-- **5.3** Sabit Milano soru setini, varsayılan prosedürü, senaryoya bağlı checklist’i ve kurgu paket üretimini ayır. Genel kullanım için doğrulanabilecek belge işlevlerini görev 6’da değerlendir.
-- **5.4** Eski akışa özel testleri çıkar. Hesap izolasyonu, dosya güvenliği ve kaynak doğrulama testlerini koru veya bağımsız giriş noktalarına taşı.
-- **5.5** Kod kaldırmanın mevcut kayıtlar üzerindeki etkisini incele. Uygulama kodu temizliği ve veri silme işlemlerini ayrı değişiklikler olarak planla. Eski şemaya dönmek veya veriyi okumak için gereken migration geçmişini ayrıca değerlendir.
+- **5.1** Trace the old Start a case, fictional scenarios, fixed yes/no flow, and preparation PDF from page to component, proxy, backend, and data.
+- **5.2** Remove menus, links, redirects, translations, and visual assets used only by the legacy flow. Redirect legacy URLs needed during the transition to the appropriate new entry point.
+- **5.3** Isolate the fixed Milan questions, default procedure, scenario-specific checklist, and fictional package generation. Evaluate reusable document functionality under task 6.
+- **5.4** Remove tests specific to the legacy journey. Keep account isolation, file security, and source verification tests or move them to independent entry points.
+- **5.5** Assess the impact of code removal on existing records. Plan application cleanup and data deletion as separate changes. Review the migration history needed to read old data or roll back independently.
 
-**Kabul ölçütü.** Yeni uygulamanın açılması, oturum ve temel sayfa için eski Milano senaryosuna, demo durumuna veya PDF üretim zincirine ihtiyaç kalmaz.
+**Acceptance.** Application startup, login, and the main page work without the old Milan scenario, demo state, or PDF generation pipeline.
 
-## 6. Yeniden kullanılabilir altyapıyı seç ve test et
+## 6. Select and independently test reusable infrastructure
 
-- **6.1** Oturum doğrulama, kullanıcıya ait kayıtların sahipliği, PostgreSQL bağlantısı, kaynak erişim izinleri ve CI kurulumunu incele. Kullanılan şema ve ortam değişkenlerini kaydet.
-- **6.2** Bağımsızlık ölçütü belirle. Eski prosedür adı, şehir, demo bayrağı veya durum modeline bağlı bileşenlerin ayrıştırma maliyetini değerlendir.
-- **6.3** Korunan her bileşenin sözleşme testini ekle veya taşı. Oturumda geçerli, süresi dolan ve yetkisiz durumları, kayıt erişiminde iki farklı hesabı test et.
-- **6.4** Taşınan bileşenlerin en küçük bağımlılık kümesini belirle. Kullanılmayan paketleri, ayarları ve yardımcı scriptleri çıkar. Paket kilitlerini temiz kurulumla doğrula.
-- **6.5** Dosya yükleme, OCR ve PDF araçlarını envantere al ve kullanılabilirliğini belirle. Kullanıcıya dönük işleme yeteneklerini ilgili sonraki fazlarda devreye al.
+- **6.1** Inspect authentication, record ownership, PostgreSQL connectivity, source permissions, and CI setup. Record the schemas and environment variables involved.
+- **6.2** Define independence criteria. Assess the cost of decoupling components tied to the old procedure, city, demo flag, or state model.
+- **6.3** Add or move a contract test for each retained component. Cover valid, expired, and unauthorized sessions, and use two identities for record-access tests.
+- **6.4** Determine the minimum dependency set for migrated components. Remove unused packages, configuration, and helper scripts. Verify updated lockfiles with a clean install.
+- **6.5** Inventory upload, OCR, and PDF tooling and assess reuse. Enable user-facing document capabilities in their corresponding later phases.
 
-**Kabul ölçütü.** Taşınan her parçanın yeni amacı ve çalışan testi var. Genel altyapı eski demo verisine bağlı çalışmaz.
+**Acceptance.** Every migrated component has a new purpose and a passing test. Shared infrastructure runs independently of legacy demo data.
 
-## 7. Yeni repo iskeletini oluştur
+## 7. Create the new repository foundation
 
-- **7.1** Mevcut `frontend/` ve `backend/` köklerini kullan. Frontend’de sohbetin açılacağı tek uygulama kabuğunu oluştur. Kaynaklar, belgeler ve formlar sonraki fazlarda bu kabuğa eklenecek.
-- **7.2** Backend’de giriş noktası, doğrulanmış yapılandırma, API sürümleme, hata biçimi ve sağlık kontrolü kur. İşlem kataloğu, vakalar, belgeler ve ajan araçları için modül sınırlarını tanımla.
-- **7.3** Frontend–backend API sözleşmesinin ilk parçasını oluştur. Sağlık isteğinin başarı ve hata yanıtlarını test et.
-- **7.4** Kurulum ve test örneklerini çalışır hale getir. Kaynak verileri, fixture’lar ve migration dosyaları için anlaşılır dizin düzeni kullan. Dizinleri ilk dosyayla birlikte ekle.
+- **7.1** Reuse the `frontend/` and `backend/` roots. Build one frontend application shell with a chat entry point. Later phases add sources, documents, and forms within that shell.
+- **7.2** Set up the backend entry point, validated configuration, API versioning, error format, and health checks. Define boundaries for the catalogue, cases, documents, and agent tools.
+- **7.3** Implement the initial frontend–backend API contract. Test successful and failed health requests.
+- **7.4** Make setup and test examples runnable. Use clear locations for source data, fixtures, and migrations. Add directories with their first file.
 
-**Kabul ölçütü.** Bir web uygulaması ve bir backend çalışıyor. Tarayıcıdan backend’e gerçek bir sağlık isteği yapılabiliyor.
+**Acceptance.** One web application and one backend run. A browser can make a real health request to the backend.
 
-## 8. Ortam ve veritabanı kurulumunu tekrarlanabilir yap
+## 8. Make environment and database setup reproducible
 
-- **8.1** Yerel geliştirme, CI, preview ve canlı ortam için veritabanı, kimlik sağlayıcı ve depolama hedeflerini belirle. Kritik ayar yanlış veya eksikse anlaşılır hata ver.
-- **8.2** `.env.example` dosyalarını gerekli anahtar adları ve güvenli örneklerle güncelle. Gerçek kimlik ve test hesabı bilgilerini ortamın gizli değişkenlerinde tut.
-- **8.3** Yeni geliştirme şemasını boş veritabanına kur. Önceki migration zincirini sürdürmekle ayrı bir 2.0 şeması kullanmak arasındaki kararı, eski veriyi okuma ve geri dönüş gerekçesiyle kaydet.
-- **8.4** Migration ve test verisi hazırlama komutlarını ayır. Test verisi yüklemesinin canlı hedefi reddettiğini ve yeniden çalıştırılınca kopya kayıt oluşturmadığını test et.
-- **8.5** Temiz checkout’tan bağımlılık kurulumu, ortam ayarı, migration, test verisi ve ilk çalıştırma adımlarını `README.md` üzerinden doğrula. İkinci kurulumda yerel ayar kalıntısı gerekmediğini göster.
+- **8.1** Define database, identity provider, and storage targets for local development, CI, preview, and production. Return a clear startup error for missing or invalid critical configuration.
+- **8.2** Update `.env.example` files with required keys and safe sample values. Keep real credentials and test account details in environment secrets.
+- **8.3** Install the new development schema on an empty database. Record whether to extend the previous migration chain or introduce a separate 2.0 schema, including legacy access and rollback implications.
+- **8.4** Separate migration and fixture seeding commands. Test that seeding rejects production targets and creates no duplicate records when rerun.
+- **8.5** From a clean checkout, verify dependency installation, configuration, migration, seed data, and first startup using the `README.md`. Repeat to confirm no leftover local setup is required.
 
-**Kabul ölçütü.** Boş test ortamı sıfırdan kurulabilir. Kurulum için eski Milano vakası veya canlı gizli değer gerekmez.
+**Acceptance.** An empty test environment can be recreated without old Milan cases or production secrets.
 
-## 9. CI kontrollerini yeni repo temeline bağla
+## 9. Connect CI to the new foundation
 
-- **9.1** Frontend CI’da paket kurulumu, tip kontrolü, test ve üretim derlemesini çalıştır. Yeni ana sayfayı ve sağlık bağlantısını HTTP üzerinden doğrula.
-- **9.2** Backend CI’da boş PostgreSQL’e migration, API sağlığı ve korunan oturum ve erişim testlerini çalıştır.
-- **9.3** Eski dosya yolları, kırık repo içi bağlantılar, kaldırılmış rotalara giden istekler ve gizli bilgi kalıntıları için tarama yap. Sonuçları PR’a yaz.
-- **9.4** Uygulama kabuğu, doğru giriş hedefi ve backend erişilemediğinde görülen durum için küçük tarayıcı doğrulaması ekle.
-- **9.5** Yeni CI işlerini dal kontrolleriyle eşleştir. Bir hata olduğunda derleme, migration, yetki, test veya dağıtım adımı ayırt edilebilsin.
+- **9.1** Run dependency installation, type checking, tests, and a production build in frontend CI. Verify the new home page and health connection over HTTP.
+- **9.2** Run migrations on empty PostgreSQL, API health checks, and retained session and access tests in backend CI.
+- **9.3** Scan for legacy file paths, broken repository links, requests to removed routes, and leaked secrets. Record findings in the PR.
+- **9.4** Add small browser checks for the application shell, correct sign-in destination, and the visible state when the backend is unavailable.
+- **9.5** Align working jobs with branch checks. Make failures identifiable as build, migration, permission, test, or deployment issues.
 
-**Kabul ölçütü.** Yeni dalın CI doğrulaması temiz kurulumdan geçer. Eski roadmap ve demo akışına bağımlılık kalmaz.
+**Acceptance.** CI passes from a clean installation and has no dependency on the previous roadmap or demo flow.
 
-## 10. Temizlik PR’ını tamamla ve Faz 1’i kapat
+## 10. Finish the cleanup PR and close the phase
 
-- **10.1** PR’a kaldırılan bileşenleri, taşınan kaynak kayıtlarını, kullanılan altyapıyı ve önceki sürümün Git referansını ekle.
-- **10.2** Başlangıç commit’ine göre farkı incele. Kaynak kayıtları, dal koruması ve ortam hedeflerini yeniden doğrula.
-- **10.3** Temiz checkout, boş veritabanı migration’ı, frontend derlemesi, backend testi, tarayıcı kontrolü ve preview sağlık sonuçlarını PR’a bağla.
-- **10.4** Doğrulanan temizlik PR’ını birleştir ve `main` sonuçlarını kontrol et. Faz 2’nin repo yapısını, komutlarını ve başlangıç commit’ini sabitle.
+- **10.1** Record removed components, moved source records, reused infrastructure, and the previous Git reference in the PR.
+- **10.2** Review the diff against the baseline. Recheck source records, branch protection, and environment targets.
+- **10.3** Link clean checkout, empty-database migration, frontend build, backend tests, browser checks, and preview health results to the PR.
+- **10.4** Merge the verified cleanup PR and check `main` results. Pin the repository structure, commands, and baseline commit for Phase 2.
 
-| Kapanış kontrolü | Beklenen kanıt |
+| Closure check | Expected evidence |
 | --- | --- |
-| Eski dokümantasyon ve otomasyon temiz | Eski plana bağlı dosya, CI işi ve referans kalmamış |
-| Resmî belgeler ve kanıtlar korunmuş | Kayıtlar kurum, kaynak, sürüm ve kullanım kapsamıyla bulunabiliyor |
-| Eski Milano akışı kaldırılmış | Yeni uygulama demo sayfası, sabit soru seti veya eski PDF akışına bağlı değil |
-| Yeni temel çalışıyor | Temiz checkout, boş veritabanı, açılan web uygulaması ve başarılı API sağlık kontrolü |
-| Geri dönüş noktası mevcut | Önceki Git sürümü, dağıtım kimlikleri ve şema sürümü kayıtlı |
+| Previous documentation and automation removed | No active file, CI job, or reference depends on the old plan |
+| Official documents and evidence retained | Records are discoverable by authority, source, version, and scope |
+| Legacy Milan flow removed | The new application has no dependency on demo pages, fixed questions, or the previous PDF flow |
+| New foundation works | Clean checkout, empty database, running web app, and successful API health check |
+| Rollback point available | Previous Git revision, deployment IDs, and schema revision recorded |
 
-**Uygulama sırası.** Önce 1 → 2 → 3. Ardından dokümantasyon ve prototip temizliği, taşınacak bileşenlerin doğrulanması, yeni iskelet ve CI. Faz 2, temiz kurulum ve CI sonuçları `main` üzerinde doğrulandıktan sonra başlar.
+**Implementation order.** Start with 1 → 2 → 3. Then remove legacy documentation and the prototype, verify reusable components, and set up the new foundation and CI. Phase 2 starts after clean setup and CI results have been verified on `main`.

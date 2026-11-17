@@ -1,118 +1,118 @@
-# PracticaMIA 2.0 — Faz 2 · Kullanıcı işleri, kapsam ve ürün sözleşmesi
+# PracticaMIA 2.0 — Phase 2 · User research, scope, and product contract
 
-**Yol haritası görevleri 11–20.** Bu faz gerçek bir bürokratik işte PracticaMIA’nın hangi engeli çözebileceğini araştırır ve bulguları ilk sürümün geliştirme sözleşmesine çevirir. İtalya genelindeki ürün kapsamı için ilk pilot, tek ajanın farklı kurumlar, bölgeler ve belge türleriyle nasıl çalışacağını sınar.
+**Roadmap tasks 11–20.** This phase identifies a real administrative obstacle PracticaMIA can help a user overcome and turns the findings into a development contract for the first release. Under the Italy-wide product scope, the first pilot tests one agent across different authorities, regions, and document types.
 
-## 11. Gerçek kullanıcı vakalarını topla
+## 11. Collect real user cases
 
-- **11.1** İtalya’ya yeni gelenler, öğrenciler, çalışanlar, aileler ve küçük işletme sahipleri gibi farklı profillerden yaklaşık 20 vaka hedefle. İtalyanca seviyesi, yerleşim yeri ve dijital hizmet kullanımı farklı katılımcılarla görüş.
-- **11.2** Yakın zamanda tamamlanan, bekleyen ve yarıda bırakılan işleri incele. Tamamlanan işte kullanılan yolu, bekleyen işte sıradaki belirsizliği, bırakılan işte tıkanma anını kaydet.
-- **11.3** Aynı çekirdek sorularla görüş. Kullanıcı ilk ne yaptı, doğru kuruma nasıl karar verdi, nerede takıldı, kimden yardım aldı ve hâlâ ne eksik? İlk kullanıcı cümlesini doğal dilde olduğu gibi kaydet.
-- **11.4** Katılımcının izin verdiği ölçüde kişisel alanları kapatılmış resmî yazı, portal ekranı, form veya makbuz üzerinden adımları yeniden yürüt. Ekranın gösterdiği bilgiyle kullanıcının yorumunu ayrı kaydet.
-- **11.5** Asıl engeli belirle. Kurum seçimi, İtalyanca terim, belge listesi, form alanı ve durum takibi örnektir.
-- **11.6** Ajanın üstleneceği somut işi yaz. Örneğin istenen eki yazıda işaretlemek, kullanıcının dosyasıyla eşleştirmek ve gönderim kanalını bulmak.
+- **11.1** Aim for approximately 20 cases from people new to Italy, students, employees, families, and small business owners. Include different levels of Italian proficiency, locations, and ability to use digital services.
+- **11.2** Study recently completed, ongoing, and abandoned tasks. Capture the completed route, the next uncertainty in ongoing work, and the point at which an abandoned task stopped.
+- **11.3** Use the same core interview questions. Ask what the user did first, how they chose the authority, where they got stuck, whom they asked, and what remains. Record their opening sentence in their own words.
+- **11.4** With permission, reconstruct the steps using a redacted official notice, portal screenshot, form, or receipt. Record what the screen showed and what the user understood.
+- **11.5** Identify the underlying obstacle, such as choosing the authority, understanding Italian terminology, applying a document list, filling a field, or tracking a case.
+- **11.6** Define the specific work the agent can take on. For example, highlight the requested attachment, match it against an available file, and find the submission channel.
 
-**Çıktı ve kabul.** Vaka kartı anonim ID, ilk kullanıcı cümlesi, kurum, yer, mevcut aşama, engel, kanıt, mevcut çözüm ve beklenen sonucu içerir. Her aday özellik gözlemlenmiş bir engelle ilişkilidir. Vaka sayısı keşif hedefidir ve ülke geneli için talep tahmini üretmez.
+**Output and acceptance.** Each case card contains an anonymous ID, opening sentence, authority, location, stage, obstacle, evidence, current workaround, and expected outcome. Each proposed feature relates to an observed obstacle. The case count is a discovery target and does not estimate demand across Italy.
 
-## 12. İtalya’daki işlem alanlarının haritasını çıkar
+## 12. Map Italian administrative domains
 
-- **12.1** Göç ve oturum, anagrafe ve kimlik, sağlık, eğitim, çalışma, sosyal haklar, vergi, aile, ulaşım ve işletme işlemlerini başlangıç haritasına al.
-- **12.2** Günlük kullanıcı ifadelerini olası resmî işlemlerle eşleştir. Tek ifadenin birden fazla resmî işleme işaret ettiği örnekleri kaydet.
-- **12.3** Ulusal, bölgesel ve belediye düzeylerini kaydet. Yetkili kurumu belirlemek için gerekli yer veya durum bilgilerini çıkar.
-- **12.4** Resmî portal, kurum sayfası, ofis, randevu ve yüz yüze hizmet kanallarını gözlenen vakalar üzerinden haritala.
-- **12.5** Bir hayat olayının başlattığı farklı işlemlerde gerçek önkoşulları, ortak belgeleri ve paralel işleri belirle.
+- **12.1** Include immigration and residence permissions, civil registration and identity, healthcare, education, employment, social benefits, tax, family, transport, and business procedures.
+- **12.2** Map everyday expressions to official procedure candidates. Record examples where one expression can refer to several procedures.
+- **12.3** Record national, regional, and municipal responsibilities. Identify what location or situation detail is needed to determine the competent body.
+- **12.4** Map official portals, authority pages, offices, appointments, and in-person services using observed cases.
+- **12.5** Identify actual prerequisites, shared documents, and parallel tasks where a life event initiates multiple procedures.
 
-**Çıktı ve kabul.** İşlem haritasında konu, kullanıcı ifadesi, işlem adayı, kurum, yetki alanı, kanal ve açık sorular var. Aynı ifadenin farklı yerlerde veya koşullarda farklı rotaya gittiği vakalar da bulunuyor.
+**Output and acceptance.** The map contains a domain, user phrasing, procedure candidate, authority, jurisdiction, channel, and open questions. It includes cases where the same phrasing leads to different routes by place or circumstance.
 
-## 13. Sohbetin başlangıcını ve ilerlemesini tanımla
+## 13. Define how conversations start and progress
 
-| Kullanıcı girişi | Ajanın ilk işi | Görünür çıktı |
+| User input | Agent's first job | Visible result |
 | --- | --- | --- |
-| Soru | Terimi ve bağlamı bulmak | Açıklama, kaynak ve gerekiyorsa soru |
-| Hedef | İlgili işlemleri ve önceliği belirlemek | İlk iş ve onu değiştiren soru |
-| Kurum yazısı veya ekran görüntüsü | Kurum ve talebi bulmak | Yapılacak iş ve belgedeki karşılığı |
-| Form | Formu, alanı ve sürümü tanımak | Alanın anlamı ve doğrulanabilir değer |
-| Makbuz | Belgenin neyi kanıtladığını belirlemek | Gönderim kanıtı ve takip adımı |
+| Question | Identify the term and context | Explanation, source, and a follow-up if needed |
+| Goal | Identify relevant procedures and priorities | First action and a question that could change it |
+| Official notice or screenshot | Identify the authority and request | Action and its location in the document |
+| Form | Identify the form, field, and version | Field meaning and a value the user can verify |
+| Receipt | Determine what the document proves | Submission evidence and tracking step |
 
-- **13.1** Her giriş için normal, eksik bilgili ve yanlış bağlamlı örnek konuşma yaz.
-- **13.2** Netleştirme sorusunu yanıtı değiştiren bilgiler için sor. Genel bir açıklama doğrudan yapılabiliyorsa onu ver.
-- **13.3** Kullanıcı bilmiyorsa bilginin bulunabileceği yeri ve o bilgi olmadan yapılabilen kısmı göster.
-- **13.4** Aynı mesajdaki birden fazla işi tanı. Ajan aktif işlemi görünür kılsın ve konu değişince ilgili bağlama dönebilsin.
+- **13.1** Write ordinary, incomplete, and wrong-context conversations for each input type.
+- **13.2** Ask clarifying questions for information that changes the answer. Give general explanations directly when possible.
+- **13.3** When the user does not know, show where the information can be found and continue with what can be done.
+- **13.4** Identify multiple tasks in one message. Show the active task and support returning to its context after switching topics.
 
-**Kabul.** Kullanıcı serbest metinle başlar. Ajan akışı ilerletir veya yalnız sonucu değiştirecek eksik bilgiyi sorar.
+**Acceptance.** A user starts with free text. The agent advances the task or asks only for missing information that changes the outcome.
 
-## 14. İlk geliştirilecek akışları puanla
+## 14. Score the first workflows to develop
 
-| Ölçüt | Önerilen ağırlık |
+| Criterion | Proposed weight |
 | --- | ---: |
-| Gözlemlenen ihtiyaç | 30 |
-| Sağlanabilecek somut ilerleme | 25 |
-| Resmî kanıt kalitesi | 20 |
-| Başka işlemlerde yeniden kullanım | 15 |
-| İlk pilotta uygulanabilirlik | 10 |
+| Observed need | 30 |
+| Concrete progress the agent can provide | 25 |
+| Official evidence quality | 20 |
+| Reusability across procedures | 15 |
+| Feasibility in the first pilot | 10 |
 
-- **14.1** Her ölçütü 0–5 arası puanla ve puanın dayanağını kaydet. Ağırlıkları pilot bulguları geldikçe yeniden değerlendir.
-- **14.2** İşlem bulma, belge kontrolü, form hazırlığı ve takip için uygulanabilirliği ayrı incele.
-- **14.3** Yanlış cevabın etkisini ve dış bağımlılıkları kaydet. Yanlış tarih, yanlış muhatap ve doğrulanmamış form gibi sonuçlar öncelikli.
-- **14.4** Kurum, coğrafya ve belge türü çeşitliliğini kontrol et. Çeşitlilik için eklenen vakanın gerekçesini yaz.
+- **14.1** Score each criterion from 0–5 and record the supporting evidence. Reconsider weights as pilot findings arrive.
+- **14.2** Assess discovery, document checks, form preparation, and tracking independently.
+- **14.3** Record the consequences of wrong answers and external dependencies. Prioritize wrong dates, recipients, and unverified forms.
+- **14.4** Check diversity by authority, jurisdiction, and document type. Explain any case added for coverage.
 
-**Kabul.** İlk sıradaki işlerin gerekçesi ve ertelenen yeteneklerin hangi kanıta ihtiyaç duyduğu görülebilir.
+**Acceptance.** The rationale for the first workflows and the evidence needed for deferred capabilities are visible.
 
-## 15. İlk pilot vaka setini oluştur
+## 15. Assemble the first pilot case set
 
-- **15.1** En az üç kurum ve birden fazla bölgeyi kapsa. Ulusal hizmet, yerel uygulama ve kurumlar arası geçiş içeren örnekler seç.
-- **15.2** Yanlış kurum, eksik belge bildirimi, okunamayan tarih, eski form ve devam eden başvuru gibi kırılma noktalarını ekle.
-- **15.3** Beklenen sonraki adımı resmî dayanağıyla yaz. Kabul edilebilir alternatifleri ve kabul edilemez cevapları tanımla.
-- **15.4** Her vakanın ne zaman tamamlandığını belirt. Doğru hizmeti açma, eksik eki saptama veya form alanını doğrulama örnek sonuçlardır.
-- **15.5** Yer değiştiğinde, belge başka işleme ait olduğunda veya yeni bildirim geldiğinde ajanın neyi yeniden değerlendireceğini yaz.
+- **15.1** Cover at least three authorities and multiple regions. Include national, locally implemented, and cross-authority procedures.
+- **15.2** Include wrong authority, missing attachment notice, unreadable date, obsolete form, and ongoing application scenarios.
+- **15.3** Write the expected next action and its official basis. Define acceptable alternatives and unacceptable responses.
+- **15.4** Define completion for each case, such as opening the right service, identifying a missing attachment, or confirming a field.
+- **15.5** Specify what the agent must reassess when the location changes, a document belongs to another procedure, or a new notice arrives.
 
-**Kabul.** Pilot, birden fazla kurum üzerinde yönlendirme, belgeyle çalışma ve hata sonrası toparlanmayı sınar. Tamamlanma ölçütü gözlemlenebilir.
+**Acceptance.** The pilot tests routing, document-assisted work, and recovery across multiple authorities. Completion can be observed.
 
-## 16. İşlem bazında yetenek sözleşmesini çıkar
+## 16. Define a capability contract for each procedure
 
-- **16.1** İşlem bulma, kaynaklı açıklama, belge kontrolü, form hazırlığı ve durum takibi yeteneklerini işlem başına kaydet.
-- **16.2** Açılan her yetenek için gerekli girdi, kanıt, çıktı ve kullanıcı onayı koşulunu tanımla.
-- **16.3** Bir yetenek doğrulanmamışsa işe yarar sonraki adımı yaz. Örneğin alan eşlemesi doğrulanmadığında güncel resmî formu aç ve açıklanabilen alanı eldeki kanıtla açıkla.
-- **16.4** Kullanıcı bildirimi, gönderim makbuzu ve kurumca doğrulanan durumun anlamını ayrı gösterecek kuralları yaz.
+- **16.1** Record discovery, sourced explanation, document checking, form preparation, and status tracking capabilities per procedure.
+- **16.2** Define inputs, evidence, output, and approval conditions for every enabled capability.
+- **16.3** When a capability is unverified, define the next useful action. An unverified field mapping can still provide the current official form and explain fields supported by the available evidence.
+- **16.4** Define how to show a user-reported status, a submission receipt, and a status verified by the authority.
 
-**Kabul.** Her işlem kaydı, geliştiricinin kabul edeceği girdiyi ve kullanıcının göreceği çıktıyı, onay noktasıyla birlikte gösterir.
+**Acceptance.** The procedure record tells developers what inputs are accepted, what users will see, and where approval is required.
 
-## 17. Başarı metrikleri ve karşılaştırmalı test
+## 17. Define success metrics and a comparison test
 
-- **17.1** Birincil metrik doğru sonraki adıma yardımsız ulaşmadır. Kullanıcı doğru kurumu ve ne yapacağını kendi cümlesiyle açıklayabilsin.
-- **17.2** İkincil metrikler süre, yanlış yönlendirme, gereksiz soru, yanlış belge ve dosyaya dönünce devam edebilme olsun.
-- **17.3** Benzer vakaları bugün kullanılan yöntemle ve PracticaMIA ile çalıştır. Önceki deneyim ve moderatör yardımı gibi sonucu etkileyen bilgileri kaydet.
-- **17.4** Yardımlı ve yardımsız tamamlamayı ayrı ölç.
-- **17.5** Başarı eşiğini ilk testten önce yaz. Küçük pilotta yüzdelerin yanında katılımcı ve vaka sayılarını ver.
+- **17.1** Use unassisted arrival at the correct next step as the primary outcome. The user should identify the correct authority and explain their next action in their own words.
+- **17.2** Track time, misrouting, unnecessary questions, wrong documents, and successful return to ongoing work.
+- **17.3** Run comparable cases using the current method and PracticaMIA. Record prior experience and moderator help.
+- **17.4** Measure assisted and unassisted completion separately.
+- **17.5** Set thresholds before the first test. Report case and participant counts alongside percentages in a small pilot.
 
-**Kabul.** Sonuçlar, ajanın cevap üretmesinin ötesinde kullanıcının hangi işi ne ölçüde ilerlettiğini gösterir.
+**Acceptance.** The results show how far users advanced their actual tasks.
 
-## 18. Kritik hata ve toparlanma davranışını tasarla
+## 18. Design critical-error and recovery behaviour
 
-- **18.1** Yanlış kurum, belediye veya aynı adlı işlem için beklenen ayırt edici soruyu tanımla.
-- **18.2** Eski form, kırık bağlantı, çelişen kaynak ve farklı form sürümlerinde kullanıcının yeniden doğrulayacağı bilgiyi tanımla.
-- **18.3** Eksik sayfa, bulanık tarih ve başka vakaya ait belge için kullanıcının göreceği kanıtı ve toparlanma adımını yaz.
-- **18.4** PDF üretimi, kullanıcı beyanı, makbuz ve kurum kararının hangi durum değişikliklerine izin verdiğini ayrı örnekle.
-- **18.5** Her vaka için girdi, beklenen davranış, kabul edilemez sonuç ve eski kayıtların nasıl korunacağını kaydet.
+- **18.1** Define distinguishing questions for the wrong authority, municipality, or a procedure with the same name.
+- **18.2** Specify what users must verify when they encounter an obsolete form, broken link, conflicting source, or different form version.
+- **18.3** Define visible evidence and recovery for missing pages, blurry dates, and documents from a different case.
+- **18.4** Use separate examples for PDF creation, a user's statement, a receipt, and an authority decision. Specify the state transition each supports.
+- **18.5** Record input, expected behaviour, unacceptable output, and preservation of existing records for each case.
 
-**Kabul.** Kritik örnekler sonraki ajan, belge, kaynak ve arayüz regresyon testlerine aktarılabilir.
+**Acceptance.** Critical cases can become agent, document, source, and UI regression tests.
 
-## 19. Dil, ton ve arayüz kurallarını belirle
+## 19. Define language, tone, and interface rules
 
-- **19.1** İlk değerlendirme dilleri İtalyanca ve İngilizce olsun. Her vaka iki dilde aynı kuruma ve aynı sonraki adıma ulaşsın.
-- **19.2** Resmî form alanının orijinal İtalyanca adını koru. Açıklama kullanıcının dilinde gösterilsin.
-- **19.3** Cevabın ilk cümlesi soruya cevap versin. Sonraki iş eylem olarak görünsün. Kaynak ve belge detayı açılabilir olsun.
-- **19.4** Sohbet sırasında dil değişse de vaka, belge ve alan bağlantıları korunsun.
-- **19.5** Başka bir dil veya belirsiz ifade geldiğinde anlaşılır bir netleştirme yolu tanımla.
+- **19.1** Start with Italian and English. Test equivalent cases reaching the same authority and next step in both languages.
+- **19.2** Preserve official Italian field names and show the explanation in the user's language.
+- **19.3** Answer the question in the first sentence. Show the next task as an action and make source and document details expandable.
+- **19.4** Preserve case, document, and field links when language changes mid-conversation.
+- **19.5** Define clear clarification behaviour for another language or an ambiguous expression.
 
-**Kabul.** Kullanıcı her iki değerlendirme dilinde aynı sonraki adıma ulaşabiliyor ve resmî portaldaki alanı orijinal adıyla tanıyor.
+**Acceptance.** Users in both evaluation languages reach the same next action and recognise the original labels on the official portal.
 
-## 20. Tek sohbet prototipini test et ve fazı kapat
+## 20. Test the single-chat prototype and close the phase
 
-- **20.1** Ana ekran sohbet olsun. Şimdi ne yapmalıyım, resmî kaynak ve belge veya form incelemesi aynı vakada açılabilsin.
-- **20.2** Gerçek bir kurum yazısından başla. Ajanın talebi açıklaması, ilgili bölümü göstermesi, eksik bilgiyi sorması ve gerekli adımı hazırlamaya yardım etmesi gözlemlensin. Kullanıcı değeri düzeltebilsin.
-- **20.3** Başka bir kurumdan gelen serbest metin sorusunu aynı sohbet, kaynak ve sonraki işlem bileşenleriyle sınayarak yeniden kullanımı göster.
-- **20.4** Kullanıcı dosyayı kapatıp yeniden açsın. Önceki düzeltmeyi, sonraki adımı ve resmî kanalı tekrar anlatmadan bulsun.
-- **20.5** Her tıkanmayı kaynak kapsamı, ajan, belge okuma veya arayüz gereksinimine bağla. Faz 3 ve 4’ün iş listesine somut girdi üret.
-- **20.6** Pilot kapsamı, belirsizlik ve yeniden test edilecek durumları kaydet. Prototiple gösterilen davranışın yanı sıra gerçekten çalışan özellikleri de açıkça belirt.
+- **20.1** Use chat as the main screen. Make the next action, official source, and document or form review accessible from the same case.
+- **20.2** Start from an actual official notice. Observe the agent explain the request, point to the passage, ask for missing information, and help prepare the next action. Let the user correct a value.
+- **20.3** Try a free-text question involving another authority to verify reuse of the same chat, source, and next-action components.
+- **20.4** Close and reopen the case. Let the user find the prior correction, next step, and official channel without explaining the case again.
+- **20.5** Connect each observed bottleneck to catalogue, agent, document reading, or interface requirements. Turn findings into inputs for phases 3 and 4.
+- **20.6** Record pilot scope, uncertainty, and retest requirements. Make clear which observed behaviours used a prototype and which worked end to end.
 
-**Kabul.** Kullanıcı gözlenen bir ihtiyacıyla başlayıp doğru sonraki adıma ulaşabiliyor. Faz 3’e anonim vaka kartları, işlem ve kurum haritası, yetenek sözleşmeleri, öncelikli pilot seti, ölçüm planı, kritik hata testleri ve tek sohbet prototipinin bulguları devrediliyor.
+**Acceptance.** A user can start with an observed need and reach the right next step. Phase 3 receives anonymised case cards, the procedure map, capability contracts, prioritised pilot cases, the measurement plan, critical-error tests, and single-chat prototype findings.

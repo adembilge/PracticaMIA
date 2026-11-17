@@ -1,136 +1,136 @@
-# PracticaMIA 2.0 — Faz 4 · Tek uzman ajan ve konuşma motoru
+# PracticaMIA 2.0 — Phase 4 · Single specialist agent and conversation engine
 
-**Yol haritası görevleri 31–40.** Serbest metinle çalışan ilk PracticaMIA ajanı niyeti belirler, Faz 3’teki resmî kataloğu sorgular, gerekiyorsa netleştirir ve kaynağa bağlı bir sonraki adımı gösterir. Kullanıcı geri döndüğünde işini ve bekleyen soruyu bulabilir.
+**Roadmap tasks 31–40.** The first free-text PracticaMIA agent identifies intent, queries the Phase 3 catalogue, clarifies when necessary, and offers a sourced next action. Users can return to their work and any pending question.
 
-**Önerilen temel.** Mevcut Python backend ve PostgreSQL üzerinde tek LangGraph ajanı. İlk dilim işlem bulma, kaynaklı açıklama ve sonraki adımı kapsar. Belge okuma, form hazırlama ve makbuzla takip sonraki fazlarda aynı ajana araç olarak bağlanır. Kullanılabilir yetenekleri doğrulanmış işlem kapsamı belirler.
+**Proposed foundation.** Use one LangGraph agent on the existing Python backend and PostgreSQL. The initial slice supports procedure discovery, sourced explanations, and next actions. Attach document reading, form preparation, and receipt-based tracking as tools in later phases. Verified procedure coverage controls capability availability.
 
-## 31. Ajanın API ve arayüz sözleşmesini tanımla
+## 31. Define the agent API and interface contract
 
-- **31.1** Sohbet için `thread_id`, çalıştırma için `run_id`, dosya için isteğe bağlı `case_id` ve olay için artan sıra numarası kullan. Bir sohbetin birden fazla dosyaya bağlanabilmesini sağla.
-- **31.2** Mesaj gönderme, durdurma, sonucu yeniden okuma ve bekleyen onaya yanıt verme isteklerini tiple. Aynı istemci mesaj kimliğiyle tekrar gönderilen isteği tanı.
-- **31.3** Kullanıcıya açık olayları tanımla. `run.started`, `progress.updated`, `question.requested`, `approval.requested`, `answer.completed` ve `run.failed` önerilen olaylardır. Sağlayıcı ve grafik olaylarını uygulama sözleşmesine dönüştür.
-- **31.4** Cevap kısa açıklama, varsa sonraki iş, resmî kanal, atıflar ve eksik bilgi içerebilsin. İşlem metniyle çalıştırılabilir eylemi ayrı alanlarda taşı.
-- **31.5** Ağ bağlantısı koparsa son görülen olaydan devam et. Kullanıcı durdurursa devam eden çalışmanın ve önceden kaydedilmiş değişikliklerin durumunu açıklığa kavuştur.
-- **31.6** İlerleme olaylarını hemen gönder. Kurum, ücret ve tarih gibi iddiaları doğrulandıktan sonra sun. [LangGraph streaming](https://docs.langchain.com/oss/python/langgraph/streaming)
+- **31.1** Use a `thread_id`, `run_id`, optional `case_id`, and increasing event sequence number. A thread can link to multiple cases.
+- **31.2** Define typed requests for sending a message, stopping, retrieving a result, and responding to pending approval. Identify retries by client message ID.
+- **31.3** Define user-visible events. Proposed types include `run.started`, `progress.updated`, `question.requested`, `approval.requested`, `answer.completed`, and `run.failed`. Adapt provider and graph events to the application contract.
+- **31.4** Support a short explanation, next action where relevant, official channel, citations, and missing information. Carry action copy and the executable operation in separate fields.
+- **31.5** Reconnect after the last observed event. When a user stops a run, report the real status of ongoing work and earlier committed changes.
+- **31.6** Send progress events promptly. Show consequential claims about authorities, fees, and dates after verification. [LangGraph streaming](https://docs.langchain.com/oss/python/langgraph/streaming)
 
-**Kabul.** Frontend aynı API sözleşmesiyle cevap, soru, kaynak kartı, onay ve hata durumunu gösterebiliyor.
+**Acceptance.** One API contract supports answers, questions, source cards, approvals, and errors in the frontend.
 
-## 32. Tek LangGraph grafiğini kur
+## 32. Build a single LangGraph graph
 
-| Düğüm | Sonuç |
+| Node | Result |
 | --- | --- |
-| Bağlamı yükle | Yetkili sohbet ve vaka bağlamı |
-| Niyeti belirle | Niyet, aday işlemler ve bilinen bilgiler |
-| İşlemi ve kanıtı bul | Uygulanabilir kurum, işlem, kaynak ve açık sorular |
-| Sonraki adımı seç | Cevap, netleştirme, araç çağrısı veya öneri |
-| Doğrula ve yanıtla | Kaynaklı cevap veya açık belirsizlik |
+| Load context | Authorised thread and case context |
+| Identify intent | Intent, procedure candidates, and known facts |
+| Find the procedure and evidence | Applicable authorities, procedures, sources, and open questions |
+| Choose the next step | Answer, clarification, tool call, or proposal |
+| Verify and respond | Sourced response or explicit uncertainty |
 
-- **32.1** Düğümlere tipli girdi ve çıktı ver. Niyet düğümü kalıcı vaka durumuna doğrudan yazamasın.
-- **32.2** Doğrudan cevap, eksik bilgi ve araç çağrısı için geçişleri tanımla. Araç sonucu cevap öncesi doğrulansın.
-- **32.3** Modelin önerdiği rotayı işlem kapsamı, yetki, araç kullanılabilirliği ve girdi tamlığı açısından sunucuda kontrol et.
-- **32.4** Arama, süre, araç ve model çağrısı bütçesi tanımla. Aynı sorgu tekrar ediyorsa mevcut sonucu veya doğrulayamama nedenini göstererek turu bitir.
-- **32.5** İlk teknik dilimi çalıştır. Serbest metin → katalog → gerekiyorsa soru → kaynaklı sonraki adım. Yeni araç mevcut cevap yolunu bozmasın.
+- **32.1** Give nodes typed inputs and outputs. Prevent intent nodes from writing directly to durable case state.
+- **32.2** Define transitions for direct answers, missing information, and tool calls. Validate tool results before answering.
+- **32.3** Check model-proposed routes against procedure scope, authorisation, tool availability, and input completeness on the server.
+- **32.4** Define budgets for searches, time, tool calls, and model calls. End repetitive queries with the available result or an explanation of the verification gap.
+- **32.5** Implement the first vertical slice. Free text → catalogue → clarification when needed → sourced next action. Preserve the existing response path when adding a tool.
 
-**Kabul.** Tek sohbet doğrudan cevap ve kullanıcı bilgisi bekleme durumlarını çalıştırır. Araç hatasında bir toparlanma yolu sunar.
+**Acceptance.** One chat supports direct answers and waiting for information. A tool failure produces a recoverable route.
 
-## 33. Sohbet, vaka ve devam etme durumunu kur
+## 33. Persist conversation, case, and resumption state
 
-- **33.1** Mesajlar, checkpoint’ler ve vaka kayıtlarını modelle. Mesaj konuşmayı, checkpoint yürütme durumunu, vaka doğrulanmış bilgiyi ve bekleyen işleri taşır. [LangGraph persistence](https://docs.langchain.com/oss/python/langgraph/persistence)
-- **33.2** Ajan durumuna aktif vaka, adaylar, bilinen ve eksik alanlar, kaynaklar, bekleyen soru ve öneri kimliğini ekle. Büyük dosyaları yetkili referanslarla temsil et.
-- **33.3** Tarayıcı kapanması, işlemci yeniden başlatma ve model kesintisinde son tutarlı noktadan devam et.
-- **33.4** İlk sürümde sohbet başına tek aktif çalıştırma kullan. Ayrı sohbetler aynı vakayı düzenliyorsa revizyonla çakışmayı algıla.
-- **33.5** Checkpoint’te hassas veri kullanımını azalt. Silme ve saklama süresi dolması için temizleme davranışını tanımla.
-- **33.6** Uzun konuşmada ilgili son mesajları, doğrulanmış olguları ve açık işleri aktar. Konuşma özeti vaka kaydının üzerine yazamasın.
+- **33.1** Model messages, checkpoints, and cases. Messages hold conversation, checkpoints hold execution state, and cases hold confirmed facts and pending work. [LangGraph persistence](https://docs.langchain.com/oss/python/langgraph/persistence)
+- **33.2** Keep the active case, candidates, known and missing fields, sources, pending question, and proposal IDs in agent state. Use authorised references for large files.
+- **33.3** Resume from the last consistent point after a closed browser, worker restart, or interrupted model call.
+- **33.4** Start with one active run per thread. Detect conflicts with case revisions when separate conversations update the same case.
+- **33.5** Minimise sensitive data in checkpoints. Define cleanup for case deletion and retention expiry.
+- **33.6** For long conversations, pass relevant recent messages, confirmed facts, and open actions. Conversation summaries cannot overwrite case records.
 
-**Kabul.** Kullanıcı bekleyen soruya geri dönüyor. Tekrarlanan istek ikinci vaka, görev veya kayıt değişikliği oluşturmuyor.
+**Acceptance.** The user can return to a pending question. Retried requests create no duplicate cases, tasks, or writes.
 
-## 34. Niyet, işlem ve yetkili kurum eşlemesini geliştir
+## 34. Develop intent, procedure, and authority matching
 
-- **34.1** Bilgi isteme, işlem bulma, yazıyı açıklama, form alanını anlama, vakayı sürdürme ve çoklu iş planlama niyetlerini tanımla.
-- **34.2** Modelden tipli niyet, kurum ve yer ifadeleri, işlem adayları ve eksik bağlam al. Kayıt kimliklerini katalogda doğrula.
-- **34.3** Gündelik ifade, resmî İtalyanca terim ve kısaltmaları Faz 3 aramasıyla eşle. Residenza ve domicilio gibi bağlama duyarlı ifadeleri test et.
-- **34.4** Yer, tarih ve durumun adayları nasıl değiştirdiğini taşı. Kullanıcının fiziksel konumunu işlemin yetki alanı olarak varsayma.
-- **34.5** Boş veya çelişkili sonuçta adayları açıklama, ayırt edici soru veya doğrulanmış kuruma yönlendirme arasından işe yarayan adımı seç.
-- **34.6** İtalyanca, İngilizce, eksik cümle, yazım hatası, kısaltma ve birden fazla kurum adına karşı test et.
+- **34.1** Define intents for requesting information, finding a procedure, explaining a notice, understanding a form field, resuming a case, and planning several tasks.
+- **34.2** Extract typed intents, authority and place expressions, procedure candidates, and missing context. Verify identified records in the catalogue.
+- **34.3** Use Phase 3 search to match everyday expressions, Italian terms, and acronyms. Test context-sensitive terms such as residenza and domicilio.
+- **34.4** Represent how location, date, and circumstance change the candidates. Avoid assuming the user's physical location is the procedure's jurisdiction.
+- **34.5** When results are empty or conflicting, explain candidates, ask a distinguishing question, or route to a verified contact as appropriate.
+- **34.6** Test Italian, English, incomplete sentences, spelling mistakes, acronyms, and multiple authority names.
 
-**Kabul.** Niyet tanıma ve resmî işlem seçimi ayrı ölçülebilir. Kurum doğrulanınca kesin yönlendirme sunulur.
+**Acceptance.** Intent recognition and official procedure selection are independently measurable. Definitive routing depends on a verified authority.
 
-## 35. Netleştirme ve kullanıcı düzeltme akışını kur
+## 35. Implement clarification and user corrections
 
-- **35.1** Sormadan önce mesaj, doğrulanmış vaka ve erişilebilir belge sonucunu kontrol et.
-- **35.2** Sonucu değiştiren soruyu öne al. Mümkün olduğunda tek ayırt edici soru sor. Birlikte gereken alanların gerekçesini açıkla.
-- **35.3** Sorunun kimliğini, yanıt biçimini ve etkilediği alanı kaydet. Serbest metin ve seçenekleri destekle. Geçersiz cevapta gereken bilgiyi açıkla.
-- **35.4** Bilmiyorum, şimdilik geç ve konu değiştirme davranışlarını tanımla. Yapılabilen kısmı tamamla ve açık belirsizliği sakla.
-- **35.5** Düzeltme gelince etkilenen aday, kanıt ve adımı yeniden değerlendir.
-- **35.6** İki sekmeden yanıtlanan eski soru veya yanlış soru kimliğinde sessiz kayıt değişikliğini engelle.
+- **35.1** Check the message, confirmed case data, and accessible document results before asking a question.
+- **35.2** Prioritise information that changes the outcome. Prefer one distinguishing question when possible and explain why grouped fields are needed.
+- **35.3** Record the question ID, expected answer shape, and affected field. Accept free text and options. Explain what information is needed after an invalid answer.
+- **35.4** Define behaviour for unknown answers, skipping for now, and topic changes. Complete available work and retain open uncertainty.
+- **35.5** Reevaluate affected candidates, evidence, and next action when a correction arrives.
+- **35.6** Guard against silent changes from old questions or mismatched question IDs across browser tabs.
 
-**Kabul.** Kullanıcı doğrulanmış bilgiyi tekrarlamaz. Düzeltme ilgili kaynak ve sonraki adımı günceller.
+**Acceptance.** Users avoid repeating confirmed facts. Corrections update relevant sources and actions.
 
-## 36. Araçları tipli, yetkili ve tekrar güvenli çalıştır
+## 36. Run typed, authorised, and retry-safe tools
 
-| Araç | İlk işlev |
+| Tool | Initial function |
 | --- | --- |
-| İşlem ara | İşlem, kurum, yer ve kanal adayları |
-| Kanıt ara | İncelenmiş ve uygulanabilir pasajlar |
-| Kaynak detayı aç | Sürüm, resmî URL, kapsam ve konum |
-| Vaka bağlamını oku | Yetkili bilgiler ve bekleyen işler |
-| Vaka güncellemesi öner | Alan veya görev değişikliği taslağı |
-| Onaylı güncellemeyi uygula | Geçerli onay ve revizyonla yazma |
+| Find procedure | Procedure, authority, jurisdiction, and channel candidates |
+| Find evidence | Reviewed and applicable passages |
+| Open source details | Version, official URL, scope, and location |
+| Read case context | Authorised facts and pending work |
+| Propose case update | Draft field or task change |
+| Apply approved update | Commit a write with valid approval and revision |
 
-- **36.1** Tipli girdi ve çıktı tanımla. Katalog kimliklerini doğrula ve tanımsız parametreleri reddet.
-- **36.2** Etkin kullanıcı ve vaka sahipliğini sunucuda doğrula. Model çıktısını erişim kanıtı olarak kullanma.
-- **36.3** Salt okunur araçlar ve yazmalar için yürütme koşullarını tanımla. Gerekli onayı sunucuda kontrol et.
-- **36.4** Tekrar deneme, ağ kesintisi ve checkpoint dönüşlerinde idempotency anahtarı ve vaka revizyonu ile çift yazmayı önle.
-- **36.5** Geçici katalog hatası, doğrulanmış sonuç yok ve geçersiz girdi için farklı toparlanma yolları kur.
-- **36.6** Sonraki belge ve form araçlarının bağlanacağı sözleşmeyi tanımla. Kullanılabilirliği doğrulanmamış özellik tamamlanmış iş olarak görünmesin.
+- **36.1** Define typed inputs and outputs. Validate catalogue IDs and reject unknown parameters.
+- **36.2** Verify the acting user and ownership server-side. Model output does not confer access.
+- **36.3** Define execution conditions for reads and writes. Check required approval on the server.
+- **36.4** Prevent duplicate writes during retries, network failures, and resume with idempotency keys and case revisions.
+- **36.5** Provide recovery for transient catalogue errors, no verified result, and invalid input.
+- **36.6** Define extension contracts for document and form tools. Unavailable capabilities cannot appear as completed work.
 
-**Kabul.** Yetkisiz erişim, geçersiz çağrı ve tekrar yazma test edilir. Görünen durum gerçek işlemi yansıtır.
+**Acceptance.** Tests cover unauthorised access, invalid calls, and duplicate writes. Visible state reflects the actual operation.
 
-## 37. Kaynaklı cevap ve iddia doğrulamasını uygula
+## 37. Implement sourced responses and claim verification
 
-- **37.1** Kurum, kanal, zorunlu belge, ücret, son tarih, koşul ve form sürümü iddialarını kanıt kimliğine bağla.
-- **37.2** O turda alınan veya güncelliği yeniden doğrulanan referansı kabul et. İşlem, yer, tarih ve koşulla uyumu kontrol et.
-- **37.3** Pasajın iddiayı gerçekten desteklediğini değerlendir. Genel kurum bağlantısı sayfada yer almayan tarihe kanıt oluşturmaz.
-- **37.4** Doğrulanamayan iddiayı çıkar ya da kapsamını daralt. Bilinen resmî kanalı ve eksik kanıtın doğrulama yolunu göster.
-- **37.5** Kullanıcı belgesi, resmî kaynak ve ajan önerisinin dayanağını kullanıcı arayüzünde görünür tut.
-- **37.6** Kaynak kartını Faz 3’ün tam pasajına bağla. Gerekli İtalyanca terimi koru ve kullanıcının dilinde açıkla.
+- **37.1** Link authorities, channels, mandatory documents, fees, deadlines, conditions, and form versions to evidence IDs.
+- **37.2** Accept references retrieved in the current run or revalidated for freshness. Check procedure, location, date, and conditions.
+- **37.3** Verify that the passage supports the claim. A general authority link does not substantiate a date missing from the page.
+- **37.4** Remove or narrow unverifiable claims. Give the known official channel and the path to verify missing information.
+- **37.5** Preserve whether information comes from a user document, an official source, or an agent proposal.
+- **37.6** Link source cards to exact Phase 3 passages. Preserve needed Italian terms and explain them in the user's language.
 
-**Kabul.** Kritik iddialardan geçerli ve erişilebilir pasaja gidilir. Başka belediye, geri çekilmiş kaynak ve eski sürüm vakaları doğrulanmış bilgi olarak gösterilemez.
+**Acceptance.** Critical claims lead to a valid passage. Evidence from another municipality, withdrawn sources, and old versions cannot appear verified.
 
-## 38. Öneri, kullanıcı onayı ve devam akışını kur
+## 38. Build proposals, user approval, and safe resumption
 
-- **38.1** Kullanıcının söylediği, belgeden çıkarılan ve kullanıcıca doğrulanan bilgiyi kökeniyle sakla.
-- **38.2** Öneri kimliği, değişen alan, mevcut ve önerilen değer, gerekçe ve vaka revizyonunu göster.
-- **38.3** Kabul, düzeltme, ret ve iptal davranışlarını uygula. Reddedilen değer uygulanmaz, düzeltilen değer gerektiğinde yeniden doğrulanır.
-- **38.4** Vaka veya kaynak değiştiyse eski öneriyi yeniden kontrol et. Güncellik ve yetki doğrulanmadan yazma yapma.
-- **38.5** LangGraph `interrupt()` ile bekle ve onayla aynı thread’de devam et. Düğüm yeniden çalışabileceği için kalıcı yazmayı onay sonrasındaki idempotent adımda gerçekleştir. [LangGraph interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)
-- **38.6** Resmî aktarımda kanal ve yapılacak işi ver. Kullanıcı resmî giriş, imza, ödeme ve gönderimi ilgili kanalda tamamlar. Durum eldeki kanıta göre güncellenir.
+- **38.1** Record user statements, extracted values, and confirmed values with their origin.
+- **38.2** Show proposal ID, affected field, existing and proposed values, rationale, and case revision.
+- **38.3** Implement accept, correct, reject, and cancel. Revalidate corrected values when needed and keep rejected values from being applied.
+- **38.4** Recheck outdated proposals if case data or sources change. Verify freshness and permissions before committing.
+- **38.5** Pause with LangGraph `interrupt()` and resume the same thread after approval. A node can re-execute, so use a separate idempotent step for durable writes after approval. [LangGraph interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)
+- **38.6** Show the official channel and next action. Users handle official sign-in, signing, payment, and submission in that channel. Update status from available evidence.
 
-**Kabul.** Yalnız gösterilip onaylanan değişiklik uygulanır. Tekrar gelen onay veya eski öneri yanlış yazma üretmez.
+**Acceptance.** Only the displayed and approved change is applied. Duplicate approval or old proposals cannot cause incorrect writes.
 
-## 39. Aynı konuşmada birden fazla işi yönet
+## 39. Manage multiple tasks in one conversation
 
-- **39.1** Mesajdaki hedefleri ayrı aday işlem ve eksik bağlamla tanımla.
-- **39.2** Aktif işi göster. Kullanıcı öncelik vermediyse seçenekleri gösterip hangisiyle başlanacağını sor.
-- **39.3** Sunucuda vaka seçimini doğrula. Öbür başvuru gibi ifadeler birden fazla kayda uyuyorsa netleştir.
-- **39.4** Doğrulanmış ortak bilgiyi yeniden kullan. İşleme özel tarih, belge ve form alanını ilgili vakaya bağlı tut.
-- **39.5** Bekleyen soru varken kullanıcı konu değiştirebilsin. Geri döndüğünde ilgili iş ve soru görünür kalsın.
-- **39.6** Benzer adlı belgeler, farklı belediyeler ve iki bekleyen soru ile vakalar arası veri karışmasını test et.
+- **39.1** Identify separate goals in one message, with individual procedure candidates and missing context.
+- **39.2** Show the active task. Present the choices and ask where to start when the user gives no preference.
+- **39.3** Verify case selection server-side. Clarify references such as “the other application” when several records match.
+- **39.4** Reuse confirmed shared facts. Keep task-specific dates, documents, and fields with the relevant case.
+- **39.5** Allow switching while a question is pending. Show the relevant work and question when the user returns.
+- **39.6** Test cross-case isolation with similar document names, different municipalities, and two pending questions.
 
-**Kabul.** Kullanıcı aynı sohbetten iki işe geçip dönebilir. Atıflar, alanlar ve bekleyen işler doğru vakaya bağlı kalır.
+**Acceptance.** Users can switch between two tasks and return from the same conversation. Citations, fields, and pending work remain bound to their respective cases.
 
-## 40. Ajanı değerlendir ve Faz 4’ü kapat
+## 40. Evaluate the agent and close Phase 4
 
-- **40.1** Faz 2 vakalarını Faz 3’ün doğru kurum ve pasajlarıyla birleştir. Yanlış kurum, eksik yer, eski kaynak, düzeltme, çoklu iş ve devam vakalarını kapsa.
-- **40.2** Niyet, işlem arama, kanıt, soru kalitesi ve yetkili araç çağrısını ayrı ölç. Hata kaynağı izlenebilir olsun.
-- **40.3** Birincil metrik doğru sonraki adıma yardımsız ulaşmadır. Doğru kurum, desteklenen atıf, gereksiz soru ve düzeltilmeyen yönlendirmeleri izle.
-- **40.4** Katalog kesintisi, model zaman aşımı, çift mesaj ve onay sırasında kapanmayı canlandır.
-- **40.5** İlk görünür olay, doğrulanmış cevap süresi, çağrı sayısı ve vaka başına maliyeti ölç. Hedefleri pilot ölçümlerine göre belirle.
-- **40.6** Hatanın niyet, sorgu, araç ve kaynak sürümüyle ilişkisini kaydet. Gereksiz konuşma ve belge içeriğinin izleme sistemine taşınmadığını doğrula.
-- **40.7** Faz 5’e mesaj API’si, olaylar, atıf, soru, onay ve yeniden bağlanma örneklerini teslim et.
+- **40.1** Combine Phase 2 cases with correct Phase 3 authorities and passages. Cover wrong authorities, missing locations, stale sources, corrections, multiple goals, and resumption.
+- **40.2** Measure intent, procedure retrieval, evidence, question quality, and authorised tool calls separately.
+- **40.3** Use unassisted arrival at the correct next action as the primary outcome. Track correct authorities, supported citations, unnecessary questions, and uncorrected misrouting.
+- **40.4** Simulate catalogue outages, model timeouts, duplicate messages, and closing the application during approval.
+- **40.5** Measure time to first user-visible event, verified response latency, call counts, and cost per case. Set targets from pilot measurements.
+- **40.6** Record how failures relate to intent, query, tool, and source version. Verify that monitoring excludes unnecessary conversation and document contents.
+- **40.7** Hand off the message API, events, citations, questions, approvals, and reconnection examples to Phase 5.
 
-**Kabul.** En az üç kurumlu pilot setinde doğru kurum, uygulanabilir resmî kaynak ve somut sonraki adım bulunur. Ajan eksik ve çelişkili bilgide netleştirir. Kullanıcı kapatıp döndüğünde aynı işi sürdürebilir.
+**Acceptance.** In a pilot set spanning at least three authorities, the agent finds a competent authority, applicable evidence, and a concrete next step. It clarifies missing or conflicting facts. Users can close and reopen the same task.
 
-## Kapanış senaryosu
+## End-to-end closure scenario
 
-Kullanıcı kurumu bilmeden ihtiyacını yazar. Ajan işi ve kaynağı bulur, gerekirse bir soru sorar. Kullanıcı bilgisini düzeltince ilgili sonuçlar yeniden değerlendirilir. Ajan işi, yetkili kanalı ve dayanak pasajı gösterir. Kullanıcı işi kaydedip sohbeti kapatır ve sonra aynı adımdan devam eder.
+The user describes a need without knowing the authority. The agent finds the task and source and asks a question when necessary. After a correction, the agent reassesses affected results, shows the action, competent channel, and supporting passage, then lets the user save the task and resume it after returning.
