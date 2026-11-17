@@ -31,6 +31,8 @@ The [21.3 source-version contract](phase-03-source-versioning.md) defines revisi
 
 The [21.4 source-date contract](phase-03-source-dates.md) separates publisher-stated, observation, review and effective dates and records missing dates explicitly.
 
+The [21.5 claim-evidence contract](phase-03-claim-evidence.md) ties each scoped assertion to the source-version passage that actually supports it.
+
 ## 22. Import Italian authority and geography identifiers
 
 - **22.1** Use [IPA](https://indicepa.gov.it/ipa-dati/dataset/amministrazioni) for authorities and [ISTAT](https://www.istat.it/classificazione/codici-dei-comuni-delle-province-e-delle-regioni/) for administrative units. Record the release, URL, and ingestion time.
