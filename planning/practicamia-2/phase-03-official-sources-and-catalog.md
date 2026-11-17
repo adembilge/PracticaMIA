@@ -25,6 +25,8 @@
 
 The [21.1 authority-role contract](phase-03-authority-roles.md) defines how to record each body's role and the evidence for that relationship.
 
+The [21.2 service-channel contract](phase-03-service-channels.md) defines how to record where each step takes place and which case conditions make the channel applicable.
+
 ## 22. Import Italian authority and geography identifiers
 
 - **22.1** Use [IPA](https://indicepa.gov.it/ipa-dati/dataset/amministrazioni) for authorities and [ISTAT](https://www.istat.it/classificazione/codici-dei-comuni-delle-province-e-delle-regioni/) for administrative units. Record the release, URL, and ingestion time.

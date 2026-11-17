@@ -47,4 +47,6 @@ See the [P0 acceptance record](MILAN_P0_ACCEPTANCE.md) for the reviewed workshee
 
 The [PracticaMIA 2.0 Phase 3.1 authority-role design](../planning/practicamia-2/phase-03-authority-roles.md) uses public service material. Participant validation and review of the proposed assignments against catalogue source versions and passages remain pending.
 
+The [Phase 3.2 service-channel design](../planning/practicamia-2/phase-03-service-channels.md) records public channel examples by step and applicability. Review of the proposed channel assignments and validation through participant journeys remain pending. Signed-in screens and actual appointments were outside this review.
+
 For implementation details see [the documentation index](README.md).
