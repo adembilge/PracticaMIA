@@ -111,6 +111,14 @@ type ConversationTurn = {
   language: string;
   next_action: string | null;
   created_at: string;
+  citation_status?: 'current' | 'historical' | 'unknown' | 'unavailable';
+  citations?: {
+    source_id: string;
+    source_version_id: string;
+    passage_id: string;
+    source_revision: number;
+    status: 'current' | 'historical';
+  }[];
 };
 type ConversationResponse = {
   turns: ConversationTurn[];
@@ -703,7 +711,20 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
                   <ol>
                     {guideHistory.map(turn => <li key={turn.id} style={{ marginBottom: 12 }}>
                       <p><strong>{turn.question}</strong></p>
-                      <p>{turn.answer}</p>
+                      <p style={{ whiteSpace: 'pre-wrap' }}>{turn.answer}</p>
+                      {turn.citation_status === 'unknown' && <p className="account-footnote">{it
+                        ? 'La versione della fonte non è registrata per questa risposta.'
+                        : 'The source version was not recorded for this answer.'}</p>}
+                      {(turn.citation_status === 'historical' || turn.citation_status === 'unavailable') && <p className="account-footnote">{it
+                        ? 'Una citazione non è più valida per l’uso attuale. Verifica di nuovo la fonte.'
+                        : 'A citation is no longer available for current use. Check the source again.'}</p>}
+                      {Boolean(turn.citations?.length) && <ul>
+                        {turn.citations?.map(citation => <li key={citation.passage_id}>
+                          {citation.source_id} · {it ? 'versione' : 'revision'} {citation.source_revision}
+                          {citation.status === 'historical' && (it ? ' · storica' : ' · historical')}
+                          <br /><code>{citation.passage_id}</code>
+                        </li>)}
+                      </ul>}
                     </li>)}
                   </ol>
                 </div>}

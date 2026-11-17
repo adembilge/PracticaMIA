@@ -1,5 +1,8 @@
 """Synthetic-only agent conversation persistence, tenant isolation and resumption."""
 import base64
+from hashlib import sha256
+import json
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,6 +11,7 @@ from sqlalchemy import select
 from app.config import Settings
 from app.database import Base
 from app.main import create_app
+from app.preparation.crypto import encrypt_blob
 from app.preparation.models import CaseAgentTurn, CasePreparation
 from conftest import ISSUER, AUDIENCE, JWKS_URL
 
@@ -151,3 +155,30 @@ def test_history_is_bounded_and_does_not_confirm_case_facts(
     preparation = http.get(base, headers=headers).json()
     assert preparation["confirmed_facts"] == {}
     assert preparation["intake"]["next_question"]["field"] == "citizenship_class"
+
+
+def test_legacy_quote_has_unknown_provenance(history_client, auth_headers):
+    http, headers = history_client, auth_headers("alice")
+    case_id = http.post("/api/v1/cases", json={}, headers=headers).json()["id"]
+    turn_id = str(uuid4())
+    raw = json.dumps({
+        "question": "What did the source say?", "language": "en",
+        "answer": "Original message.\n\nLegacy quote.", "action": "evidence",
+        "status": "answer_generated", "next_action": None,
+    }).encode()
+    key = http.app.state.preparation_document_key
+    with http.app.state.session_factory.begin() as db:
+        db.add(CaseAgentTurn(
+            id=turn_id, case_id=case_id, owner_subject="alice",
+            content_sha256=sha256(raw).hexdigest(),
+            content_ciphertext=encrypt_blob(
+                raw, key=key, case_id=case_id, owner_subject="alice",
+                document_id=f"agent-turn:{turn_id}",
+            ),
+        ))
+    response = http.get(f"/api/v1/cases/{case_id}/preparation/conversation", headers=headers)
+    assert response.status_code == 200
+    turn = response.json()["turns"][0]
+    assert turn["citation_status"] == "unknown"
+    assert turn["answer"] == "Original message."
+    assert "citations" not in turn

@@ -6,27 +6,137 @@ approved passages, and active rules rather than replaying this history.
 """
 from __future__ import annotations
 
+from dataclasses import asdict, dataclass
 from hashlib import sha256
 import json
+import re
 from uuid import uuid4
 
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
+from app.knowledge.quote_verification import CLAIM, ID, verify_exact_quotations
+from app.knowledge.search import EvidencePassage, resolve_approved_passage
+from app.knowledge.snapshot_model import KnowledgePassage
 from app.preparation.crypto import decrypt_blob, encrypt_blob
 from app.preparation.models import CaseAgentTurn
+from app.rules.engine import JURISDICTION, PROCEDURE
 
 MAX_TURNS = 20
 
 
-def load_turns(db: Session, *, case_id: str, owner: str, key: bytes) -> list[dict]:
+@dataclass(frozen=True)
+class SavedCitation:
+    source_id: str
+    source_version_id: str
+    passage_id: str
+    source_revision: int
+
+    @classmethod
+    def from_passage(cls, passage: EvidencePassage) -> SavedCitation:
+        return cls(
+            passage.source_id, passage.source_version_id,
+            passage.passage_id, passage.source_revision,
+        )
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.source_id, str) or not 1 <= len(self.source_id) <= 96
+            or not isinstance(self.passage_id, str)
+            or re.fullmatch(ID, self.passage_id) is None
+            or self.passage_id.split(":", 1)[0] != self.source_version_id
+            or type(self.source_revision) is not int or self.source_revision < 1
+        ):
+            raise ValueError("Malformed saved citation")
+
+
+def _approved(db: Session, passage_id: str) -> EvidencePassage | None:
+    return resolve_approved_passage(
+        db, citation_id=passage_id, jurisdiction=JURISDICTION,
+        procedure_id=PROCEDURE, language="it",
+    )
+
+
+def _verify_for_history(db: Session, result: dict) -> tuple[str | None, list[dict]]:
+    quote = result.get("answer")
+    if result.get("answer_status") != "answer_generated" or not isinstance(quote, str):
+        return None, []
+    lines = quote.splitlines()
+    if len(quote) > 2000 or not 1 <= len(lines) <= 4:
+        return None, []
+    matches = [CLAIM.fullmatch(line) for line in lines]
+    if any(match is None for match in matches):
+        return None, []
+    ids = dict.fromkeys(match.group(1) for match in matches if match is not None)
+    # Ingestion, approval and withdrawal lock the source row before changing
+    # trust. Hold shared locks in a consistent order through the saved turn.
+    db.execute(
+        select(KnowledgeSource.id)
+        .where(KnowledgeSource.id.in_(
+            select(KnowledgeSourceVersion.source_id)
+            .join(KnowledgePassage, KnowledgePassage.version_id == KnowledgeSourceVersion.id)
+            .where(KnowledgePassage.id.in_(ids))
+        ))
+        .order_by(KnowledgeSource.id)
+        .with_for_update(read=True)
+    ).all()
+    passages = {passage_id: _approved(db, passage_id) for passage_id in ids}
+    verified = {key: passage.content for key, passage in passages.items() if passage is not None}
+    if not verify_exact_quotations(quote, verified):
+        return None, []
+    return quote, [
+        asdict(SavedCitation.from_passage(passage))
+        for passage in passages.values() if passage is not None
+    ]
+
+
+def _history_evidence(
+    db: Session, item: dict, checked: dict[str, EvidencePassage | None],
+) -> dict:
+    if "citations" not in item:
+        if item["status"] == "answer_generated":
+            return {"answer": item["answer"].partition("\n\n")[0], "citation_status": "unknown"}
+        return {"answer": item["answer"]}
+
+    citations = [SavedCitation(**record) for record in item["citations"]]
+    quote = item.get("quote")
+    if not citations:
+        status = {"citation_status": "unavailable"} if item["status"] == "answer_generated" else {}
+        return {"answer": item["answer"], **status}
+    if not isinstance(quote, str) or len(citations) > 4:
+        raise ValueError("Malformed saved quotations")
+
+    views = []
+    approved = {}
+    for reference in citations:
+        passage_id = reference.passage_id
+        if passage_id not in checked:
+            checked[passage_id] = _approved(db, passage_id)
+        passage = checked[passage_id]
+        current = passage is not None and SavedCitation.from_passage(passage) == reference
+        if current:
+            approved[passage_id] = passage.content
+        views.append({**asdict(reference), "status": "current" if current else "historical"})
+    show_quote = verify_exact_quotations(quote, approved)
+    return {
+        "answer": item["answer"] + ("\n\n" + quote if show_quote else ""),
+        "citations": views,
+        "citation_status": "current" if show_quote else "historical",
+    }
+
+
+def load_turns(
+    db: Session, *, case_id: str, owner: str, key: bytes, include_evidence: bool = True,
+) -> list[dict]:
     rows = db.scalars(
         select(CaseAgentTurn).where(
             CaseAgentTurn.case_id == case_id, CaseAgentTurn.owner_subject == owner,
         ).order_by(CaseAgentTurn.created_at.desc(), CaseAgentTurn.id.desc()).limit(MAX_TURNS)
     ).all()
     results = []
+    checked: dict[str, EvidencePassage | None] = {}
     for row in reversed(rows):
         try:
             raw = decrypt_blob(
@@ -40,10 +150,13 @@ def load_turns(db: Session, *, case_id: str, owner: str, key: bytes) -> list[dic
                 for field in ("question", "answer", "action", "status", "language")
             ):
                 raise ValueError("Malformed history")
+            if not include_evidence:
+                results.append({"question": item["question"], "action": item["action"]})
+                continue
             results.append({
                 "id": row.id,
                 "question": item["question"],
-                "answer": item["answer"],
+                **_history_evidence(db, item, checked),
                 "action": item["action"],
                 "status": item["status"],
                 "language": item["language"],
@@ -57,24 +170,15 @@ def load_turns(db: Session, *, case_id: str, owner: str, key: bytes) -> list[dic
 
 def save_turn(db: Session, *, case_id: str, owner: str, key: bytes,
               question: str, language: str, result: dict) -> None:
-    """Persist only user question and server-produced, non-authoritative status."""
+    """Persist the server-produced turn and its exact verified evidence."""
     turn_id = str(uuid4())
-    # Keep the already-verified extractive answer in the encrypted case
-    # history, so a resumed session does not lose the cited material.
-    # Historical quotations MUST NOT be used as current approved evidence.
-    verified_quote = (
-        result.get("answer") if
-        result.get("answer_status") == "answer_generated"
-        and isinstance(result.get("answer"), str)
-        else None
-    )
-    saved_answer = result["message"]
-    if verified_quote:
-        saved_answer += "\n\n" + verified_quote[:2000]
+    quote, citations = _verify_for_history(db, result)
     content = {
         "question": question,
         "language": language,
-        "answer": saved_answer,
+        "answer": result["message"],
+        "quote": quote,
+        "citations": citations,
         "action": result["action"],
         "status": result["status"],
         "next_action": result.get("next_action"),

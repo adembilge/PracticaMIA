@@ -197,6 +197,7 @@ def resolve_approved_passage(
     rows = db.execute(
         _approved_scope(jurisdiction, procedure_id, language)
         .where(KnowledgePassage.id == citation_id)
+        .execution_options(populate_existing=True)
         .limit(1)
     ).all()
     if not rows:
