@@ -48,8 +48,18 @@ Names observed across production and preview on 17 November 2026, grouped by sco
 
 `ENABLE_KNOWLEDGE_SEARCH_API` is also present on `feature/knowledge-staging-rollout`.
 
-## Rebuild test environment
+## Rebuild branch and test environment
 
-- Frontend, backend, and synthetic browser workflows run on PRs targeting `main`, pushes to `main`, and manual dispatch. Backend and browser suites provision disposable PostgreSQL. The browser workflow uses loopback services, signed fixture identities, and synthetic records.
-- Use that disposable GitHub Actions environment for the rebuild PR. Hosted authenticated E2E uses the separate `preview-e2e` environment and its [opt-in workflow](../../.github/workflows/authenticated-preview-e2e.yml). It is outside this baseline check.
-- Both Vercel configuration files disable automatic deployment of `main` and `test/private-document-e2e`. Vercel may build other branches. The rebuild branch has no branch-scoped database or Auth0 configuration, while the web project has a generic `BACKEND_API_URL` preview entry. Use the disposable CI stack for testing and reserve hosted staging for its separately configured branch.
+Phase 1.4 verification on 17 November 2026. The GitHub branch [`rebuild/phase-01-repo-foundation`](https://github.com/adembilge/PracticaMIA/tree/rebuild/phase-01-repo-foundation) points to [`aeba1d1`](https://github.com/adembilge/PracticaMIA/commit/aeba1d126a71916e470c2d8582bcfba7a5e9fdf2). Its immediate parent is `93f769f`, the commit referenced by `archive/practicamia-v1`. The only changes on the branch since that parent are the Phase 1 baseline document and its roadmap link. The workflow and test harness files, and both `vercel.json` files, match `main` at `0ba991e`.
+
+| Surface | Trigger and verified evidence |
+| --- | --- |
+| Frontend CI | PRs targeting `main`, pushes to `main` and manual dispatch. The branch's [PR run](https://github.com/adembilge/PracticaMIA/actions/runs/44066215540) passed unit tests, TypeScript, a production build and an HTTP smoke test against Next.js on localhost. |
+| Backend CI | Same triggers. The branch's [PR run](https://github.com/adembilge/PracticaMIA/actions/runs/44066215335) passed API and authentication tests and upgraded a runner-local `practicamia_test` PostgreSQL service with pgvector. |
+| Synthetic Chromium acceptance | Same triggers. The branch's [PR run](https://github.com/adembilge/PracticaMIA/actions/runs/44066215331) passed the local two-account FastAPI suite and logical dump/restore on the disposable `practicamia_acceptance` PostgreSQL service. |
+| Authenticated hosted Preview | Manual dispatch uses the protected `preview-e2e` environment and an explicitly selected synthetic-only target. Matching PR path changes run the offline guard tests. See the [opt-in workflow](../../.github/workflows/authenticated-preview-e2e.yml). |
+| Vercel Git Preview | Both projects suppress automatic Git deploys for `main` and `test/private-document-e2e`. Vercel recorded Git-triggered Preview builds from `rebuild/phase-01-repo-foundation` at `aeba1d1`. The web deployment `dpl_82zvirU59TEarHxymGNbjgw3NWPV` and API deployment `dpl_CsuagVHvKUcGUFqqTtAEiJASRSWT` both reported `READY`. |
+
+Use the disposable GitHub Actions stack for routine rebuild tests. The browser harness requires `PRACTICAMIA_E2E_LOCAL_ONLY=1`, an HTTP loopback server and the named local acceptance database. Its two identities are temporary signed test JWTs. These checks exercised the real FastAPI routes and React components with synthetic data.
+
+Vercel lists no branch-specific environment variables for `rebuild/phase-01-repo-foundation`. The generic Preview scope exposes a web `BACKEND_API_URL` setting and an API `ENABLE_DEMO_CASE_API` setting. The separate `preview/auth-review-isolated` branch has its own scoped web identity/backend settings and API identity/database settings. The `READY` states establish that the builds completed. Hosted authentication and the data path belong to the separately configured staging workflow.
