@@ -13,6 +13,8 @@
 
 **Output and acceptance.** Each case card contains an anonymous ID, opening sentence, authority, location, stage, obstacle, evidence, current workaround, and expected outcome. Each proposed feature relates to an observed obstacle. The case count is a discovery target and does not estimate demand across Italy.
 
+See the [11.1 sampling plan and case card](phase-02-user-case-sampling.md) for recruitment targets and collection status.
+
 ## 12. Map Italian administrative domains
 
 - **12.1** Include immigration and residence permissions, civil registration and identity, healthcare, education, employment, social benefits, tax, family, transport, and business procedures.
