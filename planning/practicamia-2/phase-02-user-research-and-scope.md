@@ -27,7 +27,7 @@ Use the [11.5 obstacle instructions](phase-02-user-case-sampling.md#identify-the
 
 **Output and acceptance.** The map contains a domain, user phrasing, procedure candidate, authority, jurisdiction, channel, and open questions. It includes cases where the same phrasing leads to different routes by place or circumstance.
 
-The [administrative domain map](phase-02-administrative-domains.md) lists a reference task and an official source for each of the ten domains in 12.1.
+The [administrative domain map](phase-02-administrative-domains.md) lists a reference task and an official source for each of the ten domains in 12.1. The [12.2 procedure candidates](phase-02-administrative-domains.md#map-everyday-phrasing-to-procedure-candidates) map everyday Italian and English to official procedures and show how to clarify ambiguous goals.
 
 ## 13. Define how conversations start and progress
 
