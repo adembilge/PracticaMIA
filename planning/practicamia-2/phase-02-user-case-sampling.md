@@ -123,6 +123,7 @@ With the original cropped notice, the next useful action is to ask for the secti
 - Confidence with administrative Italian / digital service use
 - Opening sentence (original language, with identifiers removed) and optional labelled translation
 - Authority (as reported or unknown) and how the participant chose it
+- Authority and jurisdiction assessment (service provider, responsible body, official source or pending detail)
 - Stage (completed / ongoing / abandoned)
 - Observation period (approximate), first action and subsequent actions or channels in order
 - Stage detail (route and outcome signal / last action and next uncertainty / stopping point and reason)
