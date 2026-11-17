@@ -53,4 +53,6 @@ The [Phase 3.3 source-version design](../planning/practicamia-2/phase-03-source-
 
 The [Phase 3.4 source-date design](../planning/practicamia-2/phase-03-source-dates.md) separates stated publication and update dates from capture, review and claim-level effective dates. General normalized date fields and temporal applicability checks remain unimplemented; missing dates and unresolved source wording must not be inferred.
 
+The [Phase 3.5 claim-evidence design](../planning/practicamia-2/phase-03-claim-evidence.md) requires review of each assertion against exact applicable passages. Existing version-scoped citations support the narrow signed first route, while general claim records, support decisions and invalidation across the proposed catalogue remain unimplemented.
+
 For implementation details see [the documentation index](README.md).
