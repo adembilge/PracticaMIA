@@ -29,6 +29,8 @@ Use the [11.5 obstacle instructions](phase-02-user-case-sampling.md#identify-the
 
 The [administrative domain map](phase-02-administrative-domains.md) lists a reference task and an official source for each of the ten domains in 12.1. The [12.2 procedure candidates](phase-02-administrative-domains.md#map-everyday-phrasing-to-procedure-candidates) map everyday Italian and English to official procedures and show how to clarify ambiguous goals.
 
+The [12.3 authority map](phase-02-administrative-domains.md#identify-the-responsible-authority) records which bodies handle the reference tasks and which location or situation details determine where each case belongs.
+
 ## 13. Define how conversations start and progress
 
 | User input | Agent's first job | Visible result |
