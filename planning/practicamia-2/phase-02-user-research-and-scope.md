@@ -15,7 +15,7 @@
 
 See the [11.1 sampling plan and case card](phase-02-user-case-sampling.md) for recruitment targets and collection status, the [11.2 outcome instructions](phase-02-user-case-sampling.md#record-the-case-outcome) for what to capture at each stage, the [11.3 core interview questions](phase-02-user-case-sampling.md#core-interview-questions) for the shared English and Italian prompts, and the [11.4 evidence instructions](phase-02-user-case-sampling.md#reconstruct-steps-with-redacted-evidence) for reconstructing steps from redacted material.
 
-Use the [11.5 obstacle instructions](phase-02-user-case-sampling.md#identify-the-underlying-obstacle) to record what impeded the participant’s progress and the evidence for that assessment.
+Use the [11.5 obstacle instructions](phase-02-user-case-sampling.md#identify-the-underlying-obstacle) to record what impeded the participant’s progress and the evidence for that assessment. The [11.6 agent work instructions](phase-02-user-case-sampling.md#define-what-the-agent-can-do) connect the obstacle to a specific action the agent could take.
 
 ## 12. Map Italian administrative domains
 
