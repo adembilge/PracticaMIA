@@ -23,6 +23,8 @@
 
 **Acceptance.** A procedure supports multiple authority roles, locations, and sources. Each claim leads to a version, passage, and review decision.
 
+The [21.1 authority-role contract](phase-03-authority-roles.md) defines how to record each body's role and the evidence for that relationship.
+
 ## 22. Import Italian authority and geography identifiers
 
 - **22.1** Use [IPA](https://indicepa.gov.it/ipa-dati/dataset/amministrazioni) for authorities and [ISTAT](https://www.istat.it/classificazione/codici-dei-comuni-delle-province-e-delle-regioni/) for administrative units. Record the release, URL, and ingestion time.

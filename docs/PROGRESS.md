@@ -45,4 +45,6 @@ See the [P0 acceptance record](MILAN_P0_ACCEPTANCE.md) for the reviewed workshee
 | Personal-document beta | Keep production uploads disabled until the responsible review and operational checks for privacy, malware scanning, key management, retention/deletion, backup/restore, and monitoring are evidenced. Complete the consented beta and document findings before broader release. [Document vault release checklist](PRIVATE_DOCUMENT_VAULT_RELEASE.md) |
 | Roadmap and release decision | Reconcile the [task registry](TASKS.yaml) against evidence and required approvals. Record staging results, rollback readiness and explicit owner go/no-go under [specification §26](../PracticaMIA_Complete_Project_Specification.md#26-mvp-acceptance-criteria-and-release-gates). |
 
+The [PracticaMIA 2.0 Phase 3.1 authority-role design](../planning/practicamia-2/phase-03-authority-roles.md) uses public service material. Participant validation and review of the proposed assignments against catalogue source versions and passages remain pending.
+
 For implementation details see [the documentation index](README.md).
