@@ -33,6 +33,8 @@ The [21.4 source-date contract](phase-03-source-dates.md) separates publisher-st
 
 The [21.5 claim-evidence contract](phase-03-claim-evidence.md) ties each scoped assertion to the source-version passage that actually supports it.
 
+The [21.6 legacy-source migration contract](phase-03-legacy-source-migration.md) preserves exact Phase 1 provenance and sends uncertain approval scopes back to human review.
+
 ## 22. Import Italian authority and geography identifiers
 
 - **22.1** Use [IPA](https://indicepa.gov.it/ipa-dati/dataset/amministrazioni) for authorities and [ISTAT](https://www.istat.it/classificazione/codici-dei-comuni-delle-province-e-delle-regioni/) for administrative units. Record the release, URL, and ingestion time.
