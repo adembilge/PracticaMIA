@@ -25,6 +25,10 @@ Real two-account Auth0 tests require two dedicated synthetic accounts, a separat
 
 The product owner approved aligning the entry flow with the existing signed route. The first question asks about prior registration anywhere in Italy. The second asks whether the destination is in Comune di Milano. Moves within Milan and moves into Milan from another Italian municipality follow the same route if the separately confirmed intake matches the signed conditions. A saved `Yes` to the former narrower registration question remains valid. A saved `No` remains blocked until the user answers the updated question. See [the reviewed checklist boundary](REVIEWED_CASE_CHECKLIST.md#exact-release-boundary).
 
+## D-005 — Reconcile the legacy roadmap without certifying completion (17 November 2026)
+
+The product owner authorized work to resolve the roadmap blockers. The [criterion-by-criterion reconciliation](ROADMAP_RECONCILIATION.md) reviewed all 94 parent tasks and 12 required RAG subtasks against checked-in and dated evidence. The administrative `unreconciled` marks can be replaced by `partial` or `blocked`, and the global reconciliation hold can be cleared. This decision does not approve the product vision, official sources, rules, privacy controls, beta, deployment or any task completion. Individual dependencies and human gates remain in force.
+
 ## Decisions still unresolved
 
 - Currency and applicability reviews for the approved first Milan scenario, especially the officially required attachments and exceptions.

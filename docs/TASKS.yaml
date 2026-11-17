@@ -1,10 +1,11 @@
 # Generated from PracticaMIA_Complete_Project_Specification.md, section 25.
 # Do not infer completed status from the presence of code or a prior green CI run.
-# Reconcile documented evidence and obtain approvals before advancing task states.
+# Completion evidence and approval gates remain task-specific after reconciliation.
 schema_version: 1
 source_specification: PracticaMIA_Complete_Project_Specification.md
-reconciliation_required: true
-execution_blocked_until_reconciled: true
+reconciliation_required: false
+execution_blocked_until_reconciled: false
+reconciliation_record: docs/ROADMAP_RECONCILIATION.md
 stages:
   - id: 1
     name: "Product Discovery and Definition"
@@ -50,7 +51,7 @@ tasks:
     completion_evidence: "Reviewed product vision; user approval"
     dependencies: []
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: true
   - id: 2
     stage: 1
@@ -59,7 +60,7 @@ tasks:
     completion_evidence: "Sourced research and unresolved hypotheses"
     dependencies: [1]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 3
     stage: 1
@@ -68,7 +69,7 @@ tasks:
     completion_evidence: "Grounded competitor matrix and differentiation"
     dependencies: [2]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 4
     stage: 1
@@ -77,7 +78,7 @@ tasks:
     completion_evidence: "Approved in-scope/out-of-scope matrix"
     dependencies: [3]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: true
   - id: 5
     stage: 1
@@ -86,7 +87,7 @@ tasks:
     completion_evidence: "Reference case collection with expected outcomes"
     dependencies: [4]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 6
     stage: 1
@@ -95,7 +96,7 @@ tasks:
     completion_evidence: "Approved PRODUCT.md"
     dependencies: [5]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: true
   - id: 7
     stage: 2
@@ -104,7 +105,7 @@ tasks:
     completion_evidence: "Auditable official source inventory"
     dependencies: [6]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 8
     stage: 2
@@ -113,7 +114,7 @@ tasks:
     completion_evidence: "Reviewed workflow map"
     dependencies: [7]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 9
     stage: 2
@@ -122,7 +123,7 @@ tasks:
     completion_evidence: "Versioned eligibility decision table"
     dependencies: [8]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 10
     stage: 2
@@ -131,7 +132,7 @@ tasks:
     completion_evidence: "Source-linked document catalog"
     dependencies: [9]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 11
     stage: 2
@@ -140,7 +141,7 @@ tasks:
     completion_evidence: "Reviewed deadline/obligation registry"
     dependencies: [10]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 12
     stage: 2
@@ -149,7 +150,7 @@ tasks:
     completion_evidence: "Verified handoff specification"
     dependencies: [11]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 13
     stage: 2
@@ -158,7 +159,7 @@ tasks:
     completion_evidence: "Classified dependency map"
     dependencies: [12]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 14
     stage: 2
@@ -167,7 +168,7 @@ tasks:
     completion_evidence: "Approved evidence dossier or explicit blocker"
     dependencies: [13]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: true
   - id: 15
     stage: 3
@@ -176,7 +177,7 @@ tasks:
     completion_evidence: "Journey diagrams covering supported branches"
     dependencies: [14]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 16
     stage: 3
@@ -185,7 +186,7 @@ tasks:
     completion_evidence: "Reviewed intake schema"
     dependencies: [15]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 17
     stage: 3
@@ -194,7 +195,7 @@ tasks:
     completion_evidence: "Conversation patterns and negative examples"
     dependencies: [16]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 18
     stage: 3
@@ -203,7 +204,7 @@ tasks:
     completion_evidence: "Reviewed key screens and routes"
     dependencies: [17]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 19
     stage: 3
@@ -212,7 +213,7 @@ tasks:
     completion_evidence: "Recovery flows for major failure modes"
     dependencies: [18]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 20
     stage: 3
@@ -221,7 +222,7 @@ tasks:
     completion_evidence: "Approved design system"
     dependencies: [19]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: true
   - id: 21
     stage: 4
@@ -230,7 +231,7 @@ tasks:
     completion_evidence: "Architecture and trust boundary diagrams"
     dependencies: [20]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: true
   - id: 22
     stage: 4
@@ -239,7 +240,7 @@ tasks:
     completion_evidence: "Reviewed schema and indexing plan"
     dependencies: [21]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 23
     stage: 4
@@ -248,7 +249,7 @@ tasks:
     completion_evidence: "Testable state machines"
     dependencies: [22]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 24
     stage: 4
@@ -257,7 +258,7 @@ tasks:
     completion_evidence: "Rules schema representing all approved fixtures"
     dependencies: [23]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: true
   - id: 25
     stage: 4
@@ -266,7 +267,7 @@ tasks:
     completion_evidence: "Document pipeline design"
     dependencies: [24]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: true
   - id: 26
     stage: 4
@@ -275,7 +276,7 @@ tasks:
     completion_evidence: "Reviewed security/privacy design"
     dependencies: [25]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: true
   - id: 27
     stage: 4
@@ -284,7 +285,7 @@ tasks:
     completion_evidence: "Approved interface specifications"
     dependencies: [26]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: true
   - id: 28
     stage: 5
@@ -293,7 +294,7 @@ tasks:
     completion_evidence: "Reviewed persistent agent instructions"
     dependencies: [27]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 29
     stage: 5
@@ -302,7 +303,7 @@ tasks:
     completion_evidence: "Exactly 94 validated task IDs"
     dependencies: [28]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 30
     stage: 5
@@ -311,7 +312,7 @@ tasks:
     completion_evidence: "Fresh session reconstructs state"
     dependencies: [29]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 31
     stage: 5
@@ -320,7 +321,7 @@ tasks:
     completion_evidence: "Repository integrity checks pass"
     dependencies: [30]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 32
     stage: 5
@@ -329,7 +330,7 @@ tasks:
     completion_evidence: "Reproducible installs and DB extension"
     dependencies: [31]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 33
     stage: 5
@@ -338,7 +339,7 @@ tasks:
     completion_evidence: "Clean checkout boots services"
     dependencies: [32]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 34
     stage: 5
@@ -347,7 +348,7 @@ tasks:
     completion_evidence: "Mandatory checks run and report failures"
     dependencies: [33]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 35
     stage: 5
@@ -356,7 +357,7 @@ tasks:
     completion_evidence: "Reproducible sample iteration"
     dependencies: [34]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 36
     stage: 6
@@ -365,7 +366,7 @@ tasks:
     completion_evidence: "API smoke/unit tests pass"
     dependencies: [35]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 37
     stage: 6
@@ -374,7 +375,7 @@ tasks:
     completion_evidence: "Fresh migration and integrity checks pass"
     dependencies: [36]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 38
     stage: 6
@@ -383,7 +384,7 @@ tasks:
     completion_evidence: "Positive/negative auth tests pass"
     dependencies: [37]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 39
     stage: 6
@@ -392,7 +393,7 @@ tasks:
     completion_evidence: "Cross-user reads and writes denied"
     dependencies: [38]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 40
     stage: 6
@@ -401,7 +402,7 @@ tasks:
     completion_evidence: "CRUD and validation tests pass"
     dependencies: [39]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 41
     stage: 6
@@ -410,7 +411,7 @@ tasks:
     completion_evidence: "Lifecycle and invalid-transition tests pass"
     dependencies: [40]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 42
     stage: 6
@@ -419,7 +420,7 @@ tasks:
     completion_evidence: "Unsafe upload and cross-account tests pass"
     dependencies: [41]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 43
     stage: 6
@@ -428,7 +429,7 @@ tasks:
     completion_evidence: "Backend integration suite passes"
     dependencies: [42]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 44
     stage: 7
@@ -437,7 +438,7 @@ tasks:
     completion_evidence: "Versioned registry works with permissions"
     dependencies: [43]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 45
     stage: 7
@@ -446,33 +447,33 @@ tasks:
     completion_evidence: "Indexed approved passages trace to exact versions"
     dependencies: [44]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
     subtasks:
       - id: "45.1"
         title: "Retrieve approved source snapshots"
         status: pending
-        evidence_review: unreconciled
+        evidence_review: partial
       - id: "45.2"
         title: "Parse HTML and PDF structure"
         status: pending
-        evidence_review: unreconciled
+        evidence_review: partial
       - id: "45.3"
         title: "Create provenance-preserving chunks"
         status: pending
-        evidence_review: unreconciled
+        evidence_review: partial
       - id: "45.4"
         title: "Generate versioned embeddings"
         status: pending
-        evidence_review: unreconciled
+        evidence_review: partial
       - id: "45.5"
         title: "Build pgvector and lexical indexes"
         status: pending
-        evidence_review: unreconciled
+        evidence_review: partial
       - id: "45.6"
         title: "Detect changes and synchronize only with appropriate review"
         status: pending
-        evidence_review: unreconciled
+        evidence_review: partial
   - id: 46
     stage: 7
     title: "Implement structured requirements with evidence links"
@@ -480,7 +481,7 @@ tasks:
     completion_evidence: "No unreviewed rule activated"
     dependencies: [45]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: true
   - id: 47
     stage: 7
@@ -489,7 +490,7 @@ tasks:
     completion_evidence: "Golden rule cases pass"
     dependencies: [46]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 48
     stage: 7
@@ -498,7 +499,7 @@ tasks:
     completion_evidence: "Routing fixtures pass"
     dependencies: [47]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 49
     stage: 7
@@ -507,7 +508,7 @@ tasks:
     completion_evidence: "Checklist golden cases pass"
     dependencies: [48]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 50
     stage: 7
@@ -516,33 +517,33 @@ tasks:
     completion_evidence: "Retrieval respects jurisdiction/approval/version and cites evidence"
     dependencies: [49]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
     subtasks:
       - id: "50.1"
         title: "Understand query context"
         status: pending
-        evidence_review: unreconciled
+        evidence_review: partial
       - id: "50.2"
         title: "Enforce metadata filters"
         status: pending
-        evidence_review: unreconciled
+        evidence_review: partial
       - id: "50.3"
         title: "Perform semantic retrieval"
         status: pending
-        evidence_review: unreconciled
+        evidence_review: partial
       - id: "50.4"
         title: "Perform full-text retrieval"
         status: pending
-        evidence_review: unreconciled
+        evidence_review: partial
       - id: "50.5"
         title: "Fuse results and optionally benchmark reranking"
         status: pending
-        evidence_review: unreconciled
+        evidence_review: blocked
       - id: "50.6"
         title: "Assemble evidence and citations"
         status: pending
-        evidence_review: unreconciled
+        evidence_review: partial
   - id: 51
     stage: 7
     title: "Validate knowledge engine and RAG"
@@ -550,7 +551,7 @@ tasks:
     completion_evidence: "Critical retrieval/rule assertions pass"
     dependencies: [50]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 52
     stage: 8
@@ -559,7 +560,7 @@ tasks:
     completion_evidence: "Contract and provider failure tests pass"
     dependencies: [51]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 53
     stage: 8
@@ -568,7 +569,7 @@ tasks:
     completion_evidence: "Simulated graph path executes correctly"
     dependencies: [52]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 54
     stage: 8
@@ -577,7 +578,7 @@ tasks:
     completion_evidence: "Bilingual intent fixtures pass"
     dependencies: [53]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 55
     stage: 8
@@ -586,7 +587,7 @@ tasks:
     completion_evidence: "No redundant questions; missing facts handled"
     dependencies: [47, 53, 54]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 56
     stage: 8
@@ -595,7 +596,7 @@ tasks:
     completion_evidence: "Tool and permissions tests pass"
     dependencies: [55]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 57
     stage: 8
@@ -604,7 +605,7 @@ tasks:
     completion_evidence: "Plans cite valid rules/evidence and update"
     dependencies: [56]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 58
     stage: 8
@@ -613,7 +614,7 @@ tasks:
     completion_evidence: "No fabricated critical claims in test set"
     dependencies: [57]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 59
     stage: 8
@@ -622,7 +623,7 @@ tasks:
     completion_evidence: "Resume and retry tests pass"
     dependencies: [58]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 60
     stage: 8
@@ -631,7 +632,7 @@ tasks:
     completion_evidence: "Agent evaluation gate passes"
     dependencies: [59]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 61
     stage: 9
@@ -640,7 +641,7 @@ tasks:
     completion_evidence: "Unsafe and malformed file tests pass"
     dependencies: [60]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 62
     stage: 9
@@ -649,7 +650,7 @@ tasks:
     completion_evidence: "Text extraction fixtures pass"
     dependencies: [61]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 63
     stage: 9
@@ -658,7 +659,7 @@ tasks:
     completion_evidence: "Classification criteria met"
     dependencies: [62]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 64
     stage: 9
@@ -667,7 +668,7 @@ tasks:
     completion_evidence: "Golden field extraction cases pass"
     dependencies: [63]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 65
     stage: 9
@@ -676,7 +677,7 @@ tasks:
     completion_evidence: "No silent confirmation of uncertain data"
     dependencies: [64]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 66
     stage: 9
@@ -685,7 +686,7 @@ tasks:
     completion_evidence: "Mismatch and false-positive tests pass"
     dependencies: [65]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 67
     stage: 9
@@ -694,7 +695,7 @@ tasks:
     completion_evidence: "Output matches reviewed case data"
     dependencies: [66]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 68
     stage: 9
@@ -703,7 +704,7 @@ tasks:
     completion_evidence: "Document quality gates pass"
     dependencies: [67]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 69
     stage: 10
@@ -712,7 +713,7 @@ tasks:
     completion_evidence: "Responsive/accessibility baseline passes"
     dependencies: [68]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 70
     stage: 10
@@ -721,7 +722,7 @@ tasks:
     completion_evidence: "UI and API state consistent"
     dependencies: [69]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 71
     stage: 10
@@ -730,7 +731,7 @@ tasks:
     completion_evidence: "Supported and unsupported onboarding tested"
     dependencies: [70]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 72
     stage: 10
@@ -739,7 +740,7 @@ tasks:
     completion_evidence: "Chat E2E tests pass"
     dependencies: [71]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 73
     stage: 10
@@ -748,7 +749,7 @@ tasks:
     completion_evidence: "Document review E2E passes"
     dependencies: [72]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 74
     stage: 10
@@ -757,7 +758,7 @@ tasks:
     completion_evidence: "Checklist remains consistent with backend"
     dependencies: [73]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 75
     stage: 10
@@ -766,7 +767,7 @@ tasks:
     completion_evidence: "Approval blocked until checks pass"
     dependencies: [74]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 76
     stage: 10
@@ -775,7 +776,7 @@ tasks:
     completion_evidence: "Complete journey reaches submission-ready, not falsely submitted"
     dependencies: [75]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: true
   - id: 77
     stage: 11
@@ -784,7 +785,7 @@ tasks:
     completion_evidence: "All release-blocking functional tests pass"
     dependencies: [76]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 78
     stage: 11
@@ -793,7 +794,7 @@ tasks:
     completion_evidence: "Targeted agent/retrieval thresholds pass"
     dependencies: [77]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 79
     stage: 11
@@ -802,7 +803,7 @@ tasks:
     completion_evidence: "Critical document failures resolved"
     dependencies: [78]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 80
     stage: 11
@@ -811,7 +812,7 @@ tasks:
     completion_evidence: "No critical unsupported claims in release fixtures"
     dependencies: [79]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 81
     stage: 11
@@ -820,7 +821,7 @@ tasks:
     completion_evidence: "Critical attack fixtures blocked"
     dependencies: [80]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: false
   - id: 82
     stage: 11
@@ -829,7 +830,7 @@ tasks:
     completion_evidence: "No unresolved release-blocking finding"
     dependencies: [81]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 83
     stage: 11
@@ -838,7 +839,7 @@ tasks:
     completion_evidence: "Agreed UX/accessibility gates met"
     dependencies: [82]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 84
     stage: 11
@@ -847,7 +848,7 @@ tasks:
     completion_evidence: "Budgets met with documented load"
     dependencies: [83]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 85
     stage: 11
@@ -856,7 +857,7 @@ tasks:
     completion_evidence: "Representative seeded defects cause CI failure"
     dependencies: [84]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 86
     stage: 11
@@ -865,7 +866,7 @@ tasks:
     completion_evidence: "Approved release-readiness report"
     dependencies: [85]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: true
   - id: 87
     stage: 12
@@ -874,7 +875,7 @@ tasks:
     completion_evidence: "Staging health and smoke tests pass"
     dependencies: [86]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: true
   - id: 88
     stage: 12
@@ -883,7 +884,7 @@ tasks:
     completion_evidence: "Deployment security checklist passes"
     dependencies: [87]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: true
   - id: 89
     stage: 12
@@ -892,7 +893,7 @@ tasks:
     completion_evidence: "Restored data integrity verified"
     dependencies: [88]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: partial
     requires_human_approval: true
   - id: 90
     stage: 12
@@ -901,7 +902,7 @@ tasks:
     completion_evidence: "Simulated failures trigger alerts"
     dependencies: [89]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 91
     stage: 12
@@ -910,7 +911,7 @@ tasks:
     completion_evidence: "Staging acceptance passes"
     dependencies: [90]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: true
   - id: 92
     stage: 12
@@ -919,7 +920,7 @@ tasks:
     completion_evidence: "Real beta evidence documented"
     dependencies: [91]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: true
   - id: 93
     stage: 12
@@ -928,7 +929,7 @@ tasks:
     completion_evidence: "Critical beta blockers closed"
     dependencies: [92]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: false
   - id: 94
     stage: 12
@@ -937,5 +938,5 @@ tasks:
     completion_evidence: "Owner approval, live smoke tests and monitoring verified"
     dependencies: [93]
     status: pending
-    evidence_review: unreconciled
+    evidence_review: blocked
     requires_human_approval: true

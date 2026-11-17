@@ -26,6 +26,10 @@ ALLOWED_STATES = {
     "ready_for_review", "completed", "blocked", "failed",
 }
 SUBTASKS = {45, 50}
+RECONCILIATION_ROW = re.compile(
+    r"^\| (\d+(?:\.\d)?) \| ([PB]) \| ([^|]+) \| ([^|]+) \|$",
+    re.MULTILINE,
+)
 
 
 def expected_rows(spec_text: str):
@@ -38,6 +42,22 @@ def expected_rows(spec_text: str):
         for m in TASK_PATTERN.finditer(spec_text)
     ]
     return stages, tasks
+
+
+def validate_reconciliation_record(text: str) -> list[str]:
+    """Require a baseline assessment for every task before clearing the hold."""
+    rows = RECONCILIATION_ROW.findall(text)
+    expected_ids = [str(i) for i in range(1, 95)] + [
+        f"{parent}.{n}" for parent in (45, 50) for n in range(1, 7)
+    ]
+    found_ids = [row[0] for row in rows]
+    if len(rows) != len(expected_ids) or set(found_ids) != set(expected_ids):
+        return ["Reconciliation record must assess all 94 tasks and 12 subtasks once"]
+    if len(found_ids) != len(set(found_ids)):
+        return ["Reconciliation record contains duplicate task IDs"]
+    if any(not evidence.strip() or not gap.strip() for _, _, evidence, gap in rows):
+        return ["Reconciliation record has an empty evidence or gap assessment"]
+    return []
 
 
 def validate(data: dict, spec_text: str) -> list[str]:
@@ -139,11 +159,28 @@ def validate(data: dict, spec_text: str) -> list[str]:
                     elif subtask.get("status") not in ALLOWED_STATES:
                         errors.append(f"Task {tid} subtask has invalid status")
 
-    if any(item.get("evidence_review") == "unreconciled" for item in rows if isinstance(item, dict)):
+    has_unreconciled = any(
+        item.get("evidence_review") == "unreconciled"
+        or any(sub.get("evidence_review") == "unreconciled"
+               for sub in item.get("subtasks", []) if isinstance(sub, dict))
+        for item in rows if isinstance(item, dict)
+    )
+    if has_unreconciled:
         if not data.get("reconciliation_required"):
             errors.append("Reconciliation cannot be cleared with unreconciled tasks")
         if not data.get("execution_blocked_until_reconciled"):
             errors.append("Execution cannot resume with unreconciled tasks")
+    if not data.get("reconciliation_required") or not data.get("execution_blocked_until_reconciled"):
+        record_name = data.get("reconciliation_record")
+        if record_name != "docs/ROADMAP_RECONCILIATION.md":
+            errors.append("Cleared hold requires the task evidence reconciliation record")
+        else:
+            try:
+                record = (ROOT / record_name).read_text(encoding="utf-8")
+            except OSError:
+                errors.append("Reconciliation record cannot be read")
+            else:
+                errors.extend(validate_reconciliation_record(record))
     return errors
 
 

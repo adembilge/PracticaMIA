@@ -38,12 +38,14 @@ See the [P0 acceptance record](MILAN_P0_ACCEPTANCE.md) for the reviewed workshee
 
 ## Outstanding MVP and release gates
 
+The [canonical roadmap reconciliation](ROADMAP_RECONCILIATION.md) assessed all 94 parent tasks and 12 RAG subtasks on 17 November. No task was certified complete. The top-level administrative hold is cleared; individual completion, human-review and release gates below remain open.
+
 | Gate | Remaining acceptance evidence |
 | --- | --- |
 | Bilingual AI evaluation | The fourteen reviewed staging prompts passed. Further testing of open-ended wording and provider behavior remains useful. Signed-in ANPR attachment inspection is deferred by the owner. |
 | Document processing and access controls | Verify the intended scanner, then run hosted private-document access, review, deletion and expiry checks with two Auth0 accounts under the required release controls. Earlier staging JPEG and image-only PDF results were from the separate synthetic preparation flow. The private vault still requires a hosted scanner and two dedicated test sessions. |
 | Personal-document beta | Keep production uploads disabled until the responsible review and operational checks for privacy, malware scanning, key management, retention/deletion, backup/restore, and monitoring are evidenced. Complete the consented beta and document findings before broader release. [Document vault release checklist](PRIVATE_DOCUMENT_VAULT_RELEASE.md) |
-| Roadmap and release decision | Reconcile the [task registry](TASKS.yaml) against evidence and required approvals. Record staging results, rollback readiness and explicit owner go/no-go under [specification §26](../PracticaMIA_Complete_Project_Specification.md#26-mvp-acceptance-criteria-and-release-gates). |
+| Roadmap and release decision | Use the [reconciliation record](ROADMAP_RECONCILIATION.md) to verify each task before advancing its state. Record current staging results, rollback readiness and explicit owner go/no-go under [specification §26](../PracticaMIA_Complete_Project_Specification.md#26-mvp-acceptance-criteria-and-release-gates). |
 
 The [PracticaMIA 2.0 Phase 3.1 authority-role design](../planning/practicamia-2/phase-03-authority-roles.md) uses public service material. Participant validation and review of the proposed assignments against catalogue source versions and passages remain pending.
 
