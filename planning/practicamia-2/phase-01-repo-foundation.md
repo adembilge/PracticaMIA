@@ -13,6 +13,8 @@ This phase leaves a clean repository ready for PracticaMIA 2.0 development. Remo
 
 **Acceptance.** The old code, live deployments, and database revision are independently identified. The cleanup branch has a known starting commit.
 
+See the [Phase 1 baseline record](phase-01-baseline.md) for the pinned references, test results, and deployment evidence.
+
 ## 2. Audit files and dependencies
 
 - **2.1** Inventory `frontend/`, `backend/`, `requirements/`, `audit/`, `evals/`, `scripts/`, `docs/`, and `.github/workflows/`. Mark each item Delete, Keep, Move, or Test before deciding.
