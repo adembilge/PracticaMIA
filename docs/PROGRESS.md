@@ -57,4 +57,6 @@ The [Phase 3.5 claim-evidence design](../planning/practicamia-2/phase-03-claim-e
 
 The [Phase 3.6 legacy-source migration design](../planning/practicamia-2/phase-03-legacy-source-migration.md) defines inventory, scope-preserving mapping and re-review of uncertain approvals. No hosted Phase 1 database inventory, 2.0 import or migration approval has been performed.
 
+The [Phase 3.7 official-identifier design](../planning/practicamia-2/phase-03-official-identifiers.md) selects IPA Enti for authority IDs and dated Istat/SITUAS exports for geography IDs. No official data file has been imported; release, resource URL, timestamps and digest remain to be recorded for an actual batch.
+
 For implementation details see [the documentation index](README.md).
