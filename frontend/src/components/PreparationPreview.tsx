@@ -711,7 +711,7 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
                   <ol>
                     {guideHistory.map(turn => <li key={turn.id} style={{ marginBottom: 12 }}>
                       <p><strong>{turn.question}</strong></p>
-                      <p style={{ whiteSpace: 'pre-wrap' }}>{turn.answer}</p>
+                      <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{turn.answer}</p>
                       {turn.citation_status === 'unknown' && <p className="account-footnote">{it
                         ? 'La versione della fonte non è registrata per questa risposta.'
                         : 'The source version was not recorded for this answer.'}</p>}
@@ -722,7 +722,7 @@ export function PreparationPreview({ caseId, signedIn, configured }: Props) {
                         {turn.citations?.map(citation => <li key={citation.passage_id}>
                           {citation.source_id} · {it ? 'versione' : 'revision'} {citation.source_revision}
                           {citation.status === 'historical' && (it ? ' · storica' : ' · historical')}
-                          <br /><code>{citation.passage_id}</code>
+                          <br /><code style={{ overflowWrap: 'anywhere' }}>{citation.passage_id}</code>
                         </li>)}
                       </ul>}
                     </li>)}

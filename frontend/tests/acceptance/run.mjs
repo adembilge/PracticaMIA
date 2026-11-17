@@ -476,6 +476,7 @@ try{
     const id='11111111-1111-4111-8111-111111111111';
     const path='/cases/'+id+'/preparation';
     let unavailable=false;
+    const historicalPassage = '00000000-0000-4000-8000-000000000031:0001';
     let finishExtraction, finishUpload;
     const extractionResponse=new Promise(resolve=>{finishExtraction=resolve;});
     const uploadResponse=new Promise(resolve=>{finishUpload=resolve;});
@@ -489,6 +490,17 @@ try{
         await uploadResponse;
         return route.fulfill({status:201,json:{}});
       }
+      if(endpoint.endsWith('/conversation')) return route.fulfill({json:{
+        is_demo:true,historical_only:true,government_submission_status:'not_submitted',
+        turns:[{
+          id:'history-test',question:'What did the source say?',answer:'Stored message.',
+          action:'evidence',status:'answer_generated',language:'en',next_action:null,
+          created_at:'2026-11-17T20:00:00Z',citation_status:'historical',citations:[{
+            source_id:'fictional-source',source_version_id:historicalPassage.split(':')[0],
+            passage_id:historicalPassage,source_revision:1,status:'historical',
+          }],
+        }],
+      }});
       if(endpoint.endsWith('/documents')) return route.fulfill({json:[{
         id,document_type:'fictional_agreement',extraction_status:'not_processed',
         status:'uploaded',candidates:[],confirmed_fields:{},
@@ -537,6 +549,9 @@ try{
     await page.getByLabel('Citizenship for this example').selectOption('italian');
     await page.getByRole('button',{name:'Case guide',exact:true}).click();
     await page.getByRole('heading',{name:'Case guide',exact:true}).waitFor();
+    await page.getByText('A citation is no longer available for current use.',{exact:false}).waitFor();
+    await page.getByText(historicalPassage,{exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     await page.goBack();
     assert.equal(await page.getByLabel('Citizenship for this example').inputValue(),'italian');
     await page.getByRole('button',{name:'Synthetic documents',exact:true}).click();
