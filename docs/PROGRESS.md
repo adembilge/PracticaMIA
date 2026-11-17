@@ -65,4 +65,6 @@ The [Phase 3.8 stable-identity design](../planning/practicamia-2/phase-03-stable
 
 The [Phase 3.9 name-matching design](../planning/practicamia-2/phase-03-name-matching.md) defines reviewed name variants, candidate resolution and distinguishing questions. An isolated matching module now returns stable-ID candidates from supplied synthetic/reviewed records, with exact-name resolution, conservative spelling suggestions and ambiguity handling. No general name index, imported directory or candidate-resolution endpoint has been implemented.
 
+The [Phase 3.10 service-area design](../planning/practicamia-2/phase-03-service-areas.md) separates physical office addresses from procedure-specific coverage. An isolated resolver uses confirmed case location roles and trusted passage IDs in synthetic tests; persisted assignments, source-review binding and a user-facing route remain unimplemented.
+
 For implementation details see [the documentation index](README.md).
