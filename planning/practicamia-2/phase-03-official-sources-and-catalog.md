@@ -41,6 +41,8 @@ The [22.1 official-identifier source contract](phase-03-official-identifiers.md)
 
 The [22.2 stable-identity contract](phase-03-stable-entity-ids.md) separates catalogue IDs, external codes and names so a rename does not break case links.
 
+The [22.3 name-matching contract](phase-03-name-matching.md) returns candidate authority and place IDs across reviewed name variants and requests distinguishing context when needed.
+
 - **22.1** Use [IPA](https://indicepa.gov.it/ipa-dati/dataset/amministrazioni) for authorities and [ISTAT](https://www.istat.it/classificazione/codici-dei-comuni-delle-province-e-delle-regioni/) for administrative units. Record the release, URL, and ingestion time.
 - **22.2** Keep external IDs, catalogue IDs, and display names independent. Preserve case links through name changes.
 - **22.3** Match official and former names, acronyms, languages, and spelling variants. Return candidates and ask for a distinguishing location when ambiguous.
