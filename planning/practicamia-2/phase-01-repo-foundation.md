@@ -24,6 +24,8 @@ See the [Phase 1 baseline record](phase-01-baseline.md) for the pinned reference
 
 **Acceptance.** Each file group has known callers, an expected change impact, and a verification step.
 
+See the [dependency audit](phase-01-dependency-audit.md) and [tracked-file inventory](phase-01-file-inventory.tsv) for the cleanup candidates and checks.
+
 ## 3. Identify official documents and evidence to retain
 
 | Material | Phase 1 action |
