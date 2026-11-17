@@ -1,6 +1,6 @@
-# Phase 2 — Real user case sampling and outcomes
+# Phase 2 — Real user case research
 
-**Roadmap reference:** [11.1–11.2 · Collect real user cases](phase-02-user-research-and-scope.md#11-collect-real-user-cases)
+**Roadmap reference:** [11.1–11.3 · Collect real user cases](phase-02-user-research-and-scope.md#11-collect-real-user-cases)
 
 **17 November 2026:** Collection materials ready. **0 participants and 0 eligible cases recorded.**
 
@@ -26,6 +26,21 @@ Check coverage across at least three regions, with cases from northern, central 
 3. Explain the purpose of the study and ask permission to record de-identified notes. Keep contact details and permission records in restricted storage separate from the case cards. Use the approved research process for any optional follow-up or redacted evidence. Keep completed case cards, raw notes, documents and screenshots out of GitHub.
 4. Count a case once the participant has described a distinct task they attempted, agreed to the notes, and provided enough detail to identify the stage and obstacle. Record an unknown authority or unavailable evidence explicitly. Keep the number of participants and the number of eligible cases visible as separate totals.
 
+## Core interview questions
+
+Use the same questions in this order for each case. After the participant agrees to de-identified notes, ask the opening question before suggesting a procedure, authority or possible obstacle. If screening has already covered the goal, invite the participant to describe it again in their own words.
+
+| English | Italiano | Case card |
+| --- | --- | --- |
+| Think of a specific administrative task you tried to do in Italy. What were you trying to do? | Ripensi a una pratica amministrativa che ha cercato di svolgere in Italia. Che cosa stava cercando di fare? | Opening sentence, expected outcome |
+| What did you do first? | Qual è stata la prima cosa che ha fatto? | First action |
+| Which office or service did you turn to, if any? How did you choose it? | A quale ufficio o servizio si è rivolto, se lo ha fatto? Come ha fatto a sceglierlo? | Authority as reported and how it was chosen |
+| Where, if anywhere, did it become hard to continue? What happened at that point? | C’è stato un momento in cui è stato difficile andare avanti? Che cosa è successo in quel momento? | Obstacle and point in the route |
+| Who did you ask for help, if anyone? What happened after you asked? | A chi ha chiesto aiuto, se lo ha fatto? Che cosa è successo dopo aver chiesto aiuto? | Help sought and workaround |
+| Where does the task stand now? Is anything left to do? | A che punto è la pratica adesso? C’è ancora qualcosa da fare? | Stage, result and what remains |
+
+Write down the opening sentence in the participant’s original language before asking follow-ups. Preserve their wording and replace identifying details with `[redacted]`. Add any translation on a separate line. If you could only capture a summary, label it as a paraphrase. Use neutral follow-ups such as “What happened next?” or “Che cosa è successo dopo?” to clarify the order of events. Use the [outcome instructions](#record-the-case-outcome) to record stage-specific details. If an answer is missing, distinguish between a participant reporting none and an answer that was unclear or unavailable.
+
 ## Record the case outcome
 
 Record the stage at the time of the conversation for the participant's stated goal. Capture the route in the order it happened, including any switch between authorities or channels that changed what the participant could do next.
@@ -46,14 +61,14 @@ Ask what the participant set out to achieve when they say they are done. If the 
 - Primary recruitment group / secondary groups
 - Location and jurisdiction (only the detail needed)
 - Confidence with administrative Italian / digital service use
-- Opening sentence (participant's words, with identifiers removed)
-- Authority (as reported or unknown)
+- Opening sentence (original language, with identifiers removed) and optional labelled translation
+- Authority (as reported or unknown) and how the participant chose it
 - Stage (completed / ongoing / abandoned)
-- Observation period (approximate) and actions or channels in order
+- Observation period (approximate), first action and subsequent actions or channels in order
 - Stage detail (route and outcome signal / last action and next uncertainty / stopping point and reason)
 - Obstacle
 - Evidence (participant account or permitted redacted material; restricted reference if available)
-- Current workaround
+- Help sought (role or service) and current workaround
 - Expected outcome (what the participant was trying to achieve)
 ```
 
