@@ -1,12 +1,18 @@
 """Disposable CI PostgreSQL smoke for additive preview-only preparation storage."""
 import base64
+from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha256
 import os
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, inspect, select, text
+from sqlalchemy import create_engine, func, inspect, select, text
+from sqlalchemy.orm import Session
 
+from app.agent.threads import AgentThread, AgentThreadCase, create_thread, link_case_to_thread
+from app.auth.tokens import Principal
+from app.cases.model import CaseRecord
 from app.config import Settings
 from app.main import create_app
 from app.preparation.models import CasePreparation, CaseDocument, CaseAgentTurn
@@ -14,7 +20,7 @@ from conftest import AUDIENCE, ISSUER, JWKS_URL
 
 pytestmark = pytest.mark.skipif(
     os.getenv("RUN_POSTGRES_SMOKE") != "1",
-    reason="requires disposable PG17 CI migrated through 0017",
+    reason="requires disposable PG17 CI migrated through 0018",
 )
 
 
@@ -23,7 +29,7 @@ def test_migration_includes_preparation_tables_and_real_cascading_delete(auth_he
     engine = create_engine(database)
     try:
         with engine.connect() as connection:
-            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "20261116_0017"
+            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "20261118_0018"
         assert {"case_preparations", "case_documents", "case_agent_turns"}.issubset(
             set(inspect(engine).get_table_names())
         )
@@ -83,3 +89,48 @@ def test_migration_includes_preparation_tables_and_real_cascading_delete(auth_he
                 )).all() == []
     finally:
         app.state.engine.dispose()
+
+
+def test_agent_thread_case_link_is_owned_concurrent_and_cascades():
+    engine = create_engine(os.environ["DATABASE_URL"])
+    first, second, foreign = uuid4(), uuid4(), uuid4()
+    alice, bob = Principal("synthetic-thread-alice"), Principal("synthetic-thread-bob")
+    with Session(engine) as db, db.begin():
+        db.add_all([
+            CaseRecord(id=str(first), owner_subject=alice.subject),
+            CaseRecord(id=str(second), owner_subject=alice.subject),
+            CaseRecord(id=str(foreign), owner_subject=bob.subject),
+        ])
+        thread_id = create_thread(db, principal=alice)
+
+    def attach(case_id):
+        with Session(engine) as db, db.begin():
+            return link_case_to_thread(db, principal=alice, thread_id=thread_id, case_id=case_id)
+
+    try:
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            assert list(executor.map(attach, [first, first])) == [True, True]
+        assert attach(second)
+        assert not attach(foreign)
+        with Session(engine) as db, db.begin():
+            assert not link_case_to_thread(
+                db, principal=bob, thread_id=thread_id, case_id=foreign,
+            )
+            statement = select(func.count()).select_from(AgentThreadCase).where(
+                AgentThreadCase.thread_id == str(thread_id),
+            )
+            assert db.scalar(statement) == 2
+            db.delete(db.get(CaseRecord, str(first)))
+            db.flush()
+            assert db.scalar(statement) == 1
+            db.delete(db.get(AgentThread, str(thread_id)))
+            db.flush()
+            assert db.scalar(statement) == 0
+    finally:
+        with Session(engine) as db, db.begin():
+            for case_id in (first, second, foreign):
+                if record := db.get(CaseRecord, str(case_id)):
+                    db.delete(record)
+            if thread := db.get(AgentThread, str(thread_id)):
+                db.delete(thread)
+        engine.dispose()

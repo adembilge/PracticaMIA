@@ -10,6 +10,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from app.agent.contract import Citation
+from app.agent.threads import AgentThread, AgentThreadCase
 from app.auth.tokens import Principal
 from app.cases.intake_model import CaseIntake
 from app.cases.intake_schemas import IntakeFacts, describe_intake
@@ -38,20 +39,27 @@ class CatalogueEvidence:
 
 
 def _case_evidence_gap(
-    db: Session, case_id: UUID, principal: Principal,
+    db: Session, thread_id: UUID, case_id: UUID, principal: Principal,
 ) -> CatalogueEvidence | None:
-    # Fetch ownership, scope and intake together so they describe one database
+    # Fetch the case link, ownership, scope and intake together so they describe one database
     # snapshot. Select columns directly to avoid reusing cached ORM instances.
     context = db.execute(
         select(
             CaseRecord.procedure, CaseRecord.status, CaseRecord.scope_answers,
             CaseIntake.facts, CaseIntake.confirmed_at,
         )
+        .join(AgentThreadCase, AgentThreadCase.case_id == CaseRecord.id)
+        .join(AgentThread, AgentThread.id == AgentThreadCase.thread_id)
         .outerjoin(CaseIntake, and_(
             CaseIntake.case_id == CaseRecord.id,
             CaseIntake.owner_subject == CaseRecord.owner_subject,
         ))
-        .where(CaseRecord.id == str(case_id), CaseRecord.owner_subject == principal.subject)
+        .where(
+            AgentThread.id == str(thread_id),
+            AgentThread.owner_subject == principal.subject,
+            CaseRecord.id == str(case_id),
+            CaseRecord.owner_subject == principal.subject,
+        )
     ).one_or_none()
     if context is None:
         return CatalogueEvidence(status="case_unavailable")
@@ -103,10 +111,10 @@ def _catalogue_passage(passage: EvidencePassage) -> CataloguePassage:
 
 
 def find_catalogue_evidence(
-    db: Session, *, case_id: UUID, principal: Principal, query: str, limit: int = 5,
+    db: Session, *, thread_id: UUID, case_id: UUID, principal: Principal, query: str, limit: int = 5,
 ) -> CatalogueEvidence:
     """Read Italian excerpts using the owning case's confirmed scope."""
-    if gap := _case_evidence_gap(db, case_id, principal):
+    if gap := _case_evidence_gap(db, thread_id, case_id, principal):
         return gap
     rows = search_approved_passages(
         db, query=query, jurisdiction=JURISDICTION, procedure_id=PROCEDURE,
@@ -119,10 +127,10 @@ def find_catalogue_evidence(
 
 
 def resolve_catalogue_evidence(
-    db: Session, *, case_id: UUID, principal: Principal, citation_id: str,
+    db: Session, *, thread_id: UUID, case_id: UUID, principal: Principal, citation_id: str,
 ) -> CatalogueEvidence:
     """Recheck an exact citation at use time with the current approval gates."""
-    if gap := _case_evidence_gap(db, case_id, principal):
+    if gap := _case_evidence_gap(db, thread_id, case_id, principal):
         return gap
     row = resolve_approved_passage(
         db, citation_id=citation_id, jurisdiction=JURISDICTION,
