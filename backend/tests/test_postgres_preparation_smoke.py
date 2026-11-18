@@ -1,7 +1,7 @@
 """Disposable CI PostgreSQL smoke for additive preview-only preparation storage."""
 import base64
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 import os
 from threading import Barrier
@@ -20,6 +20,7 @@ from app.agent.run_events import AgentRunEvent, append_run_event, read_run_event
 from app.agent.run_requests import AgentRunRequest, accept_message, read_run_message
 from app.agent.threads import AgentThread, AgentThreadCase, create_thread, link_case_to_thread
 from app.agent.worker import run_worker_step
+from app.agent.worker_leases import claim_next_run
 from app.auth.tokens import Principal
 from app.cases.model import CaseRecord
 from app.config import Settings
@@ -29,7 +30,7 @@ from conftest import AUDIENCE, ISSUER, JWKS_URL
 
 pytestmark = pytest.mark.skipif(
     os.getenv("RUN_POSTGRES_SMOKE") != "1",
-    reason="requires disposable PG17 CI migrated through 0021",
+    reason="requires disposable PG17 CI migrated through 0022",
 )
 
 
@@ -38,7 +39,7 @@ def test_migration_includes_preparation_tables_and_real_cascading_delete(auth_he
     engine = create_engine(database)
     try:
         with engine.connect() as connection:
-            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "20261118_0021"
+            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "20261118_0022"
         assert {"case_preparations", "case_documents", "case_agent_turns"}.issubset(
             set(inspect(engine).get_table_names())
         )
@@ -274,4 +275,38 @@ def test_two_workers_cannot_commit_a_final_answer_from_the_same_boundary():
     finally:
         with factory.begin() as db:
             db.delete(db.get(AgentThread, str(thread_id)))
+        engine.dispose()
+
+
+
+def test_worker_queue_skips_a_run_reserved_by_another_transaction():
+    engine = create_engine(os.environ["DATABASE_URL"])
+    factory = sessionmaker(bind=engine)
+    owner = Principal("synthetic-queue-owner")
+    lease_for = timedelta(minutes=1)
+    with factory.begin() as db:
+        first_thread = create_thread(db, principal=owner)
+        second_thread = create_thread(db, principal=owner)
+        run_ids = []
+        for thread_id in (first_thread, second_thread):
+            accepted = accept_message(
+                db, thread_id=thread_id, principal=owner, key=bytes(range(32)),
+                message=SendMessage(client_message_id=uuid4(), text="Fixture only", language="en"),
+            )
+            run_ids.append(accepted.run_id)
+
+    try:
+        with factory.begin() as first_db:
+            first_lease = claim_next_run(first_db, lease_for=lease_for)
+            assert first_lease.run_id == run_ids[0]
+            with factory.begin() as second_db:
+                second_db.execute(text("SET LOCAL lock_timeout = '3s'"))
+                second_lease = claim_next_run(second_db, lease_for=lease_for)
+                assert second_lease.run_id == run_ids[1]
+        with factory.begin() as db:
+            assert claim_next_run(db, lease_for=lease_for) is None
+    finally:
+        with factory.begin() as db:
+            for thread_id in (first_thread, second_thread):
+                db.delete(db.get(AgentThread, str(thread_id)))
         engine.dispose()
