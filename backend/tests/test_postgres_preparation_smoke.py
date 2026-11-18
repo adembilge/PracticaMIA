@@ -1,6 +1,7 @@
 """Disposable CI PostgreSQL smoke for additive preview-only preparation storage."""
 import base64
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
 from hashlib import sha256
 import os
 from uuid import uuid4
@@ -10,7 +11,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, func, inspect, select, text
 from sqlalchemy.orm import Session
 
-from app.agent.contract import SendMessage
+from app.agent.contract import RunStarted, SendMessage
+from app.agent.run_events import AgentRunEvent, append_run_event, read_run_events, read_run_snapshot
 from app.agent.run_requests import AgentRunRequest, accept_message, read_run_message
 from app.agent.threads import AgentThread, AgentThreadCase, create_thread, link_case_to_thread
 from app.auth.tokens import Principal
@@ -22,7 +24,7 @@ from conftest import AUDIENCE, ISSUER, JWKS_URL
 
 pytestmark = pytest.mark.skipif(
     os.getenv("RUN_POSTGRES_SMOKE") != "1",
-    reason="requires disposable PG17 CI migrated through 0019",
+    reason="requires disposable PG17 CI migrated through 0020",
 )
 
 
@@ -31,7 +33,7 @@ def test_migration_includes_preparation_tables_and_real_cascading_delete(auth_he
     engine = create_engine(database)
     try:
         with engine.connect() as connection:
-            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "20261118_0019"
+            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "20261118_0020"
         assert {"case_preparations", "case_documents", "case_agent_turns"}.issubset(
             set(inspect(engine).get_table_names())
         )
@@ -162,6 +164,18 @@ def test_agent_message_acceptance_serializes_concurrent_retries_and_cascades():
             first, retry = executor.map(accept, [message, message])
         assert first.outcome == "accepted"
         assert retry == first
+        start = RunStarted(
+            schema_version=1, thread_id=thread_id, run_id=first.run_id, event_seq=1,
+            occurred_at=datetime.now(timezone.utc), type="run.started",
+            client_message_id=message.client_message_id,
+        )
+
+        def append_start(_):
+            with Session(engine) as db, db.begin():
+                return append_run_event(db, principal=owner, key=key, event=start)
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            assert list(executor.map(append_start, range(2))) == [start, start]
 
         different = message.model_copy(update={"client_message_id": uuid4()})
         assert accept(different).outcome == "active_run"
@@ -171,12 +185,16 @@ def test_agent_message_acceptance_serializes_concurrent_retries_and_cascades():
             )).all()
             assert len(rows) == 1
             assert read_run_message(db, **context, run_id=first.run_id).text == message.text
+            assert read_run_events(db, **context, run_id=first.run_id, after_seq=0).events == [start]
+            assert read_run_snapshot(db, **context, run_id=first.run_id).status == "running"
             db.delete(db.get(CaseRecord, str(case_id)))
             db.flush()
             assert read_run_message(db, **context, run_id=first.run_id) is None
             assert db.scalar(select(AgentRunRequest.id).where(
                 AgentRunRequest.id == str(first.run_id),
             )) is None
+            assert read_run_events(db, **context, run_id=first.run_id, after_seq=0) is None
+            assert db.get(AgentRunEvent, (str(first.run_id), 1)) is None
     finally:
         with Session(engine) as db, db.begin():
             if case := db.get(CaseRecord, str(case_id)):
