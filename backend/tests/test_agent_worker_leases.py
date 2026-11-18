@@ -13,7 +13,7 @@ from app.agent.checkpoints import (
 from app.agent.contract import AnswerResult, ClarificationReply, ClarifyingQuestion
 from app.agent.run_events import AgentRunEvent, InvalidClarificationReply, read_run_events, read_run_snapshot
 from app.agent.run_requests import AgentRunRequest
-from app.agent.worker import RequestClarification, run_next_worker_step, run_worker_step
+from app.agent.worker import RequestClarification, run_next_worker_step, run_worker_batch, run_worker_step
 from app.agent.worker_leases import WorkerLeaseConflict, claim_next_run
 from app.auth.tokens import Principal
 from test_agent_run_events import queued_run  # noqa: F401 - shared run fixture
@@ -25,6 +25,54 @@ ANSWER = AnswerResult(explanation="Synthetic answer", verification_status="insuf
 
 def _expire(db, run_id):
     db.get(AgentRunRequest, str(run_id)).lease_expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+
+
+def test_worker_batches_stop_at_the_step_budget_and_when_idle(queued_run):
+    factory, context, _, _ = queued_run
+    options = {"lease_for": LEASE_FOR, "key": context["key"]}
+    nodes = []
+
+    def advance(_, state):
+        nodes.append(state.next_node)
+        if state.next_node == "load_context":
+            return CheckpointState(next_node="find_evidence")
+        return ANSWER
+
+    with pytest.raises(ValueError, match="step budget"):
+        run_worker_batch(factory, **options, execute=advance, max_steps=0)
+
+    assert run_worker_batch(factory, **options, execute=advance, max_steps=1) == 1
+    with factory.begin() as db:
+        assert read_run_snapshot(db, **context).status == "running"
+        assert load_checkpoint(db, **context).state.next_node == "find_evidence"
+
+    assert run_worker_batch(factory, **options, execute=advance, max_steps=5) == 1
+    assert run_worker_batch(factory, **options, execute=advance, max_steps=5) == 0
+    assert nodes == ["load_context", "find_evidence"]
+
+
+def test_worker_batch_counts_a_lost_lease_against_its_attempt_budget(queued_run):
+    factory, context, _, _ = queued_run
+    options = {"lease_for": LEASE_FOR, "key": context["key"]}
+    calls = []
+
+    def expire_before_commit(_, state):
+        calls.append(state.next_node)
+        with factory.begin() as db:
+            _expire(db, context["run_id"])
+        return ANSWER
+
+    assert run_worker_batch(factory, **options, execute=expire_before_commit, max_steps=2) == 0
+    assert calls == ["load_context", "load_context"]
+    with factory.begin() as db:
+        snapshot = read_run_snapshot(db, **context)
+        assert (snapshot.status, snapshot.last_event_seq) == ("running", 1)
+
+    assert run_worker_batch(factory, **options, execute=lambda *_: ANSWER, max_steps=1) == 1
+    with factory.begin() as db:
+        assert [event.type for event in read_run_events(db, **context, after_seq=0).events] == [
+            "run.started", "answer.completed",
+        ]
 
 
 def test_scheduler_reclaims_an_interrupted_run_at_its_checkpoint(queued_run):

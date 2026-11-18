@@ -18,7 +18,7 @@ from app.agent.run_events import _read_event_at, read_run_snapshot
 from app.agent.run_requests import (
     WORKER_RUN_STATUSES, AgentRunRequest, StoredMessage, _owned_run, read_run_message,
 )
-from app.agent.worker_leases import WorkerLease, claim_next_run, require_worker_lease
+from app.agent.worker_leases import WorkerLease, WorkerLeaseConflict, claim_next_run, require_worker_lease
 from app.auth.tokens import Principal
 
 
@@ -45,6 +45,28 @@ def run_next_worker_step(
         sessions, thread_id=lease.thread_id, run_id=lease.run_id, principal=lease.principal,
         key=key, execute=execute, lease=lease,
     )
+
+
+def run_worker_batch(
+    sessions: sessionmaker[Session], *, key: bytes, lease_for: timedelta,
+    execute: ExecuteStep, max_steps: int,
+) -> int:
+    """Process up to the caller's attempt budget and return the recorded step count."""
+    if max_steps < 1:
+        raise ValueError("A worker batch requires a positive step budget")
+
+    recorded_steps = 0
+    for _ in range(max_steps):
+        try:
+            snapshot = run_next_worker_step(sessions, key=key, lease_for=lease_for, execute=execute)
+        except WorkerLeaseConflict:
+            # A replacement worker may already own this run. A lost lease still
+            # consumes an attempt so contention cannot keep the batch running.
+            continue
+        if snapshot is None:
+            break
+        recorded_steps += 1
+    return recorded_steps
 
 
 def run_worker_step(

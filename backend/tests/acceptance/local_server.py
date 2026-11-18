@@ -188,13 +188,6 @@ def run(port: int, assets: Path, *, private_documents: bool = False):
                 self.json_reply(200, {"approved": STATE["approved"]})
                 return
 
-            if path == "/__acceptance/agent/step":
-                if self.command != "POST" or self.subject() != "alice":
-                    self.json_reply(403, {"error": "Synthetic owner control only"})
-                    return
-                self.json_reply(200, {"status": agent.advance()})
-                return
-
             if path == "/acceptance-config.js" and self.command == "GET":
                 value = "true" if documents else "false"
                 self.reply(200, f"window.acceptancePrivateDocuments = {value};".encode(),
@@ -328,9 +321,9 @@ def run(port: int, assets: Path, *, private_documents: bool = False):
             self.handle_request()
 
     try:
-        server = ThreadingHTTPServer((HOST, port), Handler)
-        print(f"ACCEPTANCE_READY http://{HOST}:{server.server_port}", flush=True)
-        server.serve_forever(poll_interval=0.15)
+        with ThreadingHTTPServer((HOST, port), Handler) as server, agent.poll_queue():
+            print(f"ACCEPTANCE_READY http://{HOST}:{server.server_port}", flush=True)
+            server.serve_forever(poll_interval=0.15)
     finally:
         client.__exit__(None, None, None)
         api.state.engine.dispose()
