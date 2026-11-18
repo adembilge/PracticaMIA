@@ -131,13 +131,49 @@ def test_approved_source_quote_in_unified_agent_and_saved_history(
     )
     assert old.status_code == 200
     assert old.json()["historical_only"] is True
-    assert QUOTE in old.json()["turns"][0]["answer"]
+    assert old.headers["cache-control"] == "private, no-store"
+    first = old.json()["turns"][0]
+    assert QUOTE in first["answer"]
+    assert first["citation_status"] == "current"
+    assert first["citations"] == [{
+        "source_id": "milano-residence-change", "source_version_id": imported.version_id,
+        "source_revision": 1, "passage_id": imported.version_id + ":0000", "status": "current",
+    }]
     with client.app.state.session_factory() as db:
         stored = db.scalars(select(CaseAgentTurn)).one()
         assert QUOTE.encode() not in stored.content_ciphertext
     assert client.get(
         f"/api/v1/cases/{case_id}/preparation/conversation", headers=bob,
     ).status_code == 404
+    history_url = f"/api/v1/cases/{case_id}/preparation/conversation"
+    route = "/api/v1/knowledge/passages/" + imported.version_id + ":0000"
+    scope = {"jurisdiction": "IT-MI-MILANO", "procedure_id": "milan_residence_change", "language": "it"}
+
+    with client.app.state.session_factory.begin() as db:
+        source = db.get(KnowledgeSource, "milano-residence-change")
+        revised = ingest_snapshot(db, source, HTML.replace(b"istruzione", b"prescrizione"))
+    assert revised.revision == 2
+    assert client.get(route, params=scope, headers=alice).status_code == 404
+    historical = client.get(history_url, headers=alice).json()["turns"][0]
+    assert historical["citation_status"] == "historical"
+    assert historical["citations"] == [{**first["citations"][0], "status": "historical"}]
+    assert QUOTE not in historical["answer"]
+
+    with client.app.state.session_factory.begin() as db:
+        approve_version(
+            db, version_id=revised.version_id, expected_digest=revised.sha256,
+            actor_subject="synthetic-ci-reviewer",
+            reason="Second version of the fictional test fixture.",
+        )
+    assert ask(client, case_id, alice).json()["status"] == "answer_generated"
+    old_turn, new_turn = client.get(history_url, headers=alice).json()["turns"]
+    assert old_turn["citations"][0]["source_version_id"] == imported.version_id
+    assert old_turn["citation_status"] == "historical"
+    assert new_turn["citations"][0]["source_version_id"] == revised.version_id
+    assert new_turn["citations"][0]["source_revision"] == 2
+    assert new_turn["citations"][0]["source_id"] == old_turn["citations"][0]["source_id"]
+    assert new_turn["citation_status"] == "current"
+    assert QUOTE in new_turn["answer"]
 
 
 def test_unapproved_and_revoked_sources_never_generate_quotes(
@@ -175,6 +211,11 @@ def test_unapproved_and_revoked_sources_never_generate_quotes(
     assert revoked.json()["answer"] is None
     assert revoked.json()["references"] == []
     assert calls["rag"] == prior_calls
+    history = client.get(
+        f"/api/v1/cases/{case_id}/preparation/conversation", headers=alice,
+    ).json()["turns"]
+    assert history[1]["citations"][0]["status"] == "historical"
+    assert QUOTE not in history[1]["answer"]
 
 
 @pytest.mark.parametrize("behavior, expected", [

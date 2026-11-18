@@ -12,7 +12,7 @@ import re
 from uuid import UUID, uuid4
 from typing import Literal
 
-from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Request, Response, UploadFile
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -348,6 +348,7 @@ def guide_case_preview(
         from app.preparation.conversation import load_turns
         prior_turns = load_turns(
             db, case_id=str(case_id), owner=principal.subject, key=_key(request),
+            include_evidence=False,
         )
     result = guide_case(
         question=payload.question, language=payload.language,
@@ -367,7 +368,7 @@ def guide_case_preview(
 
 @router.get("/{case_id}/preparation/conversation")
 def read_guide_conversation(
-    case_id: UUID, request: Request,
+    case_id: UUID, request: Request, response: Response,
     db: Session = Depends(get_session),
     principal: Principal = Depends(get_principal),
 ):
@@ -376,6 +377,7 @@ def read_guide_conversation(
         raise HTTPException(404, "Conversation history is unavailable")
     _case(db, case_id, principal)
     from app.preparation.conversation import load_turns
+    response.headers["Cache-Control"] = "private, no-store"
     return {
         "turns": load_turns(
             db, case_id=str(case_id), owner=principal.subject, key=_key(request),
