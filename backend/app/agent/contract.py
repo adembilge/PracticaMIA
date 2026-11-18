@@ -260,6 +260,12 @@ agent_event_adapter = TypeAdapter(AgentEvent)
 TERMINAL_EVENTS = frozenset({"answer.completed", "run.failed", "run.stopped"})
 
 
+def valid_event_position(event: AgentEvent) -> bool:
+    if event.event_seq == 1:
+        return event.type in {"run.started", "run.stopped"}
+    return event.type != "run.started"
+
+
 class EventPage(ContractModel):
     thread_id: UUID
     run_id: UUID
@@ -275,7 +281,7 @@ class EventPage(ContractModel):
         for seq, event in enumerate(self.events, start=self.after_seq + 1):
             if event.thread_id != self.thread_id or event.run_id != self.run_id:
                 raise ValueError("Events must belong to the requested thread and run")
-            if event.event_seq != seq or (seq == 1) != (event.type == "run.started"):
+            if event.event_seq != seq or not valid_event_position(event):
                 raise ValueError("Events must follow the run sequence")
             if event.type in TERMINAL_EVENTS and (seq != self.last_event_seq or self.has_more):
                 raise ValueError("A terminal event must end the run")

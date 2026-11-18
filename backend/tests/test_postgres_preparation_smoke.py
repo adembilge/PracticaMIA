@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 import os
-from threading import Barrier
+from threading import Barrier, Event
 from uuid import uuid4
 
 import pytest
@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.agent.checkpoints import (
     AgentRunCheckpoint, CheckpointConflict, CheckpointState, load_checkpoint, save_checkpoint,
-    submit_clarification_reply,
+    stop_run, submit_clarification_reply,
 )
 from app.agent.contract import (
     AnswerResult, ClarificationReply, ClarifyingQuestion, ProgressUpdated, RunStarted, SendMessage,
@@ -23,7 +23,7 @@ from app.agent.run_events import AgentRunEvent, append_run_event, read_run_event
 from app.agent.run_requests import AgentRunRequest, accept_message, list_active_runs, read_run_message
 from app.agent.threads import AgentThread, AgentThreadCase, create_thread, link_case_to_thread
 from app.agent.worker import RequestClarification, run_worker_step
-from app.agent.worker_leases import claim_next_run
+from app.agent.worker_leases import WorkerLeaseConflict, claim_next_run
 from app.auth.tokens import Principal
 from app.cases.model import CaseRecord
 from app.config import Settings
@@ -360,6 +360,55 @@ def test_concurrent_clarification_retries_commit_one_reply_and_checkpoint():
             checkpoint = load_checkpoint(db, **context)
             assert (checkpoint.revision, checkpoint.event_seq) == (3, first.event_seq)
             assert checkpoint.state.pending_question_id is None
+    finally:
+        with factory.begin() as db:
+            db.delete(db.get(AgentThread, str(thread_id)))
+        engine.dispose()
+
+
+def test_postgres_stop_fences_an_inflight_worker_and_releases_its_lease():
+    engine = create_engine(os.environ["DATABASE_URL"])
+    factory = sessionmaker(bind=engine)
+    owner = Principal("synthetic-stop-owner")
+    key = bytes(range(32))
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=owner)
+        accepted = accept_message(
+            db, thread_id=thread_id, principal=owner, key=key,
+            message=SendMessage(client_message_id=uuid4(), text="Fixture only", language="en"),
+        )
+    context = {"thread_id": thread_id, "run_id": accepted.run_id, "principal": owner, "key": key}
+    executing, stopped = Event(), Event()
+
+    def finish(_message, state):
+        assert state.next_node == "load_context"
+        executing.set()
+        assert stopped.wait(timeout=10)
+        return AnswerResult(explanation="Synthetic late result", verification_status="insufficient_evidence")
+
+    try:
+        with factory.begin() as db:
+            lease = claim_next_run(db, lease_for=timedelta(minutes=1))
+            assert lease.run_id == accepted.run_id
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            worker = executor.submit(run_worker_step, factory, **context, lease=lease, execute=finish)
+            try:
+                assert executing.wait(timeout=10)
+                with factory.begin() as db:
+                    db.execute(text("SET LOCAL lock_timeout = '5s'"))
+                    before = read_run_snapshot(db, **context)
+                    snapshot = stop_run(db, **context, expected_run_revision=before.run_revision)
+                    assert snapshot.status == "stopped"
+            finally:
+                stopped.set()
+            with pytest.raises(WorkerLeaseConflict):
+                worker.result(timeout=10)
+        with factory.begin() as db:
+            assert read_run_snapshot(db, **context) == snapshot
+            assert db.get(AgentRunCheckpoint, str(accepted.run_id)) is None
+            assert [item.type for item in read_run_events(db, **context, after_seq=0).events] == [
+                "run.started", "run.stopped",
+            ]
     finally:
         with factory.begin() as db:
             db.delete(db.get(AgentThread, str(thread_id)))

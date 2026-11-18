@@ -119,6 +119,11 @@ def test_owner_reconnects_replies_and_resumes_the_same_run(client, auth_headers,
         assert finished.status_code == 200
         assert finished.json()["status"] == "completed"
         assert finished.json()["result"]["explanation"] == "Synthetic answer"
+        late_stop = reconnected.post(
+            url + "/stop", headers=owner, json={"expected_run_revision": snapshot.json()["run_revision"]},
+        )
+        assert late_stop.status_code == 200
+        assert late_stop.json() == finished.json()
         assert reconnected.get(ACTIVE_RUNS_URL, headers=owner).json() == {"items": [], "next_cursor": None}
         replay = reconnected.get(url + "/events", headers=owner, params={"after_seq": page.json()["last_event_seq"]})
         assert replay.status_code == 200
@@ -214,3 +219,33 @@ def test_active_run_cursor_handles_equal_timestamps_and_a_run_that_finishes_betw
     ):
         response = client.get(ACTIVE_RUNS_URL, headers=headers, params=invalid)
         assert_private_error(response, 422, "invalid_request")
+
+
+def test_stop_requires_the_owner_and_current_revision_and_invalidates_pending_replies(client, auth_headers, paused_run):
+    context, question, _ = paused_run
+    client.app.include_router(build_reconnect_router(key=KEY))
+    url = run_url(context)
+    owner = auth_headers()
+    before = client.get(url, headers=owner).json()
+    payload = {"expected_run_revision": before["run_revision"]}
+    stop_url = url + "/stop"
+    assert_private_error(client.post(stop_url, headers=auth_headers("bob"), json=payload), 404, "unavailable")
+    assert_private_error(client.post(
+        stop_url, headers=owner, json={"expected_run_revision": before["run_revision"] - 1},
+    ), 409, "stale_run")
+    assert client.get(url, headers=owner).json() == before
+
+    stopped = client.post(stop_url, headers=owner, json=payload)
+    assert stopped.status_code == 200
+    assert stopped.headers["Cache-Control"] == "private, no-store"
+    assert stopped.json()["status"] == "stopped"
+    assert client.post(stop_url, headers=owner, json=payload).json() == stopped.json()
+    assert client.get(ACTIVE_RUNS_URL, headers=owner).json()["items"] == []
+    replay = client.get(url + "/events", headers=owner, params={"after_seq": before["last_event_seq"]})
+    event, = replay.json()["events"]
+    assert event["type"] == "run.stopped" and event["committed_operation_ids"] == []
+
+    late_reply = {"client_reply_id": str(uuid4()), "text": "Fixture A", **payload}
+    assert_private_error(client.post(
+        f"{url}/questions/{question.question_id}/reply", headers=owner, json=late_reply,
+    ), 409, "stale_question")
