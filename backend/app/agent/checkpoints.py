@@ -11,7 +11,7 @@ from sqlalchemy import CheckConstraint, ForeignKey, Integer, LargeBinary, String
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.agent.contract import (
-    AgentEvent, ApprovalRequested, ContractModel, Identifier, PassageId,
+    AgentEvent, AnswerCompleted, ApprovalRequested, ContractModel, Identifier, PassageId,
     QuestionRequested, TERMINAL_EVENTS,
 )
 from app.agent.run_events import _latest_event, append_run_event
@@ -100,6 +100,20 @@ def load_checkpoint(
     return WorkerCheckpoint(row.revision, row.event_seq, CheckpointState.model_validate_json(payload))
 
 
+def _check_writable_checkpoint(
+    db: Session, run: AgentRunRequest, *, expected_revision: int, expected_event_seq: int,
+) -> tuple[AgentRunCheckpoint | None, int]:
+    row = db.get(AgentRunCheckpoint, run.id, populate_existing=True)
+    last_revision = row.revision if row else 0
+    last_seq = _event_watermark(db, run)
+    if run.status not in ACTIVE_STATUSES:
+        raise CheckpointConflict("The run is already terminal")
+    if expected_revision != last_revision or expected_event_seq != last_seq:
+        raise CheckpointConflict("Checkpoint revision or event watermark changed")
+
+    return row, last_seq
+
+
 def save_checkpoint(
     db: Session, *, thread_id: UUID, run_id: UUID, principal: Principal, key: bytes,
     expected_revision: int, expected_event_seq: int, state: CheckpointState,
@@ -109,14 +123,9 @@ def save_checkpoint(
     run = db.scalar(_owned_run(thread_id, run_id, principal).with_for_update(of=AgentRunRequest))
     if run is None:
         return None
-    row = db.get(AgentRunCheckpoint, run.id, populate_existing=True)
-    last_revision = row.revision if row else 0
-    last_seq = _event_watermark(db, run)
-    if run.status not in ACTIVE_STATUSES:
-        raise CheckpointConflict("The run is already terminal")
-    if expected_revision != last_revision or expected_event_seq != last_seq:
-        raise CheckpointConflict("Checkpoint revision or event watermark changed")
-
+    row, last_seq = _check_writable_checkpoint(
+        db, run, expected_revision=expected_revision, expected_event_seq=expected_event_seq,
+    )
     payload = state.model_dump_json().encode()
     state = CheckpointState.model_validate_json(payload)
     if event is not None:
@@ -130,7 +139,7 @@ def save_checkpoint(
         if isinstance(event, ApprovalRequested) and state.pending_proposal_id != event.proposal.proposal_id:
             raise CheckpointConflict("Checkpoint must reference the pending proposal")
 
-    revision = last_revision + 1
+    revision = expected_revision + 1
     event_seq = event.event_seq if event is not None else last_seq
     nonce = urandom(12)
     ciphertext = nonce + _payload_cipher(key).encrypt(
@@ -146,3 +155,27 @@ def save_checkpoint(
     row.ciphertext = ciphertext
     db.flush()
     return WorkerCheckpoint(revision, event_seq, state)
+
+
+
+def finish_checkpoint(
+    db: Session, *, principal: Principal, key: bytes,
+    expected_revision: int, expected_event_seq: int, event: AnswerCompleted,
+) -> AnswerCompleted | None:
+    """Finish the selected worker boundary and discard its resume state."""
+    run = db.scalar(_owned_run(event.thread_id, event.run_id, principal).with_for_update(
+        of=AgentRunRequest,
+    ))
+    if run is None:
+        return None
+    row, last_seq = _check_writable_checkpoint(
+        db, run, expected_revision=expected_revision, expected_event_seq=expected_event_seq,
+    )
+    if row is None or row.event_seq != last_seq or event.event_seq != last_seq + 1:
+        raise CheckpointConflict("Terminal event must follow the current checkpoint")
+    appended = append_run_event(db, principal=principal, event=event, key=key)
+    if not isinstance(appended, AnswerCompleted):
+        raise CheckpointConflict("The run could not be completed")
+    db.delete(row)
+    db.flush()
+    return appended

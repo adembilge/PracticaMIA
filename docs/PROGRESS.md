@@ -83,4 +83,6 @@ The [run event journal](../backend/app/agent/run_events.py) stores encrypted eve
 
 The [worker checkpoint service](../backend/app/agent/checkpoints.py) stores an encrypted next-node state and bounded references. A worker can reload the last consistent checkpoint in a new database session. Stale writes are rejected, and a checkpoint and its optional event are committed together. Migration `20261118_0021` adds the checkpoint table and cascading removal with its run. Live worker orchestration, retention and pilot approval remain open.
 
+The [internal worker](../backend/app/agent/worker.py) loads a saved checkpoint, executes one read-only step and advances the checkpoint and event journal. A terminal answer is committed against the same revision and watermark, then clears its checkpoint. The [synthetic recovery test](../backend/tests/test_agent_worker.py) interrupts a step and continues with a new session factory. Live worker scheduling, verified LangGraph nodes and the approved multi-authority pilot remain open.
+
 For implementation details see [the documentation index](README.md).
