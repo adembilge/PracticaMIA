@@ -13,9 +13,9 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.agent.contract import (
     AgentEvent, AnswerCompleted, ApprovalRequested, ClarificationReply, ContractModel, Identifier,
-    PassageId, QuestionAnswered, QuestionRequested, TERMINAL_EVENTS,
+    PassageId, QuestionAnswered, QuestionRequested, RunSnapshot, RunStopped, TERMINAL_EVENTS,
 )
-from app.agent.run_events import _latest_event, _read_event_at, append_run_event
+from app.agent.run_events import _latest_event, _read_event_at, append_run_event, read_run_snapshot
 from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run, _payload_cipher
 from app.auth.tokens import Principal
 from app.database import Base
@@ -63,6 +63,10 @@ class WorkerCheckpoint:
 
 class CheckpointConflict(ValueError):
     """The worker must reload the run before saving or resuming."""
+
+
+class RunRevisionConflict(ValueError):
+    """The run advanced before the stop request was accepted."""
 
 
 def _event_watermark(db: Session, run: AgentRunRequest) -> int:
@@ -219,3 +223,38 @@ def finish_checkpoint(
     db.delete(row)
     db.flush()
     return appended
+
+
+def stop_run(
+    db: Session, *, thread_id: UUID, run_id: UUID, principal: Principal, key: bytes,
+    expected_run_revision: int,
+) -> RunSnapshot | None:
+    """Stop an owned read-only run and fence its outstanding lease."""
+    context = {"thread_id": thread_id, "run_id": run_id, "principal": principal, "key": key}
+    run = db.scalar(_owned_run(thread_id, run_id, principal).with_for_update(of=AgentRunRequest))
+    if run is None:
+        return None
+    if run.status not in ACTIVE_STATUSES:
+        return read_run_snapshot(db, **context)
+
+    next_event_seq = _event_watermark(db, run) + 1
+    if expected_run_revision != next_event_seq:
+        raise RunRevisionConflict("Run revision changed before stop")
+
+    stopped = append_run_event(
+        db, principal=principal, key=key,
+        event=RunStopped(
+            schema_version=1, thread_id=thread_id, run_id=run_id, event_seq=next_event_seq,
+            occurred_at=datetime.now(timezone.utc), type="run.stopped", committed_operation_ids=[],
+        ),
+    )
+    if stopped is None:
+        return None
+
+    checkpoint = db.get(AgentRunCheckpoint, run.id)
+    if checkpoint is not None:
+        db.delete(checkpoint)
+    run.lease_token = None
+    run.lease_expires_at = None
+    db.flush()
+    return read_run_snapshot(db, **context)

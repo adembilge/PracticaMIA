@@ -9,9 +9,9 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.agent.contract import (
     AgentEvent, AnswerCompleted, ApprovalRequested, EventPage, QuestionAnswered, QuestionRequested,
-    RunSnapshot, RunStarted, agent_event_adapter,
+    RunSnapshot, RunStarted, agent_event_adapter, valid_event_position,
 )
-from app.agent.run_requests import AgentRunRequest, _owned_run, _payload_cipher
+from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run, _payload_cipher
 from app.auth.tokens import Principal
 from app.database import Base
 
@@ -51,7 +51,7 @@ _TRANSITIONS = {
     "approval.requested": (("running",), "waiting_for_approval"),
     "answer.completed": (("running",), "completed"),
     "run.failed": ((*_RUNNING_OR_WAITING, "stopping"), "failed"),
-    "run.stopped": ((*_RUNNING_OR_WAITING, "stopping"), "stopped"),
+    "run.stopped": (ACTIVE_STATUSES, "stopped"),
 }
 
 
@@ -104,10 +104,10 @@ def append_run_event(
 
     latest = _latest_event(db, run)
     last_seq = latest.event_seq if latest else 0
-    if event.event_seq != last_seq + 1 or (event.event_seq == 1) != (event.type == "run.started"):
+    if event.event_seq != last_seq + 1 or not valid_event_position(event):
         raise EventConflict("Expected the next event in the run sequence")
     allowed, status = _TRANSITIONS[event.type]
-    if run.status not in allowed:
+    if run.status not in allowed or (event.event_seq == 1 and run.status != "queued"):
         raise EventConflict("Event is incompatible with the run state")
     if isinstance(event, RunStarted) and str(event.client_message_id) != run.client_message_id:
         raise EventConflict("Start event must identify the accepted message")

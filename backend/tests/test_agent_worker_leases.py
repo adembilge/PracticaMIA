@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from sqlalchemy.orm import sessionmaker
 
 from app.agent.checkpoints import (
-    CheckpointConflict, CheckpointState, load_checkpoint, submit_clarification_reply,
+    AgentRunCheckpoint, CheckpointConflict, CheckpointState, load_checkpoint, stop_run, submit_clarification_reply,
 )
 from app.agent.contract import AnswerResult, ClarificationReply, ClarifyingQuestion
 from app.agent.run_events import AgentRunEvent, InvalidClarificationReply, read_run_events, read_run_snapshot
@@ -290,3 +290,44 @@ def test_only_the_owner_can_answer_the_current_question_with_a_valid_choice(queu
             submit_clarification_reply(db, **context, question_id=question.question_id, reply=reply.model_copy(
                 update={"expected_run_revision": next_pause.run_revision},
             ))
+
+
+def test_stopping_a_queued_run_replays_without_a_start_event(queued_run):
+    factory, context, _, _ = queued_run
+    with factory.begin() as db:
+        snapshot = stop_run(db, **context, expected_run_revision=1)
+        assert (snapshot.status, snapshot.run_revision) == ("stopped", 2)
+        assert stop_run(db, **context, expected_run_revision=1) == snapshot
+        page = read_run_events(db, **context, after_seq=0)
+        stopped, = page.events
+        assert (stopped.type, stopped.event_seq, stopped.committed_operation_ids) == ("run.stopped", 1, [])
+        assert page.last_event_seq == 1
+
+    assert run_next_worker_step(
+        factory, key=context["key"], lease_for=LEASE_FOR, execute=lambda *_: pytest.fail("run stopped"),
+    ) is None
+
+
+def test_stopping_an_inflight_run_discards_the_late_worker_result(queued_run):
+    factory, context, _, _ = queued_run
+    with factory.begin() as db:
+        lease = claim_next_run(db, lease_for=LEASE_FOR)
+
+    def stop_before_commit(_, state):
+        assert state.next_node == "load_context"
+        with factory.begin() as db:
+            before = read_run_snapshot(db, **context)
+            snapshot = stop_run(db, **context, expected_run_revision=before.run_revision)
+            assert snapshot.status == "stopped"
+        return ANSWER
+
+    with pytest.raises(WorkerLeaseConflict, match="no longer current"):
+        run_worker_step(factory, **context, lease=lease, execute=stop_before_commit)
+
+    with factory.begin() as db:
+        run = db.get(AgentRunRequest, str(context["run_id"]))
+        assert run.lease_token is None and run.lease_expires_at is None
+        assert db.get(AgentRunCheckpoint, run.id) is None
+        page = read_run_events(db, **context, after_seq=0)
+        assert [event.type for event in page.events] == ["run.started", "run.stopped"]
+        assert page.events[-1].committed_operation_ids == []

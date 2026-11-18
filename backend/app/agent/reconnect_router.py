@@ -10,10 +10,10 @@ from fastapi.routing import APIRoute
 from pydantic import Field, model_validator
 from sqlalchemy.orm import Session
 
-from app.agent.checkpoints import CheckpointConflict, submit_clarification_reply
+from app.agent.checkpoints import CheckpointConflict, RunRevisionConflict, stop_run, submit_clarification_reply
 from app.agent.contract import (
     ActiveRunCursor, ActiveRunCursorTime, ActiveRunPage, ClarificationReply, ContractModel,
-    EventPage, QuestionAnswered, RunSnapshot,
+    EventPage, QuestionAnswered, RunSnapshot, StopRun,
 )
 from app.agent.run_events import (
     EventConflict, InvalidClarificationReply, InvalidEventCursor, read_run_events, read_run_snapshot,
@@ -28,7 +28,8 @@ RUN_PATH = "/threads/{thread_id}/runs/{run_id}"
 
 
 ErrorCode = Literal[
-    "unauthenticated", "unavailable", "invalid_request", "invalid_cursor", "invalid_reply", "stale_question",
+    "unauthenticated", "unavailable", "invalid_request", "invalid_cursor", "invalid_reply",
+    "stale_question", "stale_run",
 ]
 
 
@@ -68,6 +69,8 @@ class _PrivateAgentRoute(APIRoute):
                 response = _error(422, "invalid_cursor", "Use a cursor from this run.")
             except InvalidClarificationReply:
                 response = _error(422, "invalid_reply", "Select one of the offered choices.")
+            except RunRevisionConflict:
+                response = _error(409, "stale_run", "Reopen the run to check its current status.")
             except (CheckpointConflict, EventConflict):
                 response = _error(409, "stale_question", "Reopen the run to check its current question.")
             except HTTPException as exc:
@@ -125,6 +128,19 @@ def build_reconnect_router(*, key: bytes) -> APIRouter:
         if page is None:
             raise HTTPException(404)
         return page
+
+    @router.post(RUN_PATH + "/stop", responses={409: {"model": AgentHttpError}})
+    def stop_owned_run(
+        thread_id: UUID, run_id: UUID, payload: StopRun, principal: AuthenticatedOwner, db: DatabaseSession,
+    ) -> RunSnapshot:
+        with db.begin():
+            snapshot = stop_run(
+                db, thread_id=thread_id, run_id=run_id, principal=principal, key=key,
+                expected_run_revision=payload.expected_run_revision,
+            )
+            if snapshot is None:
+                raise HTTPException(404)
+        return snapshot
 
     @router.post(RUN_PATH + "/questions/{question_id}/reply", responses={409: {"model": AgentHttpError}})
     def reply_to_question(
