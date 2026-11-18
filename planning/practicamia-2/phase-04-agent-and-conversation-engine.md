@@ -6,7 +6,7 @@
 
 ## 31. Define the agent API and interface contract
 
-The [Task 31 contract proposal](phase-04-agent-api-contract.md) describes the request, event, result, retry, and trust boundaries for review. It does not activate an agent endpoint or satisfy the Phase 3 catalogue dependency.
+The [Task 31 contract proposal](phase-04-agent-api-contract.md) includes offline wire models and synthetic fixtures for requests, events, results, citations and reconnect cursors. The agent endpoint remains gated on the Phase 3 catalogue and review.
 
 - **31.1** Use a `thread_id`, `run_id`, optional `case_id`, and increasing event sequence number. A thread can link to multiple cases.
 - **31.2** Define typed requests for sending a message, stopping, retrieving a result, and responding to pending approval. Identify retries by client message ID.

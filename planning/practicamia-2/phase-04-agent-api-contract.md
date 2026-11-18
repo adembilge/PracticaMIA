@@ -1,6 +1,6 @@
 # Phase 4.31 — proposed agent API and interface contract
 
-**Status:** design for review; no route, persistence, streaming, approval operation, or production capability is implemented by this document. The Phase 3 catalogue and reviewed multi-authority pilot set are not ready for an agent integration. The existing Milan assistant and synthetic preparation chat remain separate.
+**Status:** proposed contract with offline schemas and synthetic tests. The application routes, persistence, streaming, approval operations, and production capability remain pending. The Phase 3 catalogue and reviewed multi-authority pilot set are not ready for an agent integration. The existing Milan assistant and synthetic preparation chat remain separate.
 
 ## Scope and trust boundary
 
@@ -29,11 +29,11 @@ All routes are authenticated and private, with `Cache-Control: private, no-store
 | --- | --- | --- | --- |
 | Start or continue | `POST /api/v1/agent/threads/{thread_id}/messages` | `client_message_id`, `text`, `language`, optional `case_id` and expected thread revision | `thread_id`, `run_id`, `status`, `last_event_seq` |
 | Read run | `GET /api/v1/agent/threads/{thread_id}/runs/{run_id}` | None | Current run status, final result if present, and last sequence |
-| Reconnect | `GET /api/v1/agent/threads/{thread_id}/runs/{run_id}/events?after_seq=N` | Last fully rendered sequence | Ordered events, `last_event_seq`, and whether more events exist |
+| Reconnect | `GET /api/v1/agent/threads/{thread_id}/runs/{run_id}/events?after_seq=N` | Last fully rendered sequence | Ordered events, echoed `after_seq`, the last returned sequence and whether more events exist |
 | Stop | `POST /api/v1/agent/threads/{thread_id}/runs/{run_id}/stop` | Expected run revision | `stopping`, `stopped`, or already terminal status; committed work is reported separately |
 | Respond to proposal | `POST /api/v1/agent/threads/{thread_id}/proposals/{proposal_id}/decision` | `accept`, `correct`, `reject`, or `cancel`, expected case revision, decision retry key | Applied revision or explicit conflict/expired/invalid status; task 38 only |
 
-Thread creation and the transport for prompt progress (SSE or another bounded stream) need an implementation decision. The event read endpoint is the durable reconnection baseline. A long poll or stream may deliver the same envelopes, using the sequence to deduplicate. The frontend must tolerate a disconnected stream without presenting the run as failed or complete.
+Thread creation and the transport for prompt progress (SSE or another bounded stream) need an implementation decision. The event read endpoint is the durable reconnection baseline. An event page advances from `after_seq` to its own `last_event_seq`. An empty page retains the previous cursor. The run snapshot reports the highest currently stored sequence. A long poll or stream may deliver the same envelopes, using the sequence to deduplicate. The frontend must tolerate a disconnected stream without presenting the run as failed or complete.
 
 ## Event envelope and result
 
@@ -61,6 +61,8 @@ Every event contains `schema_version`, `thread_id`, `run_id`, `event_seq`, `type
 
 ## Acceptance and dependency checks
 
-For task 31 review, exercise one typed fixture each for a verified answer, missing-context question, approval request, source card, conflict, stop, failed run, reconnect, and duplicate message. Check owner isolation, stable sequence, bounded data, and that retries do not duplicate a run. This document is a contract proposal; these are future tests, not reported passes.
+The [wire models](../../backend/app/agent/contract.py) encode bounded inputs, seven typed events, run results and pagination invariants. The [synthetic fixtures](../../backend/tests/test_agent_contract.py) cover verified and conflicting answers, clarification, approval requests, stop, failure, citation identity, and reconnection. The retry fixture verifies that a message key and its original text survive a JSON round trip. It can supply input for a duplicate-message integration test.
+
+Run the checks from `backend/` with `python -m pytest -q tests/test_agent_contract.py`. These checks validate payload shape and sequence. Serving a verified result still requires server-side authorization and applicable approved evidence. Owner isolation, persisted idempotency, committed-operation reporting and live stream resumption require separate runtime tests.
 
 Before the first graph or public route, Phase 3 must expose approved, versioned, scope-filtered catalogue evidence and a reviewed pilot workflow. Task 33 must decide event/checkpoint retention and deletion. Task 38 must implement server-authorised, revision-checked approvals before the approval endpoint can be enabled. Keep production agent and document surfaces disabled until their respective gates pass.
