@@ -12,6 +12,15 @@ from pydantic import (
 from app.knowledge.quote_verification import ID as PASSAGE_ID_PATTERN
 
 Language = Literal["it", "en"]
+# An intent describes a user's request. It grants no access or authority.
+AgentIntent = Literal[
+    "request_information",
+    "find_procedure",
+    "explain_notice",
+    "explain_form_field",
+    "resume_case",
+    "plan_multiple_tasks",
+]
 RunStatus = Literal[
     "queued", "running", "waiting_for_information", "waiting_for_approval",
     "stopping", "stopped", "completed", "failed",

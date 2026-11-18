@@ -26,7 +26,10 @@ def test_new_worker_recovers_next_node_and_stale_worker_cannot_replace_it(queued
 
     with factory.begin() as db:
         assert load_checkpoint(db, **context) == first
-        state = CheckpointState(next_node="find_evidence", procedure_candidates=["example_procedure"])
+        state = CheckpointState(
+            next_node="find_evidence", intent="find_procedure",
+            procedure_candidates=["example_procedure"],
+        )
         second = save_checkpoint(
             db, **context, expected_revision=first.revision, expected_event_seq=first.event_seq,
             state=state,
@@ -38,9 +41,11 @@ def test_new_worker_recovers_next_node_and_stale_worker_cannot_replace_it(queued
                 state=first.state,
             )
         assert load_checkpoint(db, **context) == second
-        assert b"example_procedure" not in db.get(
+        ciphertext = db.get(
             AgentRunCheckpoint, str(context["run_id"]),
         ).ciphertext
+        assert b"example_procedure" not in ciphertext
+        assert b"find_procedure" not in ciphertext
 
         progress = event("progress.updated", 2, stage="search", text="Searching")
         append_run_event(db, principal=context["principal"], key=context["key"], event=progress)
@@ -109,6 +114,29 @@ def test_checkpoint_scope_and_terminal_run_cannot_resume(queued_run):
         assert load_checkpoint(db, **context) is None
         with pytest.raises(CheckpointConflict, match="terminal"):
             save_checkpoint(db, **context, expected_revision=1, expected_event_seq=2, state=state)
+
+
+@pytest.mark.parametrize("intent", [
+    "request_information", "find_procedure", "explain_notice", "explain_form_field",
+    "resume_case", "plan_multiple_tasks",
+])
+def test_checkpoint_accepts_defined_intent_labels(intent):
+    state = CheckpointState.model_validate({"next_node": "find_evidence", "intent": intent})
+    assert CheckpointState.model_validate_json(state.model_dump_json()).intent == intent
+
+
+def test_old_checkpoint_can_resume_without_intent():
+    state = CheckpointState.model_validate_json(
+        '{"schema_version":1,"next_node":"find_evidence","procedure_candidates":["example_procedure"]}',
+    )
+    assert state.intent is None
+    assert state.procedure_candidates == ["example_procedure"]
+
+
+@pytest.mark.parametrize("intent", ["submit_application", "Find procedure", {"kind": "resume_case"}])
+def test_checkpoint_rejects_undefined_intents(intent):
+    with pytest.raises(ValidationError, match="intent"):
+        CheckpointState.model_validate({"next_node": "find_evidence", "intent": intent})
 
 
 def test_checkpoint_rejects_raw_state_and_detects_metadata_tampering(queued_run):

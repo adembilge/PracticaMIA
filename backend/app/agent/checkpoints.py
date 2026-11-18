@@ -12,8 +12,8 @@ from sqlalchemy import CheckConstraint, ForeignKey, Integer, LargeBinary, String
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.agent.contract import (
-    AgentEvent, AnswerCompleted, ApprovalRequested, ClarificationReply, ContractModel, Identifier,
-    PassageId, QuestionAnswered, QuestionRequested, RunSnapshot, RunStopped, TERMINAL_EVENTS,
+    AgentEvent, AgentIntent, AnswerCompleted, ApprovalRequested, ClarificationReply, ContractModel,
+    Identifier, PassageId, QuestionAnswered, QuestionRequested, RunSnapshot, RunStopped, TERMINAL_EVENTS,
 )
 from app.agent.run_events import _latest_event, _read_event_at, append_run_event, read_run_snapshot
 from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run, _payload_cipher
@@ -41,6 +41,7 @@ class CheckpointState(ContractModel):
     next_node: Literal[
         "load_context", "identify_intent", "find_evidence", "choose_next_step", "verify_and_respond",
     ]
+    intent: AgentIntent | None = None
     procedure_candidates: list[Identifier] = Field(default_factory=list, max_length=10)
     evidence_ids: list[PassageId] = Field(default_factory=list, max_length=10)
     missing_fields: list[Identifier] = Field(default_factory=list, max_length=12)
