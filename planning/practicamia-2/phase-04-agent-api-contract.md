@@ -31,7 +31,15 @@ The step keeps matched expressions and catalogue candidates in memory. It commit
 
 Task 34.3 recognises compact, dotted and letter-spaced forms of reviewed acronyms in messages. The existing Phase 3 resolver preserves any confirmation requirement on the matching identity. The [Milan evidence adapter](../../docs/APPROVED_PASSAGE_SEARCH.md#phase-4-evidence-handoff) also recognises a narrow set of English and Italian address-change phrases as lexical search hints.
 
-Run `python -m pytest -q tests/test_agent_intent_extraction.py tests/test_knowledge_search.py` from `backend/` for synthetic bilingual extraction, saved-worker-boundary coverage and search parity. Location roles, user-facing routing and hosted integration remain open.
+Run `python -m pytest -q tests/test_agent_intent_extraction.py tests/test_knowledge_search.py` from `backend/` for synthetic bilingual extraction, saved-worker-boundary coverage and search parity.
+
+## Procedure candidate applicability
+
+Task 34.4 evaluates each procedure ID from the worker checkpoint with the [Phase 3 service-area resolver](../../backend/app/knowledge/service_areas.py). The caller supplies confirmed territorial IDs keyed by their procedural role, confirmed dates keyed by their case field, confirmed circumstances and the set of currently trusted passage IDs. An assignment for a destination uses that destination's confirmed territorial ID. Presence, browser location and office addresses provide no destination fact.
+
+The reviewed assignment can require an explicitly named case date, one or both inclusive calendar bounds and typed circumstance values, such as a housing basis. A configured open bound must reflect the reviewed assignment. Cases with unresolved applicability dates and assignments awaiting review stay outside trusted routing. An assignment that conflicts with known context drops out. Missing information for a still-plausible assignment keeps authority selection pending, with the needed location role, date field or circumstance field in the result.
+
+The [synthetic tests](../../backend/tests/test_agent_catalogue_applicability.py) exercise date boundaries, alternative circumstances, territorial roles and withdrawn evidence. Populating these inputs from the complete reviewed catalogue, clarification and user-facing integration remain open.
 
 ## Identifiers and state
 
