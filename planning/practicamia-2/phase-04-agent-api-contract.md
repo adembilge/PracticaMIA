@@ -8,6 +8,21 @@ The backend owns thread and run state, authorises every case reference against t
 
 The first implementation slice may answer from currently approved passages and ask for missing context. Case writes need the later proposal and approval contract in task 38. Document tools remain unavailable until their release gates pass. Phase 3 must supply a typed catalogue response with procedure, authority role, service area, channel, source version, passage, and applicability result before sourced multi-authority answers can be enabled.
 
+## Internal intent labels
+
+Task 34.1 defines one optional typed intent in the encrypted worker checkpoint. The label describes what the user wants. Procedure candidates and evidence remain separate, and a label grants no authority to read a case, interpret a private document, or execute an operation.
+
+| Label | User goal | Synthetic example |
+| --- | --- | --- |
+| `request_information` | Understand a rule, requirement or term | “What does proof of residence mean?” |
+| `find_procedure` | Find the procedure for a single administrative goal | “Come comunico il mio cambio di residenza?” |
+| `explain_notice` | Understand a specific notice or communication | “What does this letter from the municipality mean?” |
+| `explain_form_field` | Understand the meaning or expected input of a form field | “Cosa significa ‘titolo di occupazione’ in questo modulo?” |
+| `resume_case` | Return to previously saved case work | “Can we pick up my saved address change?” |
+| `plan_multiple_tasks` | Plan distinct administrative goals | “Devo cambiare residenza e aggiornare la posizione TARI. Da dove inizio?” |
+
+A null intent means no label has been recorded. Older checkpoints can still be loaded. Intent extraction and catalogue matching are defined in the following subtasks. This field is internal to the worker; public requests and responses use the existing contract.
+
 ## Identifiers and state
 
 | Field | Meaning | Rule |
