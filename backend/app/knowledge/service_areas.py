@@ -5,6 +5,7 @@ from the approved-source registry and confirmed locations from the case.
 """
 
 from dataclasses import dataclass
+from datetime import date
 from typing import Literal, Mapping
 
 
@@ -40,6 +41,29 @@ class CaseLocation:
 
 
 @dataclass(frozen=True)
+class EffectivePeriod:
+    """Reviewed calendar bounds evaluated against a named case date."""
+
+    case_date_field: str
+    effective_from: date | None = None
+    effective_until: date | None = None
+
+    def __post_init__(self) -> None:
+        if not self.case_date_field.strip() or (
+            self.effective_from is None and self.effective_until is None
+        ):
+            raise ValueError("An effective period needs a case date field and at least one bound")
+        if self.effective_from and self.effective_until and self.effective_from > self.effective_until:
+            raise ValueError("The first effective day must be at or before the last effective day")
+
+    def includes(self, case_date: date) -> bool:
+        return (
+            (self.effective_from is None or self.effective_from <= case_date)
+            and (self.effective_until is None or case_date <= self.effective_until)
+        )
+
+
+@dataclass(frozen=True)
 class ServiceArea:
     """A reviewed claim that one authority serves a procedure and area."""
 
@@ -52,6 +76,8 @@ class ServiceArea:
     evidence_ref: str
     approved_for_routing: bool = False
     active: bool = True
+    effective_period: EffectivePeriod | None = None
+    required_circumstances: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -60,6 +86,8 @@ class ServiceAreaResult:
     authority_ids: tuple[str, ...] = ()
     matched_assignments: tuple[ServiceArea, ...] = ()
     missing_location_roles: tuple[str, ...] = ()
+    missing_date_fields: tuple[str, ...] = ()
+    missing_circumstance_fields: tuple[str, ...] = ()
 
 
 def resolve_service_areas(
@@ -68,12 +96,13 @@ def resolve_service_areas(
     assignments: tuple[ServiceArea, ...] | list[ServiceArea],
     *,
     trusted_passage_ids: frozenset[str],
+    confirmed_dates: Mapping[str, date] | None = None,
+    confirmed_circumstances: Mapping[str, str] | None = None,
 ) -> ServiceAreaResult:
     """Resolve reviewed area claims using the relevant confirmed case location.
 
-    A trusted passage is necessary but not sufficient: the assignment itself
-    must have been approved for this exact procedure and location role. Office
-    addresses are intentionally absent from the inputs.
+    A trusted passage and a reviewed assignment are required for the exact
+    procedure, location role and case conditions.
     """
     eligible = [
         assignment for assignment in assignments
@@ -87,26 +116,49 @@ def resolve_service_areas(
     if not eligible:
         return ServiceAreaResult(status="unresolved")
 
+    dates = confirmed_dates or {}
+    circumstances = confirmed_circumstances or {}
     missing_roles: set[str] = set()
+    missing_dates: set[str] = set()
+    missing_circumstances: set[str] = set()
     matches: list[ServiceArea] = []
     for assignment in eligible:
         location = case_locations.get(assignment.case_location_role)
-        if location is None or not location.confirmed:
-            missing_roles.add(assignment.case_location_role)
+        unit_id = location.id_for(assignment.unit_type) if location and location.confirmed else None
+        if unit_id is not None and unit_id not in assignment.unit_ids:
             continue
-        unit_id = location.id_for(assignment.unit_type)
+
+        period = assignment.effective_period
+        case_date = dates.get(period.case_date_field) if period else None
+        if period and case_date is not None and not period.includes(case_date):
+            continue
+
+        unknown_fields = {
+            field for field, _ in assignment.required_circumstances
+            if circumstances.get(field) in (None, "", "unknown")
+        }
+        if any(
+            field not in unknown_fields and circumstances[field] != expected
+            for field, expected in assignment.required_circumstances
+        ):
+            continue
+
         if unit_id is None:
             missing_roles.add(assignment.case_location_role)
-            continue
-        if unit_id in assignment.unit_ids:
+        if period and case_date is None:
+            missing_dates.add(period.case_date_field)
+        missing_circumstances.update(unknown_fields)
+        if unit_id is not None and (period is None or case_date is not None) and not unknown_fields:
             matches.append(assignment)
 
     matched = tuple(sorted(matches, key=lambda item: item.assignment_id))
     authorities = tuple(sorted({item.authority_id for item in matched}))
-    if missing_roles:
+    if missing_roles or missing_dates or missing_circumstances:
         return ServiceAreaResult(
             status="needs_information",
             missing_location_roles=tuple(sorted(missing_roles)),
+            missing_date_fields=tuple(sorted(missing_dates)),
+            missing_circumstance_fields=tuple(sorted(missing_circumstances)),
         )
     if not matched:
         return ServiceAreaResult(status="unresolved")

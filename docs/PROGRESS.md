@@ -99,4 +99,6 @@ The [Task 34.2 extraction step](../planning/practicamia-2/phase-04-agent-api-con
 
 The [Task 34.3 search handoff](APPROVED_PASSAGE_SEARCH.md#phase-4-evidence-handoff) adds a scoped lexical retry for common English and Italian wording and ANPR variants. Name matching recognises reviewed dotted and compact acronyms and retains candidate confirmation. Synthetic parity tests verify exact citation IDs for equivalent wordings, insufficient evidence for unmatched `domicilio` queries, and withdrawal and ownership controls. Broad multilingual retrieval, applicability and a live reviewed catalogue remain open.
 
+The [Task 34.4 applicability resolver](../planning/practicamia-2/phase-04-agent-api-contract.md#procedure-candidate-applicability) evaluates saved procedure candidates against the required location role, named case date and circumstance fields. Synthetic fixtures exercise a dated authority change, housing-basis alternatives and a different procedural location. Confirmed mismatches remove the affected assignment, and missing context on a plausible assignment keeps authority selection pending. The complete reviewed catalogue and user-facing integration remain open.
+
 For implementation details see [the documentation index](README.md).
