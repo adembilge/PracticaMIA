@@ -8,7 +8,13 @@ type Snapshot = {
   run_revision: number;
   result: { explanation: string } | null;
 };
-type Question = { question_id: string; text: string; options: string[] };
+type Question = {
+  question_id: string;
+  text: string;
+  answer_shape: 'single_choice' | 'free_text';
+  options: string[];
+  reply_hint?: string | null;
+};
 type RunView = { url: string; snapshot: Snapshot; question: Question | null };
 const activeStatuses = new Set(['queued', 'running', 'waiting_for_information', 'waiting_for_approval', 'stopping']);
 
@@ -34,10 +40,10 @@ async function loadRun(url: string): Promise<RunView> {
 export function AgentReconnectFixture() {
   const [runs, setRuns] = useState<ActiveRun[] | null>(null);
   const [view, setView] = useState<RunView | null>(null);
-  const [choice, setChoice] = useState('');
+  const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const lastReply = useRef<{ questionId: string; revision: number; choice: string; id: string } | null>(null);
+  const lastReply = useRef<{ questionId: string; revision: number; text: string; id: string } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -49,7 +55,7 @@ export function AgentReconnectFixture() {
 
   function displayRun(next: RunView) {
     setView(next);
-    setChoice('');
+    setReply('');
     if (!activeStatuses.has(next.snapshot.status)) {
       setRuns(items => items?.filter(run => run.run_id !== next.snapshot.run_id) ?? null);
     }
@@ -69,21 +75,31 @@ export function AgentReconnectFixture() {
 
   async function answer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!view?.question || !choice || busy) return;
+    const text = reply.trim();
+    if (!view?.question || !text || busy) return;
     setBusy(true);
     setError('');
     const questionId = view.question.question_id;
     const revision = view.snapshot.run_revision;
     const prior = lastReply.current;
-    const id = prior?.questionId === questionId && prior.revision === revision && prior.choice === choice
+    const id = prior?.questionId === questionId && prior.revision === revision && prior.text === text
       ? prior.id : crypto.randomUUID();
-    lastReply.current = { questionId, revision, choice, id };
+    lastReply.current = { questionId, revision, text, id };
     try {
-      await request(`${view.url}/questions/${questionId}/reply`, {
+      const response = await fetch(`${view.url}/questions/${questionId}/reply`, {
         method: 'POST',
+        cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client_reply_id: id, expected_run_revision: revision, text: choice }),
+        body: JSON.stringify({ client_reply_id: id, expected_run_revision: revision, text }),
       });
+      if (response.status === 422) {
+        const problem = await response.json();
+        if (['invalid_reply', 'invalid_request'].includes(problem?.code) && typeof problem.message === 'string') {
+          setError(problem.message);
+          return;
+        }
+      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       displayRun(await loadRun(view.url));
     } catch {
       setError('Could not confirm the reply. Try again.');
@@ -133,15 +149,20 @@ export function AgentReconnectFixture() {
       </ul>}
       {view && <section aria-label="Conversation" aria-busy={busy}>
         {view.question ? <form onSubmit={answer}>
-          <fieldset disabled={busy}>
+          <fieldset disabled={busy} aria-describedby={view.question.reply_hint ? 'reply-hint' : undefined}>
             <legend>{view.question.text}</legend>
-            {view.question.options.map(option => <label key={option}>
+            {view.question.reply_hint && <p id="reply-hint">{view.question.reply_hint}</p>}
+            {view.question.answer_shape === 'single_choice' ? view.question.options.map(option => <label key={option}>
               <input type="radio" name="reply" value={option}
-                checked={choice === option} onChange={() => setChoice(option)} />
+                checked={reply === option} onChange={() => setReply(option)} />
               {option}
-            </label>)}
+            </label>) : <label>
+              Your reply
+              <textarea name="reply" rows={3} maxLength={2000} value={reply}
+                onChange={event => setReply(event.target.value)} />
+            </label>}
           </fieldset>
-          <button type="submit" disabled={!choice || busy}>Send reply</button>
+          <button type="submit" disabled={!reply.trim() || busy}>Send reply</button>
         </form> : view.snapshot.result ? <div>
           <h2>Conversation complete</h2>
           <p>{view.snapshot.result.explanation}</p>

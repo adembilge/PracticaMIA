@@ -185,6 +185,8 @@ class ClarifyingQuestion(ContractModel):
     answer_shape: Literal["free_text", "single_choice"]
     options: list[ShortText] = Field(default_factory=list, max_length=10)
     missing_fields: list[Identifier] = Field(min_length=1, max_length=12)
+    answer_format: Literal["calendar_date"] | None = None
+    reply_hint: ShortText | None = None
 
     @model_validator(mode="after")
     def validate_options(self):
@@ -193,6 +195,8 @@ class ClarifyingQuestion(ContractModel):
                 raise ValueError("A choice needs at least two distinct options")
         elif self.options:
             raise ValueError("Free-text questions do not include options")
+        if self.answer_format and (self.answer_shape != "free_text" or len(self.missing_fields) != 1):
+            raise ValueError("A formatted reply requires a single free-text field")
         return self
 
 

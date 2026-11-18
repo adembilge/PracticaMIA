@@ -63,12 +63,15 @@ class _PrivateAgentRoute(APIRoute):
         async def private_response(request: Request):
             try:
                 response = await handle(request)
-            except RequestValidationError:
-                response = _error(422, "invalid_request", "Check the request parameters.")
+            except RequestValidationError as exc:
+                message = "Check the request parameters."
+                if all(error["loc"] == ("body", "text") for error in exc.errors()):
+                    message = "Enter a reply between 1 and 2,000 characters or select one of the offered choices."
+                response = _error(422, "invalid_request", message)
             except InvalidEventCursor:
                 response = _error(422, "invalid_cursor", "Use a cursor from this run.")
-            except InvalidClarificationReply:
-                response = _error(422, "invalid_reply", "Select one of the offered choices.")
+            except InvalidClarificationReply as exc:
+                response = _error(422, "invalid_reply", str(exc))
             except RunRevisionConflict:
                 response = _error(409, "stale_run", "Reopen the run to check its current status.")
             except (CheckpointConflict, EventConflict):

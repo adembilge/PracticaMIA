@@ -99,6 +99,8 @@ def test_grouped_question_explains_joint_requirements_and_reuses_confirmed_facts
     result = choose(state, assignments=(service,), confirmed_dates={"filing_date": date(2026, 4, 1)})
     assert isinstance(result, RequestClarification)
     assert result.question.missing_fields == ["housing_basis"]
+    assert result.question.answer_shape == "single_choice"
+    assert "I own the home" in result.question.options
     result = choose(state, assignments=(service,), confirmed_dates={"filing_date": date(2026, 4, 1)},
                     confirmed_circumstances={"housing_basis": "owner"})
     assert result.next_node == "verify_and_respond"
@@ -121,6 +123,9 @@ def test_filing_date_distinguishes_which_assignment_was_effective():
     result = choose(case_locations={}, assignments=(before, after))
     assert isinstance(result, RequestClarification)
     assert result.question.missing_fields == ["filing_date"]
+    assert result.question.answer_shape == "free_text"
+    assert result.question.answer_format == "calendar_date"
+    assert "YYYY-MM-DD" in result.question.reply_hint
 
 
 def test_equivalent_date_coverage_does_not_displace_a_distinguishing_field():

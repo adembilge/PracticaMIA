@@ -20,14 +20,12 @@ class AgentReconnectFixture:
         self.sessions = api.state.session_factory
         self.key = token_bytes(32)
         api.include_router(build_reconnect_router(key=self.key))
-        self.question_ids = {
-            self.seed_question(prompt) for prompt in (
-                "Which synthetic route should be stopped?",
-                "Which synthetic municipality applies?",
-            )
-        }
+        stop = self.seed_question("Which synthetic route should be stopped?")
+        date = self.seed_question("What was the synthetic move-in date?", calendar_date=True)
+        municipality = self.seed_question("Which synthetic municipality applies?")
+        self.question_ids = {stop, date, municipality}
 
-    def seed_question(self, prompt):
+    def seed_question(self, prompt, *, calendar_date=False):
         principal = Principal("alice")
         with self.sessions.begin() as db:
             thread_id = create_thread(db, principal=principal)
@@ -38,8 +36,11 @@ class AgentReconnectFixture:
         context = {"thread_id": thread_id, "run_id": accepted.run_id, "principal": principal, "key": self.key}
         question = ClarifyingQuestion(
             question_id=uuid4(), text=prompt,
-            answer_shape="single_choice", options=["Fixture A", "Fixture B"],
-            missing_fields=["jurisdiction"],
+            answer_shape="free_text" if calendar_date else "single_choice",
+            options=[] if calendar_date else ["Fixture A", "Fixture B"],
+            missing_fields=["move_in_date" if calendar_date else "jurisdiction"],
+            answer_format="calendar_date" if calendar_date else None,
+            reply_hint="Enter a valid move-in date in YYYY-MM-DD or DD/MM/YYYY format." if calendar_date else None,
         )
         snapshot = run_worker_step(self.sessions, **context, execute=lambda *_: RequestClarification(
             question, CheckpointState(next_node="find_evidence"),

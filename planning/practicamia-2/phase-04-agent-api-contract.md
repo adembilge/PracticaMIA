@@ -71,6 +71,14 @@ The worker can ask for several details in one English or Italian prompt when onl
 
 The [synthetic resolution tests](../../backend/tests/test_agent_candidate_resolution.py) exercise grouped prompts and replay, alternative date ranges, withdrawn evidence, contextual questions and overlapping authority coverage.
 
+## Validating clarification replies
+
+Task 35.3 records the question ID, affected fields, answer shape and optional answer format and guidance in the encrypted question event. Older events can be read without the optional fields. A single housing question can offer choices. A single question asking for a new move-in or filing date accepts a valid calendar date in ISO or day-first numeric form within the case date range of 1900 to 2100. Grouped questions and contextual confirmations continue to accept bounded free text.
+
+The server checks the submitted text against the owned, current question before writing an answer event. A reply that fails the question's validation returns `422 invalid_reply` with the recorded guidance or a default for the expected answer shape. The existing question and run revision stay available for a corrected reply. The error does not include the rejected input. A valid reply is recorded as text, with surrounding whitespace removed. Confirmation of case facts and the handling of skips, unknowns, and corrections depend on later steps.
+
+The [isolated HTTP tests](../../backend/tests/test_agent_reconnect_http.py) cover invalid dates, invalid options, private guidance, correction and retry. The isolated Chromium harness renders both input shapes and checks that a user can correct a rejected date and resume the run.
+
 ## Identifiers and state
 
 | Field | Meaning | Rule |

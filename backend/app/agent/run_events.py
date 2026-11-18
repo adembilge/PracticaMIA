@@ -14,6 +14,7 @@ from app.agent.contract import (
 from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run, _payload_cipher
 from app.auth.tokens import Principal
 from app.database import Base
+from app.private_documents.intelligence import normalize_labeled_move_date
 
 
 class AgentRunEvent(Base):
@@ -118,8 +119,13 @@ def append_run_event(
         pending = _decode_event(latest, run, principal, key) if latest else None
         if not isinstance(pending, QuestionRequested) or pending.question.question_id != event.question_id:
             raise EventConflict("Reply must identify the pending question")
-        if pending.question.answer_shape == "single_choice" and event.text not in pending.question.options:
-            raise InvalidClarificationReply("Reply must match one of the offered choices")
+        question = pending.question
+        if question.answer_shape == "single_choice" and event.text not in question.options:
+            raise InvalidClarificationReply(question.reply_hint or "Select one of the offered choices.")
+        if question.answer_format == "calendar_date" and normalize_labeled_move_date(event.text) is None:
+            raise InvalidClarificationReply(
+                question.reply_hint or "Enter a valid date between 1900 and 2100 in YYYY-MM-DD or DD/MM/YYYY format."
+            )
 
     nonce = urandom(12)
     ciphertext = nonce + _payload_cipher(key).encrypt(
