@@ -97,7 +97,7 @@ jobs:
               (SELECT count(*) FROM private_case_documents WHERE owner_subject = 'synthetic-backup-drill'
                 AND ciphertext = decode('aabb','hex') AND review_ciphertext = decode('ccdd','hex') AND expires_at < now())
             FROM alembic_version;")"
-          test "$result" = '20261116_0017|1|1'
+          test "$result" = '20261118_0018|1|1'
           docker exec "$postgres_container" psql -v ON_ERROR_STOP=1 -U practicamia -d practicamia_acceptance -c "
             DELETE FROM cases WHERE owner_subject = 'synthetic-backup-drill';"
           echo "Restored schema, archived case, encrypted payload bytes, and expiry timestamp."

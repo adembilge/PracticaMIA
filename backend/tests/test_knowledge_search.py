@@ -10,6 +10,7 @@ from sqlalchemy import select
 from app.agent.catalogue_evidence import (
     find_catalogue_evidence, resolve_catalogue_evidence,
 )
+from app.agent.threads import create_thread, link_case_to_thread
 from app.auth.tokens import Principal
 from app.cases.intake_model import CaseIntake
 from app.config import Settings
@@ -223,12 +224,20 @@ def test_query_validation_and_injection_cannot_expand_search(client, auth_header
     assert client.get("/api/v1/cases", headers=user).status_code == 200
 
 
+def _thread_context(client, case_id, subject):
+    principal = Principal(subject)
+    with client.app.state.session_factory.begin() as db:
+        thread_id = create_thread(db, principal=principal)
+        assert link_case_to_thread(db, principal=principal, thread_id=thread_id, case_id=case_id)
+    return {"thread_id": thread_id, "case_id": case_id, "principal": principal}
+
+
 def test_phase4_catalogue_and_search_api_share_exact_approved_evidence(client, auth_headers):
     user = auth_headers("bob")
     case_id = UUID(create_scoped_case(client, user))
     intake = f"/api/v1/cases/{case_id}/intake"
     assert client.put(intake, headers=user, json={"facts": FACTS, "confirm": True}).status_code == 200
-    context = {"case_id": case_id, "principal": Principal("bob")}
+    context = _thread_context(client, case_id, "bob")
     version, digest = _create(client)
     _approve(client, version, digest)
 
@@ -282,24 +291,31 @@ def test_phase4_catalogue_and_search_api_share_exact_approved_evidence(client, a
         ).passages == ()
 
 
-def test_phase4_case_evidence_hides_foreign_or_missing_cases(client, auth_headers):
+def test_phase4_evidence_hides_foreign_or_unlinked_thread_context(client, auth_headers):
     user = auth_headers("alice")
     case_id = UUID(create_scoped_case(client, user))
     assert client.put(
         f"/api/v1/cases/{case_id}/intake", headers=user, json={"facts": FACTS, "confirm": True},
     ).status_code == 200
+    context = _thread_context(client, case_id, "alice")
+    with client.app.state.session_factory.begin() as db:
+        own_unlinked_thread = create_thread(db, principal=Principal("alice"))
+        foreign_thread = create_thread(db, principal=Principal("bob"))
+
     version, digest = _create(client)
     _approve(client, version, digest)
     citation_id = _search(client, user, limit=1).json()["evidence"][0]["citation_id"]
-
     with client.app.state.session_factory() as db:
-        for target, subject in ((case_id, "bob"), (uuid4(), "alice")):
-            found = find_catalogue_evidence(
-                db, case_id=target, principal=Principal(subject), query="residenza",
-            )
-            resolved = resolve_catalogue_evidence(
-                db, case_id=target, principal=Principal(subject), citation_id=citation_id,
-            )
+        for overrides in (
+            {"principal": Principal("bob")},
+            {"case_id": uuid4()},
+            {"thread_id": uuid4()},
+            {"thread_id": own_unlinked_thread},
+            {"thread_id": foreign_thread},
+        ):
+            request = {**context, **overrides}
+            found = find_catalogue_evidence(db, **request, query="residenza")
+            resolved = resolve_catalogue_evidence(db, **request, citation_id=citation_id)
             assert found == resolved
             assert found.status == "case_unavailable"
             assert found.passages == ()
@@ -310,7 +326,7 @@ def test_phase4_case_evidence_reloads_confirmation_and_scope(client, auth_header
     user = auth_headers("alice")
     case_id = UUID(client.post("/api/v1/cases", json={}, headers=user).json()["id"])
     root = f"/api/v1/cases/{case_id}"
-    context = {"case_id": case_id, "principal": Principal("alice")}
+    context = _thread_context(client, case_id, "alice")
     version, digest = _create(client)
     _approve(client, version, digest)
     citation_id = _search(client, user, limit=1).json()["evidence"][0]["citation_id"]
@@ -353,7 +369,7 @@ def test_phase4_case_evidence_fails_closed_for_invalid_or_foreign_intake(client,
     assert client.put(
         f"/api/v1/cases/{case_id}/intake", headers=user, json={"facts": FACTS, "confirm": True},
     ).status_code == 200
-    context = {"case_id": case_id, "principal": Principal("alice")}
+    context = _thread_context(client, case_id, "alice")
     for changes, expected in (
         ({"facts": {"destination_municipality": ["milano"]}}, ("intake_confirmation",)),
         ({"facts": {"destination_municipality": "milano"}}, (

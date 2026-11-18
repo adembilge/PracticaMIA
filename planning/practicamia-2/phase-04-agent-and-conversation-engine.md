@@ -19,7 +19,7 @@ The [Task 31 contract proposal](phase-04-agent-api-contract.md) includes offline
 
 ## 32. Build a single LangGraph graph
 
-The [Milan evidence handoff](../../docs/APPROVED_PASSAGE_SEARCH.md#phase-4-evidence-handoff) exercises the existing approved search and citation checks with a typed Phase 4 consumer. Each lookup reads the owning case and its current confirmed intake before resolving evidence. The first graph awaits the reviewed catalogue and pilot workflow specified by the [API contract](phase-04-agent-api-contract.md#acceptance-and-dependency-checks).
+The [Milan evidence handoff](../../docs/APPROVED_PASSAGE_SEARCH.md#phase-4-evidence-handoff) exercises the existing approved search and citation checks with a typed Phase 4 consumer. Each lookup checks the authenticated user’s thread, the explicit case link and the case’s current confirmed intake before resolving evidence. The first graph awaits the reviewed catalogue and pilot workflow specified by the [API contract](phase-04-agent-api-contract.md#acceptance-and-dependency-checks).
 
 | Node | Result |
 | --- | --- |
@@ -38,6 +38,8 @@ The [Milan evidence handoff](../../docs/APPROVED_PASSAGE_SEARCH.md#phase-4-evide
 **Acceptance.** One chat supports direct answers and waiting for information. A tool failure produces a recoverable route.
 
 ## 33. Persist conversation, case, and resumption state
+
+The [thread ownership service](../../backend/app/agent/threads.py) uses server-issued IDs and accepts links only when the principal owns both the thread and case. Retrying a link leaves one row. Deleting a thread or case removes its links. Migration `20261118_0018` adds the two tables. Message history, checkpoints, expiry, and the thread creation endpoint remain open.
 
 - **33.1** Model messages, checkpoints, and cases. Messages hold conversation, checkpoints hold execution state, and cases hold confirmed facts and pending work. [LangGraph persistence](https://docs.langchain.com/oss/python/langgraph/persistence)
 - **33.2** Keep the active case, candidates, known and missing fields, sources, pending question, and proposal IDs in agent state. Use authorised references for large files.
