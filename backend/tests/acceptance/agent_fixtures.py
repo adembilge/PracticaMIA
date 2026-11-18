@@ -19,8 +19,16 @@ class AgentReconnectFixture:
     def __init__(self, api):
         self.sessions = api.state.session_factory
         self.key = token_bytes(32)
-        principal = Principal("alice")
         api.include_router(build_reconnect_router(key=self.key))
+        self.question_ids = {
+            self.seed_question(prompt) for prompt in (
+                "Which synthetic route should be stopped?",
+                "Which synthetic municipality applies?",
+            )
+        }
+
+    def seed_question(self, prompt):
+        principal = Principal("alice")
         with self.sessions.begin() as db:
             thread_id = create_thread(db, principal=principal)
             accepted = accept_message(
@@ -28,21 +36,22 @@ class AgentReconnectFixture:
                 message=SendMessage(client_message_id=uuid4(), text="Synthetic move", language="en"),
             )
         context = {"thread_id": thread_id, "run_id": accepted.run_id, "principal": principal, "key": self.key}
-        self.question = ClarifyingQuestion(
-            question_id=uuid4(), text="Which synthetic municipality applies?",
+        question = ClarifyingQuestion(
+            question_id=uuid4(), text=prompt,
             answer_shape="single_choice", options=["Fixture A", "Fixture B"],
             missing_fields=["jurisdiction"],
         )
         snapshot = run_worker_step(self.sessions, **context, execute=lambda *_: RequestClarification(
-            self.question, CheckpointState(next_node="find_evidence"),
+            question, CheckpointState(next_node="find_evidence"),
         ))
         if snapshot.status != "waiting_for_information":
             raise RuntimeError("Expected the synthetic run to pause for a question")
+        return question.question_id
 
     def finish(self, message, state):
         if (
             state.next_node != "find_evidence" or message.clarification_reply is None
-            or message.clarification_reply.question_id != self.question.question_id
+            or message.clarification_reply.question_id not in self.question_ids
         ):
             raise RuntimeError("The worker did not resume from the recorded answer")
         return AnswerResult(

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 type ActiveRun = { thread_id: string; run_id: string };
 type Snapshot = {
+  run_id: string;
   status: string;
   last_event_seq: number;
   run_revision: number;
@@ -9,6 +10,7 @@ type Snapshot = {
 };
 type Question = { question_id: string; text: string; options: string[] };
 type RunView = { url: string; snapshot: Snapshot; question: Question | null };
+const activeStatuses = new Set(['queued', 'running', 'waiting_for_information', 'waiting_for_approval', 'stopping']);
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, cache: 'no-store' });
@@ -45,12 +47,19 @@ export function AgentReconnectFixture() {
     return () => controller.abort();
   }, []);
 
+  function displayRun(next: RunView) {
+    setView(next);
+    setChoice('');
+    if (!activeStatuses.has(next.snapshot.status)) {
+      setRuns(items => items?.filter(run => run.run_id !== next.snapshot.run_id) ?? null);
+    }
+  }
+
   async function open(url: string) {
     setBusy(true);
     setError('');
     try {
-      setView(await loadRun(url));
-      setChoice('');
+      displayRun(await loadRun(url));
     } catch {
       setError('Could not open the conversation.');
     } finally {
@@ -75,10 +84,35 @@ export function AgentReconnectFixture() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ client_reply_id: id, expected_run_revision: revision, text: choice }),
       });
-      setView(await loadRun(view.url));
-      setChoice('');
+      displayRun(await loadRun(view.url));
     } catch {
       setError('Could not confirm the reply. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function stop() {
+    if (!view || busy || !activeStatuses.has(view.snapshot.status)) return;
+    setBusy(true);
+    setError('');
+    try {
+      const response = await fetch(`${view.url}/stop`, {
+        method: 'POST',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expected_run_revision: view.snapshot.run_revision }),
+      });
+      if (response.status === 409) {
+        displayRun(await loadRun(view.url));
+        setError('The conversation changed. Review its current status.');
+        return;
+      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const snapshot: Snapshot = await response.json();
+      displayRun({ url: view.url, snapshot, question: null });
+    } catch {
+      setError('Could not confirm the stop. Try again.');
     } finally {
       setBusy(false);
     }
@@ -111,10 +145,15 @@ export function AgentReconnectFixture() {
         </form> : view.snapshot.result ? <div>
           <h2>Conversation complete</h2>
           <p>{view.snapshot.result.explanation}</p>
-        </div> : <>
+        </div> : view.snapshot.status === 'stopped' ? (
+          <div role="status"><h2>Conversation stopped</h2></div>
+        ) : <>
           <p role="status">Answer in progress.</p>
           <button type="button" disabled={busy} onClick={() => void open(view.url)}>Check status</button>
         </>}
+        {activeStatuses.has(view.snapshot.status) && (
+          <button type="button" disabled={busy} onClick={() => void stop()}>Stop conversation</button>
+        )}
       </section>}
     </div>
   </main>;
