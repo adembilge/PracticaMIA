@@ -33,6 +33,10 @@ class EventConflict(ValueError):
     """The event cannot follow the stored sequence or run state."""
 
 
+class InvalidEventCursor(ValueError):
+    """The requested event page is outside the reconnect bounds."""
+
+
 class InvalidClarificationReply(ValueError):
     """The reply does not match the saved question’s answer shape."""
 
@@ -165,7 +169,7 @@ def read_run_events(
 
     latest = _latest_event(db, run)
     if not 0 <= after_seq <= (latest.event_seq if latest else 0) or not 1 <= limit <= 100:
-        raise ValueError("Invalid event cursor or page size")
+        raise InvalidEventCursor("Invalid event cursor or page size")
 
     rows = db.scalars(
         select(AgentRunEvent).where(AgentRunEvent.run_id == run.id, AgentRunEvent.event_seq > after_seq)
