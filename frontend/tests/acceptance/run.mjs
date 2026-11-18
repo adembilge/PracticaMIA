@@ -646,6 +646,7 @@ try{
     await field.fill('18/11/2026');
     const [valid]=await Promise.all([nextReply(),send.click()]);
     assert.equal(valid.status(),200);
+    await send.waitFor({state:'hidden'});
     await owner.waitForFunction(async path=>{
       const response=await fetch(path,{cache:'no-store'});
       return response.ok && (await response.json()).status==='completed';
