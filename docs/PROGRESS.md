@@ -87,4 +87,6 @@ The [internal worker](../backend/app/agent/worker.py) loads a saved checkpoint, 
 
 The [worker queue](../backend/app/agent/worker_leases.py) selects eligible runs using a database lease. It skips rows held by another claimer, reclaims expired leases and rejects results from workers that lose ownership. Migration `20261118_0022` adds the lease fields and queue index. Hosted dispatch and reviewed LangGraph execution remain open.
 
+The [worker clarification path](../backend/app/agent/worker.py) stores the pending question and resume checkpoint in one transaction, then releases the worker lease. A new session can replay the question from its last event cursor. Synthetic tests cover lease release, queue exclusion while waiting and rollback on invalid output. Receiving a user answer and resuming execution still require an authenticated integration.
+
 For implementation details see [the documentation index](README.md).

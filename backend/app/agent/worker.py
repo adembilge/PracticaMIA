@@ -1,6 +1,7 @@
 """Advance one durable step of an owned run in the internal agent service."""
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -9,7 +10,10 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.agent.checkpoints import (
     CheckpointConflict, CheckpointState, finish_checkpoint, load_checkpoint, save_checkpoint,
 )
-from app.agent.contract import AnswerCompleted, AnswerResult, ProgressUpdated, RunSnapshot, RunStarted
+from app.agent.contract import (
+    AnswerCompleted, AnswerResult, ClarifyingQuestion, ProgressUpdated, QuestionRequested,
+    RunSnapshot, RunStarted,
+)
 from app.agent.run_events import read_run_snapshot
 from app.agent.run_requests import (
     WORKER_RUN_STATUSES, AgentRunRequest, StoredMessage, _owned_run, read_run_message,
@@ -17,7 +21,16 @@ from app.agent.run_requests import (
 from app.agent.worker_leases import WorkerLease, claim_next_run, require_worker_lease
 from app.auth.tokens import Principal
 
-ExecuteStep = Callable[[StoredMessage, CheckpointState], CheckpointState | AnswerResult]
+
+@dataclass(frozen=True)
+class RequestClarification:
+    question: ClarifyingQuestion
+    resume_state: CheckpointState
+
+
+ExecuteStep = Callable[
+    [StoredMessage, CheckpointState], CheckpointState | RequestClarification | AnswerResult,
+]
 
 
 def run_next_worker_step(
@@ -95,13 +108,18 @@ def run_worker_step(
                 event=AnswerCompleted(**envelope, type="answer.completed", result=result),
             )
         else:
-            save_checkpoint(
-                db, **context, **boundary, state=result,
-                event=ProgressUpdated(
+            if isinstance(result, RequestClarification):
+                state = result.resume_state.model_copy(
+                    update={"pending_question_id": result.question.question_id},
+                )
+                event = QuestionRequested(**envelope, type="question.requested", question=result.question)
+            else:
+                state = result
+                event = ProgressUpdated(
                     **envelope, type="progress.updated", stage=checkpoint.state.next_node,
                     text="Worker step recorded.",
-                ),
-            )
+                )
+            save_checkpoint(db, **context, **boundary, state=state, event=event)
         if lease is not None:
             run.lease_token = None
             run.lease_expires_at = None
