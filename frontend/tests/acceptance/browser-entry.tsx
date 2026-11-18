@@ -12,6 +12,7 @@ import {SavedCasesView} from '@/components/SavedCasesView';
 import {PrivateDocumentsWorkspace} from '@/components/PrivateDocumentsWorkspace';
 import {SavedCaseWorkspace} from '@/components/SavedCaseWorkspace';
 import {PreparationPreview} from '@/components/PreparationPreview';
+import {AgentReconnectFixture} from './agent-reconnect';
 
 declare global {
   interface Window { acceptancePrivateDocuments?: boolean }
@@ -32,6 +33,7 @@ function AcceptanceApp(){
     <SiteHeader signedIn={signedIn} accountName={signedIn ? 'Example Applicant' : undefined}/>
     {path === '/cases/new' ? <StartCaseView signedIn={signedIn} canSave canExplore/> :
       path === '/demo/synthetic' ? <SyntheticDemoWorkspace/> :
+      path === '/__acceptance/agent' ? <AgentReconnectFixture/> :
       route?.[2] === '/preparation' && id ?
       <PreparationPreview key={id} caseId={id} configured signedIn={signedIn}/> :
       documentsEnabled && route?.[2] === '/documents' && id ?

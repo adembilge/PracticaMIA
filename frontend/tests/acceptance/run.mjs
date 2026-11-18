@@ -567,6 +567,58 @@ try{
     await page.getByRole('heading',{name:'Synthetic documents',exact:true}).waitFor();
   });
 
+  await scenario('Agent reconnect: a new browser session restores and replies to a pending question',async()=>{
+    const route='/__acceptance/agent';
+    const original=await contextFor('alice');
+    await original.goto(origin+route);
+    await original.getByRole('button',{name:'Open conversation'}).first().click();
+    await original.getByText('Which synthetic municipality applies?',{exact:true}).waitFor();
+    await original.context().close();
+
+    const owner=await contextFor('alice',{width:390,height:800});
+    await owner.goto(origin+route);
+    await owner.getByRole('button',{name:'Open conversation'}).first().click();
+    await owner.getByText('Which synthetic municipality applies?',{exact:true}).waitFor();
+    await owner.getByRole('radio',{name:'Fixture B'}).check();
+    const sent=[];
+    await owner.route('**/questions/*/reply',async intercepted=>{
+      const response=await intercepted.fetch();
+      sent.push({status:response.status(),body:await response.json()});
+      // Simulate a response lost after the server committed the reply.
+      if(sent.length===1) await intercepted.abort();
+      else await intercepted.fulfill({response});
+    });
+    const reply=owner.getByRole('button',{name:'Send reply',exact:true});
+    await reply.click();
+    await owner.getByRole('alert').filter({hasText:'Could not confirm the reply. Try again.'}).waitFor();
+    await reply.click();
+    await owner.getByText('Answer in progress.',{exact:true}).waitFor();
+    assert.equal(sent.length,2);
+    assert.equal(sent[0].status,200);
+    assert.deepEqual(sent[1],sent[0]);
+
+    const other=await contextFor('bob');
+    await other.goto(origin+route);
+    await other.getByText('No active conversations.',{exact:true}).waitFor();
+    const run=sent[0].body;
+    const url=`/api/agent/threads/${run.thread_id}/runs/${run.run_id}`;
+    assert.equal((await readJson(other,url)).status,404);
+    assert.equal((await readJson(other,url+'/events')).status,404);
+
+    const advance=await owner.request.post(origin+'/__acceptance/agent/step');
+    assert.equal(advance.status(),200);
+    assert.deepEqual(await advance.json(),{status:'completed'});
+    await owner.getByRole('button',{name:'Check status'}).click();
+    await owner.getByRole('heading',{name:'Conversation complete'}).waitFor();
+    await owner.getByText('Received Fixture B.',{exact:true}).waitFor();
+    const replay=await readJson(owner,url+'/events');
+    assert.equal(replay.status,200);
+    assert.deepEqual(replay.body.events.map(event=>event.type),[
+      'run.started','question.requested','question.answered','answer.completed',
+    ]);
+    assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  });
+
   await scenario('A8: browser runs without uncaught runtime errors',async()=>{
     assert.deepEqual(errors,[]);
   });
