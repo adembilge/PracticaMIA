@@ -20,7 +20,8 @@ from app.auth.tokens import Principal
 from app.cases.model import CaseRecord
 from app.database import Base
 
-ACTIVE_STATUSES = ("queued", "running", "waiting_for_information", "waiting_for_approval", "stopping")
+WORKER_RUN_STATUSES = ("queued", "running")
+ACTIVE_STATUSES = (*WORKER_RUN_STATUSES, "waiting_for_information", "waiting_for_approval", "stopping")
 ALL_STATUSES = (*ACTIVE_STATUSES, "completed", "failed", "stopped")
 
 
@@ -33,6 +34,14 @@ class AgentRunRequest(Base):
         ),
         UniqueConstraint("thread_id", "client_message_id", name="uq_agent_runs_client_message"),
         CheckConstraint(f"status IN {ALL_STATUSES}", name="ck_agent_run_requests_status"),
+        CheckConstraint(
+            "(lease_token IS NULL) = (lease_expires_at IS NULL)", name="ck_agent_worker_lease_pair",
+        ),
+        Index(
+            "ix_agent_worker_queue", "accepted_at", "id",
+            postgresql_where=text(f"status IN {WORKER_RUN_STATUSES}"),
+            sqlite_where=text(f"status IN {WORKER_RUN_STATUSES}"),
+        ),
         Index(
             "uq_agent_runs_active_thread", "thread_id", unique=True,
             postgresql_where=text(f"status IN {ACTIVE_STATUSES}"),
@@ -48,6 +57,8 @@ class AgentRunRequest(Base):
     accepted_revision: Mapped[int] = mapped_column(Integer)
     message_ciphertext: Mapped[bytes] = mapped_column(LargeBinary)
     accepted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    lease_token: Mapped[str | None] = mapped_column(String(36))
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 @dataclass(frozen=True)
