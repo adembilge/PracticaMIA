@@ -57,7 +57,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 - **34.3** Match reviewed everyday names and acronym variants in the Phase 3 catalogue. The [scoped Milan search adapter](../../docs/APPROVED_PASSAGE_SEARCH.md#phase-4-evidence-handoff) uses a bounded lexical retry for bilingual address phrases and preserves the distinction between `residenza` and `domicilio`.
 - **34.4** Evaluate saved procedure candidates against [confirmed location roles, dates and circumstances](phase-04-agent-api-contract.md#procedure-candidate-applicability). The assignment's required location role determines which case fact establishes the area.
 - **34.5** The [isolated outcome step](phase-04-agent-api-contract.md#empty-and-conflicting-procedure-results) explains unresolved candidates, asks a distinguishing question or offers a separately reviewed and applicable official assistance channel.
-- **34.6** Test Italian, English, incomplete sentences, spelling mistakes, acronyms, and multiple authority names.
+- **34.6** The [synthetic matching matrix](phase-04-agent-api-contract.md#bilingual-matching-evaluation) tests Italian and English messages, incomplete sentences, spelling mistakes, acronyms and competing authority names.
 
 **Acceptance.** Intent recognition and official procedure selection are independently measurable. Definitive routing depends on a verified authority.
 

@@ -49,6 +49,12 @@ A remaining conflict produces `conflicting_evidence`. An empty or incomplete res
 
 The worker persists the question with its encrypted checkpoint. If the resumed step still lacks confirmed facts, it defers instead of opening the same question again. Task 35 owns interpreting replies, re-evaluating candidates and applying corrections. The [worker and resolver fixtures](../../backend/tests/test_agent_candidate_resolution.py) use fictional records and cover localized questions, authority collisions, invalid contact scopes and encrypted resumption. Integration with the full reviewed catalogue and a hosted user-facing route remains open.
 
+## Bilingual matching evaluation
+
+The [Task 34.6 regression matrix](../../backend/tests/test_agent_matching_matrix.py) checks intent and saved procedure candidates independently from authority applicability and clarification outcomes. It uses paired English and Italian messages with complete wording, fragments, misspelled procedures or places, and multiple authority names. Compact, dotted and letter-spaced acronyms preserve the same identity candidate and confirmation requirement. The fixtures exercise a confirmed service area, overlapping assignments and withdrawn evidence.
+
+Message extraction records a gap when an exact procedure or location expression is missing. The outcome step can then ask a targeted question. Standalone catalogue lookup may suggest a one-edit spelling variant for confirmation. These checks run against synthetic catalogue records in Backend CI. Run `python -m pytest -q tests/test_agent_matching_matrix.py` from `backend/`.
+
 ## Identifiers and state
 
 | Field | Meaning | Rule |
