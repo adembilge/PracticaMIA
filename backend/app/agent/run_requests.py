@@ -15,6 +15,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
+from app.agent.case_context import WorkerCaseContext
 from app.agent.contract import (
     ActiveRunCursor, ActiveRunPage, ActiveRunSummary, Language, QuestionAnswered, SendMessage,
 )
@@ -85,6 +86,7 @@ class StoredMessage:
     case_id: UUID | None
     clarification_reply: QuestionAnswered | None = None
     recent_user_messages: tuple[RecentUserMessage, ...] = ()
+    case_context: WorkerCaseContext | None = None
 
 
 def _associated_data(run: AgentRunRequest, subject: str) -> bytes:

@@ -46,7 +46,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 - **33.3** Resume from the last consistent point after a closed browser, worker restart, or interrupted model call.
 - **33.4** Start with one active run per thread. Detect conflicts with case revisions when separate conversations update the same case.
 - **33.5** Minimise sensitive data in checkpoints. Define cleanup for case deletion and retention expiry.
-- **33.6** For long conversations, pass relevant recent messages, confirmed facts, and open actions. The worker reloads up to three earlier user messages from completed runs in the same owned thread and exact case scope. An unlinked run sees only unlinked history. It reads the messages as conversation data in accepted order. The typed handoff for confirmed facts and open actions from case records remains open.
+- **33.6** For long conversations, pass relevant recent messages, confirmed facts, and open actions. The worker reloads up to three earlier user messages from completed runs in the same owned thread and exact case scope. An unlinked run sees only unlinked history. It reads the messages as conversation data in accepted order. For a linked case, each worker step also reads a typed snapshot of explicitly user-confirmed intake and open checklist review IDs. The current signed workflow validates the action IDs and invalidates prior acknowledgements when its fingerprint changes. The snapshot carries intake and checklist next actions. Document and package decisions belong to their own workflow services.
 
 **Acceptance.** The user can return to a pending question. Retried requests create no duplicate cases, tasks, or writes.
 
