@@ -103,4 +103,6 @@ The [Task 34.4 applicability resolver](../planning/practicamia-2/phase-04-agent-
 
 The [Task 34.5 outcome step](../planning/practicamia-2/phase-04-agent-api-contract.md#empty-and-conflicting-procedure-results) uses confirmed case facts to choose a targeted English or Italian question, explain the conflict or defer. A public assistance page can appear for one identified procedure when a separate reviewed and currently trusted assistance assignment applies to the case. Synthetic tests exercise source withdrawal, territorial scope and the persisted question boundary. Reply interpretation, the reviewed live catalogue and the hosted user-facing route remain open.
 
+The [Task 34.6 matching matrix](../planning/practicamia-2/phase-04-agent-api-contract.md#bilingual-matching-evaluation) adds 20 synthetic regression cases for bilingual intent and procedure matching, spelling suggestions, acronym variants, authority order, confirmed service areas and conflicting or withdrawn evidence. The cases use the existing extraction, applicability and clarification steps. Live catalogue accuracy and hosted agent acceptance remain open.
+
 For implementation details see [the documentation index](README.md).
