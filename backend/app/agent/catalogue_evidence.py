@@ -3,25 +3,22 @@
 from dataclasses import dataclass
 from datetime import timezone
 from typing import Literal
+from uuid import UUID
 
+from pydantic import ValidationError
+from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from app.agent.contract import Citation
+from app.auth.tokens import Principal
+from app.cases.intake_model import CaseIntake
+from app.cases.intake_schemas import IntakeFacts, describe_intake
+from app.cases.model import CaseRecord
+from app.cases.scope import DEMO_ANSWERS, classify_scope
 from app.knowledge.search import (
     EvidencePassage, resolve_approved_passage, search_approved_passages,
 )
 from app.rules.engine import JURISDICTION, PROCEDURE
-
-ScopeField = Literal["procedure_id", "jurisdiction"]
-
-
-@dataclass(frozen=True)
-class EvidenceScope:
-    """Procedure and location supplied by authorized, confirmed case context."""
-
-    procedure_id: str | None
-    jurisdiction: str | None
-
 
 @dataclass(frozen=True)
 class CataloguePassage:
@@ -34,24 +31,52 @@ class CataloguePassage:
 class CatalogueEvidence:
     status: Literal[
         "evidence_found", "insufficient_evidence", "needs_information", "unsupported_scope",
+        "case_unavailable",
     ]
     passages: tuple[CataloguePassage, ...] = ()
-    missing_fields: tuple[ScopeField, ...] = ()
+    missing_fields: tuple[str, ...] = ()
 
 
-def _scope_gap(scope: EvidenceScope) -> CatalogueEvidence | None:
-    if (
-        scope.procedure_id not in (None, PROCEDURE)
-        or scope.jurisdiction not in (None, JURISDICTION)
-    ):
+def _case_evidence_gap(
+    db: Session, case_id: UUID, principal: Principal,
+) -> CatalogueEvidence | None:
+    # Fetch ownership, scope and intake together so they describe one database
+    # snapshot. Select columns directly to avoid reusing cached ORM instances.
+    context = db.execute(
+        select(
+            CaseRecord.procedure, CaseRecord.status, CaseRecord.scope_answers,
+            CaseIntake.facts, CaseIntake.confirmed_at,
+        )
+        .outerjoin(CaseIntake, and_(
+            CaseIntake.case_id == CaseRecord.id,
+            CaseIntake.owner_subject == CaseRecord.owner_subject,
+        ))
+        .where(CaseRecord.id == str(case_id), CaseRecord.owner_subject == principal.subject)
+    ).one_or_none()
+    if context is None:
+        return CatalogueEvidence(status="case_unavailable")
+
+    procedure, status, scope_answers, facts, confirmed_at = context
+    if procedure != PROCEDURE or status == "unsupported":
         return CatalogueEvidence(status="unsupported_scope")
-    missing: list[ScopeField] = []
-    if scope.procedure_id is None:
-        missing.append("procedure_id")
-    if scope.jurisdiction is None:
-        missing.append("jurisdiction")
-    if missing:
-        return CatalogueEvidence(status="needs_information", missing_fields=tuple(missing))
+    if not isinstance(scope_answers, list):
+        return CatalogueEvidence(status="needs_information", missing_fields=("scope_answers",))
+    if classify_scope(scope_answers) == "unsupported":
+        return CatalogueEvidence(status="unsupported_scope")
+    if status != "provisionally_in_scope" or tuple(scope_answers) != DEMO_ANSWERS:
+        return CatalogueEvidence(status="needs_information", missing_fields=("scope_answers",))
+
+    if confirmed_at is None:
+        return CatalogueEvidence(status="needs_information", missing_fields=("intake_confirmation",))
+    try:
+        typed_facts = IntakeFacts.model_validate(facts).model_dump(exclude_none=True)
+    except ValidationError:
+        return CatalogueEvidence(status="needs_information", missing_fields=("intake_confirmation",))
+    intake = describe_intake(typed_facts, confirmed=True)
+    if intake["outside_first_scenario"]:
+        return CatalogueEvidence(status="unsupported_scope")
+    if not intake["first_scenario_match"]:
+        return CatalogueEvidence(status="needs_information", missing_fields=tuple(intake["missing_fields"]))
     return None
 
 
@@ -78,10 +103,10 @@ def _catalogue_passage(passage: EvidencePassage) -> CataloguePassage:
 
 
 def find_catalogue_evidence(
-    db: Session, *, scope: EvidenceScope, query: str, limit: int = 5,
+    db: Session, *, case_id: UUID, principal: Principal, query: str, limit: int = 5,
 ) -> CatalogueEvidence:
-    """Find Italian excerpts for the current Milan route without inferring scope."""
-    if gap := _scope_gap(scope):
+    """Read Italian excerpts using the owning case's confirmed scope."""
+    if gap := _case_evidence_gap(db, case_id, principal):
         return gap
     rows = search_approved_passages(
         db, query=query, jurisdiction=JURISDICTION, procedure_id=PROCEDURE,
@@ -94,10 +119,10 @@ def find_catalogue_evidence(
 
 
 def resolve_catalogue_evidence(
-    db: Session, *, scope: EvidenceScope, citation_id: str,
+    db: Session, *, case_id: UUID, principal: Principal, citation_id: str,
 ) -> CatalogueEvidence:
     """Recheck an exact citation at use time with the current approval gates."""
-    if gap := _scope_gap(scope):
+    if gap := _case_evidence_gap(db, case_id, principal):
         return gap
     row = resolve_approved_passage(
         db, citation_id=citation_id, jurisdiction=JURISDICTION,
