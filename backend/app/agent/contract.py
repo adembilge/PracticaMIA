@@ -16,6 +16,7 @@ RunStatus = Literal[
     "stopping", "stopped", "completed", "failed",
 ]
 ShortText = Annotated[str, StringConstraints(min_length=1, max_length=300, strip_whitespace=True)]
+ClarificationText = Annotated[str, StringConstraints(min_length=1, max_length=2000, strip_whitespace=True)]
 Identifier = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_-]{1,96}$")]
 NonnegativeInt = Annotated[int, Field(strict=True, ge=0)]
 PositiveInt = Annotated[int, Field(strict=True, ge=1)]
@@ -53,6 +54,12 @@ class SendMessage(ContractModel):
         if not text.strip():
             raise ValueError("Message must contain text")
         return text
+
+
+class ClarificationReply(ContractModel):
+    client_reply_id: UUID
+    expected_run_revision: int = Field(strict=True, ge=1, le=2_147_483_647)
+    text: ClarificationText
 
 
 class StopRun(ContractModel):
@@ -186,6 +193,13 @@ class QuestionRequested(EventEnvelope):
     question: ClarifyingQuestion
 
 
+class QuestionAnswered(EventEnvelope):
+    type: Literal["question.answered"]
+    question_id: UUID
+    client_reply_id: UUID
+    text: ClarificationText
+
+
 class ApprovalRequested(EventEnvelope):
     type: Literal["approval.requested"]
     proposal: ApprovalProposal
@@ -209,7 +223,7 @@ class RunStopped(EventEnvelope):
 
 
 AgentEvent = Annotated[
-    RunStarted | ProgressUpdated | QuestionRequested | ApprovalRequested
+    RunStarted | ProgressUpdated | QuestionRequested | QuestionAnswered | ApprovalRequested
     | AnswerCompleted | RunFailed | RunStopped,
     Field(discriminator="type"),
 ]

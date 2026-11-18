@@ -8,8 +8,8 @@ from sqlalchemy import CheckConstraint, ForeignKey, Integer, LargeBinary, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.agent.contract import (
-    AgentEvent, AnswerCompleted, ApprovalRequested, EventPage, RunSnapshot, RunStarted,
-    agent_event_adapter,
+    AgentEvent, AnswerCompleted, ApprovalRequested, EventPage, QuestionAnswered, QuestionRequested,
+    RunSnapshot, RunStarted, agent_event_adapter,
 )
 from app.agent.run_requests import AgentRunRequest, _owned_run, _payload_cipher
 from app.auth.tokens import Principal
@@ -33,12 +33,17 @@ class EventConflict(ValueError):
     """The event cannot follow the stored sequence or run state."""
 
 
+class InvalidClarificationReply(ValueError):
+    """The reply does not match the saved question’s answer shape."""
+
+
 _WAITING = ("waiting_for_information", "waiting_for_approval")
 _RUNNING_OR_WAITING = ("running", *_WAITING)
 _TRANSITIONS = {
     "run.started": (("queued",), "running"),
     "progress.updated": (_RUNNING_OR_WAITING, None),
     "question.requested": (("running",), "waiting_for_information"),
+    "question.answered": (("waiting_for_information",), "running"),
     "approval.requested": (("running",), "waiting_for_approval"),
     "answer.completed": (("running",), "completed"),
     "run.failed": ((*_RUNNING_OR_WAITING, "stopping"), "failed"),
@@ -62,6 +67,13 @@ def _decode_event(
     return agent_event_adapter.validate_json(raw)
 
 
+def _read_event_at(
+    db: Session, run: AgentRunRequest, seq: int, principal: Principal, key: bytes,
+) -> AgentEvent | None:
+    row = db.get(AgentRunEvent, (run.id, seq))
+    return _decode_event(row, run, principal, key) if row else None
+
+
 def _latest_event(db: Session, run: AgentRunRequest) -> AgentRunEvent | None:
     return db.scalar(
         select(AgentRunEvent).where(AgentRunEvent.run_id == run.id)
@@ -72,7 +84,7 @@ def _latest_event(db: Session, run: AgentRunRequest) -> AgentRunEvent | None:
 def append_run_event(
     db: Session, *, principal: Principal, event: AgentEvent, key: bytes,
 ) -> AgentEvent | None:
-    """Append one worker-produced event and advance the run in the same transaction."""
+    """Append one event and advance the run in the same transaction."""
     run = db.scalar(_owned_run(event.thread_id, event.run_id, principal).with_for_update(
         of=AgentRunRequest,
     ))
@@ -81,8 +93,7 @@ def append_run_event(
 
     payload = event.model_dump_json().encode()
     event = agent_event_adapter.validate_json(payload)
-    if previous := db.get(AgentRunEvent, (run.id, event.event_seq)):
-        saved = _decode_event(previous, run, principal, key)
+    if saved := _read_event_at(db, run, event.event_seq, principal, key):
         if saved != event:
             raise EventConflict("Event sequence is already occupied")
         return saved
@@ -98,6 +109,13 @@ def append_run_event(
         raise EventConflict("Start event must identify the accepted message")
     if isinstance(event, ApprovalRequested) and str(event.proposal.case_id) != run.case_id:
         raise EventConflict("Proposal must belong to the run's case")
+
+    if isinstance(event, QuestionAnswered):
+        pending = _decode_event(latest, run, principal, key) if latest else None
+        if not isinstance(pending, QuestionRequested) or pending.question.question_id != event.question_id:
+            raise EventConflict("Reply must identify the pending question")
+        if pending.question.answer_shape == "single_choice" and event.text not in pending.question.options:
+            raise InvalidClarificationReply("Reply must match one of the offered choices")
 
     nonce = urandom(12)
     ciphertext = nonce + _payload_cipher(key).encrypt(

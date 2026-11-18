@@ -1,7 +1,7 @@
 """Advance one durable step of an owned run in the internal agent service."""
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -11,10 +11,10 @@ from app.agent.checkpoints import (
     CheckpointConflict, CheckpointState, finish_checkpoint, load_checkpoint, save_checkpoint,
 )
 from app.agent.contract import (
-    AnswerCompleted, AnswerResult, ClarifyingQuestion, ProgressUpdated, QuestionRequested,
-    RunSnapshot, RunStarted,
+    AnswerCompleted, AnswerResult, ClarifyingQuestion, ProgressUpdated, QuestionAnswered,
+    QuestionRequested, RunSnapshot, RunStarted,
 )
-from app.agent.run_events import read_run_snapshot
+from app.agent.run_events import _read_event_at, read_run_snapshot
 from app.agent.run_requests import (
     WORKER_RUN_STATUSES, AgentRunRequest, StoredMessage, _owned_run, read_run_message,
 )
@@ -83,6 +83,9 @@ def run_worker_step(
         message = read_run_message(db, **context)
         if message is None:
             return None
+        boundary_event = _read_event_at(db, run, checkpoint.event_seq, principal, key)
+        if isinstance(boundary_event, QuestionAnswered):
+            message = replace(message, clarification_reply=boundary_event)
 
     # Only completed boundaries survive a crash. Uncommitted computation can
     # run again, so this callback must not perform external writes.

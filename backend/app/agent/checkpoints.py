@@ -1,6 +1,7 @@
 """Encrypted worker checkpoints for the internal Phase 4 execution path."""
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import json
 from os import urandom
 from typing import Literal
@@ -11,10 +12,10 @@ from sqlalchemy import CheckConstraint, ForeignKey, Integer, LargeBinary, String
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.agent.contract import (
-    AgentEvent, AnswerCompleted, ApprovalRequested, ContractModel, Identifier, PassageId,
-    QuestionRequested, TERMINAL_EVENTS,
+    AgentEvent, AnswerCompleted, ApprovalRequested, ClarificationReply, ContractModel, Identifier,
+    PassageId, QuestionAnswered, QuestionRequested, TERMINAL_EVENTS,
 )
-from app.agent.run_events import _latest_event, append_run_event
+from app.agent.run_events import _latest_event, _read_event_at, append_run_event
 from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run, _payload_cipher
 from app.auth.tokens import Principal
 from app.database import Base
@@ -156,6 +157,45 @@ def save_checkpoint(
     db.flush()
     return WorkerCheckpoint(revision, event_seq, state)
 
+
+def submit_clarification_reply(
+    db: Session, *, thread_id: UUID, run_id: UUID, question_id: UUID,
+    principal: Principal, key: bytes, reply: ClarificationReply,
+) -> QuestionAnswered | None:
+    """Record one answer at the question boundary and make its run runnable."""
+    context = {"thread_id": thread_id, "run_id": run_id, "principal": principal, "key": key}
+    run = db.scalar(_owned_run(thread_id, run_id, principal).with_for_update(of=AgentRunRequest))
+    if run is None:
+        return None
+
+    reply = ClarificationReply.model_validate_json(reply.model_dump_json())
+    # The revision shown with the question is the sequence its reply would occupy.
+    reply_seq = reply.expected_run_revision
+    saved = _read_event_at(db, run, reply_seq, principal, key)
+    if isinstance(saved, QuestionAnswered) and (
+        saved.question_id, saved.client_reply_id, saved.text,
+    ) == (question_id, reply.client_reply_id, reply.text):
+        return saved
+    if saved is not None or run.status != "waiting_for_information":
+        raise CheckpointConflict("The question is no longer pending at this revision")
+
+    checkpoint = load_checkpoint(db, **context)
+    if (
+        checkpoint is None or checkpoint.state.pending_question_id != question_id
+        or checkpoint.event_seq + 1 != reply_seq
+    ):
+        raise CheckpointConflict("The question is no longer pending at this revision")
+
+    answered = QuestionAnswered(
+        schema_version=1, thread_id=thread_id, run_id=run_id, event_seq=reply_seq,
+        occurred_at=datetime.now(timezone.utc), type="question.answered",
+        question_id=question_id, client_reply_id=reply.client_reply_id, text=reply.text,
+    )
+    updated = save_checkpoint(
+        db, **context, expected_revision=checkpoint.revision, expected_event_seq=checkpoint.event_seq,
+        state=checkpoint.state.model_copy(update={"pending_question_id": None}), event=answered,
+    )
+    return answered if updated is not None else None
 
 
 def finish_checkpoint(
