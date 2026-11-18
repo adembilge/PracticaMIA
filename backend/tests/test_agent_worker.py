@@ -1,16 +1,19 @@
 """Exercise durable worker recovery using synthetic, read-only steps."""
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.orm import sessionmaker
 
-from app.agent.checkpoints import AgentRunCheckpoint, CheckpointConflict, CheckpointState, load_checkpoint
-from app.agent.contract import AnswerResult
+from app.agent.checkpoints import AgentRunCheckpoint, CheckpointConflict, CheckpointState, load_checkpoint, stop_run
+from app.agent.contract import AnswerResult, SendMessage
 from app.agent.run_events import append_run_event, read_run_events, read_run_snapshot
+from app.agent.run_requests import AgentRunRequest, RecentUserMessage, accept_message
+from app.agent.threads import create_thread, link_case_to_thread
 from app.agent.worker import run_worker_step
 from app.auth.tokens import Principal
 from test_agent_run_events import queued_run  # noqa: F401 - shared synthetic run fixture
+from test_agent_run_requests import ALICE, KEY
 
 
 def test_replacement_worker_skips_completed_node_after_interruption(queued_run):
@@ -93,3 +96,82 @@ def test_worker_does_not_execute_foreign_or_waiting_run(queued_run):
     with factory.begin() as db:
         append_run_event(db, principal=context["principal"], key=context["key"], event=question)
     assert run_worker_step(factory, **context, execute=must_not_execute).status == "waiting_for_information"
+
+
+def _enqueue(factory, thread_id, text, *, case_id=None, language="en"):
+    context = {"thread_id": thread_id, "principal": ALICE, "key": KEY}
+    with factory.begin() as db:
+        accepted = accept_message(
+            db, **context,
+            message=SendMessage(client_message_id=uuid4(), text=text, language=language, case_id=case_id),
+        )
+        assert accepted.outcome == "accepted"
+    return {**context, "run_id": accepted.run_id}
+
+
+def _finish(*_):
+    return AnswerResult(explanation="Synthetic result", verification_status="insufficient_evidence")
+
+
+def test_worker_history_is_bounded_to_prior_completed_messages_for_this_thread_and_case(client, auth_headers):
+    case_a = UUID(client.post("/api/v1/cases", headers=auth_headers(), json={}).json()["id"])
+    case_b = UUID(client.post("/api/v1/cases", headers=auth_headers(), json={}).json()["id"])
+    factory = client.app.state.session_factory
+    with factory.begin() as db:
+        main_thread = create_thread(db, principal=ALICE)
+        other_thread = create_thread(db, principal=ALICE)
+        for thread_id, case_id in ((main_thread, case_a), (main_thread, case_b), (other_thread, case_a)):
+            assert link_case_to_thread(db, thread_id=thread_id, case_id=case_id, principal=ALICE)
+
+    for index in range(4):
+        context = _enqueue(factory, main_thread, f"Case A fixture {index}", case_id=case_a, language="it")
+        assert run_worker_step(factory, **context, execute=_finish).status == "completed"
+    for (thread_id, case_id, text) in (
+        (main_thread, case_b, "Other case fixture"),
+        (other_thread, case_a, "Other thread fixture"),
+        (main_thread, None, "Unlinked fixture"),
+    ):
+        context = _enqueue(factory, thread_id, text, case_id=case_id)
+        assert run_worker_step(factory, **context, execute=_finish).status == "completed"
+
+    stopped = _enqueue(factory, main_thread, "Stopped fixture", case_id=case_a)
+    with factory.begin() as db:
+        assert stop_run(db, **stopped, expected_run_revision=1).status == "stopped"
+
+    active = _enqueue(factory, main_thread, "Current fixture", case_id=case_a)
+    expected = tuple(RecentUserMessage(f"Case A fixture {index}", "it") for index in range(1, 4))
+
+    def advance(message, state):
+        assert message.text == "Current fixture"
+        assert message.recent_user_messages == expected
+        if state.next_node == "load_context":
+            return CheckpointState(next_node="find_evidence")
+        return _finish()
+
+    assert run_worker_step(factory, **active, execute=advance).status == "running"
+    replacement = sessionmaker(bind=factory.kw["bind"])
+    assert run_worker_step(replacement, **active, execute=advance).status == "completed"
+
+    def verify_unlinked(message, _state):
+        assert message.recent_user_messages == (RecentUserMessage("Unlinked fixture", "en"),)
+        return _finish()
+
+    unlinked = _enqueue(factory, main_thread, "Current unlinked fixture")
+    assert run_worker_step(factory, **unlinked, execute=verify_unlinked).status == "completed"
+
+
+def test_unreadable_historical_ciphertext_does_not_block_the_current_run(queued_run):
+    factory, context, _, _ = queued_run
+    assert run_worker_step(factory, **context, execute=_finish).status == "completed"
+    older_valid = _enqueue(factory, context["thread_id"], "Valid fixture")
+    assert run_worker_step(factory, **older_valid, execute=_finish).status == "completed"
+    with factory.begin() as db:
+        prior = db.get(AgentRunRequest, str(context["run_id"]))
+        prior.message_ciphertext = b"\x01" * len(prior.message_ciphertext)
+
+    def verify(message, _state):
+        assert message.recent_user_messages == (RecentUserMessage("Valid fixture", "en"),)
+        return _finish()
+
+    current = _enqueue(factory, context["thread_id"], "Current fixture")
+    assert run_worker_step(factory, **current, execute=verify).status == "completed"

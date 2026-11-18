@@ -7,6 +7,7 @@ from os import urandom
 from typing import Literal
 from uuid import UUID, uuid4
 
+from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from sqlalchemy import (
     CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index,
@@ -25,6 +26,7 @@ from app.database import Base
 WORKER_RUN_STATUSES = ("queued", "running")
 ACTIVE_STATUSES = (*WORKER_RUN_STATUSES, "waiting_for_information", "waiting_for_approval", "stopping")
 ALL_STATUSES = (*ACTIVE_STATUSES, "completed", "failed", "stopped")
+RECENT_USER_MESSAGE_LIMIT = 3
 
 
 class AgentRunRequest(Base):
@@ -71,11 +73,18 @@ class RunAcceptance:
 
 
 @dataclass(frozen=True)
+class RecentUserMessage:
+    text: str
+    language: Language
+
+
+@dataclass(frozen=True)
 class StoredMessage:
     text: str
     language: Language
     case_id: UUID | None
     clarification_reply: QuestionAnswered | None = None
+    recent_user_messages: tuple[RecentUserMessage, ...] = ()
 
 
 def _associated_data(run: AgentRunRequest, subject: str) -> bytes:
@@ -227,3 +236,29 @@ def read_run_message(
     """Recover a saved request only while its thread and linked case are owned."""
     run = db.scalar(_owned_run(thread_id, run_id, principal))
     return _decode(run, principal, key) if run else None
+
+
+def read_recent_user_messages(
+    db: Session, *, run: AgentRunRequest, principal: Principal, key: bytes,
+) -> tuple[RecentUserMessage, ...]:
+    """Read a small window of earlier completed messages for the same thread and case."""
+    rows = db.scalars(
+        _owned_runs(principal)
+        .where(
+            AgentRunRequest.thread_id == run.thread_id,
+            AgentRunRequest.case_id == run.case_id,
+            AgentRunRequest.accepted_revision < run.accepted_revision,
+            AgentRunRequest.status == "completed",
+        )
+        .order_by(AgentRunRequest.accepted_revision.desc())
+        .limit(RECENT_USER_MESSAGE_LIMIT)
+    ).all()
+    history = []
+    for row in reversed(rows):
+        try:
+            message = _decode(row, principal, key)
+        except InvalidTag:
+            # An unavailable historical message must never supply context.
+            continue
+        history.append(RecentUserMessage(text=message.text, language=message.language))
+    return tuple(history)
