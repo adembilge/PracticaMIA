@@ -71,15 +71,15 @@ def _associated_data(run: AgentRunRequest, subject: str) -> bytes:
     ], separators=(",", ":")).encode()
 
 
-def _message_cipher(key: bytes) -> AESGCM:
+def _payload_cipher(key: bytes) -> AESGCM:
     if len(key) != 32:
-        raise ValueError("Agent messages require a 256-bit encryption key")
+        raise ValueError("Agent payloads require a 256-bit encryption key")
     return AESGCM(key)
 
 
 def _decode(run: AgentRunRequest, principal: Principal, key: bytes) -> StoredMessage:
     nonce, payload = run.message_ciphertext[:12], run.message_ciphertext[12:]
-    message, language = json.loads(_message_cipher(key).decrypt(
+    message, language = json.loads(_payload_cipher(key).decrypt(
         nonce, payload, _associated_data(run, principal.subject),
     ))
     return StoredMessage(message, language, UUID(run.case_id) if run.case_id else None)
@@ -139,7 +139,7 @@ def accept_message(
     )
     nonce = urandom(12)
     payload = json.dumps([message.text, message.language], ensure_ascii=False).encode()
-    run.message_ciphertext = nonce + _message_cipher(key).encrypt(
+    run.message_ciphertext = nonce + _payload_cipher(key).encrypt(
         nonce, payload, _associated_data(run, principal.subject),
     )
     thread.revision = run.accepted_revision
@@ -148,11 +148,8 @@ def accept_message(
     return RunAcceptance("accepted", UUID(run.id), run.accepted_revision)
 
 
-def read_run_message(
-    db: Session, *, thread_id: UUID, run_id: UUID, principal: Principal, key: bytes,
-) -> StoredMessage | None:
-    """Recover a saved request only while its thread and linked case are owned."""
-    run = db.scalar(
+def _owned_run(thread_id: UUID, run_id: UUID, principal: Principal):
+    return (
         select(AgentRunRequest)
         .join(AgentThread)
         .outerjoin(AgentThreadCase, and_(
@@ -170,4 +167,11 @@ def read_run_message(
         )
         .execution_options(populate_existing=True)
     )
+
+
+def read_run_message(
+    db: Session, *, thread_id: UUID, run_id: UUID, principal: Principal, key: bytes,
+) -> StoredMessage | None:
+    """Recover a saved request only while its thread and linked case are owned."""
+    run = db.scalar(_owned_run(thread_id, run_id, principal))
     return _decode(run, principal, key) if run else None
