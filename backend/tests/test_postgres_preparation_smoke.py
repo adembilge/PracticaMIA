@@ -10,6 +10,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, func, inspect, select, text
 from sqlalchemy.orm import Session
 
+from app.agent.contract import SendMessage
+from app.agent.run_requests import AgentRunRequest, accept_message, read_run_message
 from app.agent.threads import AgentThread, AgentThreadCase, create_thread, link_case_to_thread
 from app.auth.tokens import Principal
 from app.cases.model import CaseRecord
@@ -20,7 +22,7 @@ from conftest import AUDIENCE, ISSUER, JWKS_URL
 
 pytestmark = pytest.mark.skipif(
     os.getenv("RUN_POSTGRES_SMOKE") != "1",
-    reason="requires disposable PG17 CI migrated through 0018",
+    reason="requires disposable PG17 CI migrated through 0019",
 )
 
 
@@ -29,7 +31,7 @@ def test_migration_includes_preparation_tables_and_real_cascading_delete(auth_he
     engine = create_engine(database)
     try:
         with engine.connect() as connection:
-            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "20261118_0018"
+            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "20261118_0019"
         assert {"case_preparations", "case_documents", "case_agent_turns"}.issubset(
             set(inspect(engine).get_table_names())
         )
@@ -131,6 +133,54 @@ def test_agent_thread_case_link_is_owned_concurrent_and_cascades():
             for case_id in (first, second, foreign):
                 if record := db.get(CaseRecord, str(case_id)):
                     db.delete(record)
+            if thread := db.get(AgentThread, str(thread_id)):
+                db.delete(thread)
+        engine.dispose()
+
+
+def test_agent_message_acceptance_serializes_concurrent_retries_and_cascades():
+    engine = create_engine(os.environ["DATABASE_URL"])
+    owner = Principal("synthetic-run-owner")
+    case_id = uuid4()
+    key = bytes(range(32))
+    with Session(engine) as db, db.begin():
+        db.add(CaseRecord(id=str(case_id), owner_subject=owner.subject))
+        thread_id = create_thread(db, principal=owner)
+        assert link_case_to_thread(db, principal=owner, thread_id=thread_id, case_id=case_id)
+
+    context = {"thread_id": thread_id, "principal": owner, "key": key}
+    message = SendMessage(
+        client_message_id=uuid4(), case_id=case_id, text="Fixture only", language="en",
+    )
+
+    def accept(payload):
+        with Session(engine) as db, db.begin():
+            return accept_message(db, **context, message=payload)
+
+    try:
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            first, retry = executor.map(accept, [message, message])
+        assert first.outcome == "accepted"
+        assert retry == first
+
+        different = message.model_copy(update={"client_message_id": uuid4()})
+        assert accept(different).outcome == "active_run"
+        with Session(engine) as db, db.begin():
+            rows = db.scalars(select(AgentRunRequest).where(
+                AgentRunRequest.thread_id == str(thread_id),
+            )).all()
+            assert len(rows) == 1
+            assert read_run_message(db, **context, run_id=first.run_id).text == message.text
+            db.delete(db.get(CaseRecord, str(case_id)))
+            db.flush()
+            assert read_run_message(db, **context, run_id=first.run_id) is None
+            assert db.scalar(select(AgentRunRequest.id).where(
+                AgentRunRequest.id == str(first.run_id),
+            )) is None
+    finally:
+        with Session(engine) as db, db.begin():
+            if case := db.get(CaseRecord, str(case_id)):
+                db.delete(case)
             if thread := db.get(AgentThread, str(thread_id)):
                 db.delete(thread)
         engine.dispose()
