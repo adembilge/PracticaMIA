@@ -79,6 +79,8 @@ The [agent thread tables](../backend/migrations/versions/20261118_0018_agent_thr
 
 The [message acceptance service](../backend/app/agent/run_requests.py) adds encrypted request persistence and durable queued run IDs. Identical retries recover the same run, and new requests respect the thread revision and one-active-run invariant. A cascaded case or thread deletion removes its saved requests. Migration `20261118_0019` is additive. Worker execution checkpoints, live event resumption, and hosted message routes remain open.
 
-The [run event journal](../backend/app/agent/run_events.py) stores encrypted events and state transitions atomically. Its cursor reader can recover missed events from a new database session. Local checks cover rollback, replay, terminal state, ownership and ciphertext integrity. PostgreSQL CI covers concurrent event retries and deletion cascades. Migration `20261118_0020` is additive. Worker checkpoints and live HTTP resumption remain open.
+The [run event journal](../backend/app/agent/run_events.py) stores encrypted events and state transitions atomically. Its cursor reader can recover missed events from a new database session. Local checks cover rollback, replay, terminal state, ownership and ciphertext integrity. PostgreSQL CI covers concurrent event retries and deletion cascades. Migration `20261118_0020` is additive. Live HTTP resumption remains open.
+
+The [worker checkpoint service](../backend/app/agent/checkpoints.py) stores an encrypted next-node state and bounded references. A worker can reload the last consistent checkpoint in a new database session. Stale writes are rejected, and a checkpoint and its optional event are committed together. Migration `20261118_0021` adds the checkpoint table and cascading removal with its run. Live worker orchestration, retention and pilot approval remain open.
 
 For implementation details see [the documentation index](README.md).
