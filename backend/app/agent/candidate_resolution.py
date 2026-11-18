@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from app.agent.catalogue_applicability import resolve_candidate_applicability
 from app.agent.checkpoints import MAX_PROCEDURE_CANDIDATES, CheckpointState
+from app.agent.clarification_context import ClarificationHint, prepare_clarification_context
 from app.agent.contract import AnswerResult, Citation, ClarifyingQuestion, NextAction, OfficialChannel
 from app.agent.run_requests import StoredMessage
 from app.agent.worker import RequestClarification
@@ -45,6 +46,36 @@ _QUESTIONS = {
     ),
 }
 _IDENTITY_FIELDS = ("intent", "case_reference", "procedure")
+_FIELD_LABELS = {
+    "destination": ("the destination municipality", "il comune di destinazione"),
+    "filing_date": ("the filing date", "la data di presentazione"),
+    "move_in_date": ("the move-in date", "la data del trasferimento"),
+    "housing_basis": ("the housing arrangement", "il titolo di occupazione"),
+}
+_CONTEXT_PROMPTS = {
+    "message": (
+        "Can you confirm {field} you gave in your message for this case?",
+        "Puoi confermare per questa pratica {field} che hai indicato nel messaggio?",
+    ),
+    "needs_review": (
+        "Please review {field} in your document and confirm it for this case.",
+        "Puoi controllare {field} nel documento e confermarlo per questa pratica?",
+    ),
+    "reviewed": (
+        "Can you confirm that {field} you reviewed in your document applies to this case?",
+        "Puoi confermare per questa pratica {field} che hai verificato nel documento?",
+    ),
+    "conflict": (
+        "I have conflicting information about {field}. Which detail applies to this case?",
+        "I dati disponibili sono discordanti per {field}. Quale dato vale per questa pratica?",
+    ),
+}
+
+
+def _clarification_prompt(field: str, base: str, language: int, hint: ClarificationHint | None) -> str:
+    if hint is None or field not in _FIELD_LABELS:
+        return base
+    return _CONTEXT_PROMPTS[hint][language].format(field=_FIELD_LABELS[field][language])
 
 
 def choose_candidate_step(
@@ -58,6 +89,13 @@ def choose_candidate_step(
     if state.next_node != "choose_next_step":
         raise ValueError("Candidate resolution requires the choose_next_step node")
 
+    context = prepare_clarification_context(
+        message, procedure_ids=state.procedure_candidates, case_locations=case_locations,
+        confirmed_dates=confirmed_dates, confirmed_circumstances=confirmed_circumstances,
+    )
+    case_locations = context.case_locations
+    confirmed_dates = context.confirmed_dates
+    confirmed_circumstances = context.confirmed_circumstances
     results = resolve_candidate_applicability(
         state, case_locations=case_locations, confirmed_dates=confirmed_dates,
         confirmed_circumstances=confirmed_circumstances, assignments=tuple(assignments),
@@ -93,7 +131,7 @@ def choose_candidate_step(
 
     candidate_ids = plausible if procedure_conflict else list(results)
     if question and question_field and message.clarification_reply is None:
-        prompt = question[language]
+        prompt = _clarification_prompt(question_field, question[language], language, context.hints.get(question_field))
         if question_field == "procedure":
             labels = _candidate_labels(candidate_ids, reviewed_labels)
             if labels and len(details := f"{prompt} {hint} {labels}.") <= 300:

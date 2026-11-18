@@ -15,7 +15,10 @@ import json
 import re
 from typing import Any
 
+from cryptography.exceptions import InvalidTag
+
 from app.preparation.extract import extract_document, DocumentRejected
+from app.private_documents.security import open_bytes
 
 REVIEW_VERSION = "private-document-review-v1"
 MAX_CANDIDATES = 8
@@ -47,6 +50,24 @@ HOUSING_CHOICES = frozenset({
     "registered_private_rental", "owner", "guest", "other"
 })
 REVIEW_FIELDS = frozenset({"housing_basis", "move_in_date"})
+
+
+def read_review_metadata(
+    ciphertext: bytes | None, *, key: bytes, case_id: str, owner: str, document_id: str,
+) -> dict | None:
+    """Read bounded review metadata authenticated to this document and owner."""
+    if not ciphertext:
+        return None
+    try:
+        raw = open_bytes(ciphertext, key=key, case_id=case_id, owner=owner, document_id=document_id + ":review")
+        if len(raw) > MAX_REVIEW_BYTES:
+            raise ValueError("Oversized review")
+        value = json.loads(raw)
+        if not isinstance(value, dict) or value.get("version") != REVIEW_VERSION:
+            raise ValueError("Unexpected review")
+        return value
+    except (InvalidTag, ValueError, RecursionError):
+        raise ValueError("Encrypted document review is unavailable") from None
 
 
 def normalize_labeled_move_date(value: str) -> str | None:
