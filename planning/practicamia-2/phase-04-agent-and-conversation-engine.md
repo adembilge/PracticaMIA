@@ -19,6 +19,8 @@ The [Task 31 contract proposal](phase-04-agent-api-contract.md) includes offline
 
 ## 32. Build a single LangGraph graph
 
+The [Milan evidence handoff](../../docs/APPROVED_PASSAGE_SEARCH.md#phase-4-evidence-handoff) exercises the existing approved search and citation checks with a typed Phase 4 consumer. The first graph awaits the reviewed catalogue and pilot workflow specified by the [API contract](phase-04-agent-api-contract.md#acceptance-and-dependency-checks).
+
 | Node | Result |
 | --- | --- |
 | Load context | Authorised thread and case context |

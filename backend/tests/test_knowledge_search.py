@@ -7,6 +7,9 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
+from app.agent.catalogue_evidence import (
+    EvidenceScope, find_catalogue_evidence, resolve_catalogue_evidence,
+)
 from app.config import Settings
 from app.knowledge.catalog import register_candidates
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
@@ -215,3 +218,78 @@ def test_query_validation_and_injection_cannot_expand_search(client, auth_header
     assert client.get(CITATION_ROOT + "invalid", params=SCOPE, headers=user).status_code == 422
     # The other parts of the authenticated API remain unaffected.
     assert client.get("/api/v1/cases", headers=user).status_code == 200
+
+
+def test_phase4_catalogue_and_search_api_share_exact_approved_evidence(client, auth_headers):
+    scope = EvidenceScope(procedure_id=SCOPE["procedure_id"], jurisdiction=SCOPE["jurisdiction"])
+    user = auth_headers("bob")
+    version, digest = _create(client)
+    _approve(client, version, digest)
+
+    found = _search(client, user, limit=1).json()["evidence"][0]
+    with client.app.state.session_factory() as db:
+        result = find_catalogue_evidence(db, scope=scope, query="residenza", limit=1)
+        assert result.status == "evidence_found"
+        match, = result.passages
+        assert resolve_catalogue_evidence(
+            db, scope=scope, citation_id=found["citation_id"],
+        ).passages == result.passages
+
+    assert str(match.citation.source_version_id) == found["source_version_id"] == version
+    assert match.citation.source_id == found["source_id"]
+    assert match.citation.passage_id == found["passage_id"]
+    assert match.citation.citation_id == found["citation_id"]
+    assert match.citation.location_id == found["jurisdiction"]
+    assert match.citation.procedure_id == found["procedure_id"]
+    assert str(match.citation.official_url) == found["official_url"]
+    assert match.citation.publisher == found["institution"]
+    assert match.content == found["content"]
+    assert match.section_path == found["section_path"]
+
+    revised_body = OTHER_HTML.replace(b"nuovo contenuto", b"nuovo contenuto sulla residenza")
+    revised, revised_digest = _create(client, html=revised_body)
+    with client.app.state.session_factory() as db:
+        assert find_catalogue_evidence(db, scope=scope, query="residenza").passages == ()
+        assert resolve_catalogue_evidence(
+            db, scope=scope, citation_id=match.citation.citation_id,
+        ).status == "insufficient_evidence"
+    _approve(client, revised, revised_digest)
+    updated = _search(client, user, limit=1).json()["evidence"][0]
+    assert updated["source_version_id"] == revised != version
+    assert client.get(
+        CITATION_ROOT + found["citation_id"], params=SCOPE, headers=user,
+    ).status_code == 404
+    with client.app.state.session_factory() as db:
+        latest = resolve_catalogue_evidence(db, scope=scope, citation_id=updated["citation_id"])
+        assert updated["source_version_id"] == str(latest.passages[0].citation.source_version_id)
+        assert latest.passages[0].citation.passage_id != match.citation.passage_id
+
+    with client.app.state.session_factory.begin() as db:
+        revoke_version(
+            db, version_id=revised, expected_digest=revised_digest,
+            actor_subject="synthetic-reviewer", reason="Withdrawal of this local fixture.",
+        )
+    assert client.get(CITATION_ROOT + updated["citation_id"], params=SCOPE, headers=user).status_code == 404
+    with client.app.state.session_factory() as db:
+        assert resolve_catalogue_evidence(
+            db, scope=scope, citation_id=updated["citation_id"],
+        ).passages == ()
+
+
+@pytest.mark.parametrize(("procedure_id", "jurisdiction", "status", "fields"), [
+    (None, None, "needs_information", ("procedure_id", "jurisdiction")),
+    (SCOPE["procedure_id"], None, "needs_information", ("jurisdiction",)),
+    (SCOPE["procedure_id"], "IT-RM-ROMA", "unsupported_scope", ()),
+    ("rome_residence_change", SCOPE["jurisdiction"], "unsupported_scope", ()),
+])
+def test_phase4_catalogue_scope_gap_avoids_unscoped_db_access(
+    procedure_id, jurisdiction, status, fields,
+):
+    scope = EvidenceScope(procedure_id=procedure_id, jurisdiction=jurisdiction)
+    # No DB access is needed to identify an unknown or unsupported scope.
+    result = find_catalogue_evidence(None, scope=scope, query="residenza")
+    resolved = resolve_catalogue_evidence(None, scope=scope, citation_id=f"{uuid4()}:0000")
+    assert result == resolved
+    assert result.status == status
+    assert result.missing_fields == fields
+    assert not result.passages

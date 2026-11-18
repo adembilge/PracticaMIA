@@ -29,6 +29,10 @@ The product owner approved aligning the entry flow with the existing signed rout
 
 The product owner authorized work to resolve the roadmap blockers. The [criterion-by-criterion reconciliation](ROADMAP_RECONCILIATION.md) reviewed all 94 parent tasks and 12 required RAG subtasks against checked-in and dated evidence. The administrative `unreconciled` marks can be replaced by `partial` or `blocked`, and the global reconciliation hold can be cleared. This decision does not approve the product vision, official sources, rules, privacy controls, beta, deployment or any task completion. Individual dependencies and human gates remain in force.
 
+## D-006 — Merge eligible PracticaMIA pull requests without another prompt (18 November 2026)
+
+The product owner authorized automatic merges going forward. Review the actual diff and relevant checks, confirm the pull request head, and merge within the repository's required checks and approvals. Keep release and source approval decisions on their existing review paths.
+
 ## Decisions still unresolved
 
 - Currency and applicability reviews for the approved first Milan scenario, especially the officially required attachments and exceptions.
