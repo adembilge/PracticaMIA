@@ -39,7 +39,15 @@ Task 34.4 evaluates each procedure ID from the worker checkpoint with the [Phase
 
 The reviewed assignment can require an explicitly named case date, one or both inclusive calendar bounds and typed circumstance values, such as a housing basis. A configured open bound must reflect the reviewed assignment. Cases with unresolved applicability dates and assignments awaiting review stay outside trusted routing. An assignment that conflicts with known context drops out. Missing information for a still-plausible assignment keeps authority selection pending, with the needed location role, date field or circumstance field in the result.
 
-The [synthetic tests](../../backend/tests/test_agent_catalogue_applicability.py) exercise date boundaries, alternative circumstances, territorial roles and withdrawn evidence. Populating these inputs from the complete reviewed catalogue, clarification and user-facing integration remain open.
+The [synthetic tests](../../backend/tests/test_agent_catalogue_applicability.py) exercise date boundaries, alternative circumstances, territorial roles and withdrawn evidence. Populating these inputs from the complete reviewed catalogue and user-facing integration remain open.
+
+## Empty and conflicting procedure results
+
+Task 34.5 adds an [internal worker step](../../backend/app/agent/candidate_resolution.py) that uses current applicability evidence and confirmed case facts when choosing a response. It asks a single question in the message language when the goal, procedure or a supported case detail can narrow the outcome. Questions about procedure identity can mention reviewed candidate names and accept a free-text answer. A confirmed location used for the assignment takes precedence over a missing location expression in the message. Explicit requests for several independent procedures preserve those procedures.
+
+A remaining conflict produces `conflicting_evidence`. An empty or incomplete result produces `insufficient_evidence`. Either can offer a public assistance page for one identified procedure if exactly one separately reviewed assistance assignment applies to the confirmed case. The server supplies current registry citations and approval state. The assignment and citation must agree on the procedure, location and exact passage. The page describes where to ask for help. Competence and filing remain unresolved.
+
+The worker persists the question with its encrypted checkpoint. If the resumed step still lacks confirmed facts, it defers instead of opening the same question again. Task 35 owns interpreting replies, re-evaluating candidates and applying corrections. The [worker and resolver fixtures](../../backend/tests/test_agent_candidate_resolution.py) use fictional records and cover localized questions, authority collisions, invalid contact scopes and encrypted resumption. Integration with the full reviewed catalogue and a hosted user-facing route remains open.
 
 ## Identifiers and state
 
