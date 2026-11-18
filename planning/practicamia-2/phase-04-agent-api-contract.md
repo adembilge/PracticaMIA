@@ -29,7 +29,9 @@ Task 34.2 adds an [isolated worker step](../../backend/app/agent/intent_extracti
 
 The step keeps matched expressions and catalogue candidates in memory. It commits the intent, bounded procedure IDs and missing field labels to the encrypted checkpoint through the normal worker boundary. The location gap describes what the message resolved. A later step can apply confirmed case facts after checking the location's role and scope. Resuming a case requires the worker's authorized case context. Exact catalogue identity gives no basis to infer an authority's competence, which location role applies, or whether a procedure is available to the user.
 
-Run `python -m pytest -q tests/test_agent_intent_extraction.py` from `backend/` for synthetic bilingual extraction and saved-worker-boundary coverage. Catalogue query expansion, location roles and user-facing routing belong to subsequent tasks. The general reviewed catalogue and its hosted integration remain open.
+Task 34.3 recognises compact, dotted and letter-spaced forms of reviewed acronyms in messages. The existing Phase 3 resolver preserves any confirmation requirement on the matching identity. The [Milan evidence adapter](../../docs/APPROVED_PASSAGE_SEARCH.md#phase-4-evidence-handoff) also recognises a narrow set of English and Italian address-change phrases as lexical search hints.
+
+Run `python -m pytest -q tests/test_agent_intent_extraction.py tests/test_knowledge_search.py` from `backend/` for synthetic bilingual extraction, saved-worker-boundary coverage and search parity. Location roles, user-facing routing and hosted integration remain open.
 
 ## Identifiers and state
 

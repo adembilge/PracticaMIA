@@ -85,6 +85,40 @@ def test_ambiguous_names_stay_candidates_even_with_a_confirmed_case():
     assert result.missing_context == ("procedure", "procedure_location")
 
 
+@pytest.mark.parametrize(("spoken", "registered"), [
+    ("ANPR", "A.N.P.R."),
+    ("A.N.P.R.", "ANPR"),
+    ("A N P R", "ANPR"),
+])
+def test_acronym_variants_use_reviewed_catalogue_without_selecting_an_authority(spoken, registered):
+    acronym = replace(reviewed_name("population-register", "authority", registered), kind="official_acronym")
+    unreviewed = replace(acronym, catalogue_id="unreviewed", approved_for_search=False)
+    result = extract_intent(
+        StoredMessage(f"Change my residence in Milan through {spoken}", "en", None),
+        catalogue_names=(*CATALOGUE, acronym, unreviewed),
+    )
+    mention = result.mentions[-1]
+    assert mention.expression.rstrip(".") == spoken.rstrip(".")
+    assert mention.match.status == "needs_confirmation"
+    assert mention.match.selected_id is None
+    assert [candidate.catalogue_id for candidate in mention.match.candidates] == ["population-register"]
+
+
+def test_reviewed_everyday_wording_keeps_residence_and_domicile_candidates_distinct():
+    catalogue = (
+        *CATALOGUE,
+        replace(reviewed_name("residence-change", "procedure", "change my registered address"), kind="search_variant"),
+        reviewed_name("fictional-domicile-record", "procedure", "domicilio"),
+    )
+    assert extract_intent(
+        StoredMessage("How do I change my registered address in Milan?", "en", None),
+        catalogue_names=catalogue,
+    ).procedure_candidates == ("residence-change",)
+    assert extract_intent(
+        StoredMessage("Cosa significa domicilio?", "it", None), catalogue_names=catalogue,
+    ).procedure_candidates == ("fictional-domicile-record",)
+
+
 def test_reports_missing_information_without_assuming_a_procedure_place_or_owned_case():
     unlinked_case_id = uuid4()
     assert extract_intent(

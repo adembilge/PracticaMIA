@@ -16,8 +16,8 @@ from app.knowledge.entity_matching import (
 MissingContext = Literal["intent", "procedure", "procedure_location", "case_reference"]
 _PLACE_TYPES = ("municipality", "province", "region")
 
-# Narrow bilingual cues for the first internal step. Exact catalogue mentions
-# cover bare procedure names. Query expansion and noisy text are a separate step.
+# Narrow bilingual intent cues. Bare procedure names and reviewed variants
+# come from the supplied catalogue.
 _INTENT_CUES: tuple[tuple[AgentIntent, re.Pattern[str]], ...] = (
     ("plan_multiple_tasks", re.compile(
         r"\b(?:plan several tasks|multiple procedures|piu pratiche)\b"
@@ -65,25 +65,32 @@ class IntentExtraction:
 def _catalogue_mentions(
     text: str, catalogue_names: Sequence[CatalogueName],
 ) -> tuple[CatalogueMention, ...]:
-    # Index names by their exact folded terms. Looking only at message windows
-    # avoids a separate scan of the whole catalogue for each possible mention.
+    # Index exact names and the compact spelling of reviewed acronyms. The
+    # Phase 3 resolver still decides whether a mention needs confirmation.
     names: dict[tuple[str, ...], list[CatalogueName]] = {}
+    acronyms: dict[str, list[CatalogueName]] = {}
     for record in catalogue_names:
         if not record.approved_for_search or not record.evidence_ref.strip():
             continue
         key = tuple(normalize_name(record.name).split())
         if key and len(record.name) <= MAX_NAME_QUERY_LENGTH:
             names.setdefault(key, []).append(record)
+            if record.kind == "official_acronym":
+                acronyms.setdefault("".join(key), []).append(record)
 
     text = unicodedata.normalize("NFC", text)
     tokens = list(re.finditer(r"[^\W_]+", text))
     words = [normalize_name(token.group()) for token in tokens]
-    max_width = max(map(len, names), default=0)
+    max_width = max(max(map(len, names), default=0), max(map(len, acronyms), default=0))
     mentions = []
     start = 0
     while start < len(tokens):
         for end in range(min(start + max_width, len(tokens)), start, -1):
-            records = names.get(tuple(words[start:end]))
+            key = tuple(words[start:end])
+            records = names.get(key, [])
+            if len(key) == 1 or all(len(word) == 1 for word in key):
+                if variants := acronyms.get("".join(key)):
+                    records = list(dict.fromkeys([*records, *variants]))
             if not records:
                 continue
             expression = text[tokens[start].start():tokens[end - 1].end()]
