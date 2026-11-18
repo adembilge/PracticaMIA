@@ -20,6 +20,8 @@ from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run,
 from app.auth.tokens import Principal
 from app.database import Base
 
+MAX_PROCEDURE_CANDIDATES = 10
+
 
 class AgentRunCheckpoint(Base):
     __tablename__ = "agent_run_checkpoints"
@@ -42,7 +44,7 @@ class CheckpointState(ContractModel):
         "load_context", "identify_intent", "find_evidence", "choose_next_step", "verify_and_respond",
     ]
     intent: AgentIntent | None = None
-    procedure_candidates: list[Identifier] = Field(default_factory=list, max_length=10)
+    procedure_candidates: list[Identifier] = Field(default_factory=list, max_length=MAX_PROCEDURE_CANDIDATES)
     evidence_ids: list[PassageId] = Field(default_factory=list, max_length=10)
     missing_fields: list[Identifier] = Field(default_factory=list, max_length=12)
     pending_question_id: UUID | None = None

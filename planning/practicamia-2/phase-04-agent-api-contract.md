@@ -21,7 +21,15 @@ Task 34.1 defines one optional typed intent in the encrypted worker checkpoint. 
 | `resume_case` | Return to previously saved case work | “Can we pick up my saved address change?” |
 | `plan_multiple_tasks` | Plan distinct administrative goals | “Devo cambiare residenza e aggiornare la posizione TARI. Da dove inizio?” |
 
-A null intent means no label has been recorded. Older checkpoints can still be loaded. Intent extraction and catalogue matching are defined in the following subtasks. This field is internal to the worker; public requests and responses use the existing contract.
+A null intent means no label has been recorded. Older checkpoints can still be loaded. This field is internal to the worker; public requests and responses use the existing contract.
+
+## Internal intent extraction
+
+Task 34.2 adds an [isolated worker step](../../backend/app/agent/intent_extraction.py) using conservative English and Italian cues and exact expressions in the accepted message. The caller supplies currently reviewed authority, place and procedure names. The existing Phase 3 name resolver checks matching records and preserves competing identities. Pending names and names without evidence are excluded. A city appearing only inside a longer authority name supplies no independent location expression.
+
+The step keeps matched expressions and catalogue candidates in memory. It commits the intent, bounded procedure IDs and missing field labels to the encrypted checkpoint through the normal worker boundary. The location gap describes what the message resolved. A later step can apply confirmed case facts after checking the location's role and scope. Resuming a case requires the worker's authorized case context. Exact catalogue identity gives no basis to infer an authority's competence, which location role applies, or whether a procedure is available to the user.
+
+Run `python -m pytest -q tests/test_agent_intent_extraction.py` from `backend/` for synthetic bilingual extraction and saved-worker-boundary coverage. Catalogue query expansion, location roles and user-facing routing belong to subsequent tasks. The general reviewed catalogue and its hosted integration remain open.
 
 ## Identifiers and state
 

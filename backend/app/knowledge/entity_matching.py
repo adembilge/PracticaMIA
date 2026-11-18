@@ -13,7 +13,8 @@ NameKind = Literal[
     "current_official", "former_official", "official_acronym",
     "reviewed_alias", "search_variant",
 ]
-EntityType = Literal["authority", "municipality", "province", "region"]
+EntityType = Literal["authority", "municipality", "province", "region", "procedure"]
+MAX_NAME_QUERY_LENGTH = 180
 MatchStatus = Literal["resolved", "ambiguous", "needs_confirmation", "unresolved"]
 
 _KIND_RANK = {
@@ -112,8 +113,8 @@ def match_catalogue_names(
     `confirmed_location_id` must come from a user-confirmed case fact, not an
     IP address or office address. The selected ID is an identity match only.
     """
-    if len(query) > 180:
-        raise ValueError("Name query must be at most 180 characters")
+    if len(query) > MAX_NAME_QUERY_LENGTH:
+        raise ValueError(f"Name query must be at most {MAX_NAME_QUERY_LENGTH} characters")
     key = normalize_name(query)
     if not key:
         raise ValueError("Name query must contain letters or numbers")
