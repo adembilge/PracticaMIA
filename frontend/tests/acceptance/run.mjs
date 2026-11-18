@@ -621,6 +621,53 @@ try{
     assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   });
 
+  await scenario('Agent stop: refresh a stale revision and remove the stopped conversation from discovery',async()=>{
+    const route='/__acceptance/agent';
+    const owner=await contextFor('alice',{width:390,height:800});
+    await owner.goto(origin+route);
+    const [opened]=await Promise.all([
+      owner.waitForResponse(response=>
+        response.request().method()==='GET' && /\/api\/agent\/threads\/[^/]+\/runs\/[^/?]+$/.test(response.url()),
+      ),
+      owner.getByRole('button',{name:'Open conversation'}).last().click(),
+    ]);
+    const url=new URL(opened.url()).pathname;
+    await owner.getByText('Which synthetic route should be stopped?',{exact:true}).waitFor();
+    const requests=[];
+    await owner.route('**/runs/*/stop',async intercepted=>{
+      const body=intercepted.request().postDataJSON();
+      // Model a stale revision while leaving the server's validation path intact.
+      const response=await intercepted.fetch(requests.length===0
+        ? {postData:{expected_run_revision:body.expected_run_revision-1}}
+        : {});
+      requests.push(response.status());
+      await intercepted.fulfill({response});
+    });
+
+    const stop=owner.getByRole('button',{name:'Stop conversation',exact:true});
+    await stop.click();
+    await owner.getByRole('alert').filter({hasText:'The conversation changed. Review its current status.'}).waitFor();
+    assert.deepEqual(requests,[409]);
+    assert.equal(await owner.getByRole('button',{name:'Send reply'}).isVisible(),true);
+
+    await stop.click();
+    await owner.getByRole('heading',{name:'Conversation stopped',exact:true}).waitFor();
+    assert.deepEqual(requests,[409,200]);
+    assert.equal(await owner.getByRole('button',{name:'Send reply'}).isVisible(),false);
+    assert.equal(await stop.isVisible(),false);
+
+    const replay=await readJson(owner,url+'/events');
+    assert.equal(replay.status,200);
+    assert.deepEqual(replay.body.events.map(event=>event.type),['run.started','question.requested','run.stopped']);
+    assert.deepEqual(replay.body.events.at(-1).committed_operation_ids,[]);
+    const stoppedRun=replay.body.run_id;
+    await owner.reload();
+    await owner.getByRole('heading',{name:'Active conversations',exact:true}).waitFor();
+    const active=await readJson(owner,'/api/agent/runs/active');
+    assert.equal(active.status,200);
+    assert.equal(active.body.items.some(run=>run.run_id===stoppedRun),false);
+  });
+
   await scenario('A8: browser runs without uncaught runtime errors',async()=>{
     assert.deepEqual(errors,[]);
   });

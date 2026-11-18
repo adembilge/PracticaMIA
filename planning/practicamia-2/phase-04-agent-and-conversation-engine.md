@@ -12,7 +12,7 @@ The [Task 31 contract proposal](phase-04-agent-api-contract.md) includes offline
 - **31.2** Define typed requests for sending a message, stopping, retrieving a result, and responding to pending approval. Identify retries by client message ID.
 - **31.3** Define user-visible events. Proposed types include `run.started`, `progress.updated`, `question.requested`, `approval.requested`, `answer.completed`, and `run.failed`. Adapt provider and graph events to the application contract.
 - **31.4** Support a short explanation, next action where relevant, official channel, citations, and missing information. Carry action copy and the executable operation in separate fields.
-- **31.5** Reconnect after the last observed event. The isolated stop operation records a terminal event at the current revision, clears the worker state and fences any result in flight. Reporting already committed case changes remains part of the later write approval flow.
+- **31.5** Reconnect after the last observed event. The isolated stop operation records a terminal event at the current revision, clears the worker state and fences any result in flight. The isolated browser control displays the server-confirmed outcome and refreshes stale state before another user-initiated stop. Reporting already committed case changes remains part of the later write approval flow.
 - **31.6** Send progress events promptly. Show consequential claims about authorities, fees, and dates after verification. [LangGraph streaming](https://docs.langchain.com/oss/python/langgraph/streaming)
 
 **Acceptance.** One API contract supports answers, questions, source cards, approvals, and errors in the frontend.

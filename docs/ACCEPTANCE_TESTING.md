@@ -41,6 +41,7 @@ The dedicated GitHub Actions workflow
 | A7 | Italian language uses the same verified case state and downloadable draft decisions | Chromium + real FastAPI + PostgreSQL |
 | Preparation Preview | Mobile deep link, upload and OCR waiting states, reduced motion, 503 feedback, back navigation, draft retention and load retry | Chromium with stubbed preparation responses |
 | Agent reconnect | Discover a paused conversation in a fresh browser context, restore its question, retry a lost reply response, verify account isolation and display the result committed by the background worker | Chromium + signed synthetic JWT + FastAPI + PostgreSQL |
+| Agent stop | Refresh the current status after a stale stop request, confirm the next request stops the conversation, and verify the terminal event and active list after reload | Chromium + signed synthetic JWT + FastAPI + PostgreSQL |
 | A8 | No uncaught browser runtime errors | Chromium |
 | D1 | Explicit acknowledgement required, malformed uploads rejected, scanner outage/checksum/control verdict rejected, browser retry works | Chromium + real ClamAV with a harmless test signature + FastAPI + PostgreSQL |
 | D2 | Extract PDF fields, reject stale review, block PDF while a confirmed field conflicts, correct it and reopen the saved review | Chromium + FastAPI + PostgreSQL |
@@ -129,7 +130,7 @@ signature. It does not use an external scanner, a malware sample, or a vendor
 signature database. The test-only controls are served solely by the loopback
 bridge and only accept generated fixtures and temporary test identities.
 
-The agent scenario opens the temporary React fixture at `/__acceptance/agent`. The bridge seeds one private conversation. A background worker polls the database and processes bounded batches using an expiring lease and a deterministic executor. The browser sends the clarification over HTTP and checks the persisted result. Hosted routes, production frontend navigation, hosted scheduling and provider calls remain outside this test.
+The agent scenario opens the temporary React fixture at `/__acceptance/agent`. The bridge seeds two private conversations for reply and stop coverage. A background worker polls the database and processes bounded batches using an expiring lease and a deterministic executor. The browser sends the clarification over HTTP and checks the persisted result. Hosted routes, production frontend navigation, hosted scheduling and provider calls remain outside this test.
 
 The fixture contains only synthetic names, dates and typed fields; no
 private personal records or external government submissions are used.
