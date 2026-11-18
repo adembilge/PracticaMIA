@@ -7,6 +7,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.agent.case_context import read_worker_case_context
 from app.agent.checkpoints import (
     CheckpointConflict, CheckpointState, finish_checkpoint, load_checkpoint, save_checkpoint,
 )
@@ -105,11 +106,20 @@ def run_worker_step(
         message = read_run_message(db, **context)
         if message is None:
             return None
+        case_context = None
+        if message.case_id is not None:
+            case_context = read_worker_case_context(
+                db, thread_id=thread_id, case_id=message.case_id, principal=principal,
+            )
+            if case_context is None:
+                return None
+
         boundary_event = _read_event_at(db, run, checkpoint.event_seq, principal, key)
         message = replace(
             message,
             clarification_reply=boundary_event if isinstance(boundary_event, QuestionAnswered) else None,
             recent_user_messages=read_recent_user_messages(db, run=run, principal=principal, key=key),
+            case_context=case_context,
         )
 
     # Only completed boundaries survive a crash. Uncommitted computation can

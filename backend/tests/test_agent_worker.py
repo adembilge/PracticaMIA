@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 import pytest
 from sqlalchemy.orm import sessionmaker
 
+from app.agent.case_context import read_worker_case_context
 from app.agent.checkpoints import AgentRunCheckpoint, CheckpointConflict, CheckpointState, load_checkpoint, stop_run
 from app.agent.contract import AnswerResult, SendMessage
 from app.agent.run_events import append_run_event, read_run_events, read_run_snapshot
@@ -12,8 +13,12 @@ from app.agent.run_requests import AgentRunRequest, RecentUserMessage, accept_me
 from app.agent.threads import create_thread, link_case_to_thread
 from app.agent.worker import run_worker_step
 from app.auth.tokens import Principal
+from app.cases import checklist_service as checklist
+from app.cases.intake_schemas import IntakeFacts
 from test_agent_run_events import queued_run  # noqa: F401 - shared synthetic run fixture
 from test_agent_run_requests import ALICE, KEY
+from test_case_checklist import FACTS, confirmed_intake, create_case
+from test_case_workflow import evidence
 
 
 def test_replacement_worker_skips_completed_node_after_interruption(queued_run):
@@ -22,6 +27,7 @@ def test_replacement_worker_skips_completed_node_after_interruption(queued_run):
 
     def first(message, state):
         assert message.text
+        assert message.case_context is None
         calls.append(state.next_node)
         return CheckpointState(next_node="identify_intent")
 
@@ -175,3 +181,85 @@ def test_unreadable_historical_ciphertext_does_not_block_the_current_run(queued_
 
     current = _enqueue(factory, context["thread_id"], "Current fixture")
     assert run_worker_step(factory, **current, execute=verify).status == "completed"
+
+
+def test_worker_reads_current_confirmed_facts_and_open_review_actions(client, auth_headers, monkeypatch):
+    current_review = {"date": "2026-11-08", "revoked": False}
+
+    def resolve(_db, *, citation_id, **_):
+        if current_review["revoked"]:
+            return None
+        return evidence(citation_id, current_review["date"])
+
+    monkeypatch.setattr(checklist, "resolve_approved_passage", resolve)
+    owner = auth_headers()
+    case_id = UUID(create_case(client, owner))
+    path = f"/api/v1/cases/{case_id}"
+    assert client.put(path + "/intake", headers=owner, json={"facts": FACTS, "confirm": False}).status_code == 200
+    factory = client.app.state.session_factory
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=ALICE)
+        assert link_case_to_thread(db, thread_id=thread_id, case_id=case_id, principal=ALICE)
+    context = _enqueue(factory, thread_id, "Review the current case", case_id=case_id)
+
+    def check_draft(message, _state):
+        case = message.case_context
+        assert case.case_id == case_id
+        assert case.user_confirmed_facts is None
+        assert case.next_action == "confirm_intake"
+        assert case.open_review_action_ids == ()
+        return CheckpointState(next_node="find_evidence")
+
+    assert run_worker_step(factory, **context, execute=check_draft).status == "running"
+    confirmed_intake(client, owner, str(case_id), facts={**FACTS, "move_in_date": "2026-11-05"})
+    workflow = client.get(path + "/workflow", headers=owner).json()
+    review_ids = tuple(item["id"] for item in workflow["checklist"]["items"])
+    assert len(review_ids) == 5
+    assert client.patch(path + "/workflow/checklist", headers=owner, json={
+        "item_id": review_ids[0], "reviewed": True, "fingerprint": workflow["checklist"]["fingerprint"],
+    }).status_code == 200
+
+    def check_confirmed(message, _state):
+        case = message.case_context
+        assert case.user_confirmed_facts == IntakeFacts(**FACTS, move_in_date="2026-11-05")
+        assert case.next_action == "review_checklist"
+        assert case.open_review_action_ids == review_ids[1:]
+        case.user_confirmed_facts.housing_basis = "guest"
+        return CheckpointState(next_node="choose_next_step")
+
+    assert run_worker_step(factory, **context, execute=check_confirmed).status == "running"
+    assert client.get(path + "/intake", headers=owner).json()["facts"]["housing_basis"] == FACTS["housing_basis"]
+
+    current_review["date"] = "2026-11-09"
+
+    def check_fresh_review(message, _state):
+        assert message.case_context.open_review_action_ids == review_ids
+        return CheckpointState(next_node="verify_and_respond")
+
+    assert run_worker_step(factory, **context, execute=check_fresh_review).status == "running"
+    current_review["revoked"] = True
+
+    def check_revocation(message, _state):
+        case = message.case_context
+        assert case.user_confirmed_facts.housing_basis == FACTS["housing_basis"]
+        assert case.next_action == "review_sources"
+        assert case.open_review_action_ids == ()
+        return _finish()
+
+    assert run_worker_step(factory, **context, execute=check_revocation).status == "completed"
+
+
+def test_worker_case_context_requires_both_ownership_and_the_explicit_link(client, auth_headers):
+    owner = auth_headers()
+    case_id = UUID(create_case(client, owner))
+    unlinked_case = UUID(create_case(client, owner))
+    confirmed_intake(client, owner, str(case_id))
+    factory = client.app.state.session_factory
+    bob = Principal("bob")
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=ALICE)
+        foreign_thread_id = create_thread(db, principal=bob)
+        assert link_case_to_thread(db, thread_id=thread_id, case_id=case_id, principal=ALICE)
+        assert read_worker_case_context(db, thread_id=thread_id, case_id=case_id, principal=bob) is None
+        assert read_worker_case_context(db, thread_id=foreign_thread_id, case_id=case_id, principal=ALICE) is None
+        assert read_worker_case_context(db, thread_id=thread_id, case_id=unlinked_case, principal=ALICE) is None
