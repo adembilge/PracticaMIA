@@ -38,6 +38,7 @@ from app.config import Settings
 from app.main import create_app
 from app.private_documents import security
 from app.private_documents.model import PrivateCaseDocument
+from agent_fixtures import AgentReconnectFixture
 from document_fixtures import DocumentFixtures
 
 HOST = "127.0.0.1"
@@ -121,6 +122,7 @@ def run(port: int, assets: Path, *, private_documents: bool = False):
         )
         scanner_patch.start()
     api = create_app(settings)
+    agent = AgentReconnectFixture(api)
     client = TestClient(api)
     client.__enter__()
 
@@ -186,6 +188,13 @@ def run(port: int, assets: Path, *, private_documents: bool = False):
                 self.json_reply(200, {"approved": STATE["approved"]})
                 return
 
+            if path == "/__acceptance/agent/step":
+                if self.command != "POST" or self.subject() != "alice":
+                    self.json_reply(403, {"error": "Synthetic owner control only"})
+                    return
+                self.json_reply(200, {"status": agent.advance()})
+                return
+
             if path == "/acceptance-config.js" and self.command == "GET":
                 value = "true" if documents else "false"
                 self.reply(200, f"window.acceptancePrivateDocuments = {value};".encode(),
@@ -209,14 +218,14 @@ def run(port: int, assets: Path, *, private_documents: bool = False):
                     css += b"\n" + compiled.read_bytes()
                 self.reply(200, css, "text/css; charset=utf-8")
                 return
-            if (path in {"/", "/cases/saved", "/demo/synthetic"} or
+            if (path in {"/", "/cases/saved", "/demo/synthetic", "/__acceptance/agent"} or
                 (path.startswith("/cases/") and len(path) < 120)) and (
                 self.command == "GET"
             ):
                 self.reply(200, (assets / "index.html").read_bytes(),
                            "text/html; charset=utf-8")
                 return
-            if path.startswith("/api/cases") or path.startswith("/api/knowledge"):
+            if path.startswith(("/api/cases", "/api/knowledge", "/api/agent/")):
                 self.forward_api()
                 return
             self.json_reply(404, {"error": "Local acceptance route not found"})

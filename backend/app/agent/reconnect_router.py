@@ -1,4 +1,4 @@
-"""Authenticated Phase 4 transport, mounted only in the isolated HTTP tests."""
+"""Authenticated Phase 4 transport, mounted only in isolated acceptance tests."""
 
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
