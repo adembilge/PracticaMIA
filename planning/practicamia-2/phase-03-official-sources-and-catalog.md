@@ -37,7 +37,7 @@ The [21.6 legacy-source migration contract](phase-03-legacy-source-migration.md)
 
 ## 22. Import Italian authority and geography identifiers
 
-The [22.1 official-identifier source contract](phase-03-official-identifiers.md) selects the IPA and Istat datasets and records exact batch provenance before any import.
+The [22.1 official-identifier source contract](phase-03-official-identifiers.md) records the source workbooks, provenance, and the isolated import and retry results.
 
 The [22.2 stable-identity contract](phase-03-stable-entity-ids.md) separates catalogue IDs, external codes and names so a rename does not break case links.
 
@@ -150,3 +150,15 @@ The [22.4 service-area contract](phase-03-service-areas.md) keeps office address
 - Review, withdrawal, and freshness workflows are verified.
 - The search API, evaluation set, and Official Sources view share evidence IDs.
 - A pilot case yields the right procedure, competent authority, applicable source, passage, and valid channel. Changing its municipality or form version produces the expected change in results.
+
+
+### Closure evidence and outstanding decisions
+
+| Acceptance area | Evidence in the repository | Evidence still needed |
+| --- | --- | --- |
+| Directory, catalogue and versioned evidence (21–25) | Official directory import in the isolated [review database](phase-03-official-identifiers.md#isolated-import-and-acceptance-scenarios). The [Milan registry](../../docs/OFFICIAL_SOURCE_REGISTRY.md) already supplies versioned evidence for the signed route. | Persist and integrate the multi-authority procedure, role, service area and claim model. Confirm pilot scope from the Phase 2 case cards. Review claim-level passages for the selected procedures and record decisions for ambiguous legacy or directory mappings. |
+| Review, applicability and freshness (26, 27, 29) | The [registry review workflow](../../docs/KNOWLEDGE_REVIEW_WORKFLOW.md) supports hash-bound approval and withdrawal. [The Milan acceptance run](../../docs/MILAN_MVP_ACCEPTANCE_2026_11_15.md) records wrong-jurisdiction and unavailable-evidence behavior for its limited scope. | Prove scoped claim review, conflict handling, dated freshness checks and version-change alerts against the general catalogue. Preserve earlier citations and flag affected steps in owner-scoped history. |
+| Shared search, UI and agent handoff (28, 30) | The [approved-passage API](../../docs/APPROVED_PASSAGE_SEARCH.md) has a version-scoped citation ID and current approval checks. | Exercise the same typed catalogue query and citation IDs in the general Official Sources view and Phase 4 consumer. Verify multilingual retrieval and filters against the selected pilot cases. |
+| Pilot outcomes (23, 30) | The [Phase 2 sampling record](phase-02-user-case-sampling.md) reports zero participants and zero eligible cases on 17 November 2026. Existing Milan acceptance evidence is limited to its signed route and controlled scenarios. | Product owner confirms the de-identified multi-authority pilot cases. An authorized reviewer records procedure, competence, channel and exact versioned passages. Run cases that change municipality, use an obsolete form and encounter a withdrawn source. |
+
+Phase 3 remains open. The directory import is useful for identity and name review. Pilot scope, source approval and multi-authority application acceptance require their own recorded evidence. The Phase 4 handoff follows those checks.
