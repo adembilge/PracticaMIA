@@ -101,4 +101,6 @@ The [Task 34.3 search handoff](APPROVED_PASSAGE_SEARCH.md#phase-4-evidence-hando
 
 The [Task 34.4 applicability resolver](../planning/practicamia-2/phase-04-agent-api-contract.md#procedure-candidate-applicability) evaluates saved procedure candidates against the required location role, named case date and circumstance fields. Synthetic fixtures exercise a dated authority change, housing-basis alternatives and a different procedural location. Confirmed mismatches remove the affected assignment, and missing context on a plausible assignment keeps authority selection pending. The complete reviewed catalogue and user-facing integration remain open.
 
+The [Task 34.5 outcome step](../planning/practicamia-2/phase-04-agent-api-contract.md#empty-and-conflicting-procedure-results) uses confirmed case facts to choose a targeted English or Italian question, explain the conflict or defer. A public assistance page can appear for one identified procedure when a separate reviewed and currently trusted assistance assignment applies to the case. Synthetic tests exercise source withdrawal, territorial scope and the persisted question boundary. Reply interpretation, the reviewed live catalogue and the hosted user-facing route remain open.
+
 For implementation details see [the documentation index](README.md).
