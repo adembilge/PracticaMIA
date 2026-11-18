@@ -14,7 +14,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from app.agent.contract import Language, QuestionAnswered, SendMessage
+from app.agent.contract import (
+    ActiveRunCursor, ActiveRunPage, ActiveRunSummary, Language, QuestionAnswered, SendMessage,
+)
 from app.agent.threads import AgentThread, AgentThreadCase
 from app.auth.tokens import Principal
 from app.cases.model import CaseRecord
@@ -160,7 +162,7 @@ def accept_message(
     return RunAcceptance("accepted", UUID(run.id), run.accepted_revision)
 
 
-def _owned_run(thread_id: UUID, run_id: UUID, principal: Principal):
+def _owned_runs(principal: Principal):
     return (
         select(AgentRunRequest)
         .join(AgentThread)
@@ -172,13 +174,51 @@ def _owned_run(thread_id: UUID, run_id: UUID, principal: Principal):
             CaseRecord.id == AgentThreadCase.case_id, CaseRecord.owner_subject == principal.subject,
         ))
         .where(
-            AgentRunRequest.id == str(run_id),
-            AgentThread.id == str(thread_id),
             AgentThread.owner_subject == principal.subject,
             AgentRunRequest.case_id.is_(None) | CaseRecord.id.is_not(None),
         )
         .execution_options(populate_existing=True)
     )
+
+
+def _owned_run(thread_id: UUID, run_id: UUID, principal: Principal):
+    return _owned_runs(principal).where(
+        AgentRunRequest.id == str(run_id), AgentRunRequest.thread_id == str(thread_id),
+    )
+
+
+def list_active_runs(
+    db: Session, *, principal: Principal, limit: int = 20, before: ActiveRunCursor | None = None,
+) -> ActiveRunPage:
+    """Discover owned active runs without loading message or event payloads."""
+    if not 1 <= limit <= 50:
+        raise ValueError("Invalid active run page size")
+    query = _owned_runs(principal).with_only_columns(
+        AgentRunRequest.id, AgentRunRequest.thread_id, AgentRunRequest.case_id,
+        AgentRunRequest.status, AgentRunRequest.accepted_at,
+    ).where(AgentRunRequest.status.in_(ACTIVE_STATUSES))
+    if before is not None:
+        accepted_at = before.accepted_at
+        query = query.where(
+            (AgentRunRequest.accepted_at < accepted_at) | and_(
+                AgentRunRequest.accepted_at == accepted_at, AgentRunRequest.id < str(before.run_id),
+            ),
+        )
+    rows = db.execute(query.order_by(
+        AgentRunRequest.accepted_at.desc(), AgentRunRequest.id.desc(),
+    ).limit(limit + 1)).all()
+    items = [
+        ActiveRunSummary(
+            run_id=row.id, thread_id=row.thread_id, case_id=row.case_id, status=row.status,
+            accepted_at=row.accepted_at if row.accepted_at.tzinfo else row.accepted_at.replace(tzinfo=timezone.utc),
+        )
+        for row in rows[:limit]
+    ]
+    cursor = None
+    if len(rows) > limit:
+        last = items[-1]
+        cursor = ActiveRunCursor(accepted_at=last.accepted_at, run_id=last.run_id)
+    return ActiveRunPage(items=items, next_cursor=cursor)
 
 
 def read_run_message(

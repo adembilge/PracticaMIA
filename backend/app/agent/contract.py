@@ -1,5 +1,6 @@
 """Phase 4 Task 31 wire models for offline contract review."""
 
+from datetime import datetime, timezone
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -124,6 +125,34 @@ class AnswerResult(ContractModel):
         if self.next_action and self.next_action.operation == "open_official_channel" and not self.official_channel:
             raise ValueError("Opening a channel requires a channel link")
         return self
+
+
+def _normalize_cursor_time(value: datetime) -> datetime:
+    try:
+        return value.astimezone(timezone.utc)
+    except OverflowError as exc:
+        raise ValueError("Active run cursor time is outside the supported range") from exc
+
+
+ActiveRunCursorTime = Annotated[AwareDatetime, AfterValidator(_normalize_cursor_time)]
+
+
+class ActiveRunCursor(ContractModel):
+    accepted_at: ActiveRunCursorTime
+    run_id: UUID
+
+
+class ActiveRunSummary(ContractModel):
+    run_id: UUID
+    thread_id: UUID
+    case_id: UUID | None
+    status: RunStatus
+    accepted_at: AwareDatetime
+
+
+class ActiveRunPage(ContractModel):
+    items: list[ActiveRunSummary] = Field(max_length=50)
+    next_cursor: ActiveRunCursor | None = None
 
 
 class RunSnapshot(ContractModel):
