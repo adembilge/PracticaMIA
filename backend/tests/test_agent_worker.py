@@ -6,12 +6,14 @@ import pytest
 from sqlalchemy.orm import sessionmaker
 
 from app.agent.case_context import read_worker_case_context
-from app.agent.checkpoints import AgentRunCheckpoint, CheckpointConflict, CheckpointState, load_checkpoint, stop_run
-from app.agent.contract import AnswerResult, SendMessage
+from app.agent.checkpoints import (
+    AgentRunCheckpoint, CheckpointConflict, CheckpointState, load_checkpoint, stop_run, submit_clarification_reply,
+)
+from app.agent.contract import AnswerResult, ClarificationReply, ClarifyingQuestion, SendMessage
 from app.agent.run_events import append_run_event, read_run_events, read_run_snapshot
 from app.agent.run_requests import AgentRunRequest, RecentUserMessage, accept_message
 from app.agent.threads import create_thread, link_case_to_thread
-from app.agent.worker import run_worker_step
+from app.agent.worker import RequestClarification, run_worker_step
 from app.auth.tokens import Principal
 from app.cases import checklist_service as checklist
 from app.cases.intake_schemas import IntakeFacts
@@ -117,6 +119,58 @@ def _enqueue(factory, thread_id, text, *, case_id=None, language="en"):
 
 def _finish(*_):
     return AnswerResult(explanation="Synthetic result", verification_status="insufficient_evidence")
+
+
+def test_topic_change_keeps_the_original_question_open_and_fences_old_thread_context(client, auth_headers):
+    factory = client.app.state.session_factory
+    case_id = UUID(client.post("/api/v1/cases", headers=auth_headers(), json={}).json()["id"])
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=ALICE)
+        assert link_case_to_thread(db, thread_id=thread_id, case_id=case_id, principal=ALICE)
+
+    old = _enqueue(factory, thread_id, "Previous unlinked topic")
+    run_worker_step(factory, **old, execute=_finish)
+    current = _enqueue(factory, thread_id, "Linked topic", case_id=case_id, language="it")
+    question = ClarifyingQuestion(
+        question_id=uuid4(), text="Quale comune?", answer_shape="free_text", missing_fields=["destination"],
+    )
+    paused = run_worker_step(factory, **current, execute=lambda *_: RequestClarification(
+        question, CheckpointState(next_node="choose_next_step"),
+    ))
+    reply = ClarificationReply(
+        client_reply_id=uuid4(), expected_run_revision=paused.run_revision, disposition="change_topic",
+    )
+    with factory.begin() as db:
+        saved = submit_clarification_reply(db, **current, question_id=question.question_id, reply=reply)
+
+    finished = run_worker_step(factory, **current, execute=lambda *_: pytest.fail("old topic must not execute"))
+    assert finished.status == "completed"
+    assert finished.result.next_action.operation == "start_new_topic"
+    assert finished.result.missing_information == ["destination"]
+    assert finished.result.verification_status == "insufficient_evidence"
+    assert finished.result.explanation.startswith("La domanda precedente")
+    with factory.begin() as db:
+        assert submit_clarification_reply(db, **current, question_id=question.question_id, reply=reply) == saved
+        answered, terminal = read_run_events(db, **current, after_seq=paused.last_event_seq).events
+        assert answered == saved
+        assert terminal.type == "answer.completed"
+
+    new = _enqueue(factory, thread_id, "New unlinked topic")
+
+    def clear_context(message, _):
+        assert not message.recent_user_messages
+        assert message.case_context is None
+        assert message.clarification_reply is None
+        return _finish()
+
+    run_worker_step(factory, **new, execute=clear_context)
+    followup = _enqueue(factory, thread_id, "New-topic follow-up")
+
+    def fresh_history(message, _):
+        assert message.recent_user_messages == (RecentUserMessage("New unlinked topic", "en"),)
+        return _finish()
+
+    run_worker_step(factory, **followup, execute=fresh_history)
 
 
 def test_worker_history_is_bounded_to_prior_completed_messages_for_this_thread_and_case(client, auth_headers):

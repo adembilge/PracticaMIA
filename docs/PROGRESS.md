@@ -111,4 +111,6 @@ The [Task 35.2 question priority step](../planning/practicamia-2/phase-04-agent-
 
 The [Task 35.3 reply validation](../planning/practicamia-2/phase-04-agent-api-contract.md#validating-clarification-replies) attaches localized guidance to date and choice questions. The isolated API returns guidance when an answer fails validation and preserves the pending question for correction. The local Chromium fixture submits both choices and free text, including a correction after a rejected date.
 
+The [Task 35.4 deferral flow](../planning/practicamia-2/phase-04-agent-api-contract.md#deferring-a-question-or-changing-topics) records unknown, skipped and changed-topic replies at the current question boundary. Synthetic tests cover retention of open fields, applicable assistance and a fresh history window after a topic switch.
+
 For implementation details see [the documentation index](README.md).

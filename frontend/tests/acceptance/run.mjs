@@ -656,6 +656,34 @@ try{
     await owner.getByText('Received 18/11/2026.',{exact:true}).waitFor();
   });
 
+  await scenario('Agent clarification: changing topics releases the pending question',async()=>{
+    const owner=await contextFor('alice',{width:390,height:800});
+    await owner.goto(origin+'/__acceptance/agent');
+    await owner.getByRole('button',{name:'Open conversation'}).first().click();
+    await owner.getByText('Which synthetic detail should stay open when changing topics?',{exact:true}).waitFor();
+    const change=owner.getByRole('button',{name:'Change topic',exact:true});
+    const [accepted]=await Promise.all([
+      owner.waitForResponse(response=>response.request().method()==='POST' && response.url().endsWith('/reply')),
+      change.click(),
+    ]);
+    assert.equal(accepted.status(),200);
+    const reply=await accepted.json();
+    assert.equal(reply.disposition,'change_topic');
+    assert.equal(reply.text,null);
+    await change.waitFor({state:'hidden'});
+    const url=new URL(accepted.url()).pathname.split('/questions/')[0];
+    await owner.waitForFunction(async path=>{
+      const response=await fetch(path,{cache:'no-store'});
+      return response.ok && (await response.json()).status==='completed';
+    },url,{polling:100,timeout:10000});
+    const completed=owner.getByRole('heading',{name:'Topic changed'});
+    if(!await completed.isVisible()) await owner.getByRole('button',{name:'Check status'}).click();
+    await completed.waitFor();
+    const replay=await readJson(owner,url+'/events');
+    assert.deepEqual(replay.body.events.at(-1).result.missing_information,['jurisdiction']);
+    assert.equal(replay.body.events.at(-1).result.verification_status,'insufficient_evidence');
+  });
+
   await scenario('Agent stop: refresh a stale revision and remove the stopped conversation from discovery',async()=>{
     const route='/__acceptance/agent';
     const owner=await contextFor('alice',{width:390,height:800});

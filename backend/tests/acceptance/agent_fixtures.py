@@ -21,9 +21,10 @@ class AgentReconnectFixture:
         self.key = token_bytes(32)
         api.include_router(build_reconnect_router(key=self.key))
         stop = self.seed_question("Which synthetic route should be stopped?")
+        topic = self.seed_question("Which synthetic detail should stay open when changing topics?")
         date = self.seed_question("What was the synthetic move-in date?", calendar_date=True)
         municipality = self.seed_question("Which synthetic municipality applies?")
-        self.question_ids = {stop, date, municipality}
+        self.question_ids = {stop, topic, date, municipality}
 
     def seed_question(self, prompt, *, calendar_date=False):
         principal = Principal("alice")

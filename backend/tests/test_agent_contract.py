@@ -75,6 +75,16 @@ def test_reply_requires_bounded_text_and_a_valid_event_revision():
             ClarificationReply.model_validate({**body, **invalid})
 
 
+def test_explicit_disposition_does_not_accept_a_case_value():
+    base = {"client_reply_id": MESSAGE, "expected_run_revision": 4}
+    for disposition in ("unknown", "skip", "change_topic"):
+        assert ClarificationReply.model_validate({**base, "disposition": disposition}).text is None
+        with pytest.raises(ValidationError):
+            ClarificationReply.model_validate({**base, "disposition": disposition, "text": "Case value"})
+    with pytest.raises(ValidationError):
+        ClarificationReply.model_validate(base)
+
+
 @pytest.mark.parametrize("fixture", [
     event("run.started", 1, client_message_id=MESSAGE),
     event("progress.updated", 2, stage="looking_up_context", text="Checking the case"),

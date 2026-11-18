@@ -91,6 +91,16 @@ _HOUSING_OPTIONS = (
         "Ho un altro tipo di affitto", "Ci abito come ospite", "Un altro titolo",
     ],
 )
+_DEFERRAL_NOTES = {
+    "unknown": (
+        "I’ll leave the details you’re unsure about open.",
+        "Lascio aperti i dettagli di cui non sei sicuro o sicura.",
+    ),
+    "skip": (
+        "I’ll leave the skipped details open for now.",
+        "Lascio aperti per ora i dettagli che hai saltato.",
+    ),
+}
 
 
 def _clarification_prompt(field: str, base: str, language: int, hint: ClarificationHint | None) -> str:
@@ -202,6 +212,20 @@ def choose_candidate_step(
             "Con le informazioni disponibili non ho potuto verificare la pratica applicabile e l’ente competente.",
         )[language]
 
+    disposition = message.clarification_reply.disposition if message.clarification_reply else None
+    deferral_note = _DEFERRAL_NOTES.get(disposition)
+    if deferral_note:
+        explanation = f"{deferral_note[language]} {explanation}"
+        if message.clarification_question:
+            still_open = set(missing_information)
+            for result in pending:
+                still_open.update(result.missing_location_roles)
+                still_open.update(result.missing_date_fields)
+                still_open.update(result.missing_circumstance_fields)
+            fallback_fields = message.clarification_question.missing_fields
+            unanswered = [field for field in fallback_fields if not still_open or field in still_open]
+            missing_information = list(dict.fromkeys([*unanswered, *missing_information]))[:12]
+
     contacts = [
         contact.citation for contact in assistance_contacts
         if len(results) == 1 and identity_gap is None
@@ -221,6 +245,9 @@ def choose_candidate_step(
         label = ("Ask for official assistance", "Chiedi assistenza ufficiale")[language]
         action = NextAction(label=label, operation="open_official_channel")
         channel = OfficialChannel(label=citation.publisher, url=citation.official_url)
+    elif deferral_note and missing_information:
+        label = ("Provide the missing details later", "Fornisci i dettagli mancanti in seguito")[language]
+        action = NextAction(label=label, operation="provide_information")
     return AnswerResult(
         explanation=explanation,
         verification_status="conflicting_evidence" if conflict else "insufficient_evidence",

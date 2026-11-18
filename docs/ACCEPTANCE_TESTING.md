@@ -130,7 +130,7 @@ signature. It does not use an external scanner, a malware sample, or a vendor
 signature database. The test-only controls are served solely by the loopback
 bridge and only accept generated fixtures and temporary test identities.
 
-The agent scenarios open the temporary React fixture at `/__acceptance/agent`. The bridge seeds private conversations for choice replies, date replies and stop coverage. A background worker polls the database and processes bounded batches using an expiring lease and a deterministic executor. The browser submits a choice, retries after a lost response, and corrects an invalid date after receiving format guidance. Each accepted reply produces a persisted result. Hosted routes, production frontend navigation, hosted scheduling and provider calls remain outside these tests.
+The agent scenarios open the temporary React fixture at `/__acceptance/agent`. The bridge seeds private conversations for choice replies, date replies, topic changes and stopping. A background worker polls the database and processes bounded batches using an expiring lease and a deterministic executor. The browser retries a choice after a lost response, corrects an invalid date after format guidance, and changes topics while retaining the unanswered field. Hosted routes, production frontend navigation, hosted scheduling and provider calls remain outside these tests.
 
 The fixture contains only synthetic names, dates and typed fields; no
 private personal records or external government submissions are used.

@@ -75,9 +75,17 @@ The [synthetic resolution tests](../../backend/tests/test_agent_candidate_resolu
 
 Task 35.3 records the question ID, affected fields, answer shape and optional answer format and guidance in the encrypted question event. Older events can be read without the optional fields. A single housing question can offer choices. A single question asking for a new move-in or filing date accepts a valid calendar date in ISO or day-first numeric form within the case date range of 1900 to 2100. Grouped questions and contextual confirmations continue to accept bounded free text.
 
-The server checks the submitted text against the owned, current question before writing an answer event. A reply that fails the question's validation returns `422 invalid_reply` with the recorded guidance or a default for the expected answer shape. The existing question and run revision stay available for a corrected reply. The error does not include the rejected input. A valid reply is recorded as text, with surrounding whitespace removed. Confirmation of case facts and the handling of skips, unknowns, and corrections depend on later steps.
+The server checks the submitted text against the owned, current question before writing an answer event. A reply that fails the question's validation returns `422 invalid_reply` with the recorded guidance or a default for the expected answer shape. The existing question and run revision stay available for a corrected reply. The error does not include the rejected input. A valid reply is recorded as text, with surrounding whitespace removed. Confirmation of case facts and interpretation of corrections depend on later steps.
 
 The [isolated HTTP tests](../../backend/tests/test_agent_reconnect_http.py) cover invalid dates, invalid options, private guidance, correction and retry. The isolated Chromium harness renders both input shapes and checks that a user can correct a rejected date and resume the run.
+
+## Deferring a question or changing topics
+
+Task 35.4 accepts `unknown`, `skip` and `change_topic` dispositions without a case value. The isolated client exposes all three controls. The server also recognizes exact short English and Italian phrases such as “I don’t know” and “Non lo so” when the text is not one of the saved options. Each accepted choice uses the same owned question, revision and retry boundary. Previous answer events without a disposition default to `answer`.
+
+After an unknown or skipped reply, the resolver continues with confirmed facts, retains the unanswered fields and can still give an independently applicable official assistance channel. It leaves the skipped information open in the result. The worker ends a changed-topic run with the affected fields and an instruction to send a new message. The new message is submitted as a separate turn on the same thread. The worker limits its conversation history to recent owned messages since the recorded topic change and still checks the exact case scope. Current case facts change only through their own confirmed workflow.
+
+Synthetic tests cover the authenticated reply boundary, scoped history, continued assistance and a topic change from the isolated Chromium interface.
 
 ## Identifiers and state
 

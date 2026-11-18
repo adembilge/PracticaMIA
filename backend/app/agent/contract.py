@@ -12,6 +12,7 @@ from pydantic import (
 from app.knowledge.quote_verification import ID as PASSAGE_ID_PATTERN
 
 Language = Literal["it", "en"]
+ClarificationDisposition = Literal["answer", "unknown", "skip", "change_topic"]
 # An intent describes a user's request. It grants no access or authority.
 AgentIntent = Literal[
     "request_information",
@@ -69,7 +70,14 @@ class SendMessage(ContractModel):
 class ClarificationReply(ContractModel):
     client_reply_id: UUID
     expected_run_revision: int = Field(strict=True, ge=1, le=2_147_483_647)
-    text: ClarificationText
+    text: ClarificationText | None = None
+    disposition: ClarificationDisposition = "answer"
+
+    @model_validator(mode="after")
+    def validate_disposition(self):
+        if (self.disposition == "answer") != (self.text is not None):
+            raise ValueError("Only an answer includes reply text")
+        return self
 
 
 class StopRun(ContractModel):
@@ -114,7 +122,7 @@ class Citation(ContractModel):
 
 class NextAction(ContractModel):
     label: ShortText
-    operation: Literal["open_official_channel", "provide_information"] | None = None
+    operation: Literal["open_official_channel", "provide_information", "start_new_topic"] | None = None
 
 
 class AnswerResult(ContractModel):
@@ -239,7 +247,14 @@ class QuestionAnswered(EventEnvelope):
     type: Literal["question.answered"]
     question_id: UUID
     client_reply_id: UUID
-    text: ClarificationText
+    text: ClarificationText | None = None
+    disposition: ClarificationDisposition = "answer"
+
+    @model_validator(mode="after")
+    def validate_answer_text(self):
+        if self.disposition == "answer" and self.text is None:
+            raise ValueError("An answer includes reply text")
+        return self
 
 
 class ApprovalRequested(EventEnvelope):
