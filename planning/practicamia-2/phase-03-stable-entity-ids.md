@@ -17,7 +17,7 @@ Saved cases and procedure assignments refer to the internal ID. A historical cas
 
 ## Current status and acceptance scenarios
 
-The existing Milan knowledge registry stores `KnowledgeSource.id`, a jurisdiction string and a procedure ID, but no general authority or geography entity table, external-ID mapping or name history. This design does not migrate saved cases or alter those strings. No IPA or Istat file has been imported.
+The [isolated directory database](phase-03-official-identifiers.md#isolated-import-and-acceptance-scenarios) now stores official workbook batches, stable identity IDs, per-batch codes and names, and candidate continuity links. The Milan application still uses its existing registry strings. Hosted integration, an authorized reviewer decision workflow for successor mappings, and saved-case links remain open.
 
 | Synthetic scenario | Expected result |
 | --- | --- |
