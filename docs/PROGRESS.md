@@ -51,7 +51,7 @@ The [PracticaMIA 2.0 Phase 3.1 authority-role design](../planning/practicamia-2/
 
 The [Phase 3.2 service-channel design](../planning/practicamia-2/phase-03-service-channels.md) records public channel examples by step and applicability. Review of the proposed channel assignments and validation through participant journeys remain pending. Signed-in screens and actual appointments were outside this review.
 
-The [Phase 3.3 source-version design](../planning/practicamia-2/phase-03-source-versioning.md) uses the existing registry and approved retrieval behavior. Structured citation persistence and an owner-scoped history read across a source revision change still require implementation and verification.
+The [Phase 3.3 source-version design](../planning/practicamia-2/phase-03-source-versioning.md) uses the existing registry and approved retrieval behavior. PR #120 adds structured citation history for the owner of a synthetic Preview case. General catalogue and production checklist-action history remain outstanding.
 
 The [Phase 3.4 source-date design](../planning/practicamia-2/phase-03-source-dates.md) separates stated publication and update dates from capture, review and claim-level effective dates. General normalized date fields and temporal applicability checks remain unimplemented; missing dates and unresolved source wording must not be inferred.
 
@@ -67,8 +67,10 @@ The [Phase 3.9 name-matching design](../planning/practicamia-2/phase-03-name-mat
 
 The [Phase 3.10 service-area design](../planning/practicamia-2/phase-03-service-areas.md) separates physical office addresses from procedure-specific coverage. An isolated resolver uses confirmed case location roles and trusted passage IDs in synthetic tests; persisted assignments, source-review binding and a user-facing route remain unimplemented.
 
-On 17 November, PR #117 merged the Phase 3.10 isolated resolver after seven CI checks passed. Phase 3 is still open against its closure checklist: the general catalogue, directory import, review/freshness workflow, shared search API, Official Sources view and pilot evidence are incomplete. Phase 4 Task 31 has a [proposed API contract](../planning/practicamia-2/phase-04-agent-api-contract.md) for review. Its implementation and task completion remain blocked by the Phase 3 integration and review gates. No hosted agent or document capability was enabled.
+On 17 November, PR #117 merged the Phase 3.10 isolated resolver after seven CI checks passed. Phase 3 is still open against its closure checklist: the general catalogue, application integration of the imported directory, review/freshness workflow, shared search API, Official Sources view and pilot evidence are incomplete. Phase 4 Task 31 has a [proposed API contract](../planning/practicamia-2/phase-04-agent-api-contract.md) for review. Its runtime integration and task completion remain blocked by the Phase 3 integration and review gates. No hosted agent or document capability was enabled.
 
 The [Phase 3 official directory import](../planning/practicamia-2/phase-03-official-identifiers.md#isolated-import-and-acceptance-scenarios) loaded 31,795 identities from two publisher workbooks into a disposable review database. A repeat import left the count and batch identities unchanged. The [closure evidence table](../planning/practicamia-2/phase-03-official-sources-and-catalog.md#closure-evidence-and-outstanding-decisions) records the application integration, human evidence review and real pilot work still required.
+
+Phase 4 Task 31 now has [offline typed API models and synthetic contract checks](../planning/practicamia-2/phase-04-agent-api-contract.md#acceptance-and-dependency-checks). The scope is message and result shapes, event cursors and versioned citation identifiers. Architecture review, owner isolation at the API, durable retries and applicable catalogue evidence are pending.
 
 For implementation details see [the documentation index](README.md).
