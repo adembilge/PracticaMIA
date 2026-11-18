@@ -82,7 +82,7 @@ def test_procedure_collision_explains_reviewed_alternatives_and_accepts_a_free_t
     assert result.procedure_candidates == state.procedure_candidates
 
 
-def test_one_question_uses_the_confirmed_case_and_relevant_missing_field():
+def test_grouped_question_explains_joint_requirements_and_reuses_confirmed_facts():
     service = replace(
         SERVICE, effective_period=EffectivePeriod("filing_date", effective_from=date(2026, 4, 1)),
         required_circumstances=(("housing_basis", "owner"),),
@@ -90,8 +90,11 @@ def test_one_question_uses_the_confirmed_case_and_relevant_missing_field():
     state = STATE.model_copy(update={"missing_fields": ["procedure_location"]})
     result = choose(state, language="it", assignments=(service,), assistance_contacts=(CONTACT,))
     assert isinstance(result, RequestClarification)
-    assert result.question.missing_fields == ["filing_date"]
-    assert result.question.text == "Qual è la data di presentazione della pratica?"
+    assert result.question.missing_fields == ["filing_date", "housing_basis"]
+    assert result.question.text == (
+        "Mi servono tutti questi dati per verificare se la procedura si applica. "
+        "Puoi indicare la data di presentazione e il titolo di occupazione?"
+    )
 
     result = choose(state, assignments=(service,), confirmed_dates={"filing_date": date(2026, 4, 1)})
     assert isinstance(result, RequestClarification)
@@ -100,6 +103,68 @@ def test_one_question_uses_the_confirmed_case_and_relevant_missing_field():
                     confirmed_circumstances={"housing_basis": "owner"})
     assert result.next_node == "verify_and_respond"
     assert result.missing_fields == []
+
+
+def test_housing_distinguishes_authorities_that_share_the_same_destination():
+    rent = replace(SERVICE, required_circumstances=(("housing_basis", "rental"),))
+    ownership = replace(CONFLICT, required_circumstances=(("housing_basis", "owner"),))
+    withdrawn = area(assignment_id="withdrawn", authority_id="authority-c", evidence_ref="withdrawn-passage")
+    for records in ((rent, ownership, withdrawn), (withdrawn, ownership, rent)):
+        result = choose(case_locations={}, assignments=records)
+        assert isinstance(result, RequestClarification)
+        assert result.question.missing_fields == ["housing_basis"]
+
+
+def test_filing_date_distinguishes_which_assignment_was_effective():
+    before = replace(SERVICE, effective_period=EffectivePeriod("filing_date", effective_until=date(2026, 3, 31)))
+    after = replace(CONFLICT, effective_period=EffectivePeriod("filing_date", effective_from=date(2026, 4, 1)))
+    result = choose(case_locations={}, assignments=(before, after))
+    assert isinstance(result, RequestClarification)
+    assert result.question.missing_fields == ["filing_date"]
+
+
+def test_equivalent_date_coverage_does_not_displace_a_distinguishing_field():
+    rent = replace(SERVICE, required_circumstances=(("housing_basis", "rental"),))
+    before = replace(rent, effective_period=EffectivePeriod("filing_date", effective_until=date(2026, 3, 31)))
+    after = replace(
+        rent, assignment_id="rental-after",
+        effective_period=EffectivePeriod("filing_date", effective_from=date(2026, 4, 1)),
+    )
+    ownership = replace(CONFLICT, required_circumstances=(("housing_basis", "owner"),))
+    result = choose(case_locations={}, assignments=(before, after, ownership))
+    assert isinstance(result, RequestClarification)
+    assert result.question.missing_fields == ["housing_basis"]
+
+
+def test_single_question_prefers_a_field_that_can_complete_a_possible_assignment():
+    rental = replace(SERVICE, required_circumstances=(("housing_basis", "rental"),))
+    competing = replace(
+        CONFLICT, case_location_role="activity_location",
+        effective_period=EffectivePeriod("filing_date", effective_from=date(2026, 4, 1)),
+    )
+    result = choose(assignments=(rental, competing))
+    assert isinstance(result, RequestClarification)
+    assert result.question.missing_fields == ["housing_basis"]
+
+
+def test_joint_requirements_are_not_grouped_across_separate_goals():
+    state = STATE.model_copy(update={
+        "intent": "plan_multiple_tasks", "procedure_candidates": ["procedure-a", "procedure-b"],
+    })
+    main = replace(SERVICE, effective_period=EffectivePeriod("filing_date", effective_from=date(2026, 4, 1)))
+    other = replace(OTHER_PROCEDURE, case_location_role="activity_location")
+    result = choose(state, case_locations={}, assignments=(main, other))
+    assert isinstance(result, RequestClarification)
+    assert result.question.missing_fields == ["activity_location"]
+
+
+def test_an_unchangeable_authority_conflict_does_not_prompt_for_another_assignment():
+    pending = area(assignment_id="unresolved-office", authority_id="authority-c", role="activity_location")
+    result = choose(assignments=(SERVICE, CONFLICT, pending))
+    assert isinstance(result, AnswerResult)
+    assert result.verification_status == "conflicting_evidence"
+    assert result.missing_information == []
+    assert result.official_channel is None
 
 
 def test_official_assistance_is_independent_of_authority_conflict():
@@ -140,17 +205,23 @@ def test_unverified_inapplicable_or_conflicting_contact_is_never_published(chang
     assert result.citations == []
 
 
-def test_worker_persists_question_and_does_not_repeat_it_or_treat_reply_as_confirmed(queued_run):
+@pytest.mark.parametrize("all_fields", [False, True])
+def test_worker_persists_question_and_does_not_repeat_it_or_treat_reply_as_confirmed(queued_run, all_fields):
     factory, context, _, _ = queued_run
     assert run_worker_step(factory, **context, execute=lambda *_: STATE).status == "running"
-    step = partial(choose_candidate_step, **(INPUTS | {"case_locations": {}}))
+    assignments = INPUTS["assignments"]
+    expected = ["destination"]
+    if all_fields:
+        assignments = (replace(SERVICE, required_circumstances=(("housing_basis", "rental"),)),)
+        expected.append("housing_basis")
+    step = partial(choose_candidate_step, **(INPUTS | {"case_locations": {}, "assignments": assignments}))
 
     paused = run_worker_step(factory, **context, execute=step)
     assert paused.status == "waiting_for_information"
     with factory.begin() as db:
         [event] = read_run_events(db, **context, after_seq=paused.last_event_seq - 1).events
         question = event.question
-        assert question.missing_fields == ["destination"]
+        assert question.missing_fields == expected
         assert load_checkpoint(db, **context).state.pending_question_id == question.question_id
         submit_clarification_reply(
             db, **context, question_id=question.question_id,
@@ -162,5 +233,5 @@ def test_worker_persists_question_and_does_not_repeat_it_or_treat_reply_as_confi
     finished = run_worker_step(factory, **context, execute=step)
     assert finished.status == "completed"
     assert finished.result.verification_status == "insufficient_evidence"
-    assert finished.result.missing_information == ["destination"]
+    assert finished.result.missing_information == expected
     assert finished.result.official_channel is None

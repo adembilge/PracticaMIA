@@ -13,6 +13,7 @@ UnitType = Literal["municipality", "province", "region", "country"]
 ResolutionStatus = Literal[
     "supported", "ambiguous", "needs_information", "unresolved",
 ]
+ServiceAreaField = tuple[Literal["location", "date", "circumstance"], str]
 
 
 @dataclass(frozen=True)
@@ -81,6 +82,14 @@ class ServiceArea:
 
 
 @dataclass(frozen=True)
+class PossibleServiceArea:
+    """An assignment that has no confirmed mismatch."""
+
+    assignment: ServiceArea
+    missing_fields: tuple[ServiceAreaField, ...]
+
+
+@dataclass(frozen=True)
 class ServiceAreaResult:
     status: ResolutionStatus
     authority_ids: tuple[str, ...] = ()
@@ -88,6 +97,7 @@ class ServiceAreaResult:
     missing_location_roles: tuple[str, ...] = ()
     missing_date_fields: tuple[str, ...] = ()
     missing_circumstance_fields: tuple[str, ...] = ()
+    possible_assignments: tuple[PossibleServiceArea, ...] = ()
 
 
 def resolve_service_areas(
@@ -118,10 +128,9 @@ def resolve_service_areas(
 
     dates = confirmed_dates or {}
     circumstances = confirmed_circumstances or {}
-    missing_roles: set[str] = set()
-    missing_dates: set[str] = set()
-    missing_circumstances: set[str] = set()
+    missing: set[ServiceAreaField] = set()
     matches: list[ServiceArea] = []
+    possible: list[PossibleServiceArea] = []
     for assignment in eligible:
         location = case_locations.get(assignment.case_location_role)
         unit_id = location.id_for(assignment.unit_type) if location and location.confirmed else None
@@ -143,30 +152,34 @@ def resolve_service_areas(
         ):
             continue
 
+        gaps: list[ServiceAreaField] = []
         if unit_id is None:
-            missing_roles.add(assignment.case_location_role)
+            gaps.append(("location", assignment.case_location_role))
         if period and case_date is None:
-            missing_dates.add(period.case_date_field)
-        missing_circumstances.update(unknown_fields)
-        if unit_id is not None and (period is None or case_date is not None) and not unknown_fields:
+            gaps.append(("date", period.case_date_field))
+        gaps.extend(("circumstance", field) for field in sorted(unknown_fields))
+        missing.update(gaps)
+        possible.append(PossibleServiceArea(assignment, tuple(gaps)))
+        if not gaps:
             matches.append(assignment)
 
     matched = tuple(sorted(matches, key=lambda item: item.assignment_id))
     authorities = tuple(sorted({item.authority_id for item in matched}))
-    if missing_roles or missing_dates or missing_circumstances:
+    if len(authorities) > 1:
+        # More information about another assignment cannot remove this conflict.
+        return ServiceAreaResult(
+            status="ambiguous", authority_ids=authorities, matched_assignments=matched,
+        )
+    if missing:
         return ServiceAreaResult(
             status="needs_information",
-            missing_location_roles=tuple(sorted(missing_roles)),
-            missing_date_fields=tuple(sorted(missing_dates)),
-            missing_circumstance_fields=tuple(sorted(missing_circumstances)),
+            missing_location_roles=tuple(sorted(name for kind, name in missing if kind == "location")),
+            missing_date_fields=tuple(sorted(name for kind, name in missing if kind == "date")),
+            missing_circumstance_fields=tuple(sorted(name for kind, name in missing if kind == "circumstance")),
+            possible_assignments=tuple(possible),
         )
     if not matched:
         return ServiceAreaResult(status="unresolved")
-    if len(authorities) > 1:
-        return ServiceAreaResult(
-            status="ambiguous", authority_ids=authorities,
-            matched_assignments=matched,
-        )
     return ServiceAreaResult(
         status="supported", authority_ids=authorities,
         matched_assignments=matched,

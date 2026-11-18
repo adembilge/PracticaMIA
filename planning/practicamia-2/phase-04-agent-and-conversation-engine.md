@@ -64,7 +64,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 ## 35. Implement clarification and user corrections
 
 - **35.1** The [clarification context check](phase-04-agent-api-contract.md#context-before-a-clarification) reuses confirmed case facts and checks the current message and accessible document results before asking.
-- **35.2** Prioritise information that changes the outcome. Prefer one distinguishing question when possible and explain why grouped fields are needed.
+- **35.2** The [question priority step](phase-04-agent-api-contract.md#prioritizing-clarifications) asks for the field that can narrow or settle a reviewed assignment. It explains why details are needed together when one authority's remaining assignments all require the same missing facts.
 - **35.3** Record the question ID, expected answer shape, and affected field. Accept free text and options. Explain what information is needed after an invalid answer.
 - **35.4** Define behaviour for unknown answers, skipping for now, and topic changes. Complete available work and retain open uncertainty.
 - **35.5** Reevaluate affected candidates, evidence, and next action when a correction arrives.
