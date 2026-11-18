@@ -63,6 +63,14 @@ During the question step, the worker can read encrypted review metadata through 
 
 The [synthetic worker tests](../../backend/tests/test_agent_clarification_context.py) verify saved-fact reuse, localized message confirmation, conflict handling, and fallback when document access or review metadata is unavailable. The hosted agent and live vault use still depend on their release gates.
 
+## Prioritizing clarifications
+
+Task 35.2 compares the remaining requirements of reviewed assignments that survived the case and evidence checks. With a known procedure, the [worker](../../backend/app/agent/clarification_priority.py) first looks for a field whose allowed values differ across candidate authorities. It treats alternate assignments to the same authority as alternatives and compares the union of their territorial, date or circumstance conditions for that field. It next prefers a field that could settle an assignment on its own. A relevant conflict or confirmation hint breaks a tie.
+
+The worker can ask for several details in one English or Italian prompt when only one authority remains possible and every remaining assignment for it needs the same missing fields together. The prompt explains the shared purpose and the event lists each affected field. A conflict between two fully applicable assignments can already be explained, even if another assignment still has gaps.
+
+The [synthetic resolution tests](../../backend/tests/test_agent_candidate_resolution.py) exercise grouped prompts and replay, alternative date ranges, withdrawn evidence, contextual questions and overlapping authority coverage.
+
 ## Identifiers and state
 
 | Field | Meaning | Rule |

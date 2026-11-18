@@ -53,7 +53,7 @@ def test_confirmed_intake_supplies_applicable_destination_date_and_housing():
         StoredMessage("Residence change", "en", uuid4(), case_context=case), STATE, **INPUTS,
     )
     assert isinstance(mismatched, RequestClarification)
-    assert mismatched.question.missing_fields == ["destination"]
+    assert mismatched.question.missing_fields == ["destination", "move_in_date", "housing_basis"]
 
 
 @pytest.mark.parametrize(("language", "text", "phrase"), [

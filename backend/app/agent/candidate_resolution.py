@@ -8,6 +8,7 @@ from uuid import uuid4
 from app.agent.catalogue_applicability import resolve_candidate_applicability
 from app.agent.checkpoints import MAX_PROCEDURE_CANDIDATES, CheckpointState
 from app.agent.clarification_context import ClarificationHint, prepare_clarification_context
+from app.agent.clarification_priority import prioritize_routing_fields
 from app.agent.contract import AnswerResult, Citation, ClarifyingQuestion, NextAction, OfficialChannel
 from app.agent.run_requests import StoredMessage
 from app.agent.worker import RequestClarification
@@ -46,8 +47,10 @@ _QUESTIONS = {
     ),
 }
 _IDENTITY_FIELDS = ("intent", "case_reference", "procedure")
+_ROUTING_FIELDS = tuple(field for field in _QUESTIONS if isinstance(field, tuple))
 _FIELD_LABELS = {
     "destination": ("the destination municipality", "il comune di destinazione"),
+    "activity_location": ("the municipality where the activity takes place", "il comune in cui si svolge l’attività"),
     "filing_date": ("the filing date", "la data di presentazione"),
     "move_in_date": ("the move-in date", "la data del trasferimento"),
     "housing_basis": ("the housing arrangement", "il titolo di occupazione"),
@@ -76,6 +79,17 @@ def _clarification_prompt(field: str, base: str, language: int, hint: Clarificat
     if hint is None or field not in _FIELD_LABELS:
         return base
     return _CONTEXT_PROMPTS[hint][language].format(field=_FIELD_LABELS[field][language])
+
+
+def _grouped_prompt(fields: list[str], language: int) -> str:
+    labels = [_FIELD_LABELS[field][language] for field in fields]
+    joiner = (" and ", " e ")[language]
+    details = joiner.join([", ".join(labels[:-1]), labels[-1]])
+    templates = (
+        "I need these details together to check whether this route applies. Can you provide {details}?",
+        "Mi servono tutti questi dati per verificare se la procedura si applica. Puoi indicare {details}?",
+    )
+    return templates[language].format(details=details)
 
 
 def choose_candidate_step(
@@ -115,30 +129,26 @@ def choose_candidate_step(
     if question_field is None and procedure_conflict:
         question_field = "procedure"
     question = _QUESTIONS.get(question_field)
+    missing_information = [question_field] if question_field else []
     if question_field is None and not conflict:
-        gap = next((
-            (kind, field) for result in pending
-            for kind, fields in (
-                ("location", result.missing_location_roles),
-                ("date", result.missing_date_fields),
-                ("circumstance", result.missing_circumstance_fields),
-            )
-            for field in fields if (kind, field) in _QUESTIONS
-        ), None)
-        if gap:
-            question = _QUESTIONS[gap]
-            question_field = gap[1]
+        fields = prioritize_routing_fields(pending, _ROUTING_FIELDS, context.hints)
+        if fields:
+            question = _QUESTIONS[fields[0]]
+            question_field = fields[0][1]
+            missing_information = [name for _, name in fields]
 
     candidate_ids = plausible if procedure_conflict else list(results)
     if question and question_field and message.clarification_reply is None:
         prompt = _clarification_prompt(question_field, question[language], language, context.hints.get(question_field))
+        if len(missing_information) > 1:
+            prompt = _grouped_prompt(missing_information, language)
         if question_field == "procedure":
             labels = _candidate_labels(candidate_ids, reviewed_labels)
             if labels and len(details := f"{prompt} {hint} {labels}.") <= 300:
                 prompt = details
         return RequestClarification(
             ClarifyingQuestion(
-                question_id=uuid4(), text=prompt, answer_shape="free_text", missing_fields=[question_field],
+                question_id=uuid4(), text=prompt, answer_shape="free_text", missing_fields=missing_information,
             ),
             resume_state=state,
         )
@@ -184,7 +194,7 @@ def choose_candidate_step(
     return AnswerResult(
         explanation=explanation,
         verification_status="conflicting_evidence" if conflict else "insufficient_evidence",
-        missing_information=[question_field] if question_field else [],
+        missing_information=missing_information,
         official_channel=channel, next_action=action, citations=contacts if channel else [],
     )
 

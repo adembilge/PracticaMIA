@@ -107,4 +107,6 @@ The [Task 34.6 matching matrix](../planning/practicamia-2/phase-04-agent-api-con
 
 The [Task 35.1 clarification context](../planning/practicamia-2/phase-04-agent-api-contract.md#context-before-a-clarification) checks the current message, owned confirmed intake and accessible housing-document review status before generating a question. Synthetic worker tests cover agreement, conflict, disabled access, expired documents, corrupt ciphertext and separation between cases. The internal worker uses the existing vault settings and release gates.
 
+The [Task 35.2 question priority step](../planning/practicamia-2/phase-04-agent-api-contract.md#prioritizing-clarifications) compares the remaining requirements of reviewed alternatives, favors a single distinguishing field and explains grouped requirements when several facts are needed together. Synthetic tests verify housing and date distinctions, known conflicts, and replay of a grouped question on the existing worker contract.
+
 For implementation details see [the documentation index](README.md).
