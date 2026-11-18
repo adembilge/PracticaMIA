@@ -1,15 +1,17 @@
 """Deterministic approved-evidence retrieval tests, with no live government data."""
 from datetime import datetime, timezone
 from hashlib import sha256
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.agent.catalogue_evidence import (
-    EvidenceScope, find_catalogue_evidence, resolve_catalogue_evidence,
+    find_catalogue_evidence, resolve_catalogue_evidence,
 )
+from app.auth.tokens import Principal
+from app.cases.intake_model import CaseIntake
 from app.config import Settings
 from app.knowledge.catalog import register_candidates
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
@@ -17,6 +19,7 @@ from app.knowledge.review_service import approve_version, revoke_version
 from app.knowledge.snapshot_model import KnowledgePassage, KnowledgeSnapshot
 from app.knowledge.snapshots import ingest_snapshot
 from app.main import create_app
+from test_case_intake import FACTS, create_scoped_case
 
 HTML = (b"<html><body><h1>Cambio di residenza</h1>"
         b"<p>Per questa simulazione il cambio di residenza a Milano "
@@ -221,18 +224,21 @@ def test_query_validation_and_injection_cannot_expand_search(client, auth_header
 
 
 def test_phase4_catalogue_and_search_api_share_exact_approved_evidence(client, auth_headers):
-    scope = EvidenceScope(procedure_id=SCOPE["procedure_id"], jurisdiction=SCOPE["jurisdiction"])
     user = auth_headers("bob")
+    case_id = UUID(create_scoped_case(client, user))
+    intake = f"/api/v1/cases/{case_id}/intake"
+    assert client.put(intake, headers=user, json={"facts": FACTS, "confirm": True}).status_code == 200
+    context = {"case_id": case_id, "principal": Principal("bob")}
     version, digest = _create(client)
     _approve(client, version, digest)
 
     found = _search(client, user, limit=1).json()["evidence"][0]
     with client.app.state.session_factory() as db:
-        result = find_catalogue_evidence(db, scope=scope, query="residenza", limit=1)
+        result = find_catalogue_evidence(db, **context, query="residenza", limit=1)
         assert result.status == "evidence_found"
         match, = result.passages
         assert resolve_catalogue_evidence(
-            db, scope=scope, citation_id=found["citation_id"],
+            db, **context, citation_id=found["citation_id"],
         ).passages == result.passages
 
     assert str(match.citation.source_version_id) == found["source_version_id"] == version
@@ -249,9 +255,9 @@ def test_phase4_catalogue_and_search_api_share_exact_approved_evidence(client, a
     revised_body = OTHER_HTML.replace(b"nuovo contenuto", b"nuovo contenuto sulla residenza")
     revised, revised_digest = _create(client, html=revised_body)
     with client.app.state.session_factory() as db:
-        assert find_catalogue_evidence(db, scope=scope, query="residenza").passages == ()
+        assert find_catalogue_evidence(db, **context, query="residenza").passages == ()
         assert resolve_catalogue_evidence(
-            db, scope=scope, citation_id=match.citation.citation_id,
+            db, **context, citation_id=match.citation.citation_id,
         ).status == "insufficient_evidence"
     _approve(client, revised, revised_digest)
     updated = _search(client, user, limit=1).json()["evidence"][0]
@@ -260,7 +266,7 @@ def test_phase4_catalogue_and_search_api_share_exact_approved_evidence(client, a
         CITATION_ROOT + found["citation_id"], params=SCOPE, headers=user,
     ).status_code == 404
     with client.app.state.session_factory() as db:
-        latest = resolve_catalogue_evidence(db, scope=scope, citation_id=updated["citation_id"])
+        latest = resolve_catalogue_evidence(db, **context, citation_id=updated["citation_id"])
         assert updated["source_version_id"] == str(latest.passages[0].citation.source_version_id)
         assert latest.passages[0].citation.passage_id != match.citation.passage_id
 
@@ -272,24 +278,95 @@ def test_phase4_catalogue_and_search_api_share_exact_approved_evidence(client, a
     assert client.get(CITATION_ROOT + updated["citation_id"], params=SCOPE, headers=user).status_code == 404
     with client.app.state.session_factory() as db:
         assert resolve_catalogue_evidence(
-            db, scope=scope, citation_id=updated["citation_id"],
+            db, **context, citation_id=updated["citation_id"],
         ).passages == ()
 
 
-@pytest.mark.parametrize(("procedure_id", "jurisdiction", "status", "fields"), [
-    (None, None, "needs_information", ("procedure_id", "jurisdiction")),
-    (SCOPE["procedure_id"], None, "needs_information", ("jurisdiction",)),
-    (SCOPE["procedure_id"], "IT-RM-ROMA", "unsupported_scope", ()),
-    ("rome_residence_change", SCOPE["jurisdiction"], "unsupported_scope", ()),
-])
-def test_phase4_catalogue_scope_gap_avoids_unscoped_db_access(
-    procedure_id, jurisdiction, status, fields,
-):
-    scope = EvidenceScope(procedure_id=procedure_id, jurisdiction=jurisdiction)
-    # No DB access is needed to identify an unknown or unsupported scope.
-    result = find_catalogue_evidence(None, scope=scope, query="residenza")
-    resolved = resolve_catalogue_evidence(None, scope=scope, citation_id=f"{uuid4()}:0000")
-    assert result == resolved
-    assert result.status == status
-    assert result.missing_fields == fields
-    assert not result.passages
+def test_phase4_case_evidence_hides_foreign_or_missing_cases(client, auth_headers):
+    user = auth_headers("alice")
+    case_id = UUID(create_scoped_case(client, user))
+    assert client.put(
+        f"/api/v1/cases/{case_id}/intake", headers=user, json={"facts": FACTS, "confirm": True},
+    ).status_code == 200
+    version, digest = _create(client)
+    _approve(client, version, digest)
+    citation_id = _search(client, user, limit=1).json()["evidence"][0]["citation_id"]
+
+    with client.app.state.session_factory() as db:
+        for target, subject in ((case_id, "bob"), (uuid4(), "alice")):
+            found = find_catalogue_evidence(
+                db, case_id=target, principal=Principal(subject), query="residenza",
+            )
+            resolved = resolve_catalogue_evidence(
+                db, case_id=target, principal=Principal(subject), citation_id=citation_id,
+            )
+            assert found == resolved
+            assert found.status == "case_unavailable"
+            assert found.passages == ()
+            assert found.missing_fields == ()
+
+
+def test_phase4_case_evidence_reloads_confirmation_and_scope(client, auth_headers):
+    user = auth_headers("alice")
+    case_id = UUID(client.post("/api/v1/cases", json={}, headers=user).json()["id"])
+    root = f"/api/v1/cases/{case_id}"
+    context = {"case_id": case_id, "principal": Principal("alice")}
+    version, digest = _create(client)
+    _approve(client, version, digest)
+    citation_id = _search(client, user, limit=1).json()["evidence"][0]["citation_id"]
+
+    def check(status, fields=()):
+        with client.app.state.session_factory() as db:
+            result = find_catalogue_evidence(db, **context, query="residenza", limit=1)
+            exact = resolve_catalogue_evidence(db, **context, citation_id=citation_id)
+            assert result == exact
+            assert result.status == status
+            assert result.missing_fields == fields
+            assert bool(result.passages) == (status == "evidence_found")
+
+    check("needs_information", ("scope_answers",))
+    assert client.patch(root + "/scope", headers=user, json={
+        "answers": ["yes", "yes", "yes", "no", "yes"],
+    }).status_code == 200
+    check("needs_information", ("intake_confirmation",))
+
+    for facts, confirmed, status, fields in (
+        (FACTS, False, "needs_information", ("intake_confirmation",)),
+        (FACTS, True, "evidence_found", ()),
+        ({**FACTS, "destination_municipality": "other"}, True, "unsupported_scope", ()),
+        (FACTS, True, "evidence_found", ()),
+        (FACTS, False, "needs_information", ("intake_confirmation",)),
+    ):
+        response = client.put(root + "/intake", headers=user, json={"facts": facts, "confirm": confirmed})
+        assert response.status_code == 200
+        check(status, fields)
+
+    assert client.patch(root + "/scope", headers=user, json={
+        "answers": ["no"],
+    }).status_code == 200
+    check("unsupported_scope")
+
+
+def test_phase4_case_evidence_fails_closed_for_invalid_or_foreign_intake(client, auth_headers):
+    user = auth_headers("alice")
+    case_id = UUID(create_scoped_case(client, user))
+    assert client.put(
+        f"/api/v1/cases/{case_id}/intake", headers=user, json={"facts": FACTS, "confirm": True},
+    ).status_code == 200
+    context = {"case_id": case_id, "principal": Principal("alice")}
+    for changes, expected in (
+        ({"facts": {"destination_municipality": ["milano"]}}, ("intake_confirmation",)),
+        ({"facts": {"destination_municipality": "milano"}}, (
+            "citizenship_class", "registration_context", "household_scope", "housing_basis",
+        )),
+        ({"facts": FACTS, "owner_subject": "bob"}, ("intake_confirmation",)),
+    ):
+        with client.app.state.session_factory.begin() as db:
+            row = db.get(CaseIntake, str(case_id))
+            for name, value in changes.items():
+                setattr(row, name, value)
+        with client.app.state.session_factory() as db:
+            result = find_catalogue_evidence(db, **context, query="residenza")
+            assert result.status == "needs_information"
+            assert result.missing_fields == expected
+            assert not result.passages

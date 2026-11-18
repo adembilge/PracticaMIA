@@ -73,6 +73,6 @@ The [Phase 3 official directory import](../planning/practicamia-2/phase-03-offic
 
 Phase 4 Task 31 now has [offline typed API models and synthetic contract checks](../planning/practicamia-2/phase-04-agent-api-contract.md#acceptance-and-dependency-checks). The scope is message and result shapes, event cursors and versioned citation identifiers. Architecture review, owner isolation at the API, durable retries and applicable catalogue evidence are pending.
 
-The [Phase 4 catalogue handoff](APPROVED_PASSAGE_SEARCH.md#phase-4-evidence-handoff) maps the existing Milan passage registry to the agent citation contract. Synthetic integration checks cover missing and unsupported scope and matching citations across the search API and adapter after source revision and withdrawal. The wider reviewed catalogue, authorized runtime context and pilot acceptance remain prerequisites for the first agent graph.
+The [Phase 4 catalogue handoff](APPROVED_PASSAGE_SEARCH.md#phase-4-evidence-handoff) maps the existing Milan passage registry to the agent citation contract. The internal adapter now derives scope from the authenticated owner’s persisted case and confirmed intake. Synthetic integration checks cover missing and foreign cases, confirmation changes, unsupported scope, and matching citations across search and the adapter before and after source revision or withdrawal. Thread authorization, the wider reviewed catalogue and pilot acceptance remain prerequisites for the first agent graph.
 
 For implementation details see [the documentation index](README.md).
