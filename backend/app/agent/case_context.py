@@ -1,6 +1,6 @@
 """Read the confirmed intake and current review actions for a linked case."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal, get_args
 from uuid import UUID
 
@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
+from app.agent.document_context import DocumentFieldStatus, read_document_field_statuses
 from app.agent.threads import AgentThread, AgentThreadCase
 from app.auth.tokens import Principal
 from app.cases.intake_model import CaseIntake
@@ -15,6 +16,7 @@ from app.cases.intake_schemas import IntakeFacts, describe_intake
 from app.cases.model import CaseRecord
 from app.cases.scope import DEMO_ANSWERS
 from app.cases.workflow_service import build_workflow
+from app.config import Settings
 from app.rules.engine import PROCEDURE
 
 CaseNextAction = Literal[
@@ -28,6 +30,7 @@ class WorkerCaseContext:
     user_confirmed_facts: IntakeFacts | None
     next_action: CaseNextAction | None
     open_review_action_ids: tuple[str, ...]
+    document_fields: dict[str, DocumentFieldStatus] = field(default_factory=dict)
 
 
 def _confirmed_facts(case: CaseRecord, intake: CaseIntake | None) -> IntakeFacts | None:
@@ -46,6 +49,7 @@ def _confirmed_facts(case: CaseRecord, intake: CaseIntake | None) -> IntakeFacts
 
 def read_worker_case_context(
     db: Session, *, thread_id: UUID, case_id: UUID, principal: Principal,
+    document_settings: Settings | None = None,
 ) -> WorkerCaseContext | None:
     """Project case state after checking ownership of both sides of the link."""
     row = db.execute(
@@ -81,5 +85,8 @@ def read_worker_case_context(
         next_action=workflow["next_action"] if workflow["next_action"] in get_args(CaseNextAction) else None,
         open_review_action_ids=tuple(
             item["id"] for item in checklist["items"] if item["id"] not in checklist["reviewed_items"]
+        ),
+        document_fields=read_document_field_statuses(
+            db, case_id=case.id, owner=case.owner_subject, facts=facts, settings=document_settings,
         ),
     )

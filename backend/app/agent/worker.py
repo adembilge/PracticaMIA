@@ -21,6 +21,7 @@ from app.agent.run_requests import (
 )
 from app.agent.worker_leases import WorkerLease, WorkerLeaseConflict, claim_next_run, require_worker_lease
 from app.auth.tokens import Principal
+from app.config import Settings
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,7 @@ ExecuteStep = Callable[
 
 def run_next_worker_step(
     sessions: sessionmaker[Session], *, key: bytes, lease_for: timedelta, execute: ExecuteStep,
+    document_settings: Settings | None = None,
 ) -> RunSnapshot | None:
     """Claim and advance one eligible run, leaving crash recovery to its lease."""
     with sessions.begin() as db:
@@ -44,13 +46,13 @@ def run_next_worker_step(
         return None
     return run_worker_step(
         sessions, thread_id=lease.thread_id, run_id=lease.run_id, principal=lease.principal,
-        key=key, execute=execute, lease=lease,
+        key=key, execute=execute, lease=lease, document_settings=document_settings,
     )
 
 
 def run_worker_batch(
     sessions: sessionmaker[Session], *, key: bytes, lease_for: timedelta,
-    execute: ExecuteStep, max_steps: int,
+    execute: ExecuteStep, max_steps: int, document_settings: Settings | None = None,
 ) -> int:
     """Process up to the caller's attempt budget and return the recorded step count."""
     if max_steps < 1:
@@ -59,7 +61,9 @@ def run_worker_batch(
     recorded_steps = 0
     for _ in range(max_steps):
         try:
-            snapshot = run_next_worker_step(sessions, key=key, lease_for=lease_for, execute=execute)
+            snapshot = run_next_worker_step(
+                sessions, key=key, lease_for=lease_for, execute=execute, document_settings=document_settings,
+            )
         except WorkerLeaseConflict:
             # A replacement worker may already own this run. A lost lease still
             # consumes an attempt so contention cannot keep the batch running.
@@ -74,6 +78,7 @@ def run_worker_step(
     sessions: sessionmaker[Session], *, thread_id: UUID, run_id: UUID,
     principal: Principal, key: bytes,
     execute: ExecuteStep, lease: WorkerLease | None = None,
+    document_settings: Settings | None = None,
 ) -> RunSnapshot | None:
     """Run a side-effect-free step between short database transactions."""
     context = {"thread_id": thread_id, "run_id": run_id, "principal": principal, "key": key}
@@ -110,6 +115,7 @@ def run_worker_step(
         if message.case_id is not None:
             case_context = read_worker_case_context(
                 db, thread_id=thread_id, case_id=message.case_id, principal=principal,
+                document_settings=document_settings if checkpoint.state.next_node == "choose_next_step" else None,
             )
             if case_context is None:
                 return None

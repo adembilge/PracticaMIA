@@ -55,6 +55,14 @@ The [Task 34.6 regression matrix](../../backend/tests/test_agent_matching_matrix
 
 Message extraction records a gap when an exact procedure or location expression is missing. The outcome step can then ask a targeted question. Standalone catalogue lookup may suggest a one-edit spelling variant for confirmation. These checks run against synthetic catalogue records in Backend CI. Run `python -m pytest -q tests/test_agent_matching_matrix.py` from `backend/`.
 
+## Context before a clarification
+
+Task 35.1 reuses the linked, owned Milan residence-change case's confirmed destination, move-in date and housing arrangement when an assignment needs them. Explicit English or Italian statements in the current message can turn a request for missing information into a request for confirmation. The worker holds a disputed field out of applicability checks when the message or reviewed document evidence conflicts with the saved value.
+
+During the question step, the worker can read encrypted review metadata through the existing private-vault release settings. The read requires an owned case link, current consent, completed scan and unexpired housing document, plus the subject and file allowlists in fixture mode. The question step receives only the review status of supported fields. A document-only suggestion or review can guide a confirmation question. The saved case stays under the existing confirmation workflow, and question events contain no document values or identifiers.
+
+The [synthetic worker tests](../../backend/tests/test_agent_clarification_context.py) verify saved-fact reuse, localized message confirmation, conflict handling, and fallback when document access or review metadata is unavailable. The hosted agent and live vault use still depend on their release gates.
+
 ## Identifiers and state
 
 | Field | Meaning | Rule |

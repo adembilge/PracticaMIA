@@ -105,4 +105,6 @@ The [Task 34.5 outcome step](../planning/practicamia-2/phase-04-agent-api-contra
 
 The [Task 34.6 matching matrix](../planning/practicamia-2/phase-04-agent-api-contract.md#bilingual-matching-evaluation) adds 20 synthetic regression cases for bilingual intent and procedure matching, spelling suggestions, acronym variants, authority order, confirmed service areas and conflicting or withdrawn evidence. The cases use the existing extraction, applicability and clarification steps. Live catalogue accuracy and hosted agent acceptance remain open.
 
+The [Task 35.1 clarification context](../planning/practicamia-2/phase-04-agent-api-contract.md#context-before-a-clarification) checks the current message, owned confirmed intake and accessible housing-document review status before generating a question. Synthetic worker tests cover agreement, conflict, disabled access, expired documents, corrupt ciphertext and separation between cases. The internal worker uses the existing vault settings and release gates.
+
 For implementation details see [the documentation index](README.md).

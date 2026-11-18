@@ -67,20 +67,12 @@ def _document(db: Session, case_id: UUID, document_id: UUID, owner: str,
 
 
 def _read_metadata(doc: PrivateCaseDocument, key: bytes) -> dict | None:
-    if not doc.review_ciphertext:
-        return None
     try:
-        raw = open_bytes(
+        return intel.read_review_metadata(
             doc.review_ciphertext, key=key, case_id=doc.case_id,
-            owner=doc.owner_subject, document_id=doc.id + ":review",
+            owner=doc.owner_subject, document_id=doc.id,
         )
-        if len(raw) > intel.MAX_REVIEW_BYTES:
-            raise ValueError("Oversized review")
-        value = json.loads(raw)
-        if not isinstance(value, dict) or value.get("version") != intel.REVIEW_VERSION:
-            raise ValueError("Unexpected review")
-        return value
-    except Exception:
+    except ValueError:
         raise HTTPException(503, "Encrypted document review is unavailable") from None
 
 
