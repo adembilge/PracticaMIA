@@ -77,4 +77,6 @@ The [Phase 4 catalogue handoff](APPROVED_PASSAGE_SEARCH.md#phase-4-evidence-hand
 
 The [agent thread tables](../backend/migrations/versions/20261118_0018_agent_threads.py) and [internal ownership service](../backend/app/agent/threads.py) support multiple owned case links, duplicate-safe linking and cascading link removal. The migration is additive. The new thread service has no hosted route, and message and checkpoint retention remain open under Task 33.
 
+The [message acceptance service](../backend/app/agent/run_requests.py) adds encrypted request persistence and durable queued run IDs. Identical retries recover the same run, and new requests respect the thread revision and one-active-run invariant. A cascaded case or thread deletion removes its saved requests. Migration `20261118_0019` is additive. Worker execution checkpoints, live event resumption, and hosted message routes remain open.
+
 For implementation details see [the documentation index](README.md).

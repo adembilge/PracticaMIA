@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, String, select
+from sqlalchemy import DateTime, ForeignKey, Integer, String, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Mapped, Session, mapped_column
@@ -19,6 +19,7 @@ class AgentThread(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     owner_subject: Mapped[str] = mapped_column(String(255), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, server_default="1")
 
 
 class AgentThreadCase(Base):

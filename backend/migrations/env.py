@@ -6,7 +6,7 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 
 from app.database import Base
-from app.agent import threads as agent_threads  # noqa: F401 - owner-scoped agent tables
+from app.agent import run_requests as agent_runs  # noqa: F401 - agent runs and threads
 from app.cases import model  # noqa: F401 - register the table on Base.metadata
 from app.cases import intake_model  # noqa: F401 - owner-bound categorical intake
 from app.preparation import models as preparation_models  # noqa: F401 - opt-in preview tables
