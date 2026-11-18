@@ -14,7 +14,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
-from app.agent.contract import Language, SendMessage
+from app.agent.contract import Language, QuestionAnswered, SendMessage
 from app.agent.threads import AgentThread, AgentThreadCase
 from app.auth.tokens import Principal
 from app.cases.model import CaseRecord
@@ -73,6 +73,7 @@ class StoredMessage:
     text: str
     language: Language
     case_id: UUID | None
+    clarification_reply: QuestionAnswered | None = None
 
 
 def _associated_data(run: AgentRunRequest, subject: str) -> bytes:

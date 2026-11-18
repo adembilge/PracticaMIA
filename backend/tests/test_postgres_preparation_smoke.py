@@ -14,12 +14,15 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.agent.checkpoints import (
     AgentRunCheckpoint, CheckpointConflict, CheckpointState, load_checkpoint, save_checkpoint,
+    submit_clarification_reply,
 )
-from app.agent.contract import AnswerResult, ProgressUpdated, RunStarted, SendMessage
+from app.agent.contract import (
+    AnswerResult, ClarificationReply, ClarifyingQuestion, ProgressUpdated, RunStarted, SendMessage,
+)
 from app.agent.run_events import AgentRunEvent, append_run_event, read_run_events, read_run_snapshot
 from app.agent.run_requests import AgentRunRequest, accept_message, read_run_message
 from app.agent.threads import AgentThread, AgentThreadCase, create_thread, link_case_to_thread
-from app.agent.worker import run_worker_step
+from app.agent.worker import RequestClarification, run_worker_step
 from app.agent.worker_leases import claim_next_run
 from app.auth.tokens import Principal
 from app.cases.model import CaseRecord
@@ -309,4 +312,51 @@ def test_worker_queue_skips_a_run_reserved_by_another_transaction():
         with factory.begin() as db:
             for thread_id in (first_thread, second_thread):
                 db.delete(db.get(AgentThread, str(thread_id)))
+        engine.dispose()
+
+
+def test_concurrent_clarification_retries_commit_one_reply_and_checkpoint():
+    engine = create_engine(os.environ["DATABASE_URL"])
+    factory = sessionmaker(bind=engine)
+    owner = Principal("synthetic-clarification-owner")
+    key = bytes(range(32))
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=owner)
+        accepted = accept_message(
+            db, thread_id=thread_id, principal=owner, key=key,
+            message=SendMessage(client_message_id=uuid4(), text="Fixture only", language="en"),
+        )
+
+    context = {"thread_id": thread_id, "run_id": accepted.run_id, "principal": owner, "key": key}
+    question = ClarifyingQuestion(
+        question_id=uuid4(), text="Which city?", answer_shape="free_text", missing_fields=["jurisdiction"],
+    )
+    gate = Barrier(2, timeout=10)
+
+    def submit(_):
+        with factory.begin() as db:
+            db.execute(text("SET LOCAL lock_timeout = '5s'"))
+            gate.wait()
+            return submit_clarification_reply(db, **context, question_id=question.question_id, reply=reply)
+
+    try:
+        paused = run_worker_step(factory, **context, execute=lambda *_: RequestClarification(
+            question, CheckpointState(next_node="find_evidence"),
+        ))
+        reply = ClarificationReply(
+            client_reply_id=uuid4(), expected_run_revision=paused.run_revision, text="Fixture city",
+        )
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            first, retry = executor.map(submit, range(2))
+        assert first == retry
+
+        with factory.begin() as db:
+            assert read_run_snapshot(db, **context).status == "running"
+            assert read_run_events(db, **context, after_seq=paused.last_event_seq).events == [first]
+            checkpoint = load_checkpoint(db, **context)
+            assert (checkpoint.revision, checkpoint.event_seq) == (3, first.event_seq)
+            assert checkpoint.state.pending_question_id is None
+    finally:
+        with factory.begin() as db:
+            db.delete(db.get(AgentThread, str(thread_id)))
         engine.dispose()

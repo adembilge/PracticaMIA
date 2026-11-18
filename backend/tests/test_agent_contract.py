@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.agent.contract import (
-    AnswerResult, EventPage, ProposalDecision, RunSnapshot, SendMessage, StopRun,
+    AnswerResult, ClarificationReply, EventPage, ProposalDecision, RunSnapshot, SendMessage, StopRun,
     agent_event_adapter,
 )
 
@@ -67,6 +67,14 @@ def test_invalid_message_data_is_rejected(changes):
         SendMessage.model_validate({**MESSAGE_BODY, **changes})
 
 
+def test_reply_requires_bounded_text_and_a_valid_event_revision():
+    body = {"client_reply_id": MESSAGE, "expected_run_revision": 4, "text": " Area A "}
+    assert ClarificationReply.model_validate(body).text == "Area A"
+    for invalid in ({"text": " "}, {"text": "x" * 2001}, {"expected_run_revision": 2**31}):
+        with pytest.raises(ValidationError):
+            ClarificationReply.model_validate({**body, **invalid})
+
+
 @pytest.mark.parametrize("fixture", [
     event("run.started", 1, client_message_id=MESSAGE),
     event("progress.updated", 2, stage="looking_up_context", text="Checking the case"),
@@ -74,6 +82,7 @@ def test_invalid_message_data_is_rejected(changes):
         "question_id": QUESTION, "text": "Which area applies?", "answer_shape": "single_choice",
         "options": ["Area A", "Area B"], "missing_fields": ["location"],
     }),
+    event("question.answered", 4, question_id=QUESTION, client_reply_id=MESSAGE, text="Area A"),
     event("approval.requested", 4, proposal={
         "proposal_id": PROPOSAL, "case_id": CASE, "field_id": "location",
         "previous_value": None, "proposed_value": "Area A", "rationale": "User entered the value",
