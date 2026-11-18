@@ -4,20 +4,22 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from hashlib import sha256
 import os
+from threading import Barrier
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, func, inspect, select, text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from app.agent.checkpoints import (
     AgentRunCheckpoint, CheckpointConflict, CheckpointState, load_checkpoint, save_checkpoint,
 )
-from app.agent.contract import ProgressUpdated, RunStarted, SendMessage
+from app.agent.contract import AnswerResult, ProgressUpdated, RunStarted, SendMessage
 from app.agent.run_events import AgentRunEvent, append_run_event, read_run_events, read_run_snapshot
 from app.agent.run_requests import AgentRunRequest, accept_message, read_run_message
 from app.agent.threads import AgentThread, AgentThreadCase, create_thread, link_case_to_thread
+from app.agent.worker import run_worker_step
 from app.auth.tokens import Principal
 from app.cases.model import CaseRecord
 from app.config import Settings
@@ -229,4 +231,47 @@ def test_agent_message_acceptance_serializes_concurrent_retries_and_cascades():
                 db.delete(case)
             if thread := db.get(AgentThread, str(thread_id)):
                 db.delete(thread)
+        engine.dispose()
+
+
+def test_two_workers_cannot_commit_a_final_answer_from_the_same_boundary():
+    engine = create_engine(os.environ["DATABASE_URL"])
+    factory = sessionmaker(bind=engine)
+    owner = Principal("synthetic-worker-owner")
+    key = bytes(range(32))
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=owner)
+        accepted = accept_message(
+            db, thread_id=thread_id, principal=owner, key=key,
+            message=SendMessage(client_message_id=uuid4(), text="Fixture only", language="en"),
+        )
+
+    context = {"thread_id": thread_id, "run_id": accepted.run_id, "principal": owner, "key": key}
+    gate = Barrier(2, timeout=10)
+
+    def finish(_message, state):
+        assert state.next_node == "verify_and_respond"
+        gate.wait()
+        return AnswerResult(explanation="Synthetic result", verification_status="insufficient_evidence")
+
+    def attempt(_):
+        try:
+            return run_worker_step(factory, **context, execute=finish).status
+        except CheckpointConflict:
+            return "stale"
+
+    try:
+        assert run_worker_step(factory, **context, execute=lambda *_: CheckpointState(
+            next_node="verify_and_respond",
+        )).last_event_seq == 2
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            assert sorted(executor.map(attempt, range(2))) == ["completed", "stale"]
+
+        with factory.begin() as db:
+            page = read_run_events(db, **context, after_seq=2)
+            assert [event.type for event in page.events] == ["answer.completed"]
+            assert db.get(AgentRunCheckpoint, str(accepted.run_id)) is None
+    finally:
+        with factory.begin() as db:
+            db.delete(db.get(AgentThread, str(thread_id)))
         engine.dispose()
