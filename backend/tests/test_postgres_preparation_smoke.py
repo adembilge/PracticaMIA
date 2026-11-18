@@ -20,7 +20,7 @@ from app.agent.contract import (
     AnswerResult, ClarificationReply, ClarifyingQuestion, ProgressUpdated, RunStarted, SendMessage,
 )
 from app.agent.run_events import AgentRunEvent, append_run_event, read_run_events, read_run_snapshot
-from app.agent.run_requests import AgentRunRequest, accept_message, read_run_message
+from app.agent.run_requests import AgentRunRequest, accept_message, list_active_runs, read_run_message
 from app.agent.threads import AgentThread, AgentThreadCase, create_thread, link_case_to_thread
 from app.agent.worker import RequestClarification, run_worker_step
 from app.agent.worker_leases import claim_next_run
@@ -220,9 +220,13 @@ def test_agent_message_acceptance_serializes_concurrent_retries_and_cascades():
             checkpoint = load_checkpoint(db, **context, run_id=first.run_id)
             assert (checkpoint.revision, checkpoint.event_seq, checkpoint.state.next_node) == (1, 2, "find_evidence")
             assert read_run_snapshot(db, **context, run_id=first.run_id).status == "running"
+            active, = list_active_runs(db, principal=owner).items
+            assert (active.run_id, active.thread_id, active.case_id) == (first.run_id, thread_id, case_id)
+            assert list_active_runs(db, principal=Principal("synthetic-foreign-owner")).items == []
             db.delete(db.get(CaseRecord, str(case_id)))
             db.flush()
             assert read_run_message(db, **context, run_id=first.run_id) is None
+            assert list_active_runs(db, principal=owner).items == []
             assert db.scalar(select(AgentRunRequest.id).where(
                 AgentRunRequest.id == str(first.run_id),
             )) is None
