@@ -329,16 +329,6 @@ def test_phase4_search_matches_reviewed_passages_for_address_phrases_and_anpr(cl
             db, **foreign, query="How do I change my address?",
         ).status == "case_unavailable"
 
-    with client.app.state.session_factory.begin() as db:
-        revoke_version(
-            db, version_id=version, expected_digest=digest,
-            actor_subject="synthetic-reviewer", reason="Withdrawal of this local fixture.",
-        )
-    with client.app.state.session_factory() as db:
-        assert find_catalogue_evidence(
-            db, **context, query="How do I change my address?",
-        ).status == "insufficient_evidence"
-
     comparison = b"<h2>Confronto</h2><p>Residenza e domicilio compaiono in questo esempio.</p>"
     revised, digest = _create(client, html=html.replace(b"</body>", comparison + b"</body>"))
     _approve(client, revised, digest)
@@ -349,6 +339,16 @@ def test_phase4_search_matches_reviewed_passages_for_address_phrases_and_anpr(cl
         match, = result.passages
         assert "residenza e domicilio" in match.content.casefold()
         assert str(match.citation.source_version_id) == revised
+
+    with client.app.state.session_factory.begin() as db:
+        revoke_version(
+            db, version_id=revised, expected_digest=digest,
+            actor_subject="synthetic-reviewer", reason="Withdrawal of this local fixture.",
+        )
+    with client.app.state.session_factory() as db:
+        assert find_catalogue_evidence(
+            db, **context, query="How do I change my address?",
+        ).status == "insufficient_evidence"
 
 
 def test_phase4_evidence_hides_foreign_or_unlinked_thread_context(client, auth_headers):
