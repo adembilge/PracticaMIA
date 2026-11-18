@@ -32,6 +32,12 @@ Resolution returns the same evidence entry only while that version remains activ
 
 Normal signed-in users may read approved public evidence. Only separately allowlisted reviewers can approve or revoke sources; the search API does not grant review permissions.
 
+## Phase 4 evidence handoff
+
+The internal [catalogue adapter](../backend/app/agent/catalogue_evidence.py) uses the existing search and exact citation resolver to produce Phase 4 citation objects. The caller supplies a procedure and jurisdiction from authorized, confirmed context. Missing data returns `needs_information`; a scope outside the current Milan route returns `unsupported_scope`. The adapter retrieves the original Italian passages and sets the citation's location to the existing registry jurisdiction. Real authority competence, eligible channels and case-specific requirements still require reviewed applicability evidence.
+
+The [synthetic API parity tests](../backend/tests/test_knowledge_search.py) exercise the same passage text and identifiers through the authenticated search route and through the adapter. A changed or withdrawn version becomes unavailable through both paths. The adapter has no independent endpoint and does not infer scope from a user's question.
+
 ## Trust gates
 
 A candidate passage must pass **all** of these checks before it is returned:
