@@ -16,7 +16,7 @@ from app.agent.contract import (
 )
 from app.agent.run_events import _read_event_at, read_run_snapshot
 from app.agent.run_requests import (
-    WORKER_RUN_STATUSES, AgentRunRequest, StoredMessage, _owned_run, read_run_message,
+    WORKER_RUN_STATUSES, AgentRunRequest, StoredMessage, _owned_run, read_recent_user_messages, read_run_message,
 )
 from app.agent.worker_leases import WorkerLease, WorkerLeaseConflict, claim_next_run, require_worker_lease
 from app.auth.tokens import Principal
@@ -106,8 +106,11 @@ def run_worker_step(
         if message is None:
             return None
         boundary_event = _read_event_at(db, run, checkpoint.event_seq, principal, key)
-        if isinstance(boundary_event, QuestionAnswered):
-            message = replace(message, clarification_reply=boundary_event)
+        message = replace(
+            message,
+            clarification_reply=boundary_event if isinstance(boundary_event, QuestionAnswered) else None,
+            recent_user_messages=read_recent_user_messages(db, run=run, principal=principal, key=key),
+        )
 
     # Only completed boundaries survive a crash. Uncommitted computation can
     # run again, so this callback must not perform external writes.
