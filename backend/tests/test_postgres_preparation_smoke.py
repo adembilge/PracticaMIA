@@ -11,7 +11,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, func, inspect, select, text
 from sqlalchemy.orm import Session
 
-from app.agent.contract import RunStarted, SendMessage
+from app.agent.checkpoints import (
+    AgentRunCheckpoint, CheckpointConflict, CheckpointState, load_checkpoint, save_checkpoint,
+)
+from app.agent.contract import ProgressUpdated, RunStarted, SendMessage
 from app.agent.run_events import AgentRunEvent, append_run_event, read_run_events, read_run_snapshot
 from app.agent.run_requests import AgentRunRequest, accept_message, read_run_message
 from app.agent.threads import AgentThread, AgentThreadCase, create_thread, link_case_to_thread
@@ -24,7 +27,7 @@ from conftest import AUDIENCE, ISSUER, JWKS_URL
 
 pytestmark = pytest.mark.skipif(
     os.getenv("RUN_POSTGRES_SMOKE") != "1",
-    reason="requires disposable PG17 CI migrated through 0020",
+    reason="requires disposable PG17 CI migrated through 0021",
 )
 
 
@@ -33,7 +36,7 @@ def test_migration_includes_preparation_tables_and_real_cascading_delete(auth_he
     engine = create_engine(database)
     try:
         with engine.connect() as connection:
-            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "20261118_0020"
+            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "20261118_0021"
         assert {"case_preparations", "case_documents", "case_agent_turns"}.issubset(
             set(inspect(engine).get_table_names())
         )
@@ -177,6 +180,28 @@ def test_agent_message_acceptance_serializes_concurrent_retries_and_cascades():
         with ThreadPoolExecutor(max_workers=2) as executor:
             assert list(executor.map(append_start, range(2))) == [start, start]
 
+        progress = ProgressUpdated(
+            schema_version=1, thread_id=thread_id, run_id=first.run_id, event_seq=2,
+            occurred_at=datetime.now(timezone.utc), type="progress.updated",
+            stage="catalogue", text="Synthetic catalogue checkpoint",
+        )
+
+        def save_progress(_):
+            try:
+                with Session(engine) as db, db.begin():
+                    checkpoint = save_checkpoint(
+                        db, **context, run_id=first.run_id, expected_revision=0,
+                        expected_event_seq=1, state=CheckpointState(next_node="find_evidence"),
+                        event=progress,
+                    )
+                    return checkpoint.revision
+            except CheckpointConflict:
+                return None
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            revisions = list(executor.map(save_progress, range(2)))
+        assert revisions.count(1) == 1 and revisions.count(None) == 1
+
         different = message.model_copy(update={"client_message_id": uuid4()})
         assert accept(different).outcome == "active_run"
         with Session(engine) as db, db.begin():
@@ -185,7 +210,9 @@ def test_agent_message_acceptance_serializes_concurrent_retries_and_cascades():
             )).all()
             assert len(rows) == 1
             assert read_run_message(db, **context, run_id=first.run_id).text == message.text
-            assert read_run_events(db, **context, run_id=first.run_id, after_seq=0).events == [start]
+            assert read_run_events(db, **context, run_id=first.run_id, after_seq=0).events == [start, progress]
+            checkpoint = load_checkpoint(db, **context, run_id=first.run_id)
+            assert (checkpoint.revision, checkpoint.event_seq, checkpoint.state.next_node) == (1, 2, "find_evidence")
             assert read_run_snapshot(db, **context, run_id=first.run_id).status == "running"
             db.delete(db.get(CaseRecord, str(case_id)))
             db.flush()
@@ -195,6 +222,7 @@ def test_agent_message_acceptance_serializes_concurrent_retries_and_cascades():
             )) is None
             assert read_run_events(db, **context, run_id=first.run_id, after_seq=0) is None
             assert db.get(AgentRunEvent, (str(first.run_id), 1)) is None
+            assert db.get(AgentRunCheckpoint, str(first.run_id)) is None
     finally:
         with Session(engine) as db, db.begin():
             if case := db.get(CaseRecord, str(case_id)):

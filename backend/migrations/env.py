@@ -6,7 +6,7 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 
 from app.database import Base
-from app.agent import run_events as agent_events  # noqa: F401 - agent events, runs and threads
+from app.agent import checkpoints as agent_checkpoints  # noqa: F401 - agent state tables
 from app.cases import model  # noqa: F401 - register the table on Base.metadata
 from app.cases import intake_model  # noqa: F401 - owner-bound categorical intake
 from app.preparation import models as preparation_models  # noqa: F401 - opt-in preview tables
