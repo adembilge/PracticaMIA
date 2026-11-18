@@ -621,6 +621,41 @@ try{
     assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   });
 
+  await scenario('Agent clarification: a free-text date can be corrected after validation',async()=>{
+    const owner=await contextFor('alice',{width:390,height:800});
+    await owner.goto(origin+'/__acceptance/agent');
+    await owner.getByRole('button',{name:'Open conversation'}).first().click();
+    await owner.getByText('What was the synthetic move-in date?',{exact:true}).waitFor();
+    const field=owner.getByLabel('Your reply');
+    const send=owner.getByRole('button',{name:'Send reply',exact:true});
+    const nextReply=()=>owner.waitForResponse(response=>
+      response.request().method()==='POST' && /\/questions\/[^/]+\/reply$/.test(new URL(response.url()).pathname),
+    );
+
+    await field.fill('2026-02-30');
+    const [invalid]=await Promise.all([nextReply(),send.click()]);
+    assert.equal(invalid.status(),422);
+    await owner.getByRole('alert').filter({
+      hasText:'Enter a valid move-in date in YYYY-MM-DD or DD/MM/YYYY format.',
+    }).waitFor();
+    assert.equal(await field.inputValue(),'2026-02-30');
+    const pendingUrl=new URL(invalid.url()).pathname.split('/questions/')[0];
+    const pending=await readJson(owner,pendingUrl+'/events');
+    assert.deepEqual(pending.body.events.map(event=>event.type),['run.started','question.requested']);
+
+    await field.fill('18/11/2026');
+    const [valid]=await Promise.all([nextReply(),send.click()]);
+    assert.equal(valid.status(),200);
+    await send.waitFor({state:'hidden'});
+    await owner.waitForFunction(async path=>{
+      const response=await fetch(path,{cache:'no-store'});
+      return response.ok && (await response.json()).status==='completed';
+    },pendingUrl,{polling:100,timeout:10000});
+    const completed=owner.getByRole('heading',{name:'Conversation complete'});
+    if(!await completed.isVisible()) await owner.getByRole('button',{name:'Check status'}).click();
+    await owner.getByText('Received 18/11/2026.',{exact:true}).waitFor();
+  });
+
   await scenario('Agent stop: refresh a stale revision and remove the stopped conversation from discovery',async()=>{
     const route='/__acceptance/agent';
     const owner=await contextFor('alice',{width:390,height:800});

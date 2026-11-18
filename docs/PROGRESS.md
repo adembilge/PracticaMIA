@@ -109,4 +109,6 @@ The [Task 35.1 clarification context](../planning/practicamia-2/phase-04-agent-a
 
 The [Task 35.2 question priority step](../planning/practicamia-2/phase-04-agent-api-contract.md#prioritizing-clarifications) compares the remaining requirements of reviewed alternatives, favors a single distinguishing field and explains grouped requirements when several facts are needed together. Synthetic tests verify housing and date distinctions, known conflicts, and replay of a grouped question on the existing worker contract.
 
+The [Task 35.3 reply validation](../planning/practicamia-2/phase-04-agent-api-contract.md#validating-clarification-replies) attaches localized guidance to date and choice questions. The isolated API returns guidance when an answer fails validation and preserves the pending question for correction. The local Chromium fixture submits both choices and free text, including a correction after a rejected date.
+
 For implementation details see [the documentation index](README.md).

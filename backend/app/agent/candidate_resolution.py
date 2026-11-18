@@ -73,6 +73,24 @@ _CONTEXT_PROMPTS = {
         "I dati disponibili sono discordanti per {field}. Quale dato vale per questa pratica?",
     ),
 }
+_DATE_REPLY_HINTS = (
+    "Enter {field} between 1900 and 2100 in YYYY-MM-DD or DD/MM/YYYY format.",
+    "Inserisci {field} tra il 1900 e il 2100, nel formato AAAA-MM-GG o GG/MM/AAAA.",
+)
+_HOUSING_REPLY_HINTS = (
+    "Select the choice that describes your housing arrangement.",
+    "Seleziona l’opzione che descrive il tuo titolo di occupazione.",
+)
+_HOUSING_OPTIONS = (
+    [
+        "I own the home", "I rent under a registered private agreement", "I rent under a different arrangement",
+        "I live there as a guest", "Another arrangement",
+    ],
+    [
+        "La casa è di mia proprietà", "Ho un contratto di locazione privata registrato",
+        "Ho un altro tipo di affitto", "Ci abito come ospite", "Un altro titolo",
+    ],
+)
 
 
 def _clarification_prompt(field: str, base: str, language: int, hint: ClarificationHint | None) -> str:
@@ -139,16 +157,28 @@ def choose_candidate_step(
 
     candidate_ids = plausible if procedure_conflict else list(results)
     if question and question_field and message.clarification_reply is None:
-        prompt = _clarification_prompt(question_field, question[language], language, context.hints.get(question_field))
+        context_hint = context.hints.get(question_field)
+        prompt = _clarification_prompt(question_field, question[language], language, context_hint)
         if len(missing_information) > 1:
             prompt = _grouped_prompt(missing_information, language)
         if question_field == "procedure":
             labels = _candidate_labels(candidate_ids, reviewed_labels)
             if labels and len(details := f"{prompt} {hint} {labels}.") <= 300:
                 prompt = details
+        options = []
+        answer_format = reply_hint = None
+        if len(missing_information) == 1 and context_hint is None:
+            if question_field == "housing_basis":
+                options = _HOUSING_OPTIONS[language]
+                reply_hint = _HOUSING_REPLY_HINTS[language]
+            elif question_field in ("filing_date", "move_in_date"):
+                answer_format = "calendar_date"
+                reply_hint = _DATE_REPLY_HINTS[language].format(field=_FIELD_LABELS[question_field][language])
         return RequestClarification(
             ClarifyingQuestion(
-                question_id=uuid4(), text=prompt, answer_shape="free_text", missing_fields=missing_information,
+                question_id=uuid4(), text=prompt, missing_fields=missing_information,
+                answer_shape="single_choice" if options else "free_text", options=options,
+                answer_format=answer_format, reply_hint=reply_hint,
             ),
             resume_state=state,
         )

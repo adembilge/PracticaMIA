@@ -19,8 +19,7 @@ OWNER = Principal("alice")
 ACTIVE_RUNS_URL = "/api/v1/agent/runs/active"
 
 
-@pytest.fixture
-def paused_run(client, auth_headers):
+def pause_for_question(client, auth_headers, question, *, language="en"):
     case = client.post("/api/v1/cases", headers=auth_headers(), json={})
     assert case.status_code == 201
     case_id = UUID(case.json()["id"])
@@ -30,17 +29,21 @@ def paused_run(client, auth_headers):
         assert link_case_to_thread(db, principal=OWNER, thread_id=thread_id, case_id=case_id)
         accepted = accept_message(
             db, thread_id=thread_id, principal=OWNER, key=KEY,
-            message=SendMessage(client_message_id=uuid4(), case_id=case_id, text="Fixture message", language="en"),
+            message=SendMessage(client_message_id=uuid4(), case_id=case_id, text="Fixture message", language=language),
         )
-    question = ClarifyingQuestion(
-        question_id=uuid4(), text="Which option?", answer_shape="single_choice",
-        options=["Fixture A", "Fixture B"], missing_fields=["jurisdiction"],
-    )
     context = {"thread_id": thread_id, "run_id": accepted.run_id, "principal": OWNER, "key": KEY}
     run_worker_step(factory, **context, execute=lambda *_: RequestClarification(
         question, CheckpointState(next_node="find_evidence"),
     ))
     return context, question, case_id
+
+
+@pytest.fixture
+def paused_run(client, auth_headers):
+    return pause_for_question(client, auth_headers, ClarifyingQuestion(
+        question_id=uuid4(), text="Which option?", answer_shape="single_choice",
+        options=["Fixture A", "Fixture B"], missing_fields=["jurisdiction"],
+    ))
 
 
 def run_url(context):
@@ -158,7 +161,9 @@ def test_private_errors_hide_payloads_and_foreign_or_deleted_runs(client, auth_h
     malformed = client.post(reply_url, headers=owner, json={**reply, "unexpected": "private fixture payload"})
     assert_private_error(malformed, 422, "invalid_request")
     assert "private fixture payload" not in malformed.text
-    assert_private_error(client.post(reply_url, headers=owner, json={**reply, "text": "Fixture C"}), 422, "invalid_reply")
+    invalid_choice = client.post(reply_url, headers=owner, json={**reply, "text": "Fixture C"})
+    assert assert_private_error(invalid_choice, 422, "invalid_reply") == "Select one of the offered choices."
+    assert "Fixture C" not in invalid_choice.text
     assert_private_error(
         client.post(reply_url, headers=owner, json={**reply, "expected_run_revision": 2}), 409, "stale_question",
     )
@@ -167,6 +172,41 @@ def test_private_errors_hide_payloads_and_foreign_or_deleted_runs(client, auth_h
     assert client.get(ACTIVE_RUNS_URL, headers=owner).json() == {"items": [], "next_cursor": None}
     assert_private_error(client.get(url, headers=owner), 404, "unavailable")
     assert_private_error(client.post(reply_url, headers=owner, json=reply), 404, "unavailable")
+
+
+def test_invalid_free_text_date_explains_the_format_and_preserves_the_same_question(client, auth_headers):
+    hint = "Inserisci la data del trasferimento nel formato AAAA-MM-GG o GG/MM/AAAA."
+    context, question, _ = pause_for_question(client, auth_headers, ClarifyingQuestion(
+        question_id=uuid4(), text="Qual è la data del trasferimento?", answer_shape="free_text",
+        missing_fields=["move_in_date"], answer_format="calendar_date", reply_hint=hint,
+    ), language="it")
+    client.app.include_router(build_reconnect_router(key=KEY))
+    owner = auth_headers()
+    url = run_url(context)
+    before = client.get(url, headers=owner).json()
+    reply_url = f"{url}/questions/{question.question_id}/reply"
+    reply = {"client_reply_id": str(uuid4()), "expected_run_revision": before["run_revision"]}
+
+    for bad in ("2026-02-30", "Private fixture payload"):
+        rejected = client.post(reply_url, headers=owner, json={**reply, "text": bad})
+        assert assert_private_error(rejected, 422, "invalid_reply") == hint
+        assert bad not in rejected.text
+    blank = client.post(reply_url, headers=owner, json={**reply, "text": "  "})
+    assert "Enter a reply" in assert_private_error(blank, 422, "invalid_request")
+    foreign = client.post(reply_url, headers=auth_headers("bob"), json={**reply, "text": "2026-02-30"})
+    assert_private_error(foreign, 404, "unavailable")
+    assert hint not in foreign.text
+    assert client.get(url, headers=owner).json() == before
+    events = client.get(url + "/events", headers=owner).json()["events"]
+    assert [event["type"] for event in events] == ["run.started", "question.requested"]
+    assert events[-1]["question"] == question.model_dump(mode="json")
+
+    corrected = {**reply, "text": " 18/11/2026 "}
+    saved = client.post(reply_url, headers=owner, json=corrected)
+    assert saved.status_code == 200
+    assert saved.json()["text"] == "18/11/2026"
+    assert saved.json()["question_id"] == str(question.question_id)
+    assert client.post(reply_url, headers=owner, json=corrected).json() == saved.json()
 
 
 def test_active_run_cursor_handles_equal_timestamps_and_a_run_that_finishes_between_pages(client, auth_headers):

@@ -108,6 +108,14 @@ def test_discriminated_event_round_trip(fixture):
         "question_id": QUESTION, "text": "Which area applies?", "answer_shape": "single_choice",
         "options": ["Area A", " Area A "], "missing_fields": ["location"],
     }),
+    event("question.requested", 2, question={
+        "question_id": QUESTION, "text": "Which option?", "answer_shape": "single_choice",
+        "options": ["A", "B"], "missing_fields": ["move_in_date"], "answer_format": "calendar_date",
+    }),
+    event("question.requested", 2, question={
+        "question_id": QUESTION, "text": "What date and location?", "answer_shape": "free_text",
+        "missing_fields": ["move_in_date", "destination"], "answer_format": "calendar_date",
+    }),
     {**event("run.started", 1, client_message_id=MESSAGE), "occurred_at": "2026-11-18T10:00:00"},
 ])
 def test_unknown_private_or_invalid_event_data_is_rejected(fixture):
