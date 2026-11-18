@@ -38,6 +38,8 @@ The internal [catalogue adapter](../backend/app/agent/catalogue_evidence.py) use
 
 The [synthetic API parity tests](../backend/tests/test_knowledge_search.py) exercise the same passage text and identifiers through the authenticated search route and through the adapter. A changed or withdrawn version becomes unavailable through both paths. Separate fixtures verify that a case loses access to the passage after its owner removes confirmation or changes to an unsupported scope. The adapter has no independent endpoint and does not infer scope from a user's question.
 
+Phase 4 Task 34.3 adds one lexical retry inside the same authorized case scope when the original query yields no passage. Common address-change phrases such as “change my address” and “comunicare il nuovo indirizzo” use `cambio residenza` as the search terms. ANPR variants use the compact acronym. A `domicilio` query keeps that term in the retry, and a comparison naming `residenza` and `domicilio` requires both in the same passage. Each attempt uses the existing query bounds and review gates. The retry provides excerpts for later relevance and applicability checks.
+
 ## Trust gates
 
 A candidate passage must pass **all** of these checks before it is returned:

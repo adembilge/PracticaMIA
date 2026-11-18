@@ -291,6 +291,66 @@ def test_phase4_catalogue_and_search_api_share_exact_approved_evidence(client, a
         ).passages == ()
 
 
+def test_phase4_search_matches_reviewed_passages_for_address_phrases_and_anpr(client, auth_headers):
+    user = auth_headers("alice")
+    case_id = UUID(create_scoped_case(client, user))
+    assert client.put(
+        f"/api/v1/cases/{case_id}/intake", headers=user, json={"facts": FACTS, "confirm": True},
+    ).status_code == 200
+    context = _thread_context(client, case_id, "alice")
+    html = HTML.replace(b"</body>", b"<h2>Canale</h2><p>ANPR appare in questo esempio sintetico.</p></body>")
+    version, digest = _create(client, html=html)
+    _approve(client, version, digest)
+    search_cases = (
+        ("How do I change my address?", "cambio residenza"),
+        ("Dove posso comunicare il nuovo indirizzo?", "cambio residenza"),
+        ("residènza", "residenza"),
+        ("How do I use A.N.P.R.?", "anpr"),
+        ("ANPR", "anpr"),
+    )
+    with client.app.state.session_factory() as db:
+        for phrasing, lexical in search_cases:
+            expected = _search(client, user, query=lexical, limit=1).json()["evidence"]
+            actual = find_catalogue_evidence(db, **context, query=phrasing, limit=1)
+            assert actual.status == "evidence_found", phrasing
+            assert [item.citation.citation_id for item in actual.passages] == [
+                item["citation_id"] for item in expected
+            ]
+        for phrasing in (
+            "Come cambio indirizzo per il domicilio?",
+            "What is the difference between residenza and domicile?",
+            "How do I update my mailing address?",
+            "What is ANPRx?",
+        ):
+            assert find_catalogue_evidence(db, **context, query=phrasing).status == "insufficient_evidence"
+
+        foreign = {**context, "principal": Principal("bob")}
+        assert find_catalogue_evidence(
+            db, **foreign, query="How do I change my address?",
+        ).status == "case_unavailable"
+
+    with client.app.state.session_factory.begin() as db:
+        revoke_version(
+            db, version_id=version, expected_digest=digest,
+            actor_subject="synthetic-reviewer", reason="Withdrawal of this local fixture.",
+        )
+    with client.app.state.session_factory() as db:
+        assert find_catalogue_evidence(
+            db, **context, query="How do I change my address?",
+        ).status == "insufficient_evidence"
+
+    comparison = b"<h2>Confronto</h2><p>Residenza e domicilio compaiono in questo esempio.</p>"
+    revised, digest = _create(client, html=html.replace(b"</body>", comparison + b"</body>"))
+    _approve(client, revised, digest)
+    with client.app.state.session_factory() as db:
+        result = find_catalogue_evidence(
+            db, **context, query="What is the difference between residenza and domicile?",
+        )
+        match, = result.passages
+        assert "residenza e domicilio" in match.content.casefold()
+        assert str(match.citation.source_version_id) == revised
+
+
 def test_phase4_evidence_hides_foreign_or_unlinked_thread_context(client, auth_headers):
     user = auth_headers("alice")
     case_id = UUID(create_scoped_case(client, user))

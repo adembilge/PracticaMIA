@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import timezone
+import re
 from typing import Literal
 from uuid import UUID
 
@@ -16,10 +17,39 @@ from app.cases.intake_model import CaseIntake
 from app.cases.intake_schemas import IntakeFacts, describe_intake
 from app.cases.model import CaseRecord
 from app.cases.scope import DEMO_ANSWERS, classify_scope
+from app.knowledge.entity_matching import normalize_name
 from app.knowledge.search import (
-    EvidencePassage, resolve_approved_passage, search_approved_passages,
+    EvidencePassage, normalize_query, resolve_approved_passage, search_approved_passages,
 )
 from app.rules.engine import JURISDICTION, PROCEDURE
+
+_RESIDENCE_TERMS = re.compile(r"\b(?:residenza|registered residence|registered address)\b")
+_DOMICILE_TERMS = re.compile(r"\b(?:domicilio|domicile)\b")
+_ADDRESS_CHANGE_TERMS = re.compile(
+    r"\b(?:change of address|chang(?:e|ed|ing) (?:my|the|a) address|"
+    r"(?:report|register) (?:my|the|a) new address|"
+    r"cambio (?:di )?indirizzo|(?:cambio|cambiare) il (?:mio )?indirizzo|"
+    r"(?:comunicar|registrar)e il nuovo indirizzo)\b"
+)
+_ANPR_TERMS = re.compile(r"\b(?:anpr|a n p r)\b")
+
+
+def _milan_search_hint(query: str) -> str:
+    """Build one lexical fallback. Its terms narrow retrieval inside case scope."""
+    key = normalize_name(query)
+    terms = []
+    if _DOMICILE_TERMS.search(key):
+        terms.append("domicilio")
+        if _RESIDENCE_TERMS.search(key):
+            terms.append("residenza")
+    elif _ADDRESS_CHANGE_TERMS.search(key):
+        terms.extend(("cambio", "residenza"))
+    elif _RESIDENCE_TERMS.search(key):
+        terms.append("residenza")
+    if _ANPR_TERMS.search(key):
+        terms.append("anpr")
+    return " ".join(terms)
+
 
 @dataclass(frozen=True)
 class CataloguePassage:
@@ -116,10 +146,12 @@ def find_catalogue_evidence(
     """Read Italian excerpts using the owning case's confirmed scope."""
     if gap := _case_evidence_gap(db, thread_id, case_id, principal):
         return gap
-    rows = search_approved_passages(
-        db, query=query, jurisdiction=JURISDICTION, procedure_id=PROCEDURE,
-        language="it", limit=limit,
-    )
+    search_scope = {
+        "jurisdiction": JURISDICTION, "procedure_id": PROCEDURE, "language": "it", "limit": limit,
+    }
+    rows = search_approved_passages(db, query=query, **search_scope)
+    if not rows and (hint := _milan_search_hint(query)) and hint != normalize_query(query)[0]:
+        rows = search_approved_passages(db, query=hint, **search_scope)
     return CatalogueEvidence(
         status="evidence_found" if rows else "insufficient_evidence",
         passages=tuple(_catalogue_passage(row) for row in rows),

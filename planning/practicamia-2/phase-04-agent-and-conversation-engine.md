@@ -54,7 +54,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 
 - **34.1** Define the six [typed intent labels](phase-04-agent-api-contract.md#internal-intent-labels) for the worker. A checkpoint can save an intent across resumption.
 - **34.2** Extract typed intents, authority and place expressions, procedure candidates, and missing context. The [isolated extraction step](phase-04-agent-api-contract.md#internal-intent-extraction) validates exact name matches against supplied reviewed catalogue records and retains unresolved distinctions.
-- **34.3** Use Phase 3 search to match everyday expressions, Italian terms, and acronyms. Test context-sensitive terms such as residenza and domicilio.
+- **34.3** Match reviewed everyday names and acronym variants in the Phase 3 catalogue. The [scoped Milan search adapter](../../docs/APPROVED_PASSAGE_SEARCH.md#phase-4-evidence-handoff) uses a bounded lexical retry for bilingual address phrases and preserves the distinction between `residenza` and `domicilio`.
 - **34.4** Represent how location, date, and circumstance change the candidates. Avoid assuming the user's physical location is the procedure's jurisdiction.
 - **34.5** When results are empty or conflicting, explain candidates, ask a distinguishing question, or route to a verified contact as appropriate.
 - **34.6** Test Italian, English, incomplete sentences, spelling mistakes, acronyms, and multiple authority names.
