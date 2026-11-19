@@ -14,8 +14,8 @@ from app.agent.checkpoints import (
     CheckpointConflict, CheckpointState, finish_checkpoint, load_checkpoint, save_checkpoint,
 )
 from app.agent.contract import (
-    AnswerCompleted, AnswerResult, ClarifyingQuestion, DocumentObservation, NextAction, ProgressUpdated, QuestionAnswered,
-    QuestionRequested, RunFailed, RunSnapshot, RunStarted,
+    AnswerCompleted, AnswerResult, ApprovalProposal, ApprovalRequested, ClarifyingQuestion, DocumentObservation,
+    NextAction, ProgressUpdated, QuestionAnswered, QuestionRequested, RunFailed, RunSnapshot, RunStarted,
 )
 from app.agent.run_events import _read_event_at, read_run_snapshot
 from app.agent.run_requests import (
@@ -35,8 +35,14 @@ class RequestClarification:
     resume_state: CheckpointState
 
 
+@dataclass(frozen=True)
+class RequestApproval:
+    proposal: ApprovalProposal
+    resume_state: CheckpointState
+
+
 ExecuteStep = Callable[
-    [StoredMessage, CheckpointState], CheckpointState | RequestClarification | AnswerResult,
+    [StoredMessage, CheckpointState], CheckpointState | RequestClarification | RequestApproval | AnswerResult,
 ]
 
 
@@ -243,6 +249,11 @@ def run_worker_step(
                     update={"pending_question_id": result.question.question_id},
                 )
                 event = QuestionRequested(**envelope, type="question.requested", question=result.question)
+            elif isinstance(result, RequestApproval):
+                state = result.resume_state.model_copy(
+                    update={"pending_proposal_id": result.proposal.proposal_id},
+                )
+                event = ApprovalRequested(**envelope, type="approval.requested", proposal=result.proposal)
             else:
                 state = result
                 event = ProgressUpdated(

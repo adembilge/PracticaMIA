@@ -1,7 +1,7 @@
 """Real Phase 4 persistence with a deterministic, disposable conversation."""
 
 from contextlib import contextmanager
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from secrets import token_bytes
 from threading import Event, Thread
 from uuid import uuid4
@@ -9,12 +9,14 @@ from uuid import uuid4
 from app.agent.answer_evidence import AnswerEvidenceScope, ClaimPassageSupport, ReviewedClaimSupport
 from app.agent.catalogue_evidence import catalogue_passage
 from app.agent.checkpoints import CheckpointState
-from app.agent.contract import AnswerResult, ClarifyingQuestion, EvidenceLinkedClaim, SendMessage
+from app.agent.contract import AnswerResult, ApprovalProposal, ClarifyingQuestion, EvidenceLinkedClaim, SendMessage
 from app.agent.reconnect_router import build_reconnect_router
 from app.agent.run_requests import accept_message
-from app.agent.threads import create_thread
-from app.agent.worker import RequestClarification, run_worker_batch, run_worker_step
+from app.agent.threads import create_thread, link_case_to_thread
+from app.agent.worker import RequestApproval, RequestClarification, run_worker_batch, run_worker_step
 from app.auth.tokens import Principal
+from app.cases.intake_model import CaseIntake
+from app.cases.model import CaseRecord
 from app.knowledge.model import KnowledgeSource
 from app.knowledge.review_service import approve_version
 from app.knowledge.search import search_approved_passages
@@ -33,6 +35,7 @@ class AgentReconnectFixture:
         api.include_router(build_reconnect_router(key=self.key))
         self.citation, self.claim, self.evidence_scope = self.seed_source()
         stop = self.seed_question("Which synthetic route should be stopped?")
+        self.seed_proposal()
         self.replaced_question_id = self.seed_question("Which synthetic detail should both tabs see first?")
         self.followup_question = ClarifyingQuestion(
             question_id=uuid4(), text="Which synthetic detail should the refreshed tab see?",
@@ -87,6 +90,37 @@ class AgentReconnectFixture:
             ),),
         )
         return citation, claim, scope
+
+    def seed_proposal(self):
+        principal = Principal("alice")
+        case_id = uuid4()
+        with self.sessions.begin() as db:
+            db.add(CaseRecord(id=str(case_id), owner_subject=principal.subject))
+            db.flush()
+            db.add(CaseIntake(
+                case_id=str(case_id), owner_subject=principal.subject, facts={"move_in_date": "2026-11-05"},
+            ))
+            thread_id = create_thread(db, principal=principal)
+            if not link_case_to_thread(db, thread_id=thread_id, case_id=case_id, principal=principal):
+                raise RuntimeError("Expected to link the synthetic proposal case")
+            run = accept_message(
+                db, thread_id=thread_id, principal=principal, key=self.key,
+                message=SendMessage(
+                    client_message_id=uuid4(), text="Synthetic move-in date proposal", language="en", case_id=case_id,
+                ),
+            )
+        proposal = ApprovalProposal(
+            proposal_id=uuid4(), case_id=case_id, field_id="move_in_date",
+            previous_value="2026-11-05", proposed_value="2026-11-06",
+            rationale="The user supplied a corrected move-in date.", expected_case_revision=7,
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
+        )
+        snapshot = run_worker_step(
+            self.sessions, thread_id=thread_id, run_id=run.run_id, principal=principal, key=self.key,
+            execute=lambda *_: RequestApproval(proposal, CheckpointState(next_node="verify_and_respond")),
+        )
+        if snapshot.status != "waiting_for_approval" or snapshot.pending_proposal != proposal:
+            raise RuntimeError("Expected the synthetic run to pause for proposal review")
 
     def seed_question(self, prompt, *, calendar_date=False):
         principal = Principal("alice")

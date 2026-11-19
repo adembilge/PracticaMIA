@@ -6,12 +6,13 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from app.agent.checkpoints import CheckpointState
-from app.agent.contract import AnswerResult, ClarifyingQuestion, SendMessage
+from app.agent.checkpoints import CheckpointState, load_checkpoint
+from app.agent.contract import AnswerResult, ApprovalProposal, ClarifyingQuestion, SendMessage
 from app.agent.reconnect_router import build_reconnect_router
+from app.agent.run_events import AgentRunEvent, EventConflict
 from app.agent.run_requests import AgentRunRequest, accept_message
 from app.agent.threads import create_thread, link_case_to_thread
-from app.agent.worker import RequestClarification, run_worker_step
+from app.agent.worker import RequestApproval, RequestClarification, run_worker_step
 from app.auth.tokens import Principal
 
 KEY = bytes(range(32))
@@ -58,6 +59,62 @@ def assert_private_error(response, status, code):
     assert body["code"] == code
     assert UUID(body["request_id"]).version == 4
     return body["message"]
+
+
+def test_pending_proposal_replays_the_exact_read_only_preview(client, auth_headers):
+    owner = auth_headers()
+    case = client.post("/api/v1/cases", headers=owner, json={})
+    assert case.status_code == 201
+    case_id = UUID(case.json()["id"])
+    intake = f"/api/v1/cases/{case_id}/intake"
+    before = client.get(intake, headers=owner).json()
+    factory = client.app.state.session_factory
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=OWNER)
+        assert link_case_to_thread(db, principal=OWNER, thread_id=thread_id, case_id=case_id)
+        run = accept_message(
+            db, thread_id=thread_id, principal=OWNER, key=KEY,
+            message=SendMessage(client_message_id=uuid4(), case_id=case_id, text="Fixture change", language="en"),
+        )
+    context = {"thread_id": thread_id, "run_id": run.run_id, "principal": OWNER, "key": KEY}
+    state = CheckpointState(next_node="verify_and_respond")
+    proposal = ApprovalProposal(
+        proposal_id=uuid4(), case_id=case_id, field_id="move_in_date",
+        previous_value=None, proposed_value="2026-11-19", rationale="Synthetic user correction.",
+        expected_case_revision=7, expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
+    )
+    foreign = proposal.model_copy(update={"case_id": uuid4()})
+    with pytest.raises(EventConflict, match="Proposal must belong to the run's case"):
+        run_worker_step(factory, **context, execute=lambda *_: RequestApproval(foreign, state))
+    pending = run_worker_step(factory, **context, execute=lambda *_: RequestApproval(proposal, state))
+    assert pending.status == "waiting_for_approval"
+    assert pending.pending_proposal == proposal
+    with factory.begin() as db:
+        saved = load_checkpoint(db, **context)
+        assert saved.event_seq == pending.last_event_seq
+        assert saved.state.pending_proposal_id == proposal.proposal_id
+        event = db.get(AgentRunEvent, (str(run.run_id), saved.event_seq))
+        assert proposal.rationale.encode() not in event.ciphertext
+
+    client.app.include_router(build_reconnect_router(key=KEY))
+    url = run_url(context)
+    with TestClient(client.app) as reopened:
+        response = reopened.get(url, headers=owner)
+        assert response.status_code == 200
+        assert response.headers["Cache-Control"] == "private, no-store"
+        assert response.json()["pending_proposal"] == proposal.model_dump(mode="json")
+        events = reopened.get(url + "/events", headers=owner).json()["events"]
+        assert [event["type"] for event in events] == ["run.started", "approval.requested"]
+        assert events[-1]["proposal"] == response.json()["pending_proposal"]
+        assert_private_error(reopened.get(url, headers=auth_headers("bob")), 404, "unavailable")
+
+        stopped = reopened.post(
+            url + "/stop", headers=owner, json={"expected_run_revision": pending.run_revision},
+        )
+        assert stopped.status_code == 200
+        assert stopped.json()["pending_proposal"] is None
+        assert stopped.json()["status"] == "stopped"
+    assert client.get(intake, headers=owner).json() == before
 
 
 def test_default_application_does_not_mount_phase_four_transport(client, auth_headers, paused_run):

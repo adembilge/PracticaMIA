@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import {AgentProposalPreview, type PendingProposal} from '../../src/components/AgentProposalPreview';
 import {AgentSourceCards, type AgentCitation} from '../../src/components/AgentSourceCards';
 
 type ActiveRun = { thread_id: string; run_id: string };
@@ -7,6 +8,7 @@ type Snapshot = {
   status: string;
   last_event_seq: number;
   run_revision: number;
+  pending_proposal?: PendingProposal | null;
   result: {
     explanation: string;
     next_action?: { operation: string | null } | null;
@@ -208,7 +210,14 @@ export function AgentReconnectFixture() {
           <button type="button" disabled={busy} onClick={() => void sendReply('unknown')}>I don’t know</button>
           <button type="button" disabled={busy} onClick={() => void sendReply('skip')}>Skip for now</button>
           <button type="button" disabled={busy} onClick={() => void sendReply('change_topic')}>Change topic</button>
-        </form> : view.snapshot.result ? <div>
+        </form> : view.snapshot.status === 'waiting_for_approval' ? (
+          view.snapshot.pending_proposal ? (
+            <AgentProposalPreview proposal={view.snapshot.pending_proposal} language="en" />
+          ) : <>
+            <p role="status">The pending proposal is unavailable.</p>
+            <button type="button" disabled={busy} onClick={() => void open(view.url)}>Check status</button>
+          </>
+        ) : view.snapshot.result ? <div>
           <h2>{view.snapshot.result.next_action?.operation === 'start_new_topic' ? 'Topic changed' : 'Conversation complete'}</h2>
           <p>{view.snapshot.result.explanation}</p>
           <AgentSourceCards runUrl={view.url} citations={view.snapshot.result.citations ?? []} language="en" />

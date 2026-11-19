@@ -143,4 +143,6 @@ The [Task 37.6 source cards](../planning/practicamia-2/phase-04-agent-api-contra
 
 The [Task 38.1 input provenance](../planning/practicamia-2/phase-04-agent-api-contract.md#recording-case-input-provenance) traces routing values to encrypted user replies and maps intake fields to their user-entered origin and confirmation state. The private vault preserves document candidates alongside the origin of the reviewed value, including a user correction. Synthetic tests cover restart, earlier document reviews, edited intake and separate document review and case confirmation.
 
+The [Task 38.2 proposal preview](../planning/practicamia-2/phase-04-agent-api-contract.md#previewing-a-proposed-case-change) persists the worker's approval pause and displays the exact recorded change in the isolated conversation view. The snapshot is owner-scoped and carries the affected field, existing and proposed values, rationale, case revision and proposal ID. Synthetic API and mobile Chromium tests exercise reopening and stopping without a case update.
+
 For implementation details see [the documentation index](README.md).

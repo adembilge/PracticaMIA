@@ -150,7 +150,7 @@ def append_run_event(
 def read_run_snapshot(
     db: Session, *, thread_id: UUID, run_id: UUID, principal: Principal, key: bytes,
 ) -> RunSnapshot | None:
-    """Recover status, event watermark and any recorded terminal answer."""
+    """Recover status and the proposal or answer at the current event boundary."""
     run = db.scalar(_owned_run(thread_id, run_id, principal).with_for_update(
         read=True, of=AgentRunRequest,
     ))
@@ -159,15 +159,18 @@ def read_run_snapshot(
 
     latest = _latest_event(db, run)
     result = None
-    if latest and run.status == "completed":
-        terminal = _decode_event(latest, run, principal, key)
-        if isinstance(terminal, AnswerCompleted):
-            result = terminal.result
+    pending_proposal = None
+    if latest and run.status in ("completed", "waiting_for_approval"):
+        current = _decode_event(latest, run, principal, key)
+        if isinstance(current, AnswerCompleted) and run.status == "completed":
+            result = current.result
+        if isinstance(current, ApprovalRequested) and run.status == "waiting_for_approval":
+            pending_proposal = current.proposal
 
     last_seq = latest.event_seq if latest else 0
     return RunSnapshot(
         thread_id=thread_id, run_id=run_id, status=run.status, last_event_seq=last_seq,
-        run_revision=last_seq + 1, result=result,
+        run_revision=last_seq + 1, result=result, pending_proposal=pending_proposal,
     )
 
 
