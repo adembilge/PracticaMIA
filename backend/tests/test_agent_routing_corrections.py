@@ -118,7 +118,7 @@ def test_corrected_scope_cannot_reuse_the_previous_cases_milan_evidence(client, 
     state = CheckpointState(next_node="find_evidence", procedure_candidates=[PROCEDURE], routing_corrections=correction)
     with client.app.state.session_factory() as db:
         result = refresh_corrected_evidence(
-            db, state=state, thread_id=uuid4(), case_id=uuid4(), principal=Principal("alice"),
+            db, state=state, thread_id=uuid4(), run_id=uuid4(), case_id=uuid4(), principal=Principal("alice"),
             query="residenza", language="en",
         )
     assert result.verification_status == "insufficient_evidence"

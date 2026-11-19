@@ -119,4 +119,6 @@ The [Task 35.6 stale-question recovery](../planning/practicamia-2/phase-04-agent
 
 The [Task 36.1 tool contracts](../planning/practicamia-2/phase-04-agent-api-contract.md#typed-tool-contracts) define typed input and result models for six catalogue and case tools. Synthetic tests cover unknown parameters, catalogue scope mismatches, exact passage identity and typed changes. The existing Milan evidence reader uses the new evidence models. The update models describe payloads for the later execution and approval steps.
 
+The [Task 36.2 tool authorization](../planning/practicamia-2/phase-04-agent-api-contract.md#authorizing-tool-calls) binds case tools to the acting principal and the exact case of the stored run. Synthetic tests cover signed-token identity, case substitution even within the same thread, revoked ownership and calls rejected before the evidence reader. The worker uses the ownership check for case context and evidence refresh.
+
 For implementation details see [the documentation index](README.md).
