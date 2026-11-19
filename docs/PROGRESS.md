@@ -129,4 +129,6 @@ The [Task 36.5 catalogue recovery](../planning/practicamia-2/phase-04-agent-api-
 
 The [Task 36.6 extension contracts](../planning/practicamia-2/phase-04-agent-api-contract.md#document-and-form-extension-tools) define case-scoped requests for document evidence, applicable forms and draft preparation. The authorization boundary reports all three as unavailable. Tests verify that completion states, evidence contents and artifact IDs cannot pass validation as extension outcomes.
 
+The [Task 37.1 claim links](../planning/practicamia-2/phase-04-agent-api-contract.md#linking-claims-to-evidence) attach each consequential claim to one or more exact passage IDs. The journal requires claim links for new verified answers and official channels, and the reviewed assistance path now supplies its channel claim. Older encrypted events remain readable. Freshness, applicability and passage support require the next checks.
+
 For implementation details see [the documentation index](README.md).

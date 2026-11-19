@@ -206,7 +206,15 @@ Every event contains `schema_version`, `thread_id`, `run_id`, `event_seq`, `type
 | `run.failed` | Safe error code, retryability, recovery action | Terminal failure; prior committed work remains visible. |
 | `run.stopped` | Actual stop outcome and committed operation IDs | Terminal stop; no rollback is implied. |
 
-`AnswerResult` separates `explanation`, `next_action`, `official_channel`, `citations`, `missing_information`, and `verification_status`. Each citation contains `citation_id`, `source_id`, `source_version_id`, `passage_id`, `official_url`, publisher, reviewed timestamp, and applicable procedure and location scope. `verification_status` is one of `verified`, `insufficient_evidence`, `conflicting_evidence`, or `unsupported`. An action has separate display copy and a typed operation; an official link is not an executable submission operation. Claims about authorities, requirements, fees, dates, or channels must be checked against applicable current approved evidence before `verified` is returned.
+`AnswerResult` separates `explanation`, `next_action`, `official_channel`, `claims`, `citations`, `missing_information`, and `verification_status`. Each citation contains `citation_id`, `source_id`, `source_version_id`, `passage_id`, `official_url`, publisher, reviewed timestamp, and applicable procedure and location scope. `verification_status` is one of `verified`, `insufficient_evidence`, `conflicting_evidence`, or `unsupported`. An action has separate display copy and a typed operation. The user handles submission in the official channel. Claims about authorities, requirements, fees, dates, or channels must be checked against applicable current approved evidence before `verified` is returned.
+
+## Linking claims to evidence
+
+Task 37.1 adds separate `claims` records for authorities, official channels, mandatory documents, fees, deadlines, conditions, and form versions. Each record carries a bounded statement and at least one versioned passage ID. Those IDs resolve to unique citations in the same answer. Several claims can share a passage, and a claim can link to several passages.
+
+The journal requires at least one linked claim for a new verified answer and a channel claim when an answer exposes an official channel. The reviewed official-assistance path attaches its exact passage to the channel claim, including when the overall answer remains unverified. Historical events retain their stored result and can be replayed with an empty claim list.
+
+These checks establish the structural link to a citation. Task 37.2 checks current-run evidence and scope, and Task 37.3 checks whether each cited passage supports the claim. Synthetic fixtures cover all seven claim types, dangling or ambiguous references and encrypted journal compatibility.
 
 ## Failure and concurrency rules
 
