@@ -18,7 +18,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.agent.case_context import WorkerCaseContext
 from app.agent.contract import (
-    ActiveRunCursor, ActiveRunPage, ActiveRunSummary, AnswerCompleted, ClarifyingQuestion,
+    ActiveRunCursor, ActiveRunPage, ActiveRunSummary, AnswerCompleted, ApprovalApplied, ClarifyingQuestion,
     Language, QuestionAnswered, SendMessage,
 )
 from app.agent.threads import AgentThread, AgentThreadCase
@@ -92,6 +92,7 @@ class StoredMessage:
     recent_user_messages: tuple[RecentUserMessage, ...] = ()
     case_context: WorkerCaseContext | None = None
     clarification_question: ClarifyingQuestion | None = None
+    approval_applied: ApprovalApplied | None = None
     origin: Literal["user_entered"] = field(default="user_entered", init=False)
 
 

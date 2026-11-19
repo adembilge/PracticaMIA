@@ -10,6 +10,7 @@ from fastapi.routing import APIRoute
 from pydantic import Field, model_validator
 from sqlalchemy.orm import Session
 
+from app.agent.approval_resume import ApprovedCaseUpdates, resume_approved_case_update
 from app.agent.checkpoints import CheckpointConflict, RunRevisionConflict, stop_run, submit_clarification_reply
 from app.agent.contract import (
     ActiveRunCursor, ActiveRunCursorTime, ActiveRunPage, ApprovalDecided, ClarificationReply, ContractModel,
@@ -97,7 +98,7 @@ class _PrivateAgentRoute(APIRoute):
         return private_response
 
 
-def build_reconnect_router(*, key: bytes) -> APIRouter:
+def build_reconnect_router(*, key: bytes, case_updates: ApprovedCaseUpdates | None = None) -> APIRouter:
     """Build the transport with a key supplied by the isolated application."""
     _payload_cipher(key)
     router = APIRouter(
@@ -180,7 +181,7 @@ def build_reconnect_router(*, key: bytes) -> APIRouter:
     @router.post(RUN_PATH + "/proposals/{proposal_id}/decision", responses={409: {"model": AgentHttpError}})
     def decide_proposal(
         thread_id: UUID, run_id: UUID, proposal_id: UUID, payload: SubmitProposalDecision,
-        principal: AuthenticatedOwner, db: DatabaseSession,
+        principal: AuthenticatedOwner, db: DatabaseSession, request: Request,
     ) -> ApprovalDecided:
         with db.begin():
             event = submit_proposal_decision(
@@ -189,6 +190,11 @@ def build_reconnect_router(*, key: bytes) -> APIRouter:
             )
             if event is None:
                 raise HTTPException(404)
+        if case_updates is not None and event.decision.decision == "accept":
+            resume_approved_case_update(
+                request.app.state.session_factory, thread_id=thread_id, run_id=run_id, principal=principal,
+                key=key, updates=case_updates, acceptance=event,
+            )
         return event
 
     return router

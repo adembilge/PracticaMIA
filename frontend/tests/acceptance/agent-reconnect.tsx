@@ -25,7 +25,12 @@ type Question = {
   options: string[];
   reply_hint?: string | null;
 };
-type RunView = { url: string; snapshot: Snapshot; question: Question | null; retryLater?: boolean };
+type RunView = {
+  url: string;
+  snapshot: Snapshot;
+  question: Question | null;
+  failureRecovery?: 'retry_later' | 'review_proposal';
+};
 type ReplyDisposition = 'answer' | 'unknown' | 'skip' | 'change_topic';
 const activeStatuses = new Set(['queued', 'running', 'waiting_for_information', 'waiting_for_approval', 'stopping']);
 
@@ -47,9 +52,10 @@ async function loadRun(url: string): Promise<RunView> {
   );
   const pending = page.events[0];
   if (snapshot.status === 'failed') {
-    const retryLater = pending?.type === 'run.failed' && pending.event_seq === snapshot.last_event_seq
-      && pending.retryable === true && pending.recovery === 'retry_later';
-    return { url, snapshot, question: null, retryLater };
+    const failure = pending?.type === 'run.failed' && pending.event_seq === snapshot.last_event_seq ? pending : null;
+    const failureRecovery = failure?.recovery === 'review_proposal' ? 'review_proposal'
+      : failure?.recovery === 'retry_later' && failure.retryable ? 'retry_later' : undefined;
+    return { url, snapshot, question: null, failureRecovery };
   }
   if (
     pending?.type !== 'question.requested' || pending.event_seq !== snapshot.last_event_seq || !pending.question
@@ -280,7 +286,8 @@ export function AgentReconnectFixture() {
         ) : view.snapshot.status === 'failed' ? (
           <div role="status">
             <h2>Conversation failed</h2>
-            {view.retryLater && <p>Send your request again later.</p>}
+            {view.failureRecovery === 'retry_later' && <p>Send your request again later.</p>}
+            {view.failureRecovery === 'review_proposal' && <p>Review the case and request a new proposal.</p>}
           </div>
         ) : <>
           <p role="status">Answer in progress.</p>

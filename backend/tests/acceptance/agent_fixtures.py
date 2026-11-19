@@ -7,6 +7,7 @@ from threading import Event, Thread
 from uuid import uuid4
 
 from app.agent.answer_evidence import AnswerEvidenceScope, ClaimPassageSupport, ReviewedClaimSupport
+from app.agent.approval_resume import ApprovedCaseUpdates
 from app.agent.catalogue_evidence import catalogue_passage
 from app.agent.checkpoints import CheckpointState
 from app.agent.contract import AnswerResult, ApprovalProposal, ClarifyingQuestion, EvidenceLinkedClaim, SendMessage
@@ -32,10 +33,12 @@ class AgentReconnectFixture:
     def __init__(self, api):
         self.sessions = api.state.session_factory
         self.key = token_bytes(32)
-        api.include_router(build_reconnect_router(key=self.key))
         self.citation, self.claim, self.evidence_scope = self.seed_source()
         stop = self.seed_question("Which synthetic route should be stopped?")
-        self.seed_proposal()
+        self.proposal_case_id = self.seed_proposal()
+        api.include_router(build_reconnect_router(
+            key=self.key, case_updates=ApprovedCaseUpdates(self.proposal_revision, self.write_proposal),
+        ))
         self.replaced_question_id = self.seed_question("Which synthetic detail should both tabs see first?")
         self.followup_question = ClarifyingQuestion(
             question_id=uuid4(), text="Which synthetic detail should the refreshed tab see?",
@@ -121,6 +124,20 @@ class AgentReconnectFixture:
         )
         if snapshot.status != "waiting_for_approval" or snapshot.pending_proposal != proposal:
             raise RuntimeError("Expected the synthetic run to pause for proposal review")
+        return case_id
+
+    def proposal_revision(self, db, case_id):
+        if case_id != self.proposal_case_id:
+            return None
+        intake = db.get(CaseIntake, str(case_id))
+        return 7 if intake and intake.facts == {"move_in_date": "2026-11-05"} else None
+
+    def write_proposal(self, db, proposal):
+        if proposal.case_id != self.proposal_case_id or proposal.field_id != "move_in_date":
+            raise RuntimeError("The synthetic writer only updates its fixture date")
+        intake = db.get(CaseIntake, str(proposal.case_id))
+        intake.facts = {"move_in_date": proposal.proposed_value}
+        return proposal.expected_case_revision + 1
 
     def seed_question(self, prompt, *, calendar_date=False):
         principal = Principal("alice")
@@ -147,6 +164,12 @@ class AgentReconnectFixture:
         return question.question_id
 
     def finish(self, message, state):
+        if message.approval_applied is not None:
+            if state.next_node != "verify_and_respond" or message.case_id != self.proposal_case_id:
+                raise RuntimeError("The worker did not resume the saved proposal run")
+            return AnswerResult(
+                explanation="The approved move-in date was saved.", verification_status="insufficient_evidence",
+            )
         if (
             state.next_node != "find_evidence" or message.clarification_reply is None
             or message.clarification_reply.question_id not in self.question_ids

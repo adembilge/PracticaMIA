@@ -325,6 +325,13 @@ class ApprovalDecided(EventEnvelope):
     decision: ProposalDecision
 
 
+class ApprovalApplied(EventEnvelope):
+    type: Literal["approval.applied"]
+    proposal_id: UUID
+    operation_id: UUID
+    case_revision: PositiveInt
+
+
 class AnswerCompleted(EventEnvelope):
     type: Literal["answer.completed"]
     result: AnswerResult
@@ -332,9 +339,11 @@ class AnswerCompleted(EventEnvelope):
 
 class RunFailed(EventEnvelope):
     type: Literal["run.failed"]
-    code: Literal["catalogue_unavailable", "provider_unavailable", "capacity_exceeded", "internal_error"]
+    code: Literal[
+        "catalogue_unavailable", "provider_unavailable", "capacity_exceeded", "internal_error", "proposal_outdated",
+    ]
     retryable: bool
-    recovery: Literal["retry_later", "resume_run", "contact_support"]
+    recovery: Literal["retry_later", "resume_run", "contact_support", "review_proposal"]
 
 
 class RunStopped(EventEnvelope):
@@ -344,7 +353,7 @@ class RunStopped(EventEnvelope):
 
 AgentEvent = Annotated[
     RunStarted | ProgressUpdated | QuestionRequested | QuestionAnswered | ApprovalRequested | ApprovalDecided
-    | AnswerCompleted | RunFailed | RunStopped,
+    | ApprovalApplied | AnswerCompleted | RunFailed | RunStopped,
     Field(discriminator="type"),
 ]
 agent_event_adapter = TypeAdapter(AgentEvent)
