@@ -125,4 +125,6 @@ The [Task 36.3 execution policy](../planning/practicamia-2/phase-04-agent-api-co
 
 The [Task 36.4 retry boundary](../planning/practicamia-2/phase-04-agent-api-contract.md#retrying-an-approved-case-write) stores a receipt with the approved database change. Exact retries recover the original operation ID and revision. Tests exercise rollback after a flush and rejection of duplicate proposals and case revisions. A disposable PostgreSQL run exercises concurrent requests. The live approval and case-write flow still needs integration.
 
+The [Task 36.5 catalogue recovery](../planning/practicamia-2/phase-04-agent-api-contract.md#recovering-from-catalogue-lookup-problems) retries temporary lookup failures once with a fresh session and records a retryable failure when both attempts fail. Empty results and invalid queries return localized next steps without citations. Synthetic tests verify the retry boundary and replay through the isolated authenticated API.
+
 For implementation details see [the documentation index](README.md).

@@ -814,6 +814,27 @@ try{
     assert.equal(active.body.items.some(run=>run.run_id===stoppedRun),false);
   });
 
+  await scenario('Agent reconnect: exhausted catalogue retries show a terminal recovery message',async()=>{
+    const page=await contextFor('alice',{width:390,height:800});
+    const threadId='00000000-0000-4000-8000-000000000001';
+    const runId='00000000-0000-4000-8000-000000000002';
+    const url=`/api/agent/threads/${threadId}/runs/${runId}`;
+    await page.route(origin+'/api/agent/runs/active',route=>route.fulfill({json:{
+      items:[{thread_id:threadId,run_id:runId}],next_cursor:null,
+    }}));
+    await page.route(origin+url,route=>route.fulfill({json:{
+      run_id:runId,status:'failed',last_event_seq:3,run_revision:4,result:null,
+    }}));
+    await page.route(request=>request.pathname===url+'/events',route=>route.fulfill({json:{events:[{
+      type:'run.failed',event_seq:3,code:'catalogue_unavailable',retryable:true,recovery:'retry_later',
+    }]}}));
+    await page.goto(origin+'/__acceptance/agent');
+    await page.getByRole('button',{name:'Open conversation',exact:true}).click({timeout:10000});
+    await page.getByRole('heading',{name:'Conversation failed',exact:true}).waitFor({timeout:10000});
+    await page.getByText('Send your request again later.',{exact:true}).waitFor({timeout:10000});
+    assert.equal(await page.getByRole('button',{name:'Check status',exact:true}).isVisible(),false);
+  });
+
   await scenario('A8: browser runs without uncaught runtime errors',async()=>{
     assert.deepEqual(errors,[]);
   });

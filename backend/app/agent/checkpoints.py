@@ -14,7 +14,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 from app.agent.clarification_disposition import resolve_disposition
 from app.agent.contract import (
     AgentEvent, AgentIntent, AnswerCompleted, ApprovalRequested, ClarificationReply, ContractModel,
-    Identifier, PassageId, QuestionAnswered, QuestionRequested, RunSnapshot, RunStopped, TERMINAL_EVENTS,
+    Identifier, PassageId, QuestionAnswered, QuestionRequested, RunFailed, RunSnapshot, RunStopped, TERMINAL_EVENTS,
 )
 from app.agent.run_events import _latest_event, _read_event_at, append_run_event, read_run_snapshot
 from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run, _payload_cipher
@@ -227,8 +227,8 @@ def submit_clarification_reply(
 
 def finish_checkpoint(
     db: Session, *, principal: Principal, key: bytes,
-    expected_revision: int, expected_event_seq: int, event: AnswerCompleted,
-) -> AnswerCompleted | None:
+    expected_revision: int, expected_event_seq: int, event: AnswerCompleted | RunFailed,
+) -> AnswerCompleted | RunFailed | None:
     """Finish the selected worker boundary and discard its resume state."""
     run = db.scalar(_owned_run(event.thread_id, event.run_id, principal).with_for_update(
         of=AgentRunRequest,
@@ -241,8 +241,8 @@ def finish_checkpoint(
     if row is None or row.event_seq != last_seq or event.event_seq != last_seq + 1:
         raise CheckpointConflict("Terminal event must follow the current checkpoint")
     appended = append_run_event(db, principal=principal, event=event, key=key)
-    if not isinstance(appended, AnswerCompleted):
-        raise CheckpointConflict("The run could not be completed")
+    if not isinstance(appended, (AnswerCompleted, RunFailed)):
+        raise CheckpointConflict("The run could not be finalized")
     db.delete(row)
     db.flush()
     return appended

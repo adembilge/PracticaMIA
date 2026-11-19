@@ -8,13 +8,13 @@ from uuid import UUID
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.agent.case_context import read_worker_case_context
-from app.agent.catalogue_evidence import refresh_corrected_evidence
+from app.agent.catalogue_evidence import CatalogueUnavailable, refresh_corrected_evidence
 from app.agent.checkpoints import (
     CheckpointConflict, CheckpointState, finish_checkpoint, load_checkpoint, save_checkpoint,
 )
 from app.agent.contract import (
     AnswerCompleted, AnswerResult, ClarifyingQuestion, NextAction, ProgressUpdated, QuestionAnswered,
-    QuestionRequested, RunSnapshot, RunStarted,
+    QuestionRequested, RunFailed, RunSnapshot, RunStarted,
 )
 from app.agent.run_events import _read_event_at, read_run_snapshot
 from app.agent.run_requests import (
@@ -165,12 +165,17 @@ def run_worker_step(
             next_action=NextAction(label=label, operation="start_new_topic"),
         )
     elif checkpoint.state.next_node == "find_evidence" and checkpoint.state.routing_corrections:
-        with sessions() as db:
+        for attempt in range(2):
             try:
-                result = refresh_corrected_evidence(
-                    db, state=checkpoint.state, thread_id=thread_id, run_id=run_id, case_id=message.case_id,
-                    principal=principal, query=message.text, language=message.language,
-                )
+                with sessions() as db:
+                    result = refresh_corrected_evidence(
+                        db, state=checkpoint.state, thread_id=thread_id, run_id=run_id, case_id=message.case_id,
+                        principal=principal, query=message.text, language=message.language,
+                    )
+                break
+            except CatalogueUnavailable as failure:
+                if attempt == 1:
+                    result = failure
             except ToolAccessDenied:
                 return None
     else:
@@ -190,11 +195,14 @@ def run_worker_step(
             "schema_version": 1, "thread_id": thread_id, "run_id": run_id,
             "event_seq": checkpoint.event_seq + 1, "occurred_at": datetime.now(timezone.utc),
         }
-        if isinstance(result, AnswerResult):
-            finish_checkpoint(
-                db, principal=principal, key=key, **boundary,
-                event=AnswerCompleted(**envelope, type="answer.completed", result=result),
+        if isinstance(result, (AnswerResult, CatalogueUnavailable)):
+            terminal = (
+                RunFailed(**envelope, type="run.failed", code="catalogue_unavailable",
+                          retryable=True, recovery="retry_later")
+                if isinstance(result, CatalogueUnavailable)
+                else AnswerCompleted(**envelope, type="answer.completed", result=result)
             )
+            finish_checkpoint(db, principal=principal, key=key, **boundary, event=terminal)
         else:
             if isinstance(result, RequestClarification):
                 state = result.resume_state.model_copy(

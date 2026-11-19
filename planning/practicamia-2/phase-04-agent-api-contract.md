@@ -142,6 +142,14 @@ On retry, the owner receives the original committed operation ID and resulting r
 
 The [retry tests](../../backend/tests/test_agent_tool_writes.py) use synthetic case writers and the real proposal journal. They exercise rollback and resume, and CI runs separate PostgreSQL tests for simultaneous calls using the same key or the same case revision. Migration `20261119_0023` adds the receipt table. The approval reader, canonical case revision integration and case writer are part of the later approval workflow.
 
+## Recovering from catalogue lookup problems
+
+Task 36.5 covers the worker's approved-evidence lookup after a scope correction. A recognized temporary storage error rolls back the read session. The worker retries once in a separate session and checks ownership and source approval again. If the second read also fails, the worker commits a `run.failed` event with `catalogue_unavailable`, `retryable: true`, and `retry_later` when the journal is writable. The run releases its checkpoint and lets the owner send a new request in the same thread. The isolated reconnect view displays the retry message from that event.
+
+An empty or out-of-scope result preserves the unverified outcome and asks the user to review the case details. Missing information from the evidence tool accompanies that outcome. An invalid search gets a localized instruction to rephrase it within the query limits. Both results carry no citations. Access denials and unexpected database errors retain their existing handling.
+
+The [recovery tests](../../backend/tests/test_agent_catalogue_recovery.py) exercise transient recovery in a fresh session, exhausted retries, signed event replay, a new request after failure, empty results and English and Italian validation guidance.
+
 ## Identifiers and state
 
 | Field | Meaning | Rule |

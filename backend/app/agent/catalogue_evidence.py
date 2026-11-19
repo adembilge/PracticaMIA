@@ -4,16 +4,19 @@ from datetime import timezone
 import re
 from uuid import UUID
 
+from psycopg import OperationalError as PostgresOperationalError
 from pydantic import ValidationError
 from sqlalchemy import and_, select
+from sqlalchemy.exc import DBAPIError, TimeoutError as PoolTimeout
 from sqlalchemy.orm import Session
 
 from app.agent.checkpoints import CheckpointState
-from app.agent.contract import AnswerResult, Citation, Language
+from app.agent.contract import AnswerResult, Citation, Language, NextAction
 from app.agent.threads import AgentThread, AgentThreadCase
 from app.agent.tool_contract import (
     CatalogueEvidence, CataloguePassage, CatalogueScope, FindEvidence, OpenSourceDetails,
 )
+from app.agent.tool_access import ToolAccessDenied
 from app.agent.tool_execution import check_tool_execution
 from app.auth.tokens import Principal
 from app.cases.intake_model import CaseIntake
@@ -36,6 +39,11 @@ _ADDRESS_CHANGE_TERMS = re.compile(
 )
 _ANPR_TERMS = re.compile(r"\b(?:anpr|a n p r)\b")
 _MILAN_SCOPE = CatalogueScope(procedure_id=PROCEDURE, location_id=JURISDICTION)
+_TRANSIENT_SQLSTATES = frozenset({"40001", "40P01", "53300", "55P03", "57P01", "57P02", "57P03"})
+
+
+class CatalogueUnavailable(RuntimeError):
+    """An evidence lookup failed with a temporary storage error."""
 
 
 def _milan_search_hint(query: str) -> str:
@@ -174,13 +182,23 @@ def read_tool_evidence(
     call: FindEvidence | OpenSourceDetails,
 ) -> CatalogueEvidence:
     """Authorize the typed read against the current run before looking up evidence."""
-    check_tool_execution(db, principal=principal, thread_id=thread_id, run_id=run_id, call=call)
-    if call.scope != _MILAN_SCOPE:
-        return CatalogueEvidence(status="unsupported_scope")
-    context = {"thread_id": thread_id, "case_id": call.case_id, "principal": principal}
-    if isinstance(call, FindEvidence):
-        return find_catalogue_evidence(db, **context, query=call.query, limit=call.limit)
-    return resolve_catalogue_evidence(db, **context, citation_id=call.citation_id)
+    try:
+        check_tool_execution(db, principal=principal, thread_id=thread_id, run_id=run_id, call=call)
+        if call.scope != _MILAN_SCOPE:
+            return CatalogueEvidence(status="unsupported_scope")
+        context = {"thread_id": thread_id, "case_id": call.case_id, "principal": principal}
+        if isinstance(call, FindEvidence):
+            return find_catalogue_evidence(db, **context, query=call.query, limit=call.limit)
+        return resolve_catalogue_evidence(db, **context, citation_id=call.citation_id)
+    except PoolTimeout as exc:
+        raise CatalogueUnavailable("Catalogue temporarily unavailable") from exc
+    except DBAPIError as exc:
+        sqlstate = getattr(exc.orig, "sqlstate", None)
+        if exc.connection_invalidated or (
+            sqlstate is not None and (sqlstate.startswith("08") or sqlstate in _TRANSIENT_SQLSTATES)
+        ) or (sqlstate is None and isinstance(exc.orig, PostgresOperationalError)):
+            raise CatalogueUnavailable("Catalogue temporarily unavailable") from exc
+        raise
 
 
 def refresh_corrected_evidence(
@@ -192,28 +210,53 @@ def refresh_corrected_evidence(
     if state.next_node != "find_evidence" or corrections is None:
         raise ValueError("Evidence refresh requires a corrected routing decision")
     if (
-        case_id is not None and state.procedure_candidates == [PROCEDURE]
-        and corrections.destination in (None, JURISDICTION)
-        and corrections.activity_location is None
-        and corrections.housing_basis in (None, "registered_private_rental")
+        case_id is None or state.procedure_candidates != [PROCEDURE]
+        or corrections.destination not in (None, JURISDICTION)
+        or corrections.activity_location is not None
+        or corrections.housing_basis not in (None, "registered_private_rental")
     ):
-        evidence = read_tool_evidence(
-            db, thread_id=thread_id, run_id=run_id, principal=principal,
-            call=FindEvidence(
-                tool="find_evidence", case_id=case_id, scope=_MILAN_SCOPE,
-                query="cambio di residenza" if corrections.procedure else query,
+        return _unverified_evidence(language, state.missing_fields)
+
+    try:
+        call = FindEvidence(
+            tool="find_evidence", case_id=case_id, scope=_MILAN_SCOPE,
+            query="cambio di residenza" if corrections.procedure else query,
+        )
+    except ValidationError:
+        return AnswerResult(
+            explanation=(
+                "Enter a search with 1–12 words and at most 180 characters." if language == "en"
+                else "Inserisci una ricerca di 1–12 parole e al massimo 180 caratteri."
+            ),
+            verification_status="insufficient_evidence",
+            missing_information=state.missing_fields,
+            next_action=NextAction(
+                label="Rephrase the search" if language == "en" else "Riformula la ricerca",
+                operation="provide_information",
             ),
         )
-        if evidence.passages:
-            return state.model_copy(update={
-                "next_node": "verify_and_respond",
-                "evidence_ids": [passage.citation.passage_id for passage in evidence.passages],
-            })
+    evidence = read_tool_evidence(db, thread_id=thread_id, run_id=run_id, principal=principal, call=call)
+    if evidence.status == "case_unavailable":
+        raise ToolAccessDenied("Tool scope unavailable")
+    if evidence.passages:
+        return state.model_copy(update={
+            "next_node": "verify_and_respond",
+            "evidence_ids": [passage.citation.passage_id for passage in evidence.passages],
+        })
+    return _unverified_evidence(language, list(evidence.missing_fields) or state.missing_fields)
+
+
+def _unverified_evidence(language: Language, missing_fields: list[str]) -> AnswerResult:
     return AnswerResult(
         explanation=(
-            "I could not verify current evidence for the corrected details." if language == "en"
-            else "Non ho potuto verificare le fonti aggiornate per i dati corretti."
+            "I could not verify current evidence for the corrected details. Review the case details."
+            if language == "en"
+            else "Non ho potuto verificare le fonti aggiornate per i dati corretti. Rivedi i dati della pratica."
         ),
         verification_status="insufficient_evidence",
-        missing_information=state.missing_fields,
+        missing_information=missing_fields,
+        next_action=NextAction(
+            label="Review the case details" if language == "en" else "Rivedi i dati della pratica",
+            operation="provide_information",
+        ),
     )
