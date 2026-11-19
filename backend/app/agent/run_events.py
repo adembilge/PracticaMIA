@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.agent.case_operations import AgentCaseOperation
 from app.agent.contract import (
-    AgentEvent, AnswerCompleted, ApprovalApplied, ApprovalDecided, ApprovalRequested, EventPage,
+    AgentEvent, AnswerCompleted, ApprovalApplied, ApprovalDecided, ApprovalRequested, EventPage, GoalSelection,
     QuestionAnswered, QuestionRequested,
     RunSnapshot, RunStarted, agent_event_adapter, valid_event_position,
 )
@@ -161,6 +161,13 @@ def append_run_event(
                 raise InvalidClarificationReply(
                     question.reply_hint or "Enter a valid date between 1900 and 2100 in YYYY-MM-DD or DD/MM/YYYY format."
                 )
+        selected_goal = (
+            question.options.index(event.text) + 1
+            if question.goal_selection_language is not None and event.disposition == "answer"
+            else None
+        )
+        if event.selected_goal != selected_goal:
+            raise EventConflict("The selected task must match the recorded option")
 
     nonce = urandom(12)
     ciphertext = nonce + _payload_cipher(key).encrypt(
@@ -187,20 +194,29 @@ def read_run_snapshot(
     result = None
     pending_proposal = None
     approval_recorded = False
-    if latest and run.status in ("completed", "waiting_for_approval"):
+    goal_selection = None
+    if latest and run.status in ("completed", "waiting_for_approval", "running"):
         current = _decode_event(latest, run, principal, key)
         if isinstance(current, AnswerCompleted) and run.status == "completed":
             result = current.result
+            goal_selection = result.goal_selection
         if isinstance(current, ApprovalRequested) and run.status == "waiting_for_approval":
             pending_proposal = current.proposal
         if isinstance(current, ApprovalDecided) and run.status == "waiting_for_approval":
             approval_recorded = current.decision.decision == "accept"
+        if isinstance(current, QuestionAnswered) and current.selected_goal is not None:
+            asked = _read_event_at(db, run, current.event_seq - 1, principal, key)
+            if isinstance(asked, QuestionRequested) and asked.question.goal_selection_language is not None:
+                goal_selection = GoalSelection(
+                    language=asked.question.goal_selection_language, options=asked.question.options,
+                    active_goal=current.selected_goal,
+                )
 
     last_seq = latest.event_seq if latest else 0
     return RunSnapshot(
         thread_id=thread_id, run_id=run_id, status=run.status, last_event_seq=last_seq,
         run_revision=last_seq + 1, result=result, pending_proposal=pending_proposal,
-        approval_recorded=approval_recorded,
+        approval_recorded=approval_recorded, goal_selection=goal_selection,
     )
 
 

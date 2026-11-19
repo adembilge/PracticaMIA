@@ -153,6 +153,8 @@ The [Task 38.5 LangGraph approval gate](../planning/practicamia-2/phase-04-agent
 
 The [Task 38.6 official handoff](../planning/practicamia-2/phase-04-agent-api-contract.md#showing-the-official-handoff) projects an actionable channel from a saved answer only while the current scope and exact reviewed support agree. The isolated English and Italian card explains the user's next step. The submission status stays unconfirmed. Signed synthetic tests cover missing case details, changed scope and withdrawn or replaced sources.
 
-The [Task 39.1 goal extraction](../planning/practicamia-2/phase-04-agent-api-contract.md#identifying-separate-goals) keeps reviewed procedure and place candidates and missing context with the individual goal. The groups survive the encrypted worker boundary and are replayed only to the owner. Synthetic English and Italian inputs exercise separate municipalities, unknown requests, alternative procedures and the fallback for oversized input. Task 39.2 covers choosing and displaying the active task.
+The [Task 39.1 goal extraction](../planning/practicamia-2/phase-04-agent-api-contract.md#identifying-separate-goals) keeps reviewed procedure and place candidates and missing context with the individual goal. The groups survive the encrypted worker boundary and are replayed only to the owner. Synthetic English and Italian inputs exercise separate municipalities, unknown requests, alternative procedures and the fallback for oversized input.
+
+The [Task 39.2 task choice](../planning/practicamia-2/phase-04-agent-api-contract.md#choosing-the-active-task) applies an unambiguous starting preference or asks the owner where to begin. The isolated UI shows the available goals and identifies the active choice from the saved run. Signed synthetic tests cover invalid replies, retries and skip. Task 39.3 covers verifying the linked case.
 
 For implementation details see [the documentation index](README.md).

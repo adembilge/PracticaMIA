@@ -17,7 +17,8 @@ from app.agent.clarification_disposition import resolve_disposition
 from app.agent.contract import (
     MAX_MESSAGE_GOALS, MAX_PROCEDURE_CANDIDATES,
     AgentEvent, AgentIntent, AnswerCompleted, ApprovalApplied, ApprovalRequested, ClarificationReply, ContractModel,
-    Identifier, MessageGoal, PassageId, PositiveInt, QuestionAnswered, QuestionRequested, RunFailed, RunSnapshot, RunStopped,
+    GoalNumber, Identifier, MessageGoal, PassageId, PositiveInt, QuestionAnswered, QuestionRequested,
+    RunFailed, RunSnapshot, RunStopped,
     TERMINAL_EVENTS,
 )
 from app.agent.proposal_freshness import ProposalFreshness
@@ -70,6 +71,7 @@ class CheckpointState(ContractModel):
     intent: AgentIntent | None = None
     procedure_candidates: list[Identifier] = Field(default_factory=list, max_length=MAX_PROCEDURE_CANDIDATES)
     goals: list[MessageGoal] = Field(default_factory=list, max_length=MAX_MESSAGE_GOALS)
+    preferred_goal: GoalNumber | None = None
     evidence_ids: list[PassageId] = Field(default_factory=list, max_length=10)
     routing_corrections: RoutingCorrections | None = None
     missing_fields: list[Identifier] = Field(default_factory=list, max_length=12)
@@ -80,6 +82,8 @@ class CheckpointState(ContractModel):
 
     @model_validator(mode="after")
     def validate_pending_work(self):
+        if self.preferred_goal is not None and self.preferred_goal > len(self.goals):
+            raise ValueError("The preferred goal must be one of this message's goals")
         if self.goals and (
             self.intent != "plan_multiple_tasks" or len(self.goals) < 2 or self.procedure_candidates
         ):
@@ -178,6 +182,10 @@ def save_checkpoint(
             raise CheckpointConflict("Checkpoint event must be the next nonterminal event for this run")
         if isinstance(event, QuestionRequested) and state.pending_question_id != event.question.question_id:
             raise CheckpointConflict("Checkpoint must reference the pending question")
+        if isinstance(event, QuestionRequested) and event.question.goal_selection_language is not None and (
+            len(event.question.options) != len(state.goals) or state.preferred_goal is not None
+        ):
+            raise CheckpointConflict("Task choices must match the pending goals")
         if isinstance(event, ApprovalRequested) and state.pending_proposal_id != event.proposal.proposal_id:
             raise CheckpointConflict("Checkpoint must reference the pending proposal")
         if isinstance(event, ApprovalApplied) and state.pending_proposal_id is not None:
@@ -235,11 +243,18 @@ def submit_clarification_reply(
     if not isinstance(pending, QuestionRequested) or pending.question.question_id != question_id:
         raise CheckpointConflict("The question is no longer pending at this revision")
 
+    question = pending.question
+    disposition = resolve_disposition(reply, question)
+    selected_goal = (
+        question.options.index(reply.text) + 1
+        if question.goal_selection_language is not None and disposition == "answer" and reply.text in question.options
+        else None
+    )
     answered = QuestionAnswered(
         schema_version=1, thread_id=thread_id, run_id=run_id, event_seq=reply_seq,
         occurred_at=datetime.now(timezone.utc), type="question.answered",
         question_id=question_id, client_reply_id=reply.client_reply_id, text=reply.text,
-        disposition=resolve_disposition(reply, pending.question),
+        disposition=disposition, selected_goal=selected_goal,
     )
     updated = save_checkpoint(
         db, **context, expected_revision=checkpoint.revision, expected_event_seq=checkpoint.event_seq,
