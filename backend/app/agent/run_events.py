@@ -7,8 +7,10 @@ from uuid import UUID
 from sqlalchemy import CheckConstraint, ForeignKey, Integer, LargeBinary, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
+from app.agent.case_operations import AgentCaseOperation
 from app.agent.contract import (
-    AgentEvent, AnswerCompleted, ApprovalDecided, ApprovalRequested, EventPage, QuestionAnswered, QuestionRequested,
+    AgentEvent, AnswerCompleted, ApprovalApplied, ApprovalDecided, ApprovalRequested, EventPage,
+    QuestionAnswered, QuestionRequested,
     RunSnapshot, RunStarted, agent_event_adapter, valid_event_position,
 )
 from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run, _payload_cipher
@@ -51,6 +53,7 @@ _TRANSITIONS = {
     "question.answered": (("waiting_for_information",), "running"),
     "approval.requested": (("running",), "waiting_for_approval"),
     "approval.decided": (("waiting_for_approval",), None),
+    "approval.applied": (("waiting_for_approval",), "running"),
     "answer.completed": (("running",), "completed"),
     "run.failed": ((*_RUNNING_OR_WAITING, "stopping"), "failed"),
     "run.stopped": (ACTIVE_STATUSES, "stopped"),
@@ -126,6 +129,17 @@ def append_run_event(
             raise EventConflict("Decision must identify the pending proposal")
         if event.decision.decision == "correct":
             status = "running"
+    if isinstance(event, ApprovalApplied):
+        accepted = _decode_event(latest, run, principal, key) if latest else None
+        receipt = db.get(AgentCaseOperation, str(event.operation_id))
+        if (
+            not isinstance(accepted, ApprovalDecided) or accepted.decision.decision != "accept"
+            or accepted.proposal_id != event.proposal_id or receipt is None
+            or receipt.expected_case_revision != accepted.decision.expected_case_revision
+            or (receipt.run_id, receipt.case_id, receipt.proposal_id, receipt.case_revision)
+            != (run.id, run.case_id, str(event.proposal_id), event.case_revision)
+        ):
+            raise EventConflict("Applied approval must follow its decision and saved case receipt")
     if isinstance(event, AnswerCompleted):
         result = event.result
         if result.verification_status == "verified" and not result.claims:

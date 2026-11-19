@@ -8,12 +8,14 @@ from typing import Literal
 from uuid import UUID
 
 from pydantic import Field, model_validator
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, LargeBinary, String
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, LargeBinary, String, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
+from app.agent.approval_graph import ApprovalPause
+from app.agent.case_operations import AgentCaseOperation
 from app.agent.clarification_disposition import resolve_disposition
 from app.agent.contract import (
-    AgentEvent, AgentIntent, AnswerCompleted, ApprovalRequested, ClarificationReply, ContractModel,
+    AgentEvent, AgentIntent, AnswerCompleted, ApprovalApplied, ApprovalRequested, ClarificationReply, ContractModel,
     Identifier, PassageId, PositiveInt, QuestionAnswered, QuestionRequested, RunFailed, RunSnapshot, RunStopped,
     TERMINAL_EVENTS,
 )
@@ -73,13 +75,14 @@ class CheckpointState(ContractModel):
     pending_question_id: UUID | None = None
     pending_proposal_id: UUID | None = None
     proposal_freshness: ProposalFreshness | None = None
+    approval_pause: ApprovalPause | None = None
 
     @model_validator(mode="after")
     def validate_pending_work(self):
         if self.pending_question_id is not None and self.pending_proposal_id is not None:
             raise ValueError("A checkpoint can hold one pending interaction")
-        if self.proposal_freshness is not None and self.pending_proposal_id is None:
-            raise ValueError("Proposal freshness requires a pending proposal")
+        if self.pending_proposal_id is None and (self.proposal_freshness is not None or self.approval_pause is not None):
+            raise ValueError("Proposal metadata requires a pending proposal")
         return self
 
 
@@ -172,6 +175,8 @@ def save_checkpoint(
             raise CheckpointConflict("Checkpoint must reference the pending question")
         if isinstance(event, ApprovalRequested) and state.pending_proposal_id != event.proposal.proposal_id:
             raise CheckpointConflict("Checkpoint must reference the pending proposal")
+        if isinstance(event, ApprovalApplied) and state.pending_proposal_id is not None:
+            raise CheckpointConflict("Applied approval must clear the pending proposal")
 
     revision = expected_revision + 1
     event_seq = event.event_seq if event is not None else last_seq
@@ -265,7 +270,7 @@ def stop_run(
     db: Session, *, thread_id: UUID, run_id: UUID, principal: Principal, key: bytes,
     expected_run_revision: int,
 ) -> RunSnapshot | None:
-    """Stop an owned read-only run and fence its outstanding lease."""
+    """Stop an owned run, retaining its committed operations and fencing its lease."""
     context = {"thread_id": thread_id, "run_id": run_id, "principal": principal, "key": key}
     run = db.scalar(_owned_run(thread_id, run_id, principal).with_for_update(of=AgentRunRequest))
     if run is None:
@@ -277,11 +282,15 @@ def stop_run(
     if expected_run_revision != next_event_seq:
         raise RunRevisionConflict("Run revision changed before stop")
 
+    operation_ids = db.scalars(
+        select(AgentCaseOperation.id).where(AgentCaseOperation.run_id == run.id)
+        .order_by(AgentCaseOperation.case_revision.desc()).limit(20)
+    ).all()
     stopped = append_run_event(
         db, principal=principal, key=key,
         event=RunStopped(
             schema_version=1, thread_id=thread_id, run_id=run_id, event_seq=next_event_seq,
-            occurred_at=datetime.now(timezone.utc), type="run.stopped", committed_operation_ids=[],
+            occurred_at=datetime.now(timezone.utc), type="run.stopped", committed_operation_ids=operation_ids,
         ),
     )
     if stopped is None:

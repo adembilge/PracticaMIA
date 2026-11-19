@@ -109,7 +109,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 - **38.2** [Preview the exact proposed change](phase-04-agent-api-contract.md#previewing-a-proposed-case-change) with its ID, affected field, existing and proposed values, rationale, and case revision.
 - **38.3** [Handle proposal decisions](phase-04-agent-api-contract.md#recording-proposal-decisions). Validate corrections before review and prevent declined proposals from being applied.
 - **38.4** [Recheck outdated proposals before committing](phase-04-agent-api-contract.md#rechecking-proposal-freshness). Verify the current case, exact source versions, and permissions.
-- **38.5** Pause with LangGraph `interrupt()` and resume the same thread after approval. A node can re-execute, so use a separate idempotent step for durable writes after approval. [LangGraph interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)
+- **38.5** [Pause with LangGraph and resume the same thread after approval](phase-04-agent-api-contract.md#resuming-a-langgraph-approval). Apply the approved change as a separate idempotent step. [LangGraph interrupts](https://docs.langchain.com/oss/python/langgraph/interrupts)
 - **38.6** Show the official channel and next action. Users handle official sign-in, signing, payment, and submission in that channel. Update status from available evidence.
 
 **Acceptance.** Only the displayed and approved change is applied. Duplicate approval or old proposals cannot cause incorrect writes.

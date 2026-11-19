@@ -830,7 +830,7 @@ try{
     assert.equal(active.body.items.some(run=>run.run_id===stoppedRun),false);
   });
 
-  await scenario('Agent proposal: reopen, correct and accept the exact reviewed change',async()=>{
+  await scenario('Agent proposal: reopen, correct, apply once and resume the same conversation',async()=>{
     const owner=await contextFor('alice',{width:390,height:800});
     const route='/__acceptance/agent';
     await owner.goto(origin+route);
@@ -881,20 +881,26 @@ try{
     assert.equal(next.approval_recorded,false);
     assert.notEqual(next.pending_proposal.proposal_id,proposal.proposal_id);
     assert.equal(next.pending_proposal.expected_case_revision,proposal.expected_case_revision);
+    assert.deepEqual((await readJson(owner,intakeUrl)).body,before.body);
     await preview.getByRole('button',{name:'Accept proposal',exact:true}).click();
-    await owner.getByText('Approval recorded. The case update is pending.',{exact:true}).waitFor();
-    assert.equal((await readJson(owner,url)).body.approval_recorded,true);
+    await preview.waitFor({state:'hidden'});
+    await awaitAgentStatus(owner,url);
+    const completed=owner.getByRole('heading',{name:'Conversation complete',exact:true});
+    if(!await completed.isVisible()) await owner.getByRole('button',{name:'Check status'}).click();
+    await completed.waitFor();
+    await owner.getByText('The approved move-in date was saved.',{exact:true}).waitFor();
     const accepted=(await readJson(owner,url+'/events')).body.events;
     assert.deepEqual(accepted.map(event=>event.type),[
       'run.started','approval.requested','approval.decided','approval.requested','approval.decided',
+      'approval.applied','answer.completed',
     ]);
     assert.equal(accepted[2].decision.decision,'correct');
     assert.equal(accepted[4].decision.decision,'accept');
     assert.equal(accepted[4].proposal_id,next.pending_proposal.proposal_id);
-    await owner.getByRole('button',{name:'Stop conversation',exact:true}).click();
-    await owner.getByRole('heading',{name:'Conversation stopped',exact:true}).waitFor();
-    assert.equal((await readJson(owner,url)).body.pending_proposal,null);
-    assert.deepEqual((await readJson(owner,intakeUrl)).body,before.body);
+    assert.equal(accepted[5].proposal_id,next.pending_proposal.proposal_id);
+    assert.equal(accepted[5].case_revision,8);
+    assert.equal(accepted[6].run_id,run.run_id);
+    assert.equal((await readJson(owner,intakeUrl)).body.facts.move_in_date,'2026-11-07');
   });
 
   await scenario('Agent reconnect: exhausted catalogue retries show a terminal recovery message',async()=>{

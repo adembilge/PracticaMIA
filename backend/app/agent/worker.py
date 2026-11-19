@@ -8,13 +8,15 @@ from uuid import UUID
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.agent.answer_evidence import AnswerEvidenceScopeReader, revalidate_answer_evidence
+from app.agent.approval_graph import pause_for_approval
 from app.agent.case_context import read_worker_case_context
 from app.agent.catalogue_evidence import CatalogueUnavailable, refresh_corrected_evidence
 from app.agent.checkpoints import (
     CheckpointConflict, CheckpointState, finish_checkpoint, load_checkpoint, save_checkpoint,
 )
 from app.agent.contract import (
-    AnswerCompleted, AnswerResult, ApprovalProposal, ApprovalRequested, ClarifyingQuestion, DocumentObservation,
+    AnswerCompleted, AnswerResult, ApprovalApplied, ApprovalProposal, ApprovalRequested,
+    ClarifyingQuestion, DocumentObservation,
     NextAction, ProgressUpdated, QuestionAnswered, QuestionRequested, RunFailed, RunSnapshot, RunStarted,
 )
 from app.agent.proposal_freshness import ProposalFreshness, proposal_evidence_fingerprint
@@ -159,6 +161,7 @@ def run_worker_step(
             message,
             clarification_reply=reply,
             clarification_question=question,
+            approval_applied=boundary_event if isinstance(boundary_event, ApprovalApplied) else None,
             recent_user_messages=() if topic_changed else read_recent_user_messages(
                 db, run=run, principal=principal, key=key,
             ),
@@ -231,6 +234,7 @@ def run_worker_step(
             else:
                 proposal_state = result.resume_state.model_copy(update={
                     "pending_proposal_id": result.proposal.proposal_id,
+                    "approval_pause": pause_for_approval(thread_id, run_id, result.proposal.proposal_id),
                     "proposal_freshness": ProposalFreshness(
                         case_fingerprint=case_fingerprint, passage_ids=evidence_ids,
                         evidence_fingerprint=evidence_fingerprint,

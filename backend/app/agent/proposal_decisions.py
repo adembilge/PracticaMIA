@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
+from app.agent.approval_graph import pause_for_approval
 from app.agent.checkpoints import CheckpointConflict, load_checkpoint, save_checkpoint, stop_run
 from app.agent.contract import (
     ApprovalDecided, ApprovalProposal, ApprovalRequested, FieldValue, ProposalDecision, SubmitProposalDecision,
@@ -106,9 +107,15 @@ def submit_proposal_decision(
     if saved_checkpoint is None:
         raise ProposalDecisionConflict()
     if replacement is not None:
+        approval_pause = (
+            pause_for_approval(thread_id, run_id, replacement.proposal_id)
+            if checkpoint.state.approval_pause is not None else None
+        )
         save_checkpoint(
             db, **context, expected_revision=saved_checkpoint.revision, expected_event_seq=seq,
-            state=checkpoint.state.model_copy(update={"pending_proposal_id": replacement.proposal_id}),
+            state=checkpoint.state.model_copy(update={
+                "pending_proposal_id": replacement.proposal_id, "approval_pause": approval_pause,
+            }),
             event=ApprovalRequested(
                 **envelope, event_seq=seq + 1, type="approval.requested", proposal=replacement,
                 requires_recorded_decision=True,
