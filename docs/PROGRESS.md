@@ -123,4 +123,6 @@ The [Task 36.2 tool authorization](../planning/practicamia-2/phase-04-agent-api-
 
 The [Task 36.3 execution policy](../planning/practicamia-2/phase-04-agent-api-contract.md#checking-tool-execution-and-approval) checks run state for reads and proposal drafts. A future write requires the pending encrypted proposal, a matching server-held accept decision and the current locked case revision. Synthetic tests cover expiry, missing decisions, mismatched approval scopes and updated case revisions. The approval reader and case writer still need integration.
 
+The [Task 36.4 retry boundary](../planning/practicamia-2/phase-04-agent-api-contract.md#retrying-an-approved-case-write) stores a receipt with the approved database change. Exact retries recover the original operation ID and revision. Tests exercise rollback after a flush and rejection of duplicate proposals and case revisions. A disposable PostgreSQL run exercises concurrent requests. The live approval and case-write flow still needs integration.
+
 For implementation details see [the documentation index](README.md).

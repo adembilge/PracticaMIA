@@ -132,7 +132,15 @@ Task 36.3 checks the owned run before any tool operation. Procedure discovery, e
 
 An `apply_approved_update` call requires a run paused at the matching `approval.requested` checkpoint. The [server gate](../../backend/app/agent/tool_execution.py) locks the owned run, reads the exact proposal from its encrypted event and checks the case, proposal ID, revision and expiration. A server-provided reader must find an explicit accept decision recorded for the same owner, thread, run, case and proposal event. It must also read the current case revision under a lock in the same transaction. The gate returns the persisted proposal for the eventual writer. Missing readers or decisions, rejected or corrected decisions, and stale revisions fail closed.
 
-The [synthetic policy tests](../../backend/tests/test_agent_tool_execution.py) use real encrypted proposals and fixture approval records. The product currently has no approval reader or writer connected. Task 36.4 covers retry-safe execution. Task 38 covers recording user decisions and safely resuming the workflow.
+The [synthetic policy tests](../../backend/tests/test_agent_tool_execution.py) use real encrypted proposals and fixture approval records. The product currently has no approval reader or writer connected. Task 38 covers recording user decisions and safely resuming the workflow.
+
+## Retrying an approved case write
+
+Task 36.4 locks the owned case, then its run, in a single database transaction. The [write boundary](../../backend/app/agent/tool_writes.py) verifies the current approval before executing a new update. The writer applies the stored proposal and advances the canonical case revision by one using the same database session. The writer's change and the receipt commit together. An interruption after a database flush rolls both back.
+
+On retry, the owner receives the original committed operation ID and resulting revision for the same run, client operation ID, case, proposal and expected revision. The receipt remains available after the approval state advances. Reusing the key for a different request or using a new key for a consumed proposal or case revision conflicts. Database uniqueness on the run and key, run and proposal, and case and expected revision protects these rules. Receipts store identifiers and revisions and follow their run or case on deletion.
+
+The [retry tests](../../backend/tests/test_agent_tool_writes.py) use synthetic case writers and the real proposal journal. They exercise rollback and resume, and CI runs separate PostgreSQL tests for simultaneous calls using the same key or the same case revision. Migration `20261119_0023` adds the receipt table. The approval reader, canonical case revision integration and case writer are part of the later approval workflow.
 
 ## Identifiers and state
 
