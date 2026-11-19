@@ -222,7 +222,15 @@ Task 37.2 reopens every exact citation from the current approved registry before
 
 The internal worker reads a trusted scope in the terminal transaction using the owned thread, run, case, and principal. Each cited passage needs an active, reviewed assignment for the selected procedure and a confirmed location matching the assignment's role and the citation's exact area. If the assignment restricts dates or circumstances, the corresponding confirmed case facts must satisfy those restrictions. The worker records an insufficient-evidence answer without claims, citations, or an official channel when the trusted scope is unavailable or a citation fails these checks. It preserves the pending case questions.
 
-Run `python -m pytest -q tests/test_agent_answer_evidence.py tests/test_agent_candidate_resolution.py` from `backend/`. Synthetic fixtures cover valid revalidation, withdrawal or replacement after retrieval, citation metadata changes, scope mismatches, and replay of the saved answer. A general production reader for reviewed passage assignments remains to be integrated. Task 37.3 checks whether the passage text supports the linked claim.
+Run `python -m pytest -q tests/test_agent_answer_evidence.py tests/test_agent_candidate_resolution.py` from `backend/`. Synthetic fixtures cover valid revalidation, withdrawal or replacement after retrieval, citation metadata changes, scope mismatches, and replay of the saved answer. A general production reader for reviewed passage assignments remains to be integrated.
+
+## Checking passage support for claims
+
+Task 37.3 checks every consequential claim in the worker's terminal answer. The trusted scope reader supplies active human reviews of specific statements. Each review records the kind and language of the statement, the full supporting passage set, and the reviewed applicability assignment and verbatim quote for each passage. The worker matches the proposed wording and verifies those quotes against the current, applicable passage text from Task 37.2. Multiple passages can support a claim together. The worker requires the full reviewed set. An official channel needs a reviewed channel claim covering the exact link and label exposed in the result.
+
+The worker builds a verified explanation from the matched claim statements and uses localized text for typed next actions. If claim support is missing, the completed result reports insufficient evidence and preserves pending case questions. The check covers official assistance claims in otherwise unverified results too. Task 37.4 covers keeping individually supported parts and narrowing the affected claims.
+
+Synthetic worker and replay tests cover an official page without the cited deadline, a similar but unreviewed statement, changed channel links, missing joint evidence, and the supported assistance path. Reviews come from the internal reader. Production storage and reviewer authorization for those records remain to be integrated. The implementation checks the integrity and scope of human-reviewed support, with no model call or independent assessment of new paraphrases.
 
 ## Failure and concurrency rules
 

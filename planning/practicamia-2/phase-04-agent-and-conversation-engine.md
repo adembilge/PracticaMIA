@@ -96,7 +96,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 
 - **37.1** [Link consequential claims to passage IDs](phase-04-agent-api-contract.md#linking-claims-to-evidence) for authorities, channels, mandatory documents, fees, deadlines, conditions, and form versions.
 - **37.2** [Revalidate references for freshness and applicability](phase-04-agent-api-contract.md#revalidating-answer-evidence). Check procedure, location, date, and conditions.
-- **37.3** Verify that the passage supports the claim. A general authority link does not substantiate a date missing from the page.
+- **37.3** [Verify exact passage support for each claim](phase-04-agent-api-contract.md#checking-passage-support-for-claims). A general authority link does not substantiate a date missing from the page.
 - **37.4** Remove or narrow unverifiable claims. Give the known official channel and the path to verify missing information.
 - **37.5** Preserve whether information comes from a user document, an official source, or an agent proposal.
 - **37.6** Link source cards to exact Phase 3 passages. Preserve needed Italian terms and explain them in the user's language.
