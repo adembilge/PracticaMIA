@@ -48,8 +48,8 @@ class AgentReconnectFixture:
         self.sessions = api.state.session_factory
         self.key = token_bytes(32)
         self.citation, self.claim, self.channel, self.evidence_scope = self.seed_source()
-        self.seed_goal_choice()
         stop = self.seed_question("Which synthetic route should be stopped?")
+        self.seed_goal_choice()
         self.proposal_case_id = self.seed_proposal()
         api.include_router(build_reconnect_router(
             key=self.key, case_updates=ApprovedCaseUpdates(self.proposal_revision, self.write_proposal),
