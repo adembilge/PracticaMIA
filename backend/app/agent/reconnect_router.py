@@ -13,12 +13,13 @@ from sqlalchemy.orm import Session
 from app.agent.checkpoints import CheckpointConflict, RunRevisionConflict, stop_run, submit_clarification_reply
 from app.agent.contract import (
     ActiveRunCursor, ActiveRunCursorTime, ActiveRunPage, ClarificationReply, ContractModel,
-    EventPage, QuestionAnswered, RunSnapshot, StopRun,
+    EventPage, PassageId, QuestionAnswered, RunSnapshot, StopRun,
 )
 from app.agent.run_events import (
     EventConflict, InvalidClarificationReply, InvalidEventCursor, read_run_events, read_run_snapshot,
 )
 from app.agent.run_requests import _payload_cipher, list_active_runs
+from app.agent.source_cards import RunSourceCard, read_run_source_card
 from app.auth.tokens import Principal, get_principal
 from app.database import get_session
 
@@ -131,6 +132,18 @@ def build_reconnect_router(*, key: bytes) -> APIRouter:
         if page is None:
             raise HTTPException(404)
         return page
+
+    @router.get(RUN_PATH + "/sources/{citation_id}")
+    def source_card(
+        thread_id: UUID, run_id: UUID, citation_id: PassageId,
+        principal: AuthenticatedOwner, db: DatabaseSession,
+    ) -> RunSourceCard:
+        card = read_run_source_card(
+            db, thread_id=thread_id, run_id=run_id, citation_id=citation_id, principal=principal, key=key,
+        )
+        if card is None:
+            raise HTTPException(404)
+        return card
 
     @router.post(RUN_PATH + "/stop", responses={409: {"model": AgentHttpError}})
     def stop_owned_run(

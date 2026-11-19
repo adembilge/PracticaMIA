@@ -186,6 +186,7 @@ All routes are authenticated and private, with `Cache-Control: private, no-store
 | Discover active runs | `GET /api/v1/agent/runs/active` | Optional `limit` (1–50) and the previous page’s `before_accepted_at` and `before_run_id` | Owned active runs with thread ID, run ID, optional case ID, status and acceptance time, plus any next cursor |
 | Read run | `GET /api/v1/agent/threads/{thread_id}/runs/{run_id}` | None | Current run status, final result if present, and last sequence |
 | Reconnect | `GET /api/v1/agent/threads/{thread_id}/runs/{run_id}/events?after_seq=N` | Last fully rendered sequence | Ordered events, echoed `after_seq`, the last returned sequence and whether more events exist |
+| Open a cited passage | `GET /api/v1/agent/threads/{thread_id}/runs/{run_id}/sources/{citation_id}` | Exact citation ID from the saved answer | Current passage text, section and revision, official URL and localized term explanations |
 | Stop | `POST /api/v1/agent/threads/{thread_id}/runs/{run_id}/stop` | Expected run revision | Current terminal run snapshot. The event page carries `run.stopped` and its committed operation IDs. |
 | Respond to proposal | `POST /api/v1/agent/threads/{thread_id}/proposals/{proposal_id}/decision` | `accept`, `correct`, `reject`, or `cancel`, expected case revision, decision retry key | Applied revision or explicit conflict/expired/invalid status; task 38 only |
 
@@ -247,6 +248,14 @@ Task 37.5 assigns a typed `origin` to claims, document observations, and proposa
 The worker replaces draft observations with a fresh projection of review metadata for the linked, owned case before saving `answer.completed`. It limits the projection to fields relevant to the answer, checkpoint, or active clarification. It uses the existing document consent, scan, expiry, feature and fixture gates. Observations carry field IDs and statuses without values, document IDs, or extracted text. A topic change skips the document read. A case-free run cannot save document observations.
 
 The encrypted journal replays the saved origins through the snapshot and events API. Earlier events lacking the fields derive the origin from their typed structure and have an empty observation list. Synthetic signed-JWT tests cover review status, document removal before answer publication, foreign-case and disabled document access, removal of draft-supplied observations, and owner-only replay. Task 37.6 covers linked source cards and terminology in the user's language.
+
+## Opening exact source cards
+
+Task 37.6 makes each citation in a completed answer open its exact Phase 3 passage in the isolated conversation view. The private endpoint checks ownership and citation membership in the saved result before querying the registry. It uses the saved procedure and location, rechecks the exact version's approval and integrity, and compares canonical citation metadata. A different passage from the same revision, a withdrawn or superseded version, and a request from another account all return unavailable.
+
+The card loads on demand and shows the original passage, its section and revision, and an official page link. A bounded glossary explains terms present in the passage using the language of the stored run. The card preserves the original Italian wording and marks the language of both the passage and explanations. The glossary gives vocabulary meanings. Applicability continues to be checked when publishing claims.
+
+Signed-JWT tests exercise both explanation languages, exact text, citation membership and source withdrawal. The isolated Chromium reconnect scenario opens a card backed by a synthetic approved registry passage and checks the displayed wording and account boundary. Historical events retain their recorded citations for replay. The Phase 4 router and conversation view remain isolated from the production entry points.
 
 ## Failure and concurrency rules
 

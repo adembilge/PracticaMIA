@@ -139,4 +139,6 @@ The [Task 37.4 partial answer](../planning/practicamia-2/phase-04-agent-api-cont
 
 The [Task 37.5 answer provenance](../planning/practicamia-2/phase-04-agent-api-contract.md#preserving-information-origin) preserves official claim citations, current user-document review statuses, and agent proposals as separate typed payloads in the existing encrypted run journal. The worker limits document observations to relevant field IDs and review statuses from the owned case. Synthetic signed-JWT tests exercise replay, draft-supplied metadata, disabled access and a document removed before publication.
 
+The [Task 37.6 source cards](../planning/practicamia-2/phase-04-agent-api-contract.md#opening-exact-source-cards) load the exact approved passage from the saved answer in the isolated conversation view. English and Italian explanations accompany the original terms. Signed-JWT and Chromium tests cover the cited passage, revocation and account isolation.
+
 For implementation details see [the documentation index](README.md).
