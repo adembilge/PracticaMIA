@@ -163,4 +163,6 @@ The [Task 39.4 shared-fact projection](../planning/practicamia-2/phase-04-agent-
 
 The [Task 39.5 switch flow](../planning/practicamia-2/phase-04-agent-api-contract.md#switching-between-pending-case-tasks) uses the existing run snapshots and event journal to reopen separate tasks within an owned conversation. Migration `20261119_0024` retains one processing slot and permits separate pending case questions. Signed API, disposable PostgreSQL and isolated mobile acceptance cover the switching flow, original question recovery and competing replies.
 
+The [Task 39.6 isolation regression](../planning/practicamia-2/phase-04-agent-api-contract.md#testing-isolation-between-pending-cases) exercises both answer orders with two pending cases. The signed synthetic API and worker checks bind same-name PDFs, review states, date replies, municipal citations and source cards to the correct case. The second municipality uses a disposable catalogue fixture.
+
 For implementation details see [the documentation index](README.md).
