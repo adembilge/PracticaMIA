@@ -10,7 +10,9 @@ from app.agent.answer_evidence import AnswerEvidenceScope, ClaimPassageSupport, 
 from app.agent.approval_resume import ApprovedCaseUpdates
 from app.agent.catalogue_evidence import catalogue_passage
 from app.agent.checkpoints import CheckpointState
-from app.agent.contract import AnswerResult, ApprovalProposal, ClarifyingQuestion, EvidenceLinkedClaim, SendMessage
+from app.agent.contract import (
+    AnswerResult, ApprovalProposal, ClarifyingQuestion, EvidenceLinkedClaim, OfficialChannel, SendMessage,
+)
 from app.agent.reconnect_router import build_reconnect_router
 from app.agent.run_requests import accept_message
 from app.agent.threads import create_thread, link_case_to_thread
@@ -33,11 +35,12 @@ class AgentReconnectFixture:
     def __init__(self, api):
         self.sessions = api.state.session_factory
         self.key = token_bytes(32)
-        self.citation, self.claim, self.evidence_scope = self.seed_source()
+        self.citation, self.claim, self.channel, self.evidence_scope = self.seed_source()
         stop = self.seed_question("Which synthetic route should be stopped?")
         self.proposal_case_id = self.seed_proposal()
         api.include_router(build_reconnect_router(
             key=self.key, case_updates=ApprovedCaseUpdates(self.proposal_revision, self.write_proposal),
+            read_evidence_scope=lambda *_: self.evidence_scope,
         ))
         self.replaced_question_id = self.seed_question("Which synthetic detail should both tabs see first?")
         self.followup_question = ClarifyingQuestion(
@@ -73,8 +76,9 @@ class AgentReconnectFixture:
                 if row.source_id == "acceptance-agent-source"
             )
         citation = catalogue_passage(passage).citation
+        channel = OfficialChannel(label="Synthetic residence service", url=citation.official_url)
         claim = EvidenceLinkedClaim(
-            kind="condition", statement="The synthetic passage concerns a residence change.",
+            kind="channel", statement="The synthetic passage concerns a residence change channel.",
             evidence_ids=[citation.passage_id],
         )
         assignment = ServiceArea(
@@ -90,9 +94,10 @@ class AgentReconnectFixture:
             claim_reviews=(ReviewedClaimSupport(
                 kind=claim.kind, language="en", statement=claim.statement,
                 passages=(ClaimPassageSupport(citation.passage_id, assignment.assignment_id, SOURCE_TEXT),),
+                official_channel=channel,
             ),),
         )
-        return citation, claim, scope
+        return citation, claim, channel, scope
 
     def seed_proposal(self):
         principal = Principal("alice")
@@ -183,6 +188,7 @@ class AgentReconnectFixture:
             verification_status="insufficient_evidence",
             citations=[self.citation] if with_source else [],
             claims=[self.claim] if with_source else [],
+            official_channel=self.channel if with_source else None,
         )
 
     @contextmanager

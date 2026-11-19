@@ -210,6 +210,41 @@ def _render_verified_answer(result: AnswerResult, language: Language) -> AnswerR
     return result.model_copy(update={"explanation": explanation, "next_action": action})
 
 
+def _lock_sources(db: Session, citations: Iterable[Citation]) -> None:
+    # Ingestion and review take exclusive locks on these same rows.
+    db.scalars(
+        select(KnowledgeSource.id)
+        .where(KnowledgeSource.id.in_({citation.source_id for citation in citations}))
+        .order_by(KnowledgeSource.id)
+        .with_for_update(read=True)
+    ).all()
+
+
+def current_channel_evidence(
+    db: Session, result: AnswerResult, *, scope: AnswerEvidenceScope | None, language: Language,
+) -> list[str]:
+    """Find current evidence for the exact official channel in the saved answer."""
+    if scope is None or result.official_channel is None:
+        return []
+    claims = {_claim_key(claim.kind, claim.statement, claim.evidence_ids) for claim in result.claims
+              if claim.kind == "channel"}
+    reviews = tuple(
+        review for review in scope.claim_reviews
+        if review.official_channel == result.official_channel and _review_key(review) in claims
+    )
+    ids = {link.passage_id for review in reviews for link in review.passages}
+    citations = [citation for citation in result.citations if citation.passage_id in ids]
+    if not citations:
+        return []
+    _lock_sources(db, citations)
+    passages = {
+        citation.passage_id: passage for citation in citations
+        if (passage := _resolve_applicable_passage(db, citation, scope)) is not None
+    }
+    supported = {link.passage_id for review in _valid_reviews(reviews, passages, language) for link in review.passages}
+    return [citation.passage_id for citation in citations if citation.passage_id in supported]
+
+
 def revalidate_answer_evidence(
     db: Session, result: AnswerResult, *, scope: AnswerEvidenceScope | None, language: Language,
 ) -> AnswerResult:
@@ -219,16 +254,7 @@ def revalidate_answer_evidence(
     if scope is None:
         return _partial_answer(result, [], [], None, language)
 
-    # Ingestion and review take exclusive locks on these rows. Lock all candidate
-    # sources in registry order before reading either proposed or assistance citations.
-    db.scalars(
-        select(KnowledgeSource.id)
-        .where(KnowledgeSource.id.in_({
-            citation.source_id for citation in (*result.citations, *scope.assistance_citations)
-        }))
-        .order_by(KnowledgeSource.id)
-        .with_for_update(read=True)
-    ).all()
+    _lock_sources(db, (*result.citations, *scope.assistance_citations))
     passages = {
         citation.passage_id: passage for citation in result.citations
         if (passage := _resolve_applicable_passage(db, citation, scope)) is not None

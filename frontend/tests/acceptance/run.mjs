@@ -626,6 +626,14 @@ try{
       'run.started','question.requested','question.answered','answer.completed',
     ]);
     const [citation]=replay.body.events.at(-1).result.citations;
+    const handoff=owner.getByRole('region',{name:'Official handoff',exact:true});
+    await handoff.getByText('Unconfirmed',{exact:true}).waitFor();
+    const officialLink=handoff.getByRole('link',{name:'Open the official channel · Synthetic residence service'});
+    assert.equal(await officialLink.getAttribute('href'),citation.official_url);
+    await handoff.getByText('Complete any required sign-in, signing, payment and submission yourself through the official service.').waitFor();
+    const current=(await readJson(owner,url)).body.handoff;
+    assert.deepEqual(current.evidence_ids,[citation.passage_id]);
+    assert.equal(current.submission_status,'unconfirmed');
     const sourceUrl=url+'/sources/'+encodeURIComponent(citation.citation_id);
     assert.equal((await readJson(other,sourceUrl)).status,404);
     const [sourceResponse]=await Promise.all([
