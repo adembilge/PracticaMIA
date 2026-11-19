@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import {AgentProposalPreview, type PendingProposal} from '../../src/components/AgentProposalPreview';
+import {
+  AgentProposalPreview, type PendingProposal, type ProposalDecision, type ProposalValue,
+} from '../../src/components/AgentProposalPreview';
 import {AgentSourceCards, type AgentCitation} from '../../src/components/AgentSourceCards';
 
 type ActiveRun = { thread_id: string; run_id: string };
@@ -9,6 +11,7 @@ type Snapshot = {
   last_event_seq: number;
   run_revision: number;
   pending_proposal?: PendingProposal | null;
+  approval_recorded?: boolean;
   result: {
     explanation: string;
     next_action?: { operation: string | null } | null;
@@ -66,6 +69,13 @@ export function AgentReconnectFixture() {
     revision: number;
     text: string | null;
     disposition: ReplyDisposition;
+    id: string;
+  } | null>(null);
+  const lastDecision = useRef<{
+    proposalId: string;
+    revision: number;
+    decision: ProposalDecision;
+    value: ProposalValue | null;
     id: string;
   } | null>(null);
 
@@ -150,6 +160,46 @@ export function AgentReconnectFixture() {
     }
   }
 
+  async function decideProposal(decision: ProposalDecision, value: ProposalValue | null = null) {
+    const proposal = view?.snapshot.pending_proposal;
+    if (!view || !proposal || busy || staleReply) return;
+    setBusy(true);
+    setError('');
+    const revision = view.snapshot.run_revision;
+    const prior = lastDecision.current;
+    const id = prior?.proposalId === proposal.proposal_id && prior.revision === revision &&
+      prior.decision === decision && prior.value === value ? prior.id : crypto.randomUUID();
+    lastDecision.current = {proposalId: proposal.proposal_id, revision, decision, value, id};
+    try {
+      const response = await fetch(`${view.url}/proposals/${proposal.proposal_id}/decision`, {
+        method: 'POST',
+        cache: 'no-store',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          decision, corrected_value: value, client_decision_id: id, expected_run_revision: revision,
+          expected_case_revision: proposal.expected_case_revision,
+        }),
+      });
+      if (response.status === 409) {
+        lastDecision.current = null;
+        setStaleReply(true);
+        displayRun(await loadRun(view.url));
+        setError('The proposal changed or expired. Review its current status.');
+        return;
+      }
+      if (response.status === 422) {
+        setError('Enter a supported value for the proposed field.');
+        return;
+      }
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      displayRun(await loadRun(view.url));
+    } catch {
+      setError('Could not confirm the decision. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function stop() {
     if (!view || busy || staleReply || !activeStatuses.has(view.snapshot.status)) return;
     setBusy(true);
@@ -212,7 +262,11 @@ export function AgentReconnectFixture() {
           <button type="button" disabled={busy} onClick={() => void sendReply('change_topic')}>Change topic</button>
         </form> : view.snapshot.status === 'waiting_for_approval' ? (
           view.snapshot.pending_proposal ? (
-            <AgentProposalPreview proposal={view.snapshot.pending_proposal} language="en" />
+            <AgentProposalPreview key={view.snapshot.pending_proposal.proposal_id}
+              proposal={view.snapshot.pending_proposal} language="en" busy={busy}
+              onDecision={(decision, value) => void decideProposal(decision, value)} />
+          ) : view.snapshot.approval_recorded ? (
+            <p role="status">Approval recorded. The case update is pending.</p>
           ) : <>
             <p role="status">The pending proposal is unavailable.</p>
             <button type="button" disabled={busy} onClick={() => void open(view.url)}>Check status</button>

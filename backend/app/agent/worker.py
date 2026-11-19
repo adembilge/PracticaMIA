@@ -253,7 +253,9 @@ def run_worker_step(
                 state = result.resume_state.model_copy(
                     update={"pending_proposal_id": result.proposal.proposal_id},
                 )
-                event = ApprovalRequested(**envelope, type="approval.requested", proposal=result.proposal)
+                event = ApprovalRequested(
+                    **envelope, type="approval.requested", proposal=result.proposal, requires_recorded_decision=True,
+                )
             else:
                 state = result
                 event = ProgressUpdated(

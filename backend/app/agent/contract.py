@@ -102,6 +102,10 @@ class ProposalDecision(ContractModel):
         return self
 
 
+class SubmitProposalDecision(ProposalDecision):
+    expected_run_revision: int = Field(strict=True, ge=1, le=2_147_483_647)
+
+
 class OfficialChannel(ContractModel):
     label: ShortText
     url: OfficialUrl
@@ -235,6 +239,7 @@ class RunSnapshot(ContractModel):
     run_revision: PositiveInt
     result: AnswerResult | None = None
     pending_proposal: ApprovalProposal | None = None
+    approval_recorded: bool = False
 
     @model_validator(mode="after")
     def validate_result(self):
@@ -242,6 +247,8 @@ class RunSnapshot(ContractModel):
             raise ValueError("Only a completed run carries an answer result")
         if self.pending_proposal is not None and self.status != "waiting_for_approval":
             raise ValueError("Only a run awaiting approval carries a pending proposal")
+        if self.approval_recorded and (self.status != "waiting_for_approval" or self.pending_proposal is not None):
+            raise ValueError("A recorded approval has no open proposal to review")
         return self
 
 
@@ -308,6 +315,14 @@ class QuestionAnswered(EventEnvelope):
 class ApprovalRequested(EventEnvelope):
     type: Literal["approval.requested"]
     proposal: ApprovalProposal
+    requires_recorded_decision: bool = False
+
+
+class ApprovalDecided(EventEnvelope):
+    type: Literal["approval.decided"]
+    proposal_id: UUID
+    proposal_event_seq: PositiveInt
+    decision: ProposalDecision
 
 
 class AnswerCompleted(EventEnvelope):
@@ -328,7 +343,7 @@ class RunStopped(EventEnvelope):
 
 
 AgentEvent = Annotated[
-    RunStarted | ProgressUpdated | QuestionRequested | QuestionAnswered | ApprovalRequested
+    RunStarted | ProgressUpdated | QuestionRequested | QuestionAnswered | ApprovalRequested | ApprovalDecided
     | AnswerCompleted | RunFailed | RunStopped,
     Field(discriminator="type"),
 ]
