@@ -215,6 +215,18 @@ class ActiveRunPage(ContractModel):
     next_cursor: ActiveRunCursor | None = None
 
 
+class ApprovalProposal(ContractModel):
+    proposal_id: UUID
+    case_id: UUID
+    field_id: Identifier
+    previous_value: FieldValue | None
+    proposed_value: FieldValue
+    rationale: ShortText
+    expected_case_revision: PositiveInt
+    expires_at: AwareDatetime
+    origin: Literal["agent_proposal"] = "agent_proposal"
+
+
 class RunSnapshot(ContractModel):
     thread_id: UUID
     run_id: UUID
@@ -222,11 +234,14 @@ class RunSnapshot(ContractModel):
     last_event_seq: NonnegativeInt
     run_revision: PositiveInt
     result: AnswerResult | None = None
+    pending_proposal: ApprovalProposal | None = None
 
     @model_validator(mode="after")
     def validate_result(self):
         if (self.status == "completed") != (self.result is not None):
             raise ValueError("Only a completed run carries an answer result")
+        if self.pending_proposal is not None and self.status != "waiting_for_approval":
+            raise ValueError("Only a run awaiting approval carries a pending proposal")
         return self
 
 
@@ -249,18 +264,6 @@ class ClarifyingQuestion(ContractModel):
         if self.answer_format and (self.answer_shape != "free_text" or len(self.missing_fields) != 1):
             raise ValueError("A formatted reply requires a single free-text field")
         return self
-
-
-class ApprovalProposal(ContractModel):
-    proposal_id: UUID
-    case_id: UUID
-    field_id: Identifier
-    previous_value: FieldValue | None
-    proposed_value: FieldValue
-    rationale: ShortText
-    expected_case_revision: PositiveInt
-    expires_at: AwareDatetime
-    origin: Literal["agent_proposal"] = "agent_proposal"
 
 
 class EventEnvelope(ContractModel):

@@ -184,7 +184,7 @@ All routes are authenticated and private, with `Cache-Control: private, no-store
 | Start or continue | `POST /api/v1/agent/threads/{thread_id}/messages` | `client_message_id`, `text`, `language`, optional `case_id` and expected thread revision | `thread_id`, `run_id`, `status`, `last_event_seq` |
 | Reply to a clarification | `POST /api/v1/agent/threads/{thread_id}/runs/{run_id}/questions/{question_id}/reply` | `client_reply_id`, expected run revision and text | The stored `question.answered` event. The existing run becomes runnable. |
 | Discover active runs | `GET /api/v1/agent/runs/active` | Optional `limit` (1–50) and the previous page’s `before_accepted_at` and `before_run_id` | Owned active runs with thread ID, run ID, optional case ID, status and acceptance time, plus any next cursor |
-| Read run | `GET /api/v1/agent/threads/{thread_id}/runs/{run_id}` | None | Current run status, final result if present, and last sequence |
+| Read run | `GET /api/v1/agent/threads/{thread_id}/runs/{run_id}` | None | Current run status, last sequence, and the pending proposal or final result at that boundary |
 | Reconnect | `GET /api/v1/agent/threads/{thread_id}/runs/{run_id}/events?after_seq=N` | Last fully rendered sequence | Ordered events, echoed `after_seq`, the last returned sequence and whether more events exist |
 | Open a cited passage | `GET /api/v1/agent/threads/{thread_id}/runs/{run_id}/sources/{citation_id}` | Exact citation ID from the saved answer | Current passage text, section and revision, official URL and localized term explanations |
 | Stop | `POST /api/v1/agent/threads/{thread_id}/runs/{run_id}/stop` | Expected run revision | Current terminal run snapshot. The event page carries `run.stopped` and its committed operation IDs. |
@@ -264,6 +264,14 @@ Task 38.1 keeps the origin and review state associated with the existing authori
 The case intake API pairs its saved values with server-derived `field_provenance`. An entered value keeps `user_entered` as it moves from `draft` to `user_confirmed`. The private-document vault tags each extracted candidate `user_document` and saves the selected candidate ID with the reviewed value's origin. Retaining the suggested value preserves document origin. A user correction carries `user_entered` and keeps the candidate reference and original suggestion. Document review has its own `user_reviewed` state. Both the candidate and its review follow the document's existing protection and lifecycle.
 
 Older intake rows derive provenance from the existing confirmation timestamp. Earlier document reviews derive it from their selected candidate and stored value. Older routing checkpoints still load when they lack reply references. Synthetic tests verify encrypted provenance after reopening, procedure reset, document correction, and separate case confirmation. The schema and input validation of case writes stay compatible with earlier clients. Task 38.2 will present this information with the proposed change.
+
+## Previewing a proposed case change
+
+Task 38.2 gives the internal worker an approval pause alongside the clarification pause. The worker saves the pending proposal ID and the `approval.requested` event in one transaction. The proposal belongs to the case recorded on the owned run. The encrypted journal holds the exact proposal values and rationale.
+
+An owner opening a run sees `pending_proposal` when the run is awaiting approval and its current event is the recorded proposal. The isolated review view displays the affected field, existing value at the recorded revision, proposed value, rationale, expected case revision and proposal ID. It labels an empty existing value and renders the snapshot without deriving a new change from chat text or the current case. A stop clears the proposal from the current view. Historical events remain readable under the existing owner checks.
+
+The preview is read-only. Task 38.3 covers decision controls, and Task 38.4 covers checking the current case revision and evidence when acting on a proposal. Signed-JWT and Chromium tests exercise the owner boundary, reload of the exact preview and the saved case value after stopping the run.
 
 ## Failure and concurrency rules
 
