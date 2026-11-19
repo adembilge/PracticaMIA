@@ -46,6 +46,8 @@ The dedicated GitHub Actions workflow
 | Agent case switching | Start another linked case while a question waits, return after reload, and answer the original question while the other task stays pending | Chromium + signed synthetic JWT + FastAPI + PostgreSQL |
 | Agent cross-case isolation | Two pending cases use same-name PDFs and different municipal evidence. Exercise both reply orders and verify each case's journal, document review and source card | Signed synthetic JWT + FastAPI worker and vault + disposable SQLite |
 | Agent stale question | Open the same question in two or more tabs, confirm that an older form cannot answer its replacement, and recover after a failed refresh | Chromium + signed synthetic JWT + FastAPI + PostgreSQL |
+| Agent approval interruption | Close the browser context with a proposal pending, reopen from a fresh context, verify the original journal and intake, and approve a replacement once | Chromium + signed synthetic JWT + FastAPI + PostgreSQL |
+| Agent failure recovery | Display retry guidance for catalogue and model failures. Signed API tests replay the failure and verify explicit retry and duplicate-message behavior | Chromium with stubbed failure events and signed FastAPI TestClient with disposable SQLite |
 | Agent stop | Refresh the current status after a stale stop request, confirm the next request stops the conversation, and verify the terminal event and active list after reload | Chromium + signed synthetic JWT + FastAPI + PostgreSQL |
 | A8 | No uncaught browser runtime errors | Chromium |
 | D1 | Explicit acknowledgement required, malformed uploads rejected, scanner outage/checksum/control verdict rejected, browser retry works | Chromium + real ClamAV with a harmless test signature + FastAPI + PostgreSQL |

@@ -18,6 +18,12 @@ from test_agent_run_requests import KEY
 from test_knowledge_search import FACTS, _approve, _create, _thread_context, create_scoped_case
 
 
+CORRECTED_SCOPE = CheckpointState(
+    next_node="find_evidence", procedure_candidates=[PROCEDURE],
+    routing_corrections=RoutingCorrections(move_in_date=date(2026, 4, 2)),
+)
+
+
 def _start_corrected_run(client, auth_headers, *, query="residenza", language="en"):
     owner = auth_headers("bob")
     case_id = UUID(create_scoped_case(client, owner))
@@ -31,11 +37,7 @@ def _start_corrected_run(client, auth_headers, *, query="residenza", language="e
             client_message_id=uuid4(), text=query, language=language, case_id=case_id,
         ))
     run["run_id"] = accepted.run_id
-    corrected = CheckpointState(
-        next_node="find_evidence", procedure_candidates=[PROCEDURE],
-        routing_corrections=RoutingCorrections(move_in_date=date(2026, 4, 2)),
-    )
-    assert run_worker_step(factory, **run, execute=lambda *_: corrected).status == "running"
+    assert run_worker_step(factory, **run, execute=lambda *_: CORRECTED_SCOPE).status == "running"
     return factory, run, owner
 
 
@@ -78,13 +80,23 @@ def test_transient_catalogue_failure_gets_one_fresh_session_retry(client, auth_h
             assert db.get(AgentRunCheckpoint, str(run["run_id"])) is None
         assert _continue(factory, run) == snapshot
         assert len(attempts) == 2
-        with factory.begin() as db:
+        with factory() as db:
             original = read_run_message(db, **run)
-            retry = accept_message(
-                db, thread_id=run["thread_id"], principal=run["principal"], key=KEY,
-                message=SendMessage(client_message_id=uuid4(), case_id=original.case_id, text="residenza", language="en"),
-            )
-            assert retry.outcome == "accepted" and retry.run_id != snapshot.run_id
+        send_url = f"/api/v1/agent/threads/{run['thread_id']}/messages"
+        retry = client.post(send_url, headers=owner, json=SendMessage(
+            client_message_id=uuid4(), case_id=original.case_id, text=original.text, language=original.language,
+        ).model_dump(mode="json"))
+        assert retry.status_code == 202 and retry.json()["run_id"] != str(snapshot.run_id)
+        retry_run = run | {"run_id": UUID(retry.json()["run_id"])}
+
+        monkeypatch.setattr("app.agent.catalogue_evidence.search_approved_passages", search_approved_passages)
+        assert run_worker_step(factory, **retry_run, execute=lambda *_: CORRECTED_SCOPE).status == "running"
+        assert _continue(factory, retry_run).status == "running"
+        with factory() as db:
+            state = load_checkpoint(db, **retry_run).state
+            assert state.next_node == "verify_and_respond"
+            assert state.evidence_ids and all(passage.startswith(version + ":") for passage in state.evidence_ids)
+        assert client.get(f"{url}/events", headers=owner).json() == page.json()
     else:
         assert snapshot.status == "running" and last["type"] == "progress.updated"
         with factory() as db:

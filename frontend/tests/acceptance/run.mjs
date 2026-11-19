@@ -838,28 +838,32 @@ try{
     assert.equal(active.body.items.some(run=>run.run_id===stoppedRun),false);
   });
 
-  await scenario('Agent proposal: reopen, correct, apply once and resume the same conversation',async()=>{
-    const owner=await contextFor('alice',{width:390,height:800});
+  await scenario('Agent proposal: close the app, reopen, correct and apply once',async()=>{
+    const viewport={width:390,height:800};
+    const original=await contextFor('alice',viewport);
     const route='/__acceptance/agent';
-    await owner.goto(origin+route);
-    const active=await readJson(owner,'/api/agent/runs/active');
+    await original.goto(origin+route);
+    const active=await readJson(original,'/api/agent/runs/active');
     const index=active.body.items.findIndex(run=>run.status==='waiting_for_approval');
     assert.ok(index>=0);
     const run=active.body.items[index];
     const url=`/api/agent/threads/${run.thread_id}/runs/${run.run_id}`;
     const intakeUrl=`/api/cases/${run.case_id}/intake`;
-    const before=await readJson(owner,intakeUrl);
+    const before=await readJson(original,intakeUrl);
     assert.equal(before.status,200);
     assert.equal(before.body.facts.move_in_date,'2026-11-05');
-    const {body: snapshot}=await readJson(owner,url);
+    const {body: snapshot}=await readJson(original,url);
     const proposal=snapshot.pending_proposal;
-    const {body: journal}=await readJson(owner,url+'/events');
+    const {body: journal}=await readJson(original,url+'/events');
     assert.deepEqual(journal.events.map(event=>event.type),['run.started','approval.requested']);
     assert.deepEqual(journal.events.at(-1).proposal,proposal);
 
-    async function openProposal(){
-      await owner.getByRole('button',{name:'Open conversation',exact:true}).nth(index).click();
-      const preview=owner.getByRole('region',{name:'Review proposed change',exact:true});
+    async function openProposal(page){
+      const {body:{items}}=await readJson(page,'/api/agent/runs/active');
+      const position=items.findIndex(item=>item.run_id===run.run_id);
+      assert.ok(position>=0);
+      await page.getByRole('button',{name:'Open conversation',exact:true}).nth(position).click();
+      const preview=page.getByRole('region',{name:'Review proposed change',exact:true});
       await preview.getByText(proposal.proposal_id,{exact:true}).waitFor();
       assert.deepEqual(
         await preview.locator('dd').allTextContents(),
@@ -869,11 +873,16 @@ try{
       for(const name of ['Accept proposal','Correct value','Reject proposal','Cancel proposal']){
         assert.equal(await preview.getByRole('button',{name,exact:true}).isVisible(),true);
       }
-      assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     }
-    await openProposal();
-    await owner.reload();
-    await openProposal();
+    await openProposal(original);
+    await original.context().close();
+    const owner=await contextFor('alice',viewport);
+    await owner.goto(origin+route);
+    await openProposal(owner);
+    assert.deepEqual((await readJson(owner,url)).body,snapshot);
+    assert.deepEqual((await readJson(owner,url+'/events')).body,journal);
+    assert.deepEqual((await readJson(owner,intakeUrl)).body,before.body);
 
     const other=await contextFor('bob');
     await other.goto(origin+route);
@@ -965,26 +974,28 @@ try{
     assert.equal(snapshot.selected_case.case_id,choices[1].case_id);
   });
 
-  await scenario('Agent reconnect: exhausted catalogue retries show a terminal recovery message',async()=>{
-    const page=await contextFor('alice',{width:390,height:800});
-    const threadId='00000000-0000-4000-8000-000000000001';
-    const runId='00000000-0000-4000-8000-000000000002';
-    const url=`/api/agent/threads/${threadId}/runs/${runId}`;
-    await page.route(origin+'/api/agent/runs/active',route=>route.fulfill({json:{
-      items:[{thread_id:threadId,run_id:runId}],next_cursor:null,
-    }}));
-    await page.route(origin+url,route=>route.fulfill({json:{
-      thread_id:threadId,run_id:runId,status:'failed',last_event_seq:3,run_revision:4,result:null,
-    }}));
-    await page.route(request=>request.pathname===url+'/events',route=>route.fulfill({json:{events:[{
-      type:'run.failed',event_seq:3,code:'catalogue_unavailable',retryable:true,recovery:'retry_later',
-    }]}}));
-    await page.goto(origin+'/__acceptance/agent');
-    await page.getByRole('button',{name:'Open conversation',exact:true}).click({timeout:10000});
-    await page.getByRole('heading',{name:'Conversation failed',exact:true}).waitFor({timeout:10000});
-    await page.getByText('Send your request again later.',{exact:true}).waitFor({timeout:10000});
-    assert.equal(await page.getByRole('button',{name:'Check status',exact:true}).isVisible(),false);
-  });
+  for(const [name,code] of [['catalogue outage','catalogue_unavailable'],['model timeout','provider_unavailable']]){
+    await scenario('Agent reconnect: '+name+' shows a terminal recovery message',async()=>{
+      const page=await contextFor('alice',{width:390,height:800});
+      const threadId='00000000-0000-4000-8000-000000000001';
+      const runId='00000000-0000-4000-8000-000000000002';
+      const url=`/api/agent/threads/${threadId}/runs/${runId}`;
+      await page.route(origin+'/api/agent/runs/active',route=>route.fulfill({json:{
+        items:[{thread_id:threadId,run_id:runId}],next_cursor:null,
+      }}));
+      await page.route(origin+url,route=>route.fulfill({json:{
+        thread_id:threadId,run_id:runId,status:'failed',last_event_seq:3,run_revision:4,result:null,
+      }}));
+      await page.route(request=>request.pathname===url+'/events',route=>route.fulfill({json:{events:[{
+        type:'run.failed',event_seq:3,code,retryable:true,recovery:'retry_later',
+      }]}}));
+      await page.goto(origin+'/__acceptance/agent');
+      await page.getByRole('button',{name:'Open conversation',exact:true}).click({timeout:10000});
+      await page.getByRole('heading',{name:'Conversation failed',exact:true}).waitFor({timeout:10000});
+      await page.getByText('Send your request again later.',{exact:true}).waitFor({timeout:10000});
+      assert.equal(await page.getByRole('button',{name:'Check status',exact:true}).isVisible(),false);
+    });
+  }
 
   await scenario('Agent task switching: open another case and return to its original question after reload',async()=>{
     const owner=await contextFor('alice',{width:390,height:800});

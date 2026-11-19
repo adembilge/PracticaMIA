@@ -171,4 +171,6 @@ The [Task 40.2 component benchmark](../planning/practicamia-2/phase-04-agent-and
 
 The [Task 40.3 next-action replay](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#unassisted-next-action-evaluation) passed 3/26 scenario-language runs and 11/36 checkpoints. It records authorities, citation coverage, unnecessary questions and uncorrected misrouting through the isolated saved conversation. Backend tests check source withdrawal and withhold a scripted reply after a mismatched question. The broader reviewed catalogue and measurements with participants remain open.
 
+The [Task 40.4 interruption scenarios](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#interruption-and-recovery-scenarios) exercise catalogue retry and recovery, an injected model timeout, duplicate message delivery and closing a mobile browser context during approval. The isolated worker records a safe retryable terminal event for a model timeout. The signed API and Chromium suites check that message retries and restored approvals preserve one run and a single authorized write.
+
 For implementation details see [the documentation index](README.md).

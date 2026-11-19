@@ -130,7 +130,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 - **40.1** [Assemble the agent development set](#agent-development-evaluation-set) from Phase 2 scenarios and Phase 3 authority and evidence records. Cover wrong authorities, missing locations, stale sources, corrections, multiple goals, and resumption.
 - **40.2** [Measure the agent components separately](#agent-component-measurement) for intent, procedure retrieval, evidence, question quality, and authorised tool calls.
 - **40.3** [Use unassisted arrival at the correct next action](#unassisted-next-action-evaluation) as the primary outcome. Track correct authorities, supported citations, unnecessary questions, and uncorrected misrouting.
-- **40.4** Simulate catalogue outages, model timeouts, duplicate messages, and closing the application during approval.
+- **40.4** [Simulate interrupted runs and client recovery](#interruption-and-recovery-scenarios) for catalogue outages, model timeouts, duplicate messages, and closing the application during approval.
 - **40.5** Measure time to first user-visible event, verified response latency, call counts, and cost per case. Set targets from pilot measurements.
 - **40.6** Record how failures relate to intent, query, tool, and source version. Verify that monitoring excludes unnecessary conversation and document contents.
 - **40.7** Hand off the message API, events, citations, questions, approvals, and reconnection examples to Phase 5.
@@ -181,6 +181,17 @@ The primary outcome is the share of scenario-language runs that reach the expect
 The runner saw four official-channel turns. Both language variants of the pending-destination case restored the correct question, then missed the verified handoff after the reply. Both variants of the multiple-goal case offered the right initial choice, then missed the follow-up about the selected procedure. Neither opening in the withdrawal scenario reached the initial handoff. A regression test starts from a wording that reaches it and confirms that source withdrawal removes the current channel while retaining the historical answer.
 
 The replay executes the owned worker, saved clarification and event services over a separate in-memory database per run. It uses a limited alias catalogue and a synthetic answer adapter that evaluates signed Milan conditions and sends draft claims through the worker's evidence checks. A result must include the requested action. Generic questions lack the specific redacted-excerpt action, and an unverified response without a filing or correction action misses that checkpoint. These results describe simulated interactions through the internal backend. Participant success, live source verification, model behaviour and browser usability need their own evidence.
+
+### Interruption and recovery scenarios
+
+| Interruption | Observed recovery |
+| --- | --- |
+| Catalogue unavailable | The corrected-scope lookup retries once in a fresh session. A second failure records `catalogue_unavailable`. A new request in the same conversation reaches verified-response preparation after the synthetic catalogue recovers. |
+| Model deadline exceeded | The execution adapter signals `ModelProviderTimeout`. The worker records a retryable `provider_unavailable` failure event with `retry_later`, releases its lease, and clears the finished checkpoint. The owner can send a new request while the failed run remains readable. |
+| Message acknowledgement lost | Repeating the same message ID and payload returns the original run before and after completion. Sending a changed body with the same ID conflicts. The worker runs once and writes one terminal answer. |
+| App closed during approval | A new mobile Chromium context discovers the same pending proposal and journal. The saved case remains at the original value until the owner reviews and accepts the replacement proposal. The journal then shows a single applied operation and the original run resumes. |
+
+From `backend/`, run `python -m pytest -q tests/test_agent_catalogue_recovery.py tests/test_agent_recovery_http.py tests/test_agent_approval_resume.py`. These tests use signed synthetic JWTs and disposable database state. The model case injects a timeout at the execution boundary. The Chromium checks exercise general retry guidance with stubbed failure events and app closure with the actual isolated FastAPI approval flow and disposable PostgreSQL. Hosted agent scheduling, live model response deadlines and live identity sessions still require separate evidence.
 
 ## End-to-end closure scenario
 
