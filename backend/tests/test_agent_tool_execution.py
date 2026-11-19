@@ -7,6 +7,9 @@ from pydantic import ValidationError
 
 from app.agent.checkpoints import CheckpointState, load_checkpoint, save_checkpoint, stop_run
 from app.agent.contract import ApprovalProposal, ApprovalRequested, ProgressUpdated, ProposalDecision
+from app.agent.proposal_freshness import (
+    ProposalFreshness, case_proposal_fingerprint, case_snapshot_query, proposal_evidence_fingerprint,
+)
 from app.agent.tool_access import ToolAccessDenied
 from app.agent.tool_contract import ApplyApprovedUpdate, MarkChecklistItem, ProposeCaseUpdate, ReadCaseContext
 from app.agent.tool_execution import RecordedToolApproval, ToolExecutionDenied, check_tool_execution
@@ -45,7 +48,7 @@ def test_read_and_draft_tools_require_a_running_owned_run(client, tool_run):
         check_tool_execution(db, **context, call=read)
 
 
-def _save_pending(factory, context, case_id, expires_at):
+def _save_pending(factory, context, case_id, expires_at, *, bind_freshness=True):
     running = _start(factory, context)
     proposal = ApprovalProposal(
         proposal_id=uuid4(), case_id=case_id, field_id="move_in_date", previous_value=None,
@@ -59,8 +62,17 @@ def _save_pending(factory, context, case_id, expires_at):
     )
     with factory.begin() as db:
         saved = load_checkpoint(db, **context)
+        freshness = None
+        if bind_freshness:
+            snapshot = db.execute(case_snapshot_query(str(case_id), context["principal"].subject)).one()
+            freshness = ProposalFreshness(
+                case_fingerprint=case_proposal_fingerprint(*snapshot), passage_ids=[],
+                evidence_fingerprint=proposal_evidence_fingerprint(db, []),
+            )
         save_checkpoint(db, **context, expected_revision=saved.revision, expected_event_seq=saved.event_seq,
-                        state=saved.state.model_copy(update={"pending_proposal_id": proposal.proposal_id}), event=event)
+                        state=saved.state.model_copy(update={
+                            "pending_proposal_id": proposal.proposal_id, "proposal_freshness": freshness,
+                        }), event=event)
     call = ApplyApprovedUpdate(
         tool="apply_approved_update", case_id=case_id, proposal_id=proposal.proposal_id,
         expected_case_revision=proposal.expected_case_revision, client_operation_id=uuid4(),

@@ -17,6 +17,7 @@ from app.agent.contract import (
     Identifier, PassageId, PositiveInt, QuestionAnswered, QuestionRequested, RunFailed, RunSnapshot, RunStopped,
     TERMINAL_EVENTS,
 )
+from app.agent.proposal_freshness import ProposalFreshness
 from app.agent.run_events import _latest_event, _read_event_at, append_run_event, read_run_snapshot
 from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run, _payload_cipher
 from app.auth.tokens import Principal
@@ -71,11 +72,14 @@ class CheckpointState(ContractModel):
     missing_fields: list[Identifier] = Field(default_factory=list, max_length=12)
     pending_question_id: UUID | None = None
     pending_proposal_id: UUID | None = None
+    proposal_freshness: ProposalFreshness | None = None
 
     @model_validator(mode="after")
     def validate_pending_work(self):
         if self.pending_question_id is not None and self.pending_proposal_id is not None:
             raise ValueError("A checkpoint can hold one pending interaction")
+        if self.proposal_freshness is not None and self.pending_proposal_id is None:
+            raise ValueError("Proposal freshness requires a pending proposal")
         return self
 
 

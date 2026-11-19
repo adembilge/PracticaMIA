@@ -282,7 +282,15 @@ Acceptance records consent to the exact saved proposal. The preview then reports
 
 A correction is validated against the field's intake schema or the checklist flag shape. It records the decision and creates a new proposal in the same transaction, with the original existing value and case revision. The owner reviews and accepts that new proposal separately. Reject and cancel end the review and stop the run. Expired proposals can be declined, while acceptance or correction requires an unexpired review.
 
-Signed-JWT tests exercise invalid dates, exact retries, owner isolation and refusal to write declined or replaced proposals. The mobile Chromium scenario corrects a value and accepts the replacement without changing the saved case in the preview. Task 38.4 covers revalidating the live case and evidence for an authorized write, and Task 38.5 covers graph resumption.
+Signed-JWT tests exercise invalid dates, exact retries, owner isolation and refusal to write declined or replaced proposals. The mobile Chromium scenario corrects a value and accepts the replacement without changing the saved case in the preview.
+
+### Rechecking proposal freshness
+
+Task 38.4 records a dependency snapshot in the encrypted checkpoint. It binds the proposal to the owned case scope, intake and checklist progress read before drafting, and to the exact approved Italian passages retained by the worker or required by the proposal's checklist item. The user-facing preview and decision payload stay the same. A corrected proposal retains the dependencies of the original review.
+
+The isolated write transaction locks the case first, verifies the owned run and the exact accepted decision, and checks the current server-provided case revision. It compares the case snapshot and re-resolves the bound passages through the approved registry while holding shared locks on their sources. A changed or archived case, unavailable or changed passage, or older proposal without a dependency snapshot requires a new review. A rejected write leaves the case and operation receipts untouched. An authorized retry of an already-committed operation returns its original receipt.
+
+Synthetic tests cover edits during drafting and after acceptance, corrections against changed intake, missing evidence, withdrawal, pending revisions and replacement. The check protects the internal write boundary. A production case writer and activation remain separately gated, and Task 38.5 wires graph resumption.
 
 ## Failure and concurrency rules
 

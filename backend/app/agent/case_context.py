@@ -5,11 +5,11 @@ from typing import Literal, get_args
 from uuid import UUID
 
 from pydantic import ValidationError
-from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from app.agent.contract import DocumentFieldStatus
 from app.agent.document_context import read_document_field_statuses
+from app.agent.proposal_freshness import case_proposal_fingerprint, case_snapshot_query
 from app.agent.threads import AgentThread, AgentThreadCase
 from app.auth.tokens import Principal
 from app.cases.intake_model import CaseIntake
@@ -32,6 +32,8 @@ class WorkerCaseContext:
     next_action: CaseNextAction | None
     open_review_action_ids: tuple[str, ...]
     document_fields: dict[str, DocumentFieldStatus] = field(default_factory=dict)
+    proposal_case_fingerprint: str | None = None
+    checklist_evidence_ids: dict[str, tuple[str, ...]] = field(default_factory=dict)
 
 
 def _confirmed_facts(case: CaseRecord, intake: CaseIntake | None) -> IntakeFacts | None:
@@ -54,18 +56,12 @@ def read_worker_case_context(
 ) -> WorkerCaseContext | None:
     """Project case state after checking ownership of both sides of the link."""
     row = db.execute(
-        select(CaseRecord, CaseIntake)
+        case_snapshot_query(str(case_id), principal.subject)
         .join(AgentThreadCase, AgentThreadCase.case_id == CaseRecord.id)
         .join(AgentThread, AgentThread.id == AgentThreadCase.thread_id)
-        .outerjoin(CaseIntake, and_(
-            CaseIntake.case_id == CaseRecord.id,
-            CaseIntake.owner_subject == CaseRecord.owner_subject,
-        ))
         .where(
             AgentThread.id == str(thread_id), AgentThread.owner_subject == principal.subject,
-            CaseRecord.id == str(case_id), CaseRecord.owner_subject == principal.subject,
         )
-        .execution_options(populate_existing=True)
     ).one_or_none()
     if row is None:
         return None
@@ -90,4 +86,9 @@ def read_worker_case_context(
         document_fields=read_document_field_statuses(
             db, case_id=case.id, owner=case.owner_subject, facts=facts, settings=document_settings,
         ),
+        proposal_case_fingerprint=case_proposal_fingerprint(case, intake),
+        checklist_evidence_ids={
+            item["id"]: tuple(ref["citation_id"] for ref in item["evidence"])
+            for item in checklist["items"] if checklist["fingerprint"] is not None
+        },
     )
