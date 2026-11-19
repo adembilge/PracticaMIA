@@ -5,11 +5,13 @@ from dataclasses import dataclass, replace
 from datetime import date
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.agent.catalogue_evidence import catalogue_passage
 from app.agent.contract import AnswerResult, Citation, Language, NextAction
 from app.auth.tokens import Principal
+from app.knowledge.model import KnowledgeSource
 from app.knowledge.search import resolve_approved_passage
 from app.knowledge.service_areas import CaseLocation, ServiceArea, resolve_service_areas
 
@@ -57,11 +59,20 @@ def _citation_applies(db: Session, citation: Citation, scope: AnswerEvidenceScop
 def revalidate_answer_evidence(
     db: Session, result: AnswerResult, *, scope: AnswerEvidenceScope | None, language: Language,
 ) -> AnswerResult:
-    """Require current, applicable evidence for every supplied citation."""
-    if not result.citations or (
-        scope is not None and all(_citation_applies(db, citation, scope) for citation in result.citations)
-    ):
+    """Check every citation and hold the registry stable through the caller's commit."""
+    if not result.citations:
         return result
+    if scope is not None:
+        # Ingestion and review take exclusive locks on these same source rows.
+        # Lock in registry order so concurrent readers use a consistent order.
+        db.scalars(
+            select(KnowledgeSource.id)
+            .where(KnowledgeSource.id.in_({citation.source_id for citation in result.citations}))
+            .order_by(KnowledgeSource.id)
+            .with_for_update(read=True)
+        ).all()
+        if all(_citation_applies(db, citation, scope) for citation in result.citations):
+            return result
     return AnswerResult(
         explanation=(
             "I could not verify that the cited evidence is current and applies to this case. Review the case details."

@@ -218,7 +218,7 @@ Synthetic fixtures cover all seven claim types, dangling or ambiguous references
 
 ## Revalidating answer evidence
 
-Task 37.2 reopens every exact citation from the current approved registry before the worker commits an answer, including citations retrieved earlier in the same run. The registry checks the active version, audit history, and passage integrity. The citation must match the registry's publisher, URL, review timestamp, and procedure and location metadata. The source can use a different language from the answer.
+Task 37.2 reopens every exact citation from the current approved registry before the worker commits an answer, including citations retrieved earlier in the same run. The registry checks the active version, audit history, and passage integrity. The citation must match the registry's publisher, URL, review timestamp, and procedure and location metadata. The source can use a different language from the answer. In PostgreSQL, shared locks on the cited registry rows serialize this check and answer commit against ingestion and review changes.
 
 The internal worker reads a trusted scope in the terminal transaction using the owned thread, run, case, and principal. Each cited passage needs an active, reviewed assignment for the selected procedure and a confirmed location matching the assignment's role and the citation's exact area. If the assignment restricts dates or circumstances, the corresponding confirmed case facts must satisfy those restrictions. The worker records an insufficient-evidence answer without claims, citations, or an official channel when the trusted scope is unavailable or a citation fails these checks. It preserves the pending case questions.
 
