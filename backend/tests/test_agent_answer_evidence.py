@@ -141,6 +141,8 @@ def test_a_supported_channel_survives_an_unreviewed_fee_claim(queued_run, propos
     assert result.claims == answer.claims
     assert result.citations == answer.citations
     assert result.official_channel == answer.official_channel
+    assert result.claims[0].origin == "official_source"
+    assert result.next_action.origin == "agent_proposal"
     assert result.missing_information == missing_information
     assert result.next_action.operation == ("provide_information" if missing_information else "open_official_channel")
     assert "99 euro" not in result.explanation

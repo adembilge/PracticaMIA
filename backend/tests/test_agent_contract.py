@@ -166,6 +166,17 @@ def test_evidence_conflict_can_carry_candidate_citations():
     assert answer.verification_status == "conflicting_evidence"
 
 
+@pytest.mark.parametrize("observations", [
+    [{"field_id": "move_in_date", "status": "confirmed"}],
+    [{"field_id": "move_in_date", "status": "reviewed", "origin": "official_source"}],
+    [{"field_id": "move_in_date", "status": "reviewed", "raw_text": "Private document text"}],
+    [{"field_id": "move_in_date", "status": "reviewed"}, {"field_id": "move_in_date", "status": "conflict"}],
+])
+def test_document_observations_only_carry_distinct_review_metadata(observations):
+    with pytest.raises(ValidationError):
+        AnswerResult.model_validate({**ANSWER, "document_observations": observations})
+
+
 def test_consequential_claims_round_trip_with_their_own_passage_ids():
     kinds = ("authority", "channel", "mandatory_document", "fee", "deadline", "condition", "form_version")
     citations = []
@@ -178,11 +189,14 @@ def test_consequential_claims_round_trip_with_their_own_passage_ids():
 
     answer = AnswerResult.model_validate({**ANSWER, "citations": citations, "claims": claims})
     assert AnswerResult.model_validate_json(answer.model_dump_json()) == answer
-    assert [claim.model_dump() for claim in answer.claims] == claims
+    assert [claim.model_dump() for claim in answer.claims] == [
+        {**claim, "origin": "official_source"} for claim in claims
+    ]
+    assert answer.next_action.origin == "agent_proposal"
 
 
 @pytest.mark.parametrize("changes", [
-    {"kind": "government_submission"}, {"statement": "  "}, {"evidence_ids": []},
+    {"kind": "government_submission"}, {"statement": "  "}, {"evidence_ids": []}, {"origin": "user_document"},
     {"evidence_ids": [PASSAGE, PASSAGE]}, {"evidence_ids": [f"{SOURCE_VERSION}:0004"]},
 ])
 def test_claim_requires_known_kind_text_and_distinct_linked_evidence(changes):

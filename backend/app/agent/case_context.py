@@ -8,7 +8,8 @@ from pydantic import ValidationError
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
-from app.agent.document_context import DocumentFieldStatus, read_document_field_statuses
+from app.agent.contract import DocumentFieldStatus
+from app.agent.document_context import read_document_field_statuses
 from app.agent.threads import AgentThread, AgentThreadCase
 from app.auth.tokens import Principal
 from app.cases.intake_model import CaseIntake

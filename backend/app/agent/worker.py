@@ -14,7 +14,7 @@ from app.agent.checkpoints import (
     CheckpointConflict, CheckpointState, finish_checkpoint, load_checkpoint, save_checkpoint,
 )
 from app.agent.contract import (
-    AnswerCompleted, AnswerResult, ClarifyingQuestion, NextAction, ProgressUpdated, QuestionAnswered,
+    AnswerCompleted, AnswerResult, ClarifyingQuestion, DocumentObservation, NextAction, ProgressUpdated, QuestionAnswered,
     QuestionRequested, RunFailed, RunSnapshot, RunStarted,
 )
 from app.agent.run_events import _read_event_at, read_run_snapshot
@@ -193,12 +193,34 @@ def run_worker_step(
         if run is None:
             return None
         require_worker_lease(db, run, lease)
-        if isinstance(result, AnswerResult) and result.citations:
-            scope = (
-                read_evidence_scope(db, thread_id, run_id, message.case_id, principal)
-                if read_evidence_scope is not None else None
-            )
-            result = revalidate_answer_evidence(db, result, scope=scope, language=message.language)
+        if isinstance(result, AnswerResult):
+            if result.citations:
+                scope = (
+                    read_evidence_scope(db, thread_id, run_id, message.case_id, principal)
+                    if read_evidence_scope is not None else None
+                )
+                result = revalidate_answer_evidence(db, result, scope=scope, language=message.language)
+
+            relevant_fields = set(result.missing_information).union(checkpoint.state.missing_fields)
+            if question is not None:
+                relevant_fields.update(question.missing_fields)
+            observations = []
+            # Document provenance comes from a fresh owned-case read, including after clarification.
+            if (
+                case_context is not None and relevant_fields and document_settings is not None
+                and document_settings.enable_private_document_api
+            ):
+                current_case = read_worker_case_context(
+                    db, thread_id=thread_id, case_id=case_context.case_id, principal=principal,
+                    document_settings=document_settings,
+                )
+                if current_case is not None:
+                    observations = [
+                        DocumentObservation(field_id=field_id, status=status)
+                        for field_id, status in sorted(current_case.document_fields.items())
+                        if field_id in relevant_fields
+                    ]
+            result = result.model_copy(update={"document_observations": observations})
         boundary = {
             "expected_revision": checkpoint.revision,
             "expected_event_seq": checkpoint.event_seq,

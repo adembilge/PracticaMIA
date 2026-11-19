@@ -137,4 +137,6 @@ The [Task 37.3 claim support check](../planning/practicamia-2/phase-04-agent-api
 
 The [Task 37.4 partial answer](../planning/practicamia-2/phase-04-agent-api-contract.md#publishing-answers-with-partial-evidence) retains supported statements and removes their unsupported siblings and unused citations. The worker can recover a uniquely verified official channel from trusted assistance evidence and guides the user to confirm missing case facts or check with the responsible authority. Synthetic replay tests cover one withdrawn source alongside current evidence and the scoped recovery of an official channel.
 
+The [Task 37.5 answer provenance](../planning/practicamia-2/phase-04-agent-api-contract.md#preserving-information-origin) preserves official claim citations, current user-document review statuses, and agent proposals as separate typed payloads in the existing encrypted run journal. The worker limits document observations to relevant field IDs and review statuses from the owned case. Synthetic signed-JWT tests exercise replay, draft-supplied metadata, disabled access and a document removed before publication.
+
 For implementation details see [the documentation index](README.md).
