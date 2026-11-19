@@ -47,6 +47,10 @@ class RequestApproval:
     resume_state: CheckpointState
 
 
+class ModelProviderTimeout(TimeoutError):
+    """Signal that the execution adapter's model request reached its deadline."""
+
+
 ExecuteStep = Callable[
     [StoredMessage, CheckpointState], CheckpointState | RequestClarification | RequestApproval | AnswerResult,
 ]
@@ -222,7 +226,10 @@ def run_worker_step(
             except ToolAccessDenied:
                 return None
     else:
-        result = execute(message, checkpoint.state.model_copy(deep=True))
+        try:
+            result = execute(message, checkpoint.state.model_copy(deep=True))
+        except ModelProviderTimeout as failure:
+            result = failure
     with sessions.begin() as db:
         run = db.scalar(_owned_run(thread_id, run_id, principal).with_for_update(
             of=AgentRunRequest,
@@ -320,13 +327,12 @@ def run_worker_step(
             "schema_version": 1, "thread_id": thread_id, "run_id": run_id,
             "event_seq": checkpoint.event_seq + 1, "occurred_at": datetime.now(timezone.utc),
         }
-        if isinstance(result, (AnswerResult, CatalogueUnavailable)):
-            terminal = (
-                RunFailed(**envelope, type="run.failed", code="catalogue_unavailable",
-                          retryable=True, recovery="retry_later")
-                if isinstance(result, CatalogueUnavailable)
-                else AnswerCompleted(**envelope, type="answer.completed", result=result)
-            )
+        if isinstance(result, (CatalogueUnavailable, ModelProviderTimeout)):
+            code = "catalogue_unavailable" if isinstance(result, CatalogueUnavailable) else "provider_unavailable"
+            terminal = RunFailed(**envelope, type="run.failed", code=code, retryable=True, recovery="retry_later")
+            finish_checkpoint(db, principal=principal, key=key, **boundary, event=terminal)
+        elif isinstance(result, AnswerResult):
+            terminal = AnswerCompleted(**envelope, type="answer.completed", result=result)
             finish_checkpoint(db, principal=principal, key=key, **boundary, event=terminal)
         else:
             if isinstance(result, RequestClarification):
