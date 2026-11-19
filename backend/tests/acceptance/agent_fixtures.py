@@ -21,10 +21,15 @@ class AgentReconnectFixture:
         self.key = token_bytes(32)
         api.include_router(build_reconnect_router(key=self.key))
         stop = self.seed_question("Which synthetic route should be stopped?")
+        self.replaced_question_id = self.seed_question("Which synthetic detail should both tabs see first?")
+        self.followup_question = ClarifyingQuestion(
+            question_id=uuid4(), text="Which synthetic detail should the refreshed tab see?",
+            answer_shape="single_choice", options=["Fixture A", "Fixture B"], missing_fields=["housing_basis"],
+        )
         topic = self.seed_question("Which synthetic detail should stay open when changing topics?")
         date = self.seed_question("What was the synthetic move-in date?", calendar_date=True)
         municipality = self.seed_question("Which synthetic municipality applies?")
-        self.question_ids = {stop, topic, date, municipality}
+        self.question_ids = {stop, topic, date, municipality, self.replaced_question_id, self.followup_question.question_id}
 
     def seed_question(self, prompt, *, calendar_date=False):
         principal = Principal("alice")
@@ -56,6 +61,8 @@ class AgentReconnectFixture:
             or message.clarification_reply.question_id not in self.question_ids
         ):
             raise RuntimeError("The worker did not resume from the recorded answer")
+        if message.clarification_reply.question_id == self.replaced_question_id:
+            return RequestClarification(self.followup_question, state)
         return AnswerResult(
             explanation=f"Received {message.clarification_reply.text}.",
             verification_status="insufficient_evidence",

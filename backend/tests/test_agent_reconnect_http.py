@@ -174,6 +174,45 @@ def test_private_errors_hide_payloads_and_foreign_or_deleted_runs(client, auth_h
     assert_private_error(client.post(reply_url, headers=owner, json=reply), 404, "unavailable")
 
 
+def test_stale_question_identity_and_revision_leave_the_new_question_pending(client, auth_headers, paused_run):
+    context, question, _ = paused_run
+    client.app.include_router(build_reconnect_router(key=KEY))
+    owner = auth_headers()
+    url = run_url(context)
+    revision = client.get(url, headers=owner).json()["run_revision"]
+    reply_url = f"{url}/questions/{question.question_id}/reply"
+    original = {"client_reply_id": str(uuid4()), "expected_run_revision": revision, "text": "Fixture A"}
+    accepted = client.post(reply_url, headers=owner, json=original)
+    assert accepted.status_code == 200
+
+    followup = question.model_copy(update={"question_id": uuid4(), "text": "Which follow-up option?"})
+
+    def request_followup(message, state):
+        assert message.clarification_reply.question_id == question.question_id
+        return RequestClarification(followup, state)
+
+    run_worker_step(client.app.state.session_factory, **context, execute=request_followup)
+    snapshot = client.get(url, headers=owner).json()
+    journal = client.get(url + "/events", headers=owner).json()
+    assert snapshot["status"] == "waiting_for_information"
+    assert journal["events"][-1]["question"]["question_id"] == str(followup.question_id)
+    current_revision = snapshot["run_revision"]
+    for question_id, sent_revision in (
+        (question.question_id, revision),
+        (question.question_id, current_revision),
+        (followup.question_id, revision),
+        (uuid4(), current_revision),
+    ):
+        stale = client.post(f"{url}/questions/{question_id}/reply", headers=owner, json={
+            "client_reply_id": str(uuid4()), "expected_run_revision": sent_revision, "text": "Fixture B",
+        })
+        assert_private_error(stale, 409, "stale_question")
+
+    assert client.post(reply_url, headers=owner, json=original).json() == accepted.json()
+    assert client.get(url, headers=owner).json() == snapshot
+    assert client.get(url + "/events", headers=owner).json() == journal
+
+
 def test_invalid_free_text_date_explains_the_format_and_preserves_the_same_question(client, auth_headers):
     hint = "Inserisci la data del trasferimento nel formato AAAA-MM-GG o GG/MM/AAAA."
     context, question, _ = pause_for_question(client, auth_headers, ClarifyingQuestion(

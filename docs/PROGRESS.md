@@ -115,4 +115,6 @@ The [Task 35.4 deferral flow](../planning/practicamia-2/phase-04-agent-api-contr
 
 The [Task 35.5 correction flow](../planning/practicamia-2/phase-04-agent-api-contract.md#reevaluating-a-correction) uses the recorded question to apply bounded run-local values, reevaluate candidates, and refresh approved evidence for a supported revised scope. Synthetic tests cover updated dates and names, partial replies, a worker restart, unavailable replacement evidence and preservation of saved intake.
 
+The [Task 35.6 stale-question recovery](../planning/practicamia-2/phase-04-agent-api-contract.md#recovering-from-a-stale-question) explains a rejected reply and refreshes the isolated browser view. Synthetic tests exercise mismatched question IDs and revisions, exact retries, and multiple tabs recovering the replacement question after a successful or failed status refresh.
+
 For implementation details see [the documentation index](README.md).

@@ -41,6 +41,7 @@ The dedicated GitHub Actions workflow
 | A7 | Italian language uses the same verified case state and downloadable draft decisions | Chromium + real FastAPI + PostgreSQL |
 | Preparation Preview | Mobile deep link, upload and OCR waiting states, reduced motion, 503 feedback, back navigation, draft retention and load retry | Chromium with stubbed preparation responses |
 | Agent reconnect | Discover a paused conversation in a fresh browser context, restore its question, retry a lost reply response, verify account isolation and display the result committed by the background worker | Chromium + signed synthetic JWT + FastAPI + PostgreSQL |
+| Agent stale question | Open the same question in two or more tabs, confirm that an older form cannot answer its replacement, and recover after a failed refresh | Chromium + signed synthetic JWT + FastAPI + PostgreSQL |
 | Agent stop | Refresh the current status after a stale stop request, confirm the next request stops the conversation, and verify the terminal event and active list after reload | Chromium + signed synthetic JWT + FastAPI + PostgreSQL |
 | A8 | No uncaught browser runtime errors | Chromium |
 | D1 | Explicit acknowledgement required, malformed uploads rejected, scanner outage/checksum/control verdict rejected, browser retry works | Chromium + real ClamAV with a harmless test signature + FastAPI + PostgreSQL |

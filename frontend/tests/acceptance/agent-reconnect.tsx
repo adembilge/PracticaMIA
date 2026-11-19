@@ -44,6 +44,7 @@ export function AgentReconnectFixture() {
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [staleReply, setStaleReply] = useState(false);
   const lastReply = useRef<{
     questionId: string;
     revision: number;
@@ -63,6 +64,7 @@ export function AgentReconnectFixture() {
   function displayRun(next: RunView) {
     setView(next);
     setReply('');
+    setStaleReply(false);
     if (!activeStatuses.has(next.snapshot.status)) {
       setRuns(items => items?.filter(run => run.run_id !== next.snapshot.run_id) ?? null);
     }
@@ -87,7 +89,7 @@ export function AgentReconnectFixture() {
 
   async function sendReply(disposition: ReplyDisposition) {
     const text = disposition === 'answer' ? reply.trim() : null;
-    if (!view?.question || text === '' || busy) return;
+    if (!view?.question || text === '' || busy || staleReply) return;
     setBusy(true);
     setError('');
     const questionId = view.question.question_id;
@@ -104,6 +106,18 @@ export function AgentReconnectFixture() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ client_reply_id: id, expected_run_revision: revision, disposition, text }),
       });
+      if (response.status === 409) {
+        lastReply.current = null;
+        setReply('');
+        setStaleReply(true);
+        try {
+          displayRun(await loadRun(view.url));
+          setError('This reply was rejected because the conversation changed. Review its current status.');
+        } catch {
+          setError('This reply was rejected because the conversation changed. Check status to reload it.');
+        }
+        return;
+      }
       if (response.status === 422) {
         const problem = await response.json();
         if (['invalid_reply', 'invalid_request'].includes(problem?.code) && typeof problem.message === 'string') {
@@ -121,7 +135,7 @@ export function AgentReconnectFixture() {
   }
 
   async function stop() {
-    if (!view || busy || !activeStatuses.has(view.snapshot.status)) return;
+    if (!view || busy || staleReply || !activeStatuses.has(view.snapshot.status)) return;
     setBusy(true);
     setError('');
     try {
@@ -160,7 +174,9 @@ export function AgentReconnectFixture() {
         </li>)}
       </ul>}
       {view && <section aria-label="Conversation" aria-busy={busy}>
-        {view.question ? <form onSubmit={answer}>
+        {staleReply ? (
+          <button type="button" disabled={busy} onClick={() => void open(view.url)}>Check status</button>
+        ) : view.question ? <form onSubmit={answer}>
           <fieldset disabled={busy} aria-describedby={view.question.reply_hint ? 'reply-hint' : undefined}>
             <legend>{view.question.text}</legend>
             {view.question.reply_hint && <p id="reply-hint">{view.question.reply_hint}</p>}
@@ -187,7 +203,7 @@ export function AgentReconnectFixture() {
           <p role="status">Answer in progress.</p>
           <button type="button" disabled={busy} onClick={() => void open(view.url)}>Check status</button>
         </>}
-        {activeStatuses.has(view.snapshot.status) && (
+        {!staleReply && activeStatuses.has(view.snapshot.status) && (
           <button type="button" disabled={busy} onClick={() => void stop()}>Stop conversation</button>
         )}
       </section>}
