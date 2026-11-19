@@ -91,7 +91,7 @@ class ApplyApprovedUpdate(ContractModel):
     tool: Literal["apply_approved_update"]
     case_id: UUID
     proposal_id: UUID
-    expected_case_revision: PositiveInt
+    expected_case_revision: Annotated[int, Field(strict=True, ge=1, lt=2**63 - 1)]
     client_operation_id: UUID
 
 

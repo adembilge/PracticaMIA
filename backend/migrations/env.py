@@ -7,6 +7,7 @@ from sqlalchemy import create_engine, pool
 
 from app.database import Base
 from app.agent import checkpoints as agent_checkpoints  # noqa: F401 - agent state tables
+from app.agent import tool_writes as agent_tool_writes  # noqa: F401 - durable case operation receipts
 from app.cases import model  # noqa: F401 - register the table on Base.metadata
 from app.cases import intake_model  # noqa: F401 - owner-bound categorical intake
 from app.preparation import models as preparation_models  # noqa: F401 - opt-in preview tables

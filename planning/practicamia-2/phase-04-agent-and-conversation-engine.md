@@ -86,7 +86,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 - **36.1** Define [typed tool inputs and outputs](phase-04-agent-api-contract.md#typed-tool-contracts). Validate catalogue IDs and reject unknown parameters.
 - **36.2** [Verify the acting user and ownership](phase-04-agent-api-contract.md#authorizing-tool-calls) server-side. Scope case tools to the case stored with the run.
 - **36.3** Define [tool execution conditions](phase-04-agent-api-contract.md#checking-tool-execution-and-approval) for reads, drafts, and approved writes.
-- **36.4** Prevent duplicate writes during retries, network failures, and resume with idempotency keys and case revisions.
+- **36.4** [Persist retry receipts](phase-04-agent-api-contract.md#retrying-an-approved-case-write) with the approved update to prevent duplicate writes after a retry or resume.
 - **36.5** Provide recovery for transient catalogue errors, no verified result, and invalid input.
 - **36.6** Define extension contracts for document and form tools. Unavailable capabilities cannot appear as completed work.
 

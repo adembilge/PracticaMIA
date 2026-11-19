@@ -101,9 +101,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     revision = connection.exec_driver_sql(
                         "SELECT version_num FROM alembic_version"
                     ).scalar_one()
-                if revision not in {"20261106_0011", "20261108_0012", "20261109_0013", "20261109_0014", "20261109_0015", "20261109_0016", "20261116_0017", "20261118_0018", "20261118_0019", "20261118_0020", "20261118_0021", "20261118_0022"}:
+                if revision not in {"20261106_0011", "20261108_0012", "20261109_0013", "20261109_0014", "20261109_0015", "20261109_0016", "20261116_0017", "20261118_0018", "20261118_0019", "20261118_0020", "20261118_0021", "20261118_0022", "20261119_0023"}:
                     raise ValueError("Preparation requires migrated isolated staging schema")
-                if settings.enable_agent_history_api and revision not in {"20261108_0012", "20261109_0013", "20261109_0014", "20261109_0015", "20261109_0016", "20261116_0017", "20261118_0018", "20261118_0019", "20261118_0020", "20261118_0021", "20261118_0022"}:
+                if settings.enable_agent_history_api and revision not in {"20261108_0012", "20261109_0013", "20261109_0014", "20261109_0015", "20261109_0016", "20261116_0017", "20261118_0018", "20261118_0019", "20261118_0020", "20261118_0021", "20261118_0022", "20261119_0023"}:
                     raise ValueError("Agent history requires isolated staging schema 0012")
             except Exception:
                 engine.dispose()
@@ -115,7 +115,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 revision = connection.exec_driver_sql(
                     "SELECT version_num FROM alembic_version"
                 ).scalar_one()
-            if revision not in {"20261109_0013", "20261109_0014", "20261109_0015", "20261109_0016", "20261116_0017", "20261118_0018", "20261118_0019", "20261118_0020", "20261118_0021", "20261118_0022"}:
+            if revision not in {"20261109_0013", "20261109_0014", "20261109_0015", "20261109_0016", "20261116_0017", "20261118_0018", "20261118_0019", "20261118_0020", "20261118_0021", "20261118_0022", "20261119_0023"}:
                 engine.dispose()
                 raise ValueError("Private documents require migrated 0013 schema")
         api.include_router(router)
@@ -126,7 +126,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             api.include_router(private_router)
             api.include_router(retention_router)
             if engine.dialect.name == "postgresql":
-                if revision not in {"20261109_0015", "20261109_0016", "20261116_0017", "20261118_0018", "20261118_0019", "20261118_0020", "20261118_0021", "20261118_0022"}:
+                if revision not in {"20261109_0015", "20261109_0016", "20261116_0017", "20261118_0018", "20261118_0019", "20261118_0020", "20261118_0021", "20261118_0022", "20261119_0023"}:
                     engine.dispose()
                     raise ValueError("Document intelligence requires schema revision 0015")
             from app.private_documents.intelligence_router import router as intelligence_router
