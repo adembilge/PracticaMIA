@@ -129,6 +129,8 @@ The [Task 36.5 catalogue recovery](../planning/practicamia-2/phase-04-agent-api-
 
 The [Task 36.6 extension contracts](../planning/practicamia-2/phase-04-agent-api-contract.md#document-and-form-extension-tools) define case-scoped requests for document evidence, applicable forms and draft preparation. The authorization boundary reports all three as unavailable. Tests verify that completion states, evidence contents and artifact IDs cannot pass validation as extension outcomes.
 
-The [Task 37.1 claim links](../planning/practicamia-2/phase-04-agent-api-contract.md#linking-claims-to-evidence) attach each consequential claim to one or more exact passage IDs. The journal requires claim links for new verified answers and official channels, and the reviewed assistance path now supplies its channel claim. Older encrypted events remain readable. Freshness, applicability and passage support require the next checks.
+The [Task 37.1 claim links](../planning/practicamia-2/phase-04-agent-api-contract.md#linking-claims-to-evidence) attach each consequential claim to one or more exact passage IDs. The journal requires claim links for new verified answers and official channels, and the reviewed assistance path now supplies its channel claim. Older encrypted events remain readable.
+
+The [Task 37.2 publication check](../planning/practicamia-2/phase-04-agent-api-contract.md#revalidating-answer-evidence) revalidates each exact passage against the approved registry and checks the reviewed procedure, location, dates and conditions against confirmed case facts. The worker withholds cited claims and official channels when any check fails. Synthetic tests cover revoked and superseded passages as well as replay. The production scope reader and passage-to-claim support check require further integration.
 
 For implementation details see [the documentation index](README.md).

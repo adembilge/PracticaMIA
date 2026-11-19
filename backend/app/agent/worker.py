@@ -7,6 +7,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.agent.answer_evidence import AnswerEvidenceScopeReader, revalidate_answer_evidence
 from app.agent.case_context import read_worker_case_context
 from app.agent.catalogue_evidence import CatalogueUnavailable, refresh_corrected_evidence
 from app.agent.checkpoints import (
@@ -42,6 +43,7 @@ ExecuteStep = Callable[
 def run_next_worker_step(
     sessions: sessionmaker[Session], *, key: bytes, lease_for: timedelta, execute: ExecuteStep,
     document_settings: Settings | None = None,
+    read_evidence_scope: AnswerEvidenceScopeReader | None = None,
 ) -> RunSnapshot | None:
     """Claim and advance one eligible run, leaving crash recovery to its lease."""
     with sessions.begin() as db:
@@ -51,12 +53,14 @@ def run_next_worker_step(
     return run_worker_step(
         sessions, thread_id=lease.thread_id, run_id=lease.run_id, principal=lease.principal,
         key=key, execute=execute, lease=lease, document_settings=document_settings,
+        read_evidence_scope=read_evidence_scope,
     )
 
 
 def run_worker_batch(
     sessions: sessionmaker[Session], *, key: bytes, lease_for: timedelta,
     execute: ExecuteStep, max_steps: int, document_settings: Settings | None = None,
+    read_evidence_scope: AnswerEvidenceScopeReader | None = None,
 ) -> int:
     """Process up to the caller's attempt budget and return the recorded step count."""
     if max_steps < 1:
@@ -67,6 +71,7 @@ def run_worker_batch(
         try:
             snapshot = run_next_worker_step(
                 sessions, key=key, lease_for=lease_for, execute=execute, document_settings=document_settings,
+                read_evidence_scope=read_evidence_scope,
             )
         except WorkerLeaseConflict:
             # A replacement worker may already own this run. A lost lease still
@@ -83,6 +88,7 @@ def run_worker_step(
     principal: Principal, key: bytes,
     execute: ExecuteStep, lease: WorkerLease | None = None,
     document_settings: Settings | None = None,
+    read_evidence_scope: AnswerEvidenceScopeReader | None = None,
 ) -> RunSnapshot | None:
     """Run a side-effect-free step between short database transactions."""
     context = {"thread_id": thread_id, "run_id": run_id, "principal": principal, "key": key}
@@ -187,6 +193,12 @@ def run_worker_step(
         if run is None:
             return None
         require_worker_lease(db, run, lease)
+        if isinstance(result, AnswerResult) and result.citations:
+            scope = (
+                read_evidence_scope(db, thread_id, run_id, message.case_id, principal)
+                if read_evidence_scope is not None else None
+            )
+            result = revalidate_answer_evidence(db, result, scope=scope, language=message.language)
         boundary = {
             "expected_revision": checkpoint.revision,
             "expected_event_seq": checkpoint.event_seq,
