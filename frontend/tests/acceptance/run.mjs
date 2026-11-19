@@ -658,6 +658,7 @@ try{
 
   await scenario('Agent clarification: changing topics releases the pending question',async()=>{
     const owner=await contextFor('alice',{width:390,height:800});
+    owner.setDefaultTimeout(10000);
     await owner.goto(origin+'/__acceptance/agent');
     await owner.getByRole('button',{name:'Open conversation'}).first().click();
     await owner.getByText('Which synthetic detail should stay open when changing topics?',{exact:true}).waitFor();
