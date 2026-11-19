@@ -12,7 +12,7 @@ from app.agent.checkpoints import (
     CheckpointConflict, CheckpointState, finish_checkpoint, load_checkpoint, save_checkpoint,
 )
 from app.agent.contract import (
-    AnswerCompleted, AnswerResult, ClarifyingQuestion, ProgressUpdated, QuestionAnswered,
+    AnswerCompleted, AnswerResult, ClarifyingQuestion, NextAction, ProgressUpdated, QuestionAnswered,
     QuestionRequested, RunSnapshot, RunStarted,
 )
 from app.agent.run_events import _read_event_at, read_run_snapshot
@@ -111,8 +111,18 @@ def run_worker_step(
         message = read_run_message(db, **context)
         if message is None:
             return None
+        boundary_event = _read_event_at(db, run, checkpoint.event_seq, principal, key)
+        reply = boundary_event if isinstance(boundary_event, QuestionAnswered) else None
+        question = None
+        if reply is not None and reply.disposition != "answer":
+            requested = _read_event_at(db, run, reply.event_seq - 1, principal, key)
+            if not isinstance(requested, QuestionRequested) or requested.question.question_id != reply.question_id:
+                raise CheckpointConflict("A clarification disposition requires its recorded question")
+            question = requested.question
+        topic_changed = reply is not None and reply.disposition == "change_topic"
+
         case_context = None
-        if message.case_id is not None:
+        if message.case_id is not None and not topic_changed:
             case_context = read_worker_case_context(
                 db, thread_id=thread_id, case_id=message.case_id, principal=principal,
                 document_settings=document_settings if checkpoint.state.next_node == "choose_next_step" else None,
@@ -120,17 +130,31 @@ def run_worker_step(
             if case_context is None:
                 return None
 
-        boundary_event = _read_event_at(db, run, checkpoint.event_seq, principal, key)
         message = replace(
             message,
-            clarification_reply=boundary_event if isinstance(boundary_event, QuestionAnswered) else None,
-            recent_user_messages=read_recent_user_messages(db, run=run, principal=principal, key=key),
+            clarification_reply=reply,
+            clarification_question=question,
+            recent_user_messages=() if topic_changed else read_recent_user_messages(
+                db, run=run, principal=principal, key=key,
+            ),
             case_context=case_context,
         )
 
     # Only completed boundaries survive a crash. Uncommitted computation can
     # run again, so this callback must not perform external writes.
-    result = execute(message, checkpoint.state.model_copy(deep=True))
+    if topic_changed and question is not None:
+        explanation, label = (
+            ("The previous question is still open. Send a new message to change topics.", "Start a new topic")
+            if message.language == "en" else
+            ("La domanda precedente resta aperta. Invia un nuovo messaggio per cambiare argomento.", "Cambia argomento")
+        )
+        result = AnswerResult(
+            explanation=explanation, verification_status="insufficient_evidence",
+            missing_information=question.missing_fields,
+            next_action=NextAction(label=label, operation="start_new_topic"),
+        )
+    else:
+        result = execute(message, checkpoint.state.model_copy(deep=True))
     with sessions.begin() as db:
         run = db.scalar(_owned_run(thread_id, run_id, principal).with_for_update(
             of=AgentRunRequest,

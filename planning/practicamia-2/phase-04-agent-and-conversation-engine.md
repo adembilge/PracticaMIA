@@ -66,7 +66,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 - **35.1** The [clarification context check](phase-04-agent-api-contract.md#context-before-a-clarification) reuses confirmed case facts and checks the current message and accessible document results before asking.
 - **35.2** The [question priority step](phase-04-agent-api-contract.md#prioritizing-clarifications) asks for the field that can narrow or settle a reviewed assignment. It explains why details are needed together when one authority's remaining assignments all require the same missing facts.
 - **35.3** The [reply validation step](phase-04-agent-api-contract.md#validating-clarification-replies) checks free text and offered choices against the saved question. It explains the expected answer and keeps the question available for correction.
-- **35.4** Define behaviour for unknown answers, skipping for now, and topic changes. Complete available work and retain open uncertainty.
+- **35.4** [Clarification deferrals](phase-04-agent-api-contract.md#deferring-a-question-or-changing-topics) retain the open fields, allow supported work to continue, and let a new topic start after closing the previous run without resolving its question.
 - **35.5** Reevaluate affected candidates, evidence, and next action when a correction arrives.
 - **35.6** Guard against silent changes from old questions or mismatched question IDs across browser tabs.
 

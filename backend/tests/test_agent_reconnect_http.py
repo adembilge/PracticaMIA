@@ -209,6 +209,36 @@ def test_invalid_free_text_date_explains_the_format_and_preserves_the_same_quest
     assert client.post(reply_url, headers=owner, json=corrected).json() == saved.json()
 
 
+@pytest.mark.parametrize(("payload", "expected", "original"), [
+    ({"disposition": "skip"}, "skip", None),
+    ({"disposition": "unknown"}, "unknown", None),
+    ({"text": " Non lo so. "}, "unknown", "Non lo so."),
+    ({"text": "Skip for now."}, "skip", "Skip for now."),
+    ({"text": "Cambia argomento."}, "change_topic", "Cambia argomento."),
+])
+def test_date_question_accepts_non_answers_without_validating_them_as_dates(
+    client, auth_headers, payload, expected, original,
+):
+    context, question, _ = pause_for_question(client, auth_headers, ClarifyingQuestion(
+        question_id=uuid4(), text="When did you move?", answer_shape="free_text",
+        missing_fields=["move_in_date"], answer_format="calendar_date",
+    ))
+    client.app.include_router(build_reconnect_router(key=KEY))
+    url = run_url(context)
+    reply_url = f"{url}/questions/{question.question_id}/reply"
+    owner = auth_headers()
+    before = client.get(url, headers=owner).json()
+    reply = {"client_reply_id": str(uuid4()), "expected_run_revision": before["run_revision"], **payload}
+    foreign = client.post(reply_url, headers=auth_headers("bob"), json=reply)
+    assert_private_error(foreign, 404, "unavailable")
+    saved = client.post(reply_url, headers=owner, json=reply)
+    assert saved.status_code == 200
+    assert saved.json()["disposition"] == expected
+    assert saved.json()["text"] == original
+    assert client.post(reply_url, headers=owner, json=reply).json() == saved.json()
+    assert client.get(url, headers=owner).json()["status"] == "running"
+
+
 def test_active_run_cursor_handles_equal_timestamps_and_a_run_that_finishes_between_pages(client, auth_headers):
     client.app.include_router(build_reconnect_router(key=KEY))
     factory = client.app.state.session_factory

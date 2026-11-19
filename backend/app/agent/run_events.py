@@ -120,12 +120,13 @@ def append_run_event(
         if not isinstance(pending, QuestionRequested) or pending.question.question_id != event.question_id:
             raise EventConflict("Reply must identify the pending question")
         question = pending.question
-        if question.answer_shape == "single_choice" and event.text not in question.options:
-            raise InvalidClarificationReply(question.reply_hint or "Select one of the offered choices.")
-        if question.answer_format == "calendar_date" and normalize_labeled_move_date(event.text) is None:
-            raise InvalidClarificationReply(
-                question.reply_hint or "Enter a valid date between 1900 and 2100 in YYYY-MM-DD or DD/MM/YYYY format."
-            )
+        if event.disposition == "answer":
+            if question.answer_shape == "single_choice" and event.text not in question.options:
+                raise InvalidClarificationReply(question.reply_hint or "Select one of the offered choices.")
+            if question.answer_format == "calendar_date" and normalize_labeled_move_date(event.text) is None:
+                raise InvalidClarificationReply(
+                    question.reply_hint or "Enter a valid date between 1900 and 2100 in YYYY-MM-DD or DD/MM/YYYY format."
+                )
 
     nonce = urandom(12)
     ciphertext = nonce + _payload_cipher(key).encrypt(

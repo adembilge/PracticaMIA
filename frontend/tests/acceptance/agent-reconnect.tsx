@@ -6,7 +6,7 @@ type Snapshot = {
   status: string;
   last_event_seq: number;
   run_revision: number;
-  result: { explanation: string } | null;
+  result: { explanation: string; next_action?: { operation: string | null } | null } | null;
 };
 type Question = {
   question_id: string;
@@ -16,6 +16,7 @@ type Question = {
   reply_hint?: string | null;
 };
 type RunView = { url: string; snapshot: Snapshot; question: Question | null };
+type ReplyDisposition = 'answer' | 'unknown' | 'skip' | 'change_topic';
 const activeStatuses = new Set(['queued', 'running', 'waiting_for_information', 'waiting_for_approval', 'stopping']);
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -43,7 +44,13 @@ export function AgentReconnectFixture() {
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const lastReply = useRef<{ questionId: string; revision: number; text: string; id: string } | null>(null);
+  const lastReply = useRef<{
+    questionId: string;
+    revision: number;
+    text: string | null;
+    disposition: ReplyDisposition;
+    id: string;
+  } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -73,24 +80,29 @@ export function AgentReconnectFixture() {
     }
   }
 
-  async function answer(event: FormEvent<HTMLFormElement>) {
+  function answer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const text = reply.trim();
-    if (!view?.question || !text || busy) return;
+    void sendReply('answer');
+  }
+
+  async function sendReply(disposition: ReplyDisposition) {
+    const text = disposition === 'answer' ? reply.trim() : null;
+    if (!view?.question || text === '' || busy) return;
     setBusy(true);
     setError('');
     const questionId = view.question.question_id;
     const revision = view.snapshot.run_revision;
     const prior = lastReply.current;
-    const id = prior?.questionId === questionId && prior.revision === revision && prior.text === text
+    const id = prior?.questionId === questionId && prior.revision === revision &&
+      prior.text === text && prior.disposition === disposition
       ? prior.id : crypto.randomUUID();
-    lastReply.current = { questionId, revision, text, id };
+    lastReply.current = { questionId, revision, text, disposition, id };
     try {
       const response = await fetch(`${view.url}/questions/${questionId}/reply`, {
         method: 'POST',
         cache: 'no-store',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client_reply_id: id, expected_run_revision: revision, text }),
+        body: JSON.stringify({ client_reply_id: id, expected_run_revision: revision, disposition, text }),
       });
       if (response.status === 422) {
         const problem = await response.json();
@@ -163,8 +175,11 @@ export function AgentReconnectFixture() {
             </label>}
           </fieldset>
           <button type="submit" disabled={!reply.trim() || busy}>Send reply</button>
+          <button type="button" disabled={busy} onClick={() => void sendReply('unknown')}>I don’t know</button>
+          <button type="button" disabled={busy} onClick={() => void sendReply('skip')}>Skip for now</button>
+          <button type="button" disabled={busy} onClick={() => void sendReply('change_topic')}>Change topic</button>
         </form> : view.snapshot.result ? <div>
-          <h2>Conversation complete</h2>
+          <h2>{view.snapshot.result.next_action?.operation === 'start_new_topic' ? 'Topic changed' : 'Conversation complete'}</h2>
           <p>{view.snapshot.result.explanation}</p>
         </div> : view.snapshot.status === 'stopped' ? (
           <div role="status"><h2>Conversation stopped</h2></div>

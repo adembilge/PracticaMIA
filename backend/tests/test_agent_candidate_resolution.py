@@ -240,3 +240,35 @@ def test_worker_persists_question_and_does_not_repeat_it_or_treat_reply_as_confi
     assert finished.result.verification_status == "insufficient_evidence"
     assert finished.result.missing_information == expected
     assert finished.result.official_channel is None
+
+
+@pytest.mark.parametrize(("disposition", "note"), [
+    ("unknown", "non sei sicuro o sicura"),
+    ("skip", "dettagli che hai saltato"),
+])
+def test_deferred_fields_remain_open_and_verified_assistance_is_preserved(queued_run, disposition, note):
+    factory, context, _, _ = queued_run
+    assert run_worker_step(factory, **context, execute=lambda *_: STATE).status == "running"
+    dated = replace(
+        SERVICE, effective_period=EffectivePeriod("filing_date", effective_from=date(2026, 4, 1)),
+        required_circumstances=(("housing_basis", "rental"),),
+    )
+    step = partial(choose_candidate_step, **(INPUTS | {
+        "assignments": (dated,), "assistance_contacts": (CONTACT,),
+    }))
+    paused = run_worker_step(factory, **context, execute=step)
+    with factory.begin() as db:
+        [event] = read_run_events(db, **context, after_seq=paused.last_event_seq - 1).events
+        assert event.question.missing_fields == ["filing_date", "housing_basis"]
+        submit_clarification_reply(
+            db, **context, question_id=event.question.question_id,
+            reply=ClarificationReply(
+                client_reply_id=uuid4(), expected_run_revision=paused.run_revision, disposition=disposition,
+            ),
+        )
+    result = run_worker_step(factory, **context, execute=step).result
+    assert note in result.explanation
+    assert result.verification_status == "insufficient_evidence"
+    assert result.missing_information == ["filing_date", "housing_basis"]
+    assert result.official_channel.url == CONTACT.citation.official_url
+    assert result.citations == [CONTACT.citation]

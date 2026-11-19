@@ -9,6 +9,7 @@ from uuid import UUID, uuid4
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from pydantic import ValidationError
 from sqlalchemy import (
     CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index,
     Integer, LargeBinary, String, UniqueConstraint, and_, select, text,
@@ -17,7 +18,8 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.agent.case_context import WorkerCaseContext
 from app.agent.contract import (
-    ActiveRunCursor, ActiveRunPage, ActiveRunSummary, Language, QuestionAnswered, SendMessage,
+    ActiveRunCursor, ActiveRunPage, ActiveRunSummary, AnswerCompleted, ClarifyingQuestion,
+    Language, QuestionAnswered, SendMessage,
 )
 from app.agent.threads import AgentThread, AgentThreadCase
 from app.auth.tokens import Principal
@@ -28,6 +30,7 @@ WORKER_RUN_STATUSES = ("queued", "running")
 ACTIVE_STATUSES = (*WORKER_RUN_STATUSES, "waiting_for_information", "waiting_for_approval", "stopping")
 ALL_STATUSES = (*ACTIVE_STATUSES, "completed", "failed", "stopped")
 RECENT_USER_MESSAGE_LIMIT = 3
+RECENT_RUN_SCAN_LIMIT = 24
 
 
 class AgentRunRequest(Base):
@@ -87,6 +90,7 @@ class StoredMessage:
     clarification_reply: QuestionAnswered | None = None
     recent_user_messages: tuple[RecentUserMessage, ...] = ()
     case_context: WorkerCaseContext | None = None
+    clarification_question: ClarifyingQuestion | None = None
 
 
 def _associated_data(run: AgentRunRequest, subject: str) -> bytes:
@@ -243,24 +247,39 @@ def read_run_message(
 def read_recent_user_messages(
     db: Session, *, run: AgentRunRequest, principal: Principal, key: bytes,
 ) -> tuple[RecentUserMessage, ...]:
-    """Read a small window of earlier completed messages for the same thread and case."""
+    """Read same-case messages since the last explicit topic change."""
+    from app.agent.run_events import _decode_event, _latest_event
+
     rows = db.scalars(
         _owned_runs(principal)
         .where(
             AgentRunRequest.thread_id == run.thread_id,
-            AgentRunRequest.case_id == run.case_id,
             AgentRunRequest.accepted_revision < run.accepted_revision,
             AgentRunRequest.status == "completed",
         )
         .order_by(AgentRunRequest.accepted_revision.desc())
-        .limit(RECENT_USER_MESSAGE_LIMIT)
+        .limit(RECENT_RUN_SCAN_LIMIT)
     ).all()
     history = []
-    for row in reversed(rows):
+    for row in rows:
+        terminal = _latest_event(db, row)
+        try:
+            event = _decode_event(terminal, row, principal, key) if terminal else None
+        except (InvalidTag, ValidationError):
+            # An unreadable result may mark a topic change.
+            break
+        if not isinstance(event, AnswerCompleted):
+            break
+        if event.result.next_action and event.result.next_action.operation == "start_new_topic":
+            break
+        if row.case_id != run.case_id:
+            continue
         try:
             message = _decode(row, principal, key)
         except InvalidTag:
             # An unavailable historical message must never supply context.
             continue
         history.append(RecentUserMessage(text=message.text, language=message.language))
-    return tuple(history)
+        if len(history) == RECENT_USER_MESSAGE_LIMIT:
+            break
+    return tuple(reversed(history))

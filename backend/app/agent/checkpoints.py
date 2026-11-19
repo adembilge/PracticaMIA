@@ -11,6 +11,7 @@ from pydantic import Field, model_validator
 from sqlalchemy import CheckConstraint, ForeignKey, Integer, LargeBinary, String
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
+from app.agent.clarification_disposition import resolve_disposition
 from app.agent.contract import (
     AgentEvent, AgentIntent, AnswerCompleted, ApprovalRequested, ClarificationReply, ContractModel,
     Identifier, PassageId, QuestionAnswered, QuestionRequested, RunSnapshot, RunStopped, TERMINAL_EVENTS,
@@ -179,10 +180,13 @@ def submit_clarification_reply(
     # The revision shown with the question is the sequence its reply would occupy.
     reply_seq = reply.expected_run_revision
     saved = _read_event_at(db, run, reply_seq, principal, key)
-    if isinstance(saved, QuestionAnswered) and (
-        saved.question_id, saved.client_reply_id, saved.text,
-    ) == (question_id, reply.client_reply_id, reply.text):
-        return saved
+    if isinstance(saved, QuestionAnswered):
+        # Text can express a disposition, but its original request used the answer channel.
+        submitted_as = "answer" if saved.text is not None else saved.disposition
+        if (saved.question_id, saved.client_reply_id, saved.text, submitted_as) == (
+            question_id, reply.client_reply_id, reply.text, reply.disposition,
+        ):
+            return saved
     if saved is not None or run.status != "waiting_for_information":
         raise CheckpointConflict("The question is no longer pending at this revision")
 
@@ -192,11 +196,15 @@ def submit_clarification_reply(
         or checkpoint.event_seq + 1 != reply_seq
     ):
         raise CheckpointConflict("The question is no longer pending at this revision")
+    pending = _read_event_at(db, run, checkpoint.event_seq, principal, key)
+    if not isinstance(pending, QuestionRequested) or pending.question.question_id != question_id:
+        raise CheckpointConflict("The question is no longer pending at this revision")
 
     answered = QuestionAnswered(
         schema_version=1, thread_id=thread_id, run_id=run_id, event_seq=reply_seq,
         occurred_at=datetime.now(timezone.utc), type="question.answered",
         question_id=question_id, client_reply_id=reply.client_reply_id, text=reply.text,
+        disposition=resolve_disposition(reply, pending.question),
     )
     updated = save_checkpoint(
         db, **context, expected_revision=checkpoint.revision, expected_event_seq=checkpoint.event_seq,
