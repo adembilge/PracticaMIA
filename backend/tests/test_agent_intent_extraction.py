@@ -261,7 +261,34 @@ def test_goal_and_per_goal_candidate_bounds_fail_closed():
     assert result.goals == () and result.procedure_candidates == () and result.missing_context == ("procedure",)
 
 
-def test_worker_retains_goal_sets_and_replays_owner_result_without_routing_them_together(client, auth_headers):
+@pytest.mark.parametrize(("language", "message", "preferred"), [
+    ("en", "Change my residence in Milan; update my tax record in Como. Start with task 2.", 2),
+    ("it", "Cambio di residenza a Milano; aggiornare la posizione TARI a Como. Iniziamo dalla pratica 1.", 1),
+    ("en", "Change my residence in Milan; update my tax record in Como. Start with residence change.", 1),
+    ("en", "Start with residence change; update my tax record in Como.", 1),
+    ("it", "Cambio di residenza a Milano; aggiornare la posizione TARI a Como. Cominciamo dal cambio di residenza.", 1),
+    ("en", "Change my residence in Milan; update my tax record in Como. Start with task 6.", None),
+    ("en", "Change my residence in Milan; change my residence in Como. Start with residence change.", None),
+    ("en", "Change my residence in Milan; update my tax record. Start with task 1. Start with task 2.", None),
+])
+def test_only_unambiguous_explicit_preferences_select_a_goal(language, message, preferred):
+    stored = StoredMessage(message, language, None)
+    state = identify_intent_step(stored, CheckpointState(next_node="identify_intent"), catalogue_names=MULTI_CATALOGUE)
+    assert len(state.goals) == 2 and state.preferred_goal == preferred
+    outcome = choose_candidate_step(
+        stored, state, case_locations={}, confirmed_dates={}, confirmed_circumstances={},
+        assignments=(), trusted_passage_ids=frozenset(), reviewed_labels={},
+    )
+    if preferred is not None:
+        assert outcome.goal_selection.active_goal == preferred
+        assert outcome.missing_information == state.goals[preferred - 1].missing_fields
+    else:
+        assert outcome.question.missing_fields == ["active_goal"]
+        assert len(outcome.question.options) == 2
+
+
+@pytest.mark.parametrize("disposition", ["answer", "skip"])
+def test_worker_retains_goal_sets_and_replays_the_owner_choice(client, auth_headers, disposition):
     factory = client.app.state.session_factory
     text = "Change my residence in Milan; update my tax record in Como."
     with factory.begin() as db:
@@ -279,16 +306,51 @@ def test_worker_retains_goal_sets_and_replays_owner_result_without_routing_them_
         assert [goal.location_candidates for goal in saved.goals] == [["municipality-milan"], ["municipality-como"]]
         assert b"municipality-como" not in db.get(AgentRunCheckpoint, str(accepted.run_id)).ciphertext
 
-    run_worker_step(factory, **context, execute=partial(
+    choose = partial(
         choose_candidate_step, case_locations={}, confirmed_dates={}, confirmed_circumstances={},
-        assignments=(), trusted_passage_ids=frozenset(), reviewed_labels={},
-    ))
+        assignments=(), trusted_passage_ids=frozenset(), reviewed_labels={
+            "residence-change": "Residence change", "tax-record": "Tax record",
+            "municipality-milan": "Milan", "municipality-como": "Como",
+        },
+    )
+    run_worker_step(factory, **context, execute=choose)
     client.app.include_router(build_reconnect_router(key=KEY))
     url = f"/api/v1/agent/threads/{thread_id}/runs/{accepted.run_id}"
-    response = client.get(url, headers=auth_headers("alice"))
+    owner = auth_headers("alice")
+    response = client.get(url, headers=owner)
     assert response.status_code == 200 and response.headers["Cache-Control"] == "private, no-store"
-    wire = response.json()
+    pending = response.json()
+    assert pending["status"] == "waiting_for_information" and pending["goal_selection"] is None
+    [asked] = client.get(url + "/events", headers=owner, params={"after_seq": pending["last_event_seq"] - 1}).json()["events"]
+    question = asked["question"]
+    assert question["options"] == ["1. Residence change · Milan", "2. Tax record · Como"]
+    assert question["goal_selection_language"] == "en"
+    reply_url = url + f"/questions/{question['question_id']}/reply"
+    reply = {
+        "client_reply_id": str(uuid4()), "expected_run_revision": pending["run_revision"],
+        "disposition": disposition, "text": question["options"][1] if disposition == "answer" else None,
+    }
+    assert client.post(reply_url, headers=auth_headers("bob"), json=reply).status_code == 404
+    invalid = {**reply, "disposition": "answer", "text": "3. Forged option"}
+    assert client.post(reply_url, headers=owner, json=invalid).status_code == 422
+    accepted_reply = client.post(reply_url, headers=owner, json=reply)
+    assert accepted_reply.status_code == 200
+    selected = 2 if disposition == "answer" else None
+    assert accepted_reply.json()["selected_goal"] == selected
+    assert client.post(reply_url, headers=owner, json=reply).json() == accepted_reply.json()
+    in_progress = client.get(url, headers=owner).json()
+    assert in_progress["status"] == "running"
+    if selected:
+        assert in_progress["goal_selection"]["active_goal"] == selected
+    else:
+        assert in_progress["goal_selection"] is None
+
+    run_worker_step(factory, **context, execute=partial(choose, reviewed_labels={}))
+    wire = client.get(url, headers=owner).json()
     assert wire["result"]["goals"] == [goal.model_dump() for goal in saved.goals]
+    assert wire["goal_selection"] == wire["result"]["goal_selection"] == {
+        "language": "en", "options": question["options"], "active_goal": selected,
+    }
     assert wire["handoff"] is None and wire["result"]["citations"] == []
-    assert client.get(url + "/events", headers=auth_headers("alice")).json()["events"][-1]["result"] == wire["result"]
+    assert client.get(url + "/events", headers=owner).json()["events"][-1]["result"] == wire["result"]
     assert client.get(url, headers=auth_headers("bob")).status_code == 404

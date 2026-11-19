@@ -38,6 +38,7 @@ ClarificationText = Annotated[str, StringConstraints(min_length=1, max_length=20
 Identifier = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_-]{1,96}$")]
 NonnegativeInt = Annotated[int, Field(strict=True, ge=0)]
 PositiveInt = Annotated[int, Field(strict=True, ge=1)]
+GoalNumber = Annotated[int, Field(strict=True, ge=1, le=MAX_MESSAGE_GOALS)]
 PassageId = Annotated[str, StringConstraints(pattern=rf"^{PASSAGE_ID_PATTERN}$")]
 FieldValue = (
     Annotated[str, StringConstraints(max_length=300)]
@@ -167,6 +168,20 @@ class MessageGoal(ContractModel):
     missing_fields: list[Literal["procedure", "procedure_location"]] = Field(default_factory=list, max_length=2)
 
 
+class GoalSelection(ContractModel):
+    language: Language
+    options: list[ShortText] = Field(min_length=2, max_length=MAX_MESSAGE_GOALS)
+    active_goal: GoalNumber | None = None
+
+    @model_validator(mode="after")
+    def validate_selection(self):
+        if len(set(self.options)) != len(self.options) or (
+            self.active_goal is not None and self.active_goal > len(self.options)
+        ):
+            raise ValueError("Goal selection must address one of the distinct options")
+        return self
+
+
 class AnswerResult(ContractModel):
     explanation: str = Field(min_length=1, max_length=MAX_ANSWER_EXPLANATION_LENGTH)
     verification_status: Literal[
@@ -179,6 +194,7 @@ class AnswerResult(ContractModel):
     claims: list[EvidenceLinkedClaim] = Field(default_factory=list, max_length=MAX_ANSWER_CLAIMS)
     document_observations: list[DocumentObservation] = Field(default_factory=list, max_length=12)
     goals: list[MessageGoal] = Field(default_factory=list, max_length=MAX_MESSAGE_GOALS)
+    goal_selection: GoalSelection | None = None
 
     @field_validator("document_observations")
     @classmethod
@@ -189,6 +205,8 @@ class AnswerResult(ContractModel):
 
     @model_validator(mode="after")
     def validate_answer(self):
+        if self.goal_selection is not None and len(self.goal_selection.options) != len(self.goals):
+            raise ValueError("Each listed option must belong to one recorded goal")
         if self.goals and (
             len(self.goals) < 2 or self.verification_status != "insufficient_evidence"
             or self.official_channel is not None or self.citations
@@ -279,6 +297,7 @@ class RunSnapshot(ContractModel):
     pending_proposal: ApprovalProposal | None = None
     approval_recorded: bool = False
     handoff: RunHandoff | None = None
+    goal_selection: GoalSelection | None = None
 
     @model_validator(mode="after")
     def validate_result(self):
@@ -301,9 +320,15 @@ class ClarifyingQuestion(ContractModel):
     missing_fields: list[Identifier] = Field(min_length=1, max_length=12)
     answer_format: Literal["calendar_date"] | None = None
     reply_hint: ShortText | None = None
+    goal_selection_language: Language | None = None
 
     @model_validator(mode="after")
     def validate_options(self):
+        if self.goal_selection_language is not None and (
+            self.answer_shape != "single_choice" or len(self.options) > MAX_MESSAGE_GOALS
+            or self.missing_fields != ["active_goal"]
+        ):
+            raise ValueError("A goal-selection question requires bounded task options")
         if self.answer_shape == "single_choice":
             if len(set(self.options)) != len(self.options) or len(self.options) < 2:
                 raise ValueError("A choice needs at least two distinct options")
@@ -345,11 +370,14 @@ class QuestionAnswered(EventEnvelope):
     text: ClarificationText | None = None
     disposition: ClarificationDisposition = "answer"
     origin: Literal["user_entered"] = "user_entered"
+    selected_goal: GoalNumber | None = None
 
     @model_validator(mode="after")
     def validate_answer_text(self):
         if self.disposition == "answer" and self.text is None:
             raise ValueError("An answer includes reply text")
+        if self.selected_goal is not None and self.disposition != "answer":
+            raise ValueError("Only a choice reply can select a goal")
         return self
 
 

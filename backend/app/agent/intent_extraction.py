@@ -23,6 +23,11 @@ _REQUEST_CUE = re.compile(
 )
 _NEGATED_CUE = re.compile(r"^(?:(?:i )?don t|not|non|senza|invece di|anziche)\b")
 _ALTERNATIVE_CUE = re.compile(r"^(?:or|o|oppure|in alternativa)\b")
+_PREFERENCE_CUE = re.compile(
+    r"(?:(?:please |let s |i d like to )?(?:start|begin) with |"
+    r"(?:iniziamo|cominciamo|vorrei iniziare|vorrei cominciare) da(?:l|lla)? )(.+)"
+)
+_NUMBERED_GOAL = re.compile(r"(?:the |la |il )?(?:task|goal|option|pratica|obiettivo|opzione) ([1-6])")
 
 # Narrow bilingual intent cues. Bare procedure names and reviewed variants
 # come from the supplied catalogue.
@@ -71,6 +76,7 @@ class IntentExtraction:
     procedure_candidates: tuple[str, ...]
     missing_context: tuple[MissingContext, ...]
     goals: tuple[MessageGoal, ...] = ()
+    preferred_goal: int | None = None
 
 
 def _catalogue_mentions(
@@ -185,18 +191,63 @@ def _separate_goals(
     return [_goal(group) for group in merged], routing_mentions
 
 
+def _starting_preferences(text: str) -> tuple[str, list[str]]:
+    # A standalone instruction can refer back to a task without becoming a new task.
+    chunks = re.split(r"([;.!?\n]+)", text)
+    preferences = []
+    trailing = True
+    for index in reversed(range(0, len(chunks), 2)):
+        clause = normalize_name(chunks[index])
+        if not clause:
+            continue
+        if cue := _PREFERENCE_CUE.fullmatch(clause):
+            preferences.append(cue[1])
+            if trailing and not _GOAL_BREAK.search(chunks[index]):
+                chunks[index] = " " * len(chunks[index])
+        else:
+            trailing = False
+    return "".join(chunks), preferences
+
+
+def _preferred_goal(
+    preferences: list[str], goals: list[MessageGoal], catalogue_names: Sequence[CatalogueName],
+) -> int | None:
+    if len(preferences) != 1:
+        return None
+    target = preferences[0]
+    if number := _NUMBERED_GOAL.fullmatch(target):
+        index = int(number[1])
+        return index if index <= len(goals) else None
+    if len(target) > MAX_NAME_QUERY_LENGTH:
+        return None
+
+    match = match_catalogue_names(target, list(catalogue_names), entity_type="procedure")
+    if match.selected_id is None:
+        return None
+    options = [
+        index for index, goal in enumerate(goals, 1) if match.selected_id in goal.procedure_candidates
+    ]
+    return options[0] if len(options) == 1 else None
+
+
 def extract_intent(
     message: StoredMessage, *, catalogue_names: Sequence[CatalogueName],
 ) -> IntentExtraction:
     """Return hypotheses and context gaps, leaving scope and case data untouched."""
     text = unicodedata.normalize("NFC", message.text)
-    mentions = _catalogue_mentions(text, catalogue_names)
-    goals, routing_mentions = _separate_goals(text, mentions)
+    goal_text, preferences = _starting_preferences(text)
+    mentions = _catalogue_mentions(goal_text, catalogue_names)
+    goals, routing_mentions = _separate_goals(goal_text, mentions)
     if 2 <= len(goals) <= MAX_MESSAGE_GOALS:
         missing = tuple(dict.fromkeys(field for goal in goals for field in goal.missing_fields))
-        return IntentExtraction("plan_multiple_tasks", mentions, (), missing, tuple(goals))
+        preferred = _preferred_goal(preferences, goals, catalogue_names)
+        return IntentExtraction("plan_multiple_tasks", mentions, (), missing, tuple(goals), preferred)
     if len(goals) > MAX_MESSAGE_GOALS:
         return IntentExtraction("plan_multiple_tasks", mentions, (), ("procedure",))
+    if preferences:
+        # A starting cue without a separate list may be the only procedure request.
+        mentions = _catalogue_mentions(text, catalogue_names)
+        _, routing_mentions = _separate_goals(text, mentions)
     procedures = _procedures(routing_mentions)
     resolved_procedures = {
         mention.match.selected_id for mention in routing_mentions if mention.match.selected_type == "procedure"
@@ -246,5 +297,6 @@ def identify_intent_step(
     )
     return CheckpointState(
         next_node="find_evidence" if evidence_ready else "choose_next_step",
-        intent=result.intent, procedure_candidates=procedures, missing_fields=missing, goals=list(result.goals),
+        intent=result.intent, procedure_candidates=procedures, missing_fields=missing,
+        goals=list(result.goals), preferred_goal=result.preferred_goal,
     )

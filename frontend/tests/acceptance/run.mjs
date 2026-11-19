@@ -911,6 +911,37 @@ try{
     assert.equal((await readJson(owner,intakeUrl)).body.facts.move_in_date,'2026-11-07');
   });
 
+  await scenario('Agent task choice: reopen, select a goal and show the active task',async()=>{
+    const owner=await contextFor('alice',{width:390,height:800});
+    await owner.goto(origin+'/__acceptance/agent');
+    async function openTaskChoice(){
+      const {body:{items}}=await readJson(owner,'/api/agent/runs/active');
+      const urls=items.map(run=>`/api/agent/threads/${run.thread_id}/runs/${run.run_id}`);
+      const journals=await Promise.all(urls.map(url=>readJson(owner,url+'/events')));
+      const index=journals.findIndex(journal=>journal.body.events.at(-1)?.question?.goal_selection_language==='en');
+      assert.ok(index>=0);
+      await owner.getByRole('button',{name:'Open conversation',exact:true}).nth(index).click();
+      await owner.getByRole('group',{name:'Which task should we start with?'}).waitFor();
+      return urls[index];
+    }
+    const url=await openTaskChoice();
+    await owner.reload();
+    assert.equal(await openTaskChoice(),url);
+    const start=owner.getByRole('button',{name:'Start with this task',exact:true});
+    assert.equal(await start.isEnabled(),false);
+    await owner.getByRole('radio',{name:'1. Synthetic address change · Milan',exact:true}).waitFor();
+    await owner.getByRole('radio',{name:'2. Synthetic tax update · Como',exact:true}).check();
+    await start.click();
+    const choices=owner.getByRole('region',{name:'Task choices',exact:true});
+    await choices.getByText('2. Synthetic tax update · Como · Active task',{exact:true}).waitFor();
+    assert.equal(await choices.locator('[aria-current="true"]').count(),1);
+    await awaitAgentStatus(owner,url);
+    const {body:snapshot}=await readJson(owner,url);
+    assert.equal(snapshot.goal_selection.active_goal,2);
+    assert.equal(snapshot.result.goals.length,2);
+    assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  });
+
   await scenario('Agent reconnect: exhausted catalogue retries show a terminal recovery message',async()=>{
     const page=await contextFor('alice',{width:390,height:800});
     const threadId='00000000-0000-4000-8000-000000000001';

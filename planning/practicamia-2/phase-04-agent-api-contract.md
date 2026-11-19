@@ -324,7 +324,15 @@ Task 39.1 recognizes independently stated English and Italian requests using rev
 
 The encrypted worker checkpoint and owned terminal result carry up to six candidate groups, with up to ten procedure IDs and ten place IDs per group. The checkpoint carries IDs and missing fields without copying raw goal text. Oversized or insufficiently separated requests fall back to clarification. An independently stated request with no reviewed match remains a separate goal with an empty procedure list. A place mention remains a candidate and does not establish jurisdiction or authority.
 
-The current worker records the groups before applying any case facts or resolving authorities across them. The isolated snapshot and event replay preserve the same groups. Task 39.2 covers displaying choices and selecting the active task. Synthetic tests cover both languages, unknown procedures, distinct locations, repeated aliases, alternatives, negation, overflow, checkpoint encryption and authenticated replay.
+The current worker records the groups before applying any case facts or resolving authorities across them. The isolated snapshot and event replay preserve the same groups. Synthetic tests cover both languages, unknown procedures, distinct locations, repeated aliases, alternatives, negation, overflow, checkpoint encryption and authenticated replay.
+
+### Choosing the active task
+
+Task 39.2 checks for an explicit starting preference by a numbered goal or an exact, unique reviewed procedure name. It preserves requests listed with a starting cue. If the preference is missing, conflicting, or matches more than one goal, the worker asks a single-choice question in the user's language. Options keep message order. Reviewed procedure and place labels help distinguish them, with a numbered fallback where labels are unavailable.
+
+The existing owner-scoped reply endpoint binds a choice to the pending question and run revision. The encrypted journal records the selected number and its original option text. Exact retries preserve the choice. Invalid options, stale replies, uncertainty and skipping cannot select an active task. The snapshot and resumed result display the same selected task. Case selection and case-level verification belong to Task 39.3.
+
+Synthetic tests cover clear and ambiguous preferences, an unauthorized or invalid reply, exact retry, selection display and skip. The mobile Chromium scenario reopens the question, selects a task, and sees the active choice after the worker resumes.
 
 ## Acceptance and dependency checks
 

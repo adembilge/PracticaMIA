@@ -8,11 +8,13 @@ from uuid import uuid4
 
 from app.agent.answer_evidence import AnswerEvidenceScope, ClaimPassageSupport, ReviewedClaimSupport
 from app.agent.approval_resume import ApprovedCaseUpdates
+from app.agent.candidate_resolution import choose_candidate_step
 from app.agent.catalogue_evidence import catalogue_passage
 from app.agent.checkpoints import CheckpointState
 from app.agent.contract import (
     AnswerResult, ApprovalProposal, ClarifyingQuestion, EvidenceLinkedClaim, OfficialChannel, SendMessage,
 )
+from app.agent.intent_extraction import identify_intent_step
 from app.agent.reconnect_router import build_reconnect_router
 from app.agent.run_requests import accept_message
 from app.agent.threads import create_thread, link_case_to_thread
@@ -20,6 +22,7 @@ from app.agent.worker import RequestApproval, RequestClarification, run_worker_b
 from app.auth.tokens import Principal
 from app.cases.intake_model import CaseIntake
 from app.cases.model import CaseRecord
+from app.knowledge.entity_matching import CatalogueName
 from app.knowledge.model import KnowledgeSource
 from app.knowledge.review_service import approve_version
 from app.knowledge.search import search_approved_passages
@@ -29,6 +32,15 @@ from app.knowledge.snapshots import ingest_snapshot
 
 SOURCE_TEXT = "Questo esempio sintetico riguarda il cambio di residenza."
 SOURCE_SCOPE = {"jurisdiction": "IT-MI-MILANO", "procedure_id": "milan_residence_change", "language": "it"}
+GOAL_NAMES = tuple(
+    CatalogueName(id_, entity, label, label, "reviewed_alias", "synthetic-goal-review", approved_for_search=True)
+    for id_, entity, label in (
+        ("fixture-address", "procedure", "Synthetic address change"),
+        ("fixture-tax", "procedure", "Synthetic tax update"),
+        ("fixture-milan", "municipality", "Milan"),
+        ("fixture-como", "municipality", "Como"),
+    )
+)
 
 
 class AgentReconnectFixture:
@@ -37,6 +49,7 @@ class AgentReconnectFixture:
         self.key = token_bytes(32)
         self.citation, self.claim, self.channel, self.evidence_scope = self.seed_source()
         stop = self.seed_question("Which synthetic route should be stopped?")
+        self.seed_goal_choice()
         self.proposal_case_id = self.seed_proposal()
         api.include_router(build_reconnect_router(
             key=self.key, case_updates=ApprovedCaseUpdates(self.proposal_revision, self.write_proposal),
@@ -168,7 +181,36 @@ class AgentReconnectFixture:
             raise RuntimeError("Expected the synthetic run to pause for a question")
         return question.question_id
 
+    def seed_goal_choice(self):
+        principal = Principal("alice")
+        with self.sessions.begin() as db:
+            thread_id = create_thread(db, principal=principal)
+            accepted = accept_message(
+                db, thread_id=thread_id, principal=principal, key=self.key,
+                message=SendMessage(
+                    client_message_id=uuid4(), language="en",
+                    text="Synthetic address change in Milan; synthetic tax update in Como.",
+                ),
+            )
+        context = {"thread_id": thread_id, "run_id": accepted.run_id, "principal": principal, "key": self.key}
+        run_worker_step(self.sessions, **context, execute=lambda *_: CheckpointState(next_node="identify_intent"))
+        run_worker_step(self.sessions, **context, execute=lambda message, state: identify_intent_step(
+            message, state, catalogue_names=GOAL_NAMES,
+        ))
+        snapshot = run_worker_step(self.sessions, **context, execute=self.choose_goal)
+        if snapshot.status != "waiting_for_information":
+            raise RuntimeError("Expected a pending choice between the synthetic goals")
+
+    def choose_goal(self, message, state):
+        return choose_candidate_step(
+            message, state, case_locations={}, confirmed_dates={}, confirmed_circumstances={},
+            assignments=(), trusted_passage_ids=frozenset(),
+            reviewed_labels={name.catalogue_id: name.display_name for name in GOAL_NAMES},
+        )
+
     def finish(self, message, state):
+        if state.goals:
+            return self.choose_goal(message, state)
         if message.approval_applied is not None:
             if state.next_node != "verify_and_respond" or message.case_id != self.proposal_case_id:
                 raise RuntimeError("The worker did not resume the saved proposal run")

@@ -10,7 +10,8 @@ from app.agent.checkpoints import CheckpointState
 from app.agent.clarification_context import ClarificationHint, prepare_clarification_context
 from app.agent.clarification_priority import prioritize_routing_fields
 from app.agent.contract import (
-    MAX_PROCEDURE_CANDIDATES, AnswerResult, Citation, ClarifyingQuestion, EvidenceLinkedClaim, NextAction, OfficialChannel,
+    MAX_PROCEDURE_CANDIDATES, AnswerResult, Citation, ClarifyingQuestion, EvidenceLinkedClaim, GoalSelection,
+    NextAction, OfficialChannel,
 )
 from app.agent.routing_corrections import ROUTING_FIELD_LABELS as _FIELD_LABELS, apply_routing_reply, housing_options
 from app.agent.run_requests import StoredMessage
@@ -119,15 +120,7 @@ def choose_candidate_step(
     if state.next_node != "choose_next_step":
         raise ValueError("Candidate resolution requires the choose_next_step node")
     if state.goals:
-        return AnswerResult(
-            explanation=(
-                "I found separate requests that each need their own procedure and case details checked."
-                if message.language == "en" else
-                "Ho individuato richieste distinte. La procedura e i dati vanno verificati per ciascuna."
-            ),
-            verification_status="insufficient_evidence", missing_information=state.missing_fields,
-            goals=state.goals,
-        )
+        return _choose_message_goal(message, state, reviewed_labels)
 
     revised = apply_routing_reply(message, state, catalogue_names)
     applied_correction = revised is not state
@@ -292,3 +285,51 @@ def _candidate_labels(candidate_ids: Sequence[str], reviewed_labels: Mapping[str
     labels = [reviewed_labels.get(candidate, "").strip() for candidate in candidate_ids]
     unique_labels = list(dict.fromkeys(label for label in labels if 0 < len(label) <= 120))
     return ", ".join(unique_labels[:MAX_PROCEDURE_CANDIDATES])
+
+
+def _choose_message_goal(
+    message: StoredMessage, state: CheckpointState, reviewed_labels: Mapping[str, str],
+) -> RequestClarification | AnswerResult:
+    language = message.language
+    en = language == "en"
+    question, reply = message.clarification_question, message.clarification_reply
+    responded = (
+        question is not None and question.goal_selection_language is not None
+        and reply is not None and reply.question_id == question.question_id
+    )
+    active_goal = state.preferred_goal
+    if responded:
+        options = question.options
+        active_goal = reply.selected_goal
+    else:
+        options = []
+        for number, goal in enumerate(state.goals, 1):
+            procedure = _candidate_labels(goal.procedure_candidates, reviewed_labels)[:120].rstrip()
+            place = _candidate_labels(goal.location_candidates, reviewed_labels)[:120].rstrip()
+            title = procedure or ("Procedure to identify" if en else "Pratica da identificare")
+            options.append(f"{number}. {title}" + (f" · {place}" if place else ""))
+
+    if active_goal is None and not responded:
+        return RequestClarification(
+            ClarifyingQuestion(
+                question_id=uuid4(), text="Which task should we start with?" if en else "Da quale pratica iniziamo?",
+                answer_shape="single_choice", options=options, missing_fields=["active_goal"],
+                goal_selection_language=language,
+            ),
+            resume_state=state,
+        )
+
+    if active_goal is None:
+        explanation = "You can choose a task in a new message." if en else (
+            "Puoi scegliere una pratica in un nuovo messaggio."
+        )
+        missing = state.missing_fields
+    else:
+        explanation = "The selected task is ready for its own case and procedure checks." if en else (
+            "La pratica selezionata può passare alla verifica dei suoi dati e della procedura."
+        )
+        missing = state.goals[active_goal - 1].missing_fields
+    return AnswerResult(
+        explanation=explanation, verification_status="insufficient_evidence", missing_information=missing,
+        goals=state.goals, goal_selection=GoalSelection(language=language, options=options, active_goal=active_goal),
+    )

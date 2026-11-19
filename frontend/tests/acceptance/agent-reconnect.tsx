@@ -4,6 +4,7 @@ import {
 } from '../../src/components/AgentProposalPreview';
 import {AgentSourceCards, type AgentCitation} from '../../src/components/AgentSourceCards';
 import {AgentOfficialHandoff, type OfficialHandoff} from '../../src/components/AgentOfficialHandoff';
+import {AgentGoalSelection, type GoalSelection} from '../../src/components/AgentGoalSelection';
 
 type ActiveRun = { thread_id: string; run_id: string };
 type Snapshot = {
@@ -14,6 +15,7 @@ type Snapshot = {
   pending_proposal?: PendingProposal | null;
   approval_recorded?: boolean;
   handoff?: OfficialHandoff | null;
+  goal_selection?: GoalSelection | null;
   result: {
     explanation: string;
     next_action?: { operation: string | null } | null;
@@ -26,6 +28,7 @@ type Question = {
   answer_shape: 'single_choice' | 'free_text';
   options: string[];
   reply_hint?: string | null;
+  goal_selection_language?: 'en' | 'it' | null;
 };
 type RunView = {
   url: string;
@@ -234,6 +237,10 @@ export function AgentReconnectFixture() {
     }
   }
 
+  const goalLanguage = view?.question?.goal_selection_language;
+  const replyAction = goalLanguage === 'it' ? 'Inizia con questa pratica'
+    : goalLanguage === 'en' ? 'Start with this task' : 'Send reply';
+
   return <main className="case-page" id="main-content">
     <div className="container account-shell">
       <h1>Active conversations</h1>
@@ -248,9 +255,10 @@ export function AgentReconnectFixture() {
         </li>)}
       </ul>}
       {view && <section aria-label="Conversation" aria-busy={busy}>
+        {view.snapshot.goal_selection && <AgentGoalSelection selection={view.snapshot.goal_selection} />}
         {staleReply ? (
           <button type="button" disabled={busy} onClick={() => void open(view.url)}>Check status</button>
-        ) : view.question ? <form onSubmit={answer}>
+        ) : view.question ? <form onSubmit={answer} lang={goalLanguage ?? undefined}>
           <fieldset disabled={busy} aria-describedby={view.question.reply_hint ? 'reply-hint' : undefined}>
             <legend>{view.question.text}</legend>
             {view.question.reply_hint && <p id="reply-hint">{view.question.reply_hint}</p>}
@@ -264,10 +272,16 @@ export function AgentReconnectFixture() {
                 onChange={event => setReply(event.target.value)} />
             </label>}
           </fieldset>
-          <button type="submit" disabled={!reply.trim() || busy}>Send reply</button>
-          <button type="button" disabled={busy} onClick={() => void sendReply('unknown')}>I don’t know</button>
-          <button type="button" disabled={busy} onClick={() => void sendReply('skip')}>Skip for now</button>
-          <button type="button" disabled={busy} onClick={() => void sendReply('change_topic')}>Change topic</button>
+          <button type="submit" disabled={!reply.trim() || busy}>{replyAction}</button>
+          <button type="button" disabled={busy} onClick={() => void sendReply('unknown')}>
+            {goalLanguage === 'it' ? 'Non lo so' : 'I don’t know'}
+          </button>
+          <button type="button" disabled={busy} onClick={() => void sendReply('skip')}>
+            {goalLanguage === 'it' ? 'Salta per ora' : 'Skip for now'}
+          </button>
+          <button type="button" disabled={busy} onClick={() => void sendReply('change_topic')}>
+            {goalLanguage === 'it' ? 'Cambia argomento' : 'Change topic'}
+          </button>
         </form> : view.snapshot.status === 'waiting_for_approval' ? (
           view.snapshot.pending_proposal ? (
             <AgentProposalPreview key={view.snapshot.pending_proposal.proposal_id}
