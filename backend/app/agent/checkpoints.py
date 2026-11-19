@@ -1,7 +1,7 @@
 """Encrypted worker checkpoints for the internal Phase 4 execution path."""
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import json
 from os import urandom
 from typing import Literal
@@ -39,6 +39,17 @@ class AgentRunCheckpoint(Base):
     ciphertext: Mapped[bytes] = mapped_column(LargeBinary)
 
 
+class RoutingCorrections(ContractModel):
+    """User-confirmed routing inputs for this run, stored with its encrypted state."""
+
+    procedure: Identifier | None = None
+    destination: Identifier | None = None
+    activity_location: Identifier | None = None
+    move_in_date: date | None = None
+    filing_date: date | None = None
+    housing_basis: Literal["registered_private_rental", "owner", "guest", "other"] | None = None
+
+
 class CheckpointState(ContractModel):
     schema_version: Literal[1] = 1
     next_node: Literal[
@@ -47,6 +58,7 @@ class CheckpointState(ContractModel):
     intent: AgentIntent | None = None
     procedure_candidates: list[Identifier] = Field(default_factory=list, max_length=MAX_PROCEDURE_CANDIDATES)
     evidence_ids: list[PassageId] = Field(default_factory=list, max_length=10)
+    routing_corrections: RoutingCorrections | None = None
     missing_fields: list[Identifier] = Field(default_factory=list, max_length=12)
     pending_question_id: UUID | None = None
     pending_proposal_id: UUID | None = None

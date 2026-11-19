@@ -10,7 +10,8 @@ from pydantic import ValidationError
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
-from app.agent.contract import Citation
+from app.agent.checkpoints import CheckpointState
+from app.agent.contract import AnswerResult, Citation, Language
 from app.agent.threads import AgentThread, AgentThreadCase
 from app.auth.tokens import Principal
 from app.cases.intake_model import CaseIntake
@@ -171,3 +172,36 @@ def resolve_catalogue_evidence(
     if row is None:
         return CatalogueEvidence(status="insufficient_evidence")
     return CatalogueEvidence(status="evidence_found", passages=(_catalogue_passage(row),))
+
+
+def refresh_corrected_evidence(
+    db: Session, *, state: CheckpointState, thread_id: UUID, case_id: UUID | None,
+    principal: Principal, query: str, language: Language,
+) -> CheckpointState | AnswerResult:
+    """Refresh evidence after routing has been reevaluated with a corrected input."""
+    corrections = state.routing_corrections
+    if state.next_node != "find_evidence" or corrections is None:
+        raise ValueError("Evidence refresh requires a corrected routing decision")
+    if (
+        case_id is not None and state.procedure_candidates == [PROCEDURE]
+        and corrections.destination in (None, JURISDICTION)
+        and corrections.activity_location is None
+        and corrections.housing_basis in (None, "registered_private_rental")
+    ):
+        evidence = find_catalogue_evidence(
+            db, thread_id=thread_id, case_id=case_id, principal=principal,
+            query="cambio di residenza" if corrections.procedure else query,
+        )
+        if evidence.passages:
+            return state.model_copy(update={
+                "next_node": "verify_and_respond",
+                "evidence_ids": [passage.citation.passage_id for passage in evidence.passages],
+            })
+    return AnswerResult(
+        explanation=(
+            "I could not verify current evidence for the corrected details." if language == "en"
+            else "Non ho potuto verificare le fonti aggiornate per i dati corretti."
+        ),
+        verification_status="insufficient_evidence",
+        missing_information=state.missing_fields,
+    )

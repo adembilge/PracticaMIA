@@ -47,7 +47,7 @@ Task 34.5 adds an [internal worker step](../../backend/app/agent/candidate_resol
 
 A remaining conflict produces `conflicting_evidence`. An empty or incomplete result produces `insufficient_evidence`. Either can offer a public assistance page for one identified procedure if exactly one separately reviewed assistance assignment applies to the confirmed case. The server supplies current registry citations and approval state. The assignment and citation must agree on the procedure, location and exact passage. The page describes where to ask for help. Competence and filing remain unresolved.
 
-The worker persists the question with its encrypted checkpoint. If the resumed step still lacks confirmed facts, it defers instead of opening the same question again. Task 35 owns interpreting replies, re-evaluating candidates and applying corrections. The [worker and resolver fixtures](../../backend/tests/test_agent_candidate_resolution.py) use fictional records and cover localized questions, authority collisions, invalid contact scopes and encrypted resumption. Integration with the full reviewed catalogue and a hosted user-facing route remains open.
+The worker persists the question with its encrypted checkpoint. If it cannot interpret a usable value, it leaves the unresolved fields open. A usable correction can lead to a different question or refresh the evidence. The [worker and resolver fixtures](../../backend/tests/test_agent_candidate_resolution.py) use fictional records and cover localized questions, authority collisions, invalid contact scopes and encrypted resumption. Integration with the full reviewed catalogue and a hosted user-facing route remains open.
 
 ## Bilingual matching evaluation
 
@@ -75,7 +75,7 @@ The [synthetic resolution tests](../../backend/tests/test_agent_candidate_resolu
 
 Task 35.3 records the question ID, affected fields, answer shape and optional answer format and guidance in the encrypted question event. Older events can be read without the optional fields. A single housing question can offer choices. A single question asking for a new move-in or filing date accepts a valid calendar date in ISO or day-first numeric form within the case date range of 1900 to 2100. Grouped questions and contextual confirmations continue to accept bounded free text.
 
-The server checks the submitted text against the owned, current question before writing an answer event. A reply that fails the question's validation returns `422 invalid_reply` with the recorded guidance or a default for the expected answer shape. The existing question and run revision stay available for a corrected reply. The error does not include the rejected input. A valid reply is recorded as text, with surrounding whitespace removed. Confirmation of case facts and interpretation of corrections depend on later steps.
+The server checks the submitted text against the owned, current question before writing an answer event. A reply that fails the question's validation returns `422 invalid_reply` with the recorded guidance or a default for the expected answer shape. The existing question and run revision stay available for a corrected reply. The error does not include the rejected input. A valid reply is recorded as text, with surrounding whitespace removed.
 
 The [isolated HTTP tests](../../backend/tests/test_agent_reconnect_http.py) cover invalid dates, invalid options, private guidance, correction and retry. The isolated Chromium harness renders both input shapes and checks that a user can correct a rejected date and resume the run.
 
@@ -86,6 +86,14 @@ Task 35.4 accepts `unknown`, `skip` and `change_topic` dispositions without a ca
 After an unknown or skipped reply, the resolver continues with confirmed facts, retains the unanswered fields and can still give an independently applicable official assistance channel. It leaves the skipped information open in the result. The worker ends a changed-topic run with the affected fields and an instruction to send a new message. The new message is submitted as a separate turn on the same thread. The worker limits its conversation history to recent owned messages since the recorded topic change and still checks the exact case scope. Current case facts change only through their own confirmed workflow.
 
 Synthetic tests cover the authenticated reply boundary, scoped history, continued assistance and a topic change from the isolated Chromium interface.
+
+## Reevaluating a correction
+
+Task 35.5 reads the reply with its recorded question. Only the fields requested by that question can supply a corrected routing value. Procedure and municipality names require a unique reviewed catalogue match. Date and housing replies use bounded formats; grouped replies put one labeled detail on each line. Unrecognized and contradictory values leave the affected field open.
+
+The worker stores validated values for the current run in its encrypted checkpoint. It clears previous evidence, checks the revised candidates against reviewed assignments and can ask for a remaining detail. A replacement procedure starts with its own scope. Once the revised routing is supported, the worker searches for fresh approved evidence through the owned-case adapter. The adapter covers the signed Milan route. A scope mismatch or the absence of current evidence returns an insufficient-evidence result. Updating saved intake still requires the existing confirmation workflow.
+
+The [correction tests](../../backend/tests/test_agent_routing_corrections.py) use synthetic assignments and source snapshots to check a worker restart, a fresh source version, an unavailable version, and the handling of old scope.
 
 ## Identifiers and state
 

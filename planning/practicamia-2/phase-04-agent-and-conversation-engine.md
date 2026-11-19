@@ -67,7 +67,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 - **35.2** The [question priority step](phase-04-agent-api-contract.md#prioritizing-clarifications) asks for the field that can narrow or settle a reviewed assignment. It explains why details are needed together when one authority's remaining assignments all require the same missing facts.
 - **35.3** The [reply validation step](phase-04-agent-api-contract.md#validating-clarification-replies) checks free text and offered choices against the saved question. It explains the expected answer and keeps the question available for correction.
 - **35.4** [Clarification deferrals](phase-04-agent-api-contract.md#deferring-a-question-or-changing-topics) retain the open fields, allow supported work to continue, and let a new topic start after closing the previous run without resolving its question.
-- **35.5** Reevaluate affected candidates, evidence, and next action when a correction arrives.
+- **35.5** [Recheck routing and evidence](phase-04-agent-api-contract.md#reevaluating-a-correction) when a reply supplies a corrected value. Continue to the next needed field or refresh current approved evidence for the revised scope.
 - **35.6** Guard against silent changes from old questions or mismatched question IDs across browser tabs.
 
 **Acceptance.** Users avoid repeating confirmed facts. Corrections update relevant sources and actions.
