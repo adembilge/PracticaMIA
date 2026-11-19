@@ -116,14 +116,18 @@ jobs:
           npm install --no-save --package-lock=false --no-audit --no-fund \
             esbuild@0.25.12 playwright@1.56.0
 
-      - name: Install isolated document acceptance tools
+      - name: Install Chromium and document system dependencies
+        timeout-minutes: 5
+        working-directory: frontend
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends clamav tesseract-ocr tesseract-ocr-ita fonts-dejavu-core poppler-utils
+          npx --no-install playwright install-deps chromium
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 \
+            install -y --no-install-recommends clamav tesseract-ocr tesseract-ocr-ita fonts-dejavu-core poppler-utils
 
       - name: Install headless Chromium on GitHub runner
+        timeout-minutes: 4
         working-directory: frontend
-        run: npx --no-install playwright install chromium --with-deps
+        run: npx --no-install playwright install chromium --only-shell
 
       - name: Compile the real React components into a CI-only browser mount
         working-directory: frontend
@@ -138,6 +142,7 @@ jobs:
           cp tests/acceptance/index.html .acceptance-dist/index.html
 
       - name: Run local two-account browser-to-FastAPI acceptance suite
+        timeout-minutes: 5
         shell: bash
         run: |
           set -euo pipefail
@@ -148,7 +153,7 @@ jobs:
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           ready=0
           for i in $(seq 1 80); do
-            if curl --fail --silent http://127.0.0.1:8765/__acceptance/health > /dev/null; then
+            if curl --fail --silent --max-time 3 http://127.0.0.1:8765/__acceptance/health > /dev/null; then
               ready=1
               break
             fi
