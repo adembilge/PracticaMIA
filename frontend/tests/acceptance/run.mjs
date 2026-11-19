@@ -75,6 +75,16 @@ async function awaitSavedCaseStatus(page,id,expected){
     ', last observed: '+String(last));
 }
 
+async function awaitAgentCompletion(page,url){
+  for(let attempt=0;attempt<100;attempt++){
+    const response=await readJson(page,url);
+    assert.equal(response.status,200);
+    if(response.body.status==='completed')return;
+    await page.waitForTimeout(100);
+  }
+  throw new Error('Timed out waiting for the agent run to complete');
+}
+
 async function scopeAnswers(page,values){
   for(let i=0;i<values.length;i++){
     const choice=values[i]==='yes'?'Yes':values[i]==='no'?'No':'Not sure';
@@ -605,10 +615,7 @@ try{
     assert.equal((await readJson(other,url)).status,404);
     assert.equal((await readJson(other,url+'/events')).status,404);
 
-    await owner.waitForFunction(async path=>{
-      const response=await fetch(path,{cache:'no-store'});
-      return response.ok && (await response.json()).status==='completed';
-    },url,{polling:100,timeout:10000});
+    await awaitAgentCompletion(owner,url);
     const completed=owner.getByRole('heading',{name:'Conversation complete'});
     if(!await completed.isVisible()) await owner.getByRole('button',{name:'Check status'}).click();
     await completed.waitFor();
@@ -647,13 +654,11 @@ try{
     const [valid]=await Promise.all([nextReply(),send.click()]);
     assert.equal(valid.status(),200);
     await send.waitFor({state:'hidden'});
-    await owner.waitForFunction(async path=>{
-      const response=await fetch(path,{cache:'no-store'});
-      return response.ok && (await response.json()).status==='completed';
-    },pendingUrl,{polling:100,timeout:10000});
+    await awaitAgentCompletion(owner,pendingUrl);
     const completed=owner.getByRole('heading',{name:'Conversation complete'});
     if(!await completed.isVisible()) await owner.getByRole('button',{name:'Check status'}).click();
     await completed.waitFor();
+    await owner.getByText('Received 18/11/2026.',{exact:true}).waitFor();
     const replay=await readJson(owner,pendingUrl+'/events');
     assert.equal(replay.status,200);
     assert.deepEqual(replay.body.events.map(event=>event.type),[
@@ -678,10 +683,7 @@ try{
     assert.equal(accepted.status(),200);
     await change.waitFor({state:'hidden'});
     const url=new URL(accepted.url()).pathname.split('/questions/')[0];
-    await owner.waitForFunction(async path=>{
-      const response=await fetch(path,{cache:'no-store'});
-      return response.ok && (await response.json()).status==='completed';
-    },url,{polling:100,timeout:10000});
+    await awaitAgentCompletion(owner,url);
     const completed=owner.getByRole('heading',{name:'Topic changed'});
     if(!await completed.isVisible()) await owner.getByRole('button',{name:'Check status'}).click();
     await completed.waitFor();
