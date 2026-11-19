@@ -20,8 +20,9 @@ from app.agent.run_events import _read_event_at, read_run_snapshot
 from app.agent.run_requests import (
     WORKER_RUN_STATUSES, AgentRunRequest, StoredMessage, _owned_run, read_recent_user_messages, read_run_message,
 )
-from app.agent.tool_access import ToolAccessDenied, authorize_tool_call
+from app.agent.tool_access import ToolAccessDenied
 from app.agent.tool_contract import ReadCaseContext
+from app.agent.tool_execution import check_tool_execution
 from app.agent.worker_leases import WorkerLease, WorkerLeaseConflict, claim_next_run, require_worker_lease
 from app.auth.tokens import Principal
 from app.config import Settings
@@ -127,7 +128,7 @@ def run_worker_step(
         case_context = None
         if message.case_id is not None and not topic_changed:
             try:
-                authorize_tool_call(
+                check_tool_execution(
                     db, principal=principal, thread_id=thread_id, run_id=run_id,
                     call=ReadCaseContext(tool="read_case_context", case_id=message.case_id),
                 )

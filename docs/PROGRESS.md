@@ -121,4 +121,6 @@ The [Task 36.1 tool contracts](../planning/practicamia-2/phase-04-agent-api-cont
 
 The [Task 36.2 tool authorization](../planning/practicamia-2/phase-04-agent-api-contract.md#authorizing-tool-calls) binds case tools to the acting principal and the exact case of the stored run. Synthetic tests cover signed-token identity, case substitution even within the same thread, revoked ownership and calls rejected before the evidence reader. The worker uses the ownership check for case context and evidence refresh.
 
+The [Task 36.3 execution policy](../planning/practicamia-2/phase-04-agent-api-contract.md#checking-tool-execution-and-approval) checks run state for reads and proposal drafts. A future write requires the pending encrypted proposal, a matching server-held accept decision and the current locked case revision. Synthetic tests cover expiry, missing decisions, mismatched approval scopes and updated case revisions. The approval reader and case writer still need integration.
+
 For implementation details see [the documentation index](README.md).

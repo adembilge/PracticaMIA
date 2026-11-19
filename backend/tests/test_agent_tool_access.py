@@ -5,6 +5,7 @@ from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.agent.catalogue_evidence import read_tool_evidence
+from app.agent.checkpoints import CheckpointState
 from app.agent.contract import SendMessage
 from app.agent.run_requests import accept_message
 from app.agent.threads import create_thread, link_case_to_thread
@@ -13,6 +14,7 @@ from app.agent.tool_contract import (
     ApplyApprovedUpdate, CatalogueEvidence, CatalogueScope, FindEvidence, FindProcedure,
     MarkChecklistItem, OpenSourceDetails, ProposeCaseUpdate, ReadCaseContext,
 )
+from app.agent.worker import run_worker_step
 from app.auth.tokens import Principal, get_principal
 from app.cases.model import CaseRecord
 from app.database import get_session
@@ -102,6 +104,10 @@ def test_all_tool_calls_require_the_acting_owner_and_exact_run_scope(client, aut
 
 def test_evidence_tools_take_identity_from_the_verified_request(client, auth_headers, tool_run, monkeypatch):
     context, _, case_id, other_owned_case, foreign_case = tool_run
+    run_worker_step(
+        client.app.state.session_factory, **context, principal=ALICE, key=KEY,
+        execute=lambda *_: CheckpointState(next_node="find_evidence"),
+    )
     reads = []
 
     def observe_read(db, *, thread_id, case_id, principal, **_):
