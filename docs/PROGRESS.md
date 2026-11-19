@@ -113,4 +113,6 @@ The [Task 35.3 reply validation](../planning/practicamia-2/phase-04-agent-api-co
 
 The [Task 35.4 deferral flow](../planning/practicamia-2/phase-04-agent-api-contract.md#deferring-a-question-or-changing-topics) records unknown, skipped and changed-topic replies at the current question boundary. Synthetic tests cover retention of open fields, applicable assistance and a fresh history window after a topic switch.
 
+The [Task 35.5 correction flow](../planning/practicamia-2/phase-04-agent-api-contract.md#reevaluating-a-correction) uses the recorded question to apply bounded run-local values, reevaluate candidates, and refresh approved evidence for a supported revised scope. Synthetic tests cover updated dates and names, partial replies, a worker restart, unavailable replacement evidence and preservation of saved intake.
+
 For implementation details see [the documentation index](README.md).

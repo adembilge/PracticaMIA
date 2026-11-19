@@ -8,6 +8,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.agent.case_context import read_worker_case_context
+from app.agent.catalogue_evidence import refresh_corrected_evidence
 from app.agent.checkpoints import (
     CheckpointConflict, CheckpointState, finish_checkpoint, load_checkpoint, save_checkpoint,
 )
@@ -114,10 +115,10 @@ def run_worker_step(
         boundary_event = _read_event_at(db, run, checkpoint.event_seq, principal, key)
         reply = boundary_event if isinstance(boundary_event, QuestionAnswered) else None
         question = None
-        if reply is not None and reply.disposition != "answer":
+        if reply is not None:
             requested = _read_event_at(db, run, reply.event_seq - 1, principal, key)
             if not isinstance(requested, QuestionRequested) or requested.question.question_id != reply.question_id:
-                raise CheckpointConflict("A clarification disposition requires its recorded question")
+                raise CheckpointConflict("A clarification reply requires its recorded question")
             question = requested.question
         topic_changed = reply is not None and reply.disposition == "change_topic"
 
@@ -153,6 +154,12 @@ def run_worker_step(
             missing_information=question.missing_fields,
             next_action=NextAction(label=label, operation="start_new_topic"),
         )
+    elif checkpoint.state.next_node == "find_evidence" and checkpoint.state.routing_corrections:
+        with sessions() as db:
+            result = refresh_corrected_evidence(
+                db, state=checkpoint.state, thread_id=thread_id, case_id=message.case_id,
+                principal=principal, query=message.text, language=message.language,
+            )
     else:
         result = execute(message, checkpoint.state.model_copy(deep=True))
     with sessions.begin() as db:

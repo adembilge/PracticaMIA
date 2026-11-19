@@ -10,8 +10,10 @@ from app.agent.checkpoints import MAX_PROCEDURE_CANDIDATES, CheckpointState
 from app.agent.clarification_context import ClarificationHint, prepare_clarification_context
 from app.agent.clarification_priority import prioritize_routing_fields
 from app.agent.contract import AnswerResult, Citation, ClarifyingQuestion, NextAction, OfficialChannel
+from app.agent.routing_corrections import ROUTING_FIELD_LABELS as _FIELD_LABELS, apply_routing_reply, housing_options
 from app.agent.run_requests import StoredMessage
 from app.agent.worker import RequestClarification
+from app.knowledge.entity_matching import CatalogueName
 from app.knowledge.service_areas import CaseLocation, ServiceArea, resolve_service_areas
 
 
@@ -48,13 +50,6 @@ _QUESTIONS = {
 }
 _IDENTITY_FIELDS = ("intent", "case_reference", "procedure")
 _ROUTING_FIELDS = tuple(field for field in _QUESTIONS if isinstance(field, tuple))
-_FIELD_LABELS = {
-    "destination": ("the destination municipality", "il comune di destinazione"),
-    "activity_location": ("the municipality where the activity takes place", "il comune in cui si svolge l’attività"),
-    "filing_date": ("the filing date", "la data di presentazione"),
-    "move_in_date": ("the move-in date", "la data del trasferimento"),
-    "housing_basis": ("the housing arrangement", "il titolo di occupazione"),
-}
 _CONTEXT_PROMPTS = {
     "message": (
         "Can you confirm {field} you gave in your message for this case?",
@@ -80,16 +75,6 @@ _DATE_REPLY_HINTS = (
 _HOUSING_REPLY_HINTS = (
     "Select the choice that describes your housing arrangement.",
     "Seleziona l’opzione che descrive il tuo titolo di occupazione.",
-)
-_HOUSING_OPTIONS = (
-    [
-        "I own the home", "I rent under a registered private agreement", "I rent under a different arrangement",
-        "I live there as a guest", "Another arrangement",
-    ],
-    [
-        "La casa è di mia proprietà", "Ho un contratto di locazione privata registrato",
-        "Ho un altro tipo di affitto", "Ci abito come ospite", "Un altro titolo",
-    ],
 )
 _DEFERRAL_NOTES = {
     "unknown": (
@@ -126,18 +111,38 @@ def choose_candidate_step(
     confirmed_circumstances: Mapping[str, str], assignments: Sequence[ServiceArea],
     trusted_passage_ids: frozenset[str], reviewed_labels: Mapping[str, str],
     assistance_contacts: Sequence[AssistanceContact] = (),
+    catalogue_names: Sequence[CatalogueName] = (),
 ) -> CheckpointState | RequestClarification | AnswerResult:
     """Use server-reviewed assignments and confirmed facts at a worker boundary."""
     if state.next_node != "choose_next_step":
         raise ValueError("Candidate resolution requires the choose_next_step node")
 
+    revised = apply_routing_reply(message, state, catalogue_names)
+    applied_correction = revised is not state
+    state = revised
+    corrections = state.routing_corrections
+    if corrections and corrections.procedure:
+        # The previous procedure's role and date inputs cannot be assumed for the replacement.
+        case_locations, confirmed_dates, confirmed_circumstances = {}, {}, {}
     context = prepare_clarification_context(
         message, procedure_ids=state.procedure_candidates, case_locations=case_locations,
         confirmed_dates=confirmed_dates, confirmed_circumstances=confirmed_circumstances,
     )
-    case_locations = context.case_locations
-    confirmed_dates = context.confirmed_dates
-    confirmed_circumstances = context.confirmed_circumstances
+    case_locations = dict(context.case_locations)
+    confirmed_dates = dict(context.confirmed_dates)
+    confirmed_circumstances = dict(context.confirmed_circumstances)
+    corrected_fields = corrections.model_dump(exclude_none=True) if corrections else {}
+    for field in ("destination", "activity_location"):
+        if municipality := corrected_fields.get(field):
+            existing = case_locations.get(field)
+            if existing is None or not existing.confirmed or existing.municipality_id != municipality:
+                case_locations[field] = CaseLocation(municipality_id=municipality, confirmed=True)
+    for field in ("move_in_date", "filing_date"):
+        if value := corrected_fields.get(field):
+            confirmed_dates[field] = value
+    if corrections and corrections.housing_basis:
+        confirmed_circumstances["housing_basis"] = corrections.housing_basis
+    hints = {field: hint for field, hint in context.hints.items() if field not in corrected_fields}
     results = resolve_candidate_applicability(
         state, case_locations=case_locations, confirmed_dates=confirmed_dates,
         confirmed_circumstances=confirmed_circumstances, assignments=tuple(assignments),
@@ -159,15 +164,16 @@ def choose_candidate_step(
     question = _QUESTIONS.get(question_field)
     missing_information = [question_field] if question_field else []
     if question_field is None and not conflict:
-        fields = prioritize_routing_fields(pending, _ROUTING_FIELDS, context.hints)
+        fields = prioritize_routing_fields(pending, _ROUTING_FIELDS, hints)
         if fields:
             question = _QUESTIONS[fields[0]]
             question_field = fields[0][1]
             missing_information = [name for _, name in fields]
 
     candidate_ids = plausible if procedure_conflict else list(results)
-    if question and question_field and message.clarification_reply is None:
-        context_hint = context.hints.get(question_field)
+    can_ask = message.clarification_reply is None or (applied_correction and question_field not in corrected_fields)
+    if question and question_field and can_ask:
+        context_hint = hints.get(question_field)
         prompt = _clarification_prompt(question_field, question[language], language, context_hint)
         if len(missing_information) > 1:
             prompt = _grouped_prompt(missing_information, language)
@@ -177,9 +183,14 @@ def choose_candidate_step(
                 prompt = details
         options = []
         answer_format = reply_hint = None
-        if len(missing_information) == 1 and context_hint is None:
+        if len(missing_information) > 1:
+            reply_hint = (
+                "Put each detail on its own line in the form label: value.",
+                "Scrivi ogni dato su una riga separata nel formato etichetta: valore.",
+            )[language]
+        elif context_hint is None:
             if question_field == "housing_basis":
-                options = _HOUSING_OPTIONS[language]
+                options = housing_options(message.language)
                 reply_hint = _HOUSING_REPLY_HINTS[language]
             elif question_field in ("filing_date", "move_in_date"):
                 answer_format = "calendar_date"
@@ -195,7 +206,9 @@ def choose_candidate_step(
 
     if not question_field and results and all(result.status == "supported" for result in results.values()):
         missing = [field for field in state.missing_fields if field != "procedure_location"]
-        return state.model_copy(update={"next_node": "verify_and_respond", "missing_fields": missing})
+        return state.model_copy(update={
+            "next_node": "find_evidence" if corrections else "verify_and_respond", "missing_fields": missing,
+        })
 
     if conflict:
         explanation = (
