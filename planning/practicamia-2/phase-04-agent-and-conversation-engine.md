@@ -127,7 +127,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 
 ## 40. Evaluate the agent and close Phase 4
 
-- **40.1** Combine Phase 2 cases with correct Phase 3 authorities and passages. Cover wrong authorities, missing locations, stale sources, corrections, multiple goals, and resumption.
+- **40.1** [Assemble the agent development set](#agent-development-evaluation-set) from Phase 2 scenarios and Phase 3 authority and evidence records. Cover wrong authorities, missing locations, stale sources, corrections, multiple goals, and resumption.
 - **40.2** Measure intent, procedure retrieval, evidence, question quality, and authorised tool calls separately.
 - **40.3** Use unassisted arrival at the correct next action as the primary outcome. Track correct authorities, supported citations, unnecessary questions, and uncorrected misrouting.
 - **40.4** Simulate catalogue outages, model timeouts, duplicate messages, and closing the application during approval.
@@ -136,6 +136,16 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 - **40.7** Hand off the message API, events, citations, questions, approvals, and reconnection examples to Phase 5.
 
 **Acceptance.** In a pilot set spanning at least three authorities, the agent finds a competent authority, applicable evidence, and a concrete next step. It clarifies missing or conflicting facts. Users can close and reopen the same task.
+
+### Agent development evaluation set
+
+The [versioned development set](../../evals/fixtures/phase04_agent_development.json) has 13 synthetic scenario families, each with English and Italian inputs. Every family links to the corresponding Phase 2 scenario or rehearsal. The reference map names four bodies across the three procedures and links each assignment to its Phase 3 role or channel locator. The cases cover wrong authorities, missing locations, withdrawn evidence, an obsolete form, a destination correction, multiple goals, unreadable notices, and resumption.
+
+The Milan handoff expectations use the two exact source versions and three passage IDs cited by the [signed first-route catalogue](../../requirements/milan-residence-change/reviewer_approved_signable_catalog_v1.json). Torino banns, postal permit intake and Questura steps use research locators. Their expected responses preserve review gaps and withhold unverified citations or filing destinations. The public evidence from [Torino's office and service pages](https://www.comune.torino.it/amministrazione/ufficio-pubblicazioni-matrimonio-0) and [the permit procedure page](https://www.portaleimmigrazione.it/ITA/nuovaProcedura.html) identifies review targets. The Milan FAQ returned an access error on direct lookup. Its version and passage references come from the [dated owner-review record](../../docs/MILAN_FIRST_ROUTE_OWNER_REVIEW_ACTIVATION_2026_11_08.md) and the signed catalogue.
+
+Read the sequence in one language at a time. Each step supplies an input or a state event and an observable expected outcome. The `facts` entries specify controlled evaluation context, with `null` for a missing fact. Saved case writes follow the existing owner approval flow. The `question_step` reference identifies the question to reopen or answer. For a goal reply, translate `selected_procedure_id` into the exact displayed option when replaying the API. A `source_change` invalidates the named reference before reopening current guidance. Previous events retain their history.
+
+From `backend/`, run `python -m pytest -q tests/test_agent_development_dataset.py` to verify the dataset links, both languages, question transitions, and the Milan outcomes against the signed rule engine with controlled passage availability. The check runs offline. The [Phase 2 collection record](phase-02-user-case-sampling.md#collection-status) records no enrolled cases, and the [Phase 3 closure checklist](phase-03-official-sources-and-catalog.md#phase-3-closure-checklist) still requires review of the broader catalogue. Participant evidence, a reviewed multi-authority pilot set, hidden holdout cases and agent performance measurements remain separate deliverables.
 
 ## End-to-end closure scenario
 
