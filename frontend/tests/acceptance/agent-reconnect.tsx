@@ -3,6 +3,7 @@ import {
   AgentProposalPreview, type PendingProposal, type ProposalDecision, type ProposalValue,
 } from '../../src/components/AgentProposalPreview';
 import {AgentSourceCards, type AgentCitation} from '../../src/components/AgentSourceCards';
+import {AgentOfficialHandoff, type OfficialHandoff} from '../../src/components/AgentOfficialHandoff';
 
 type ActiveRun = { thread_id: string; run_id: string };
 type Snapshot = {
@@ -12,6 +13,7 @@ type Snapshot = {
   run_revision: number;
   pending_proposal?: PendingProposal | null;
   approval_recorded?: boolean;
+  handoff?: OfficialHandoff | null;
   result: {
     explanation: string;
     next_action?: { operation: string | null } | null;
@@ -280,6 +282,7 @@ export function AgentReconnectFixture() {
         ) : view.snapshot.result ? <div>
           <h2>{view.snapshot.result.next_action?.operation === 'start_new_topic' ? 'Topic changed' : 'Conversation complete'}</h2>
           <p>{view.snapshot.result.explanation}</p>
+          {view.snapshot.handoff && <AgentOfficialHandoff handoff={view.snapshot.handoff} />}
           <AgentSourceCards runUrl={view.url} citations={view.snapshot.result.citations ?? []} language="en" />
         </div> : view.snapshot.status === 'stopped' ? (
           <div role="status"><h2>Conversation stopped</h2></div>

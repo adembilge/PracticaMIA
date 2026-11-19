@@ -310,6 +310,14 @@ Signed synthetic integration tests recreate the session factory, correct and app
 - A stop request locks the owned run and checks its revision. An already terminal run returns its saved status. The read-only worker stops at the commit boundary and drops outstanding checkpoints and leases. Computation already in progress may return, but its result cannot commit. A queued run can have `run.stopped` as its first event. The current worker performs read-only steps and reports an empty committed operation list. Task 38 must account for any later case writes that commit before cancellation.
 - A case revision or source version change invalidates dependent proposals and requires revalidation before approval or reuse.
 
+### Showing the official handoff
+
+Task 38.6 adds a current `handoff` to the owned completed-run snapshot when the recorded answer named an official channel. The server checks that the channel still matches the reviewed claim and exact cited passages. It rechecks the current case scope, active source versions, and reviewed quotes. If the reader is unavailable, the case is archived, or the channel loses support, the snapshot asks the user to verify the channel and omits the actionable link. The recorded answer and event journal retain their original citations.
+
+The English and Italian handoff card displays the next step and the supported destination. Where details remain unresolved, confirming them stays the primary step. The user completes any required sign-in, signing, payment and submission through the official service. Official submission status is unconfirmed in this slice. The channel review and link are preparation evidence. Recording a user report, receipt or authority outcome belongs to the tracking workflow.
+
+Signed tests exercise both languages, unknown submission status, changed case scope, withdrawal and supersession. The mobile Chromium synthetic acceptance displays the verified channel and the user's next step beside the exact source card. The Phase 4 transport and reviewed-scope reader remain isolated.
+
 ## Acceptance and dependency checks
 
 The [wire models](../../backend/app/agent/contract.py) encode bounded inputs, typed events, run results and pagination invariants. The [synthetic fixtures](../../backend/tests/test_agent_contract.py) cover verified and conflicting answers, clarification, approval requests, stop, failure, citation identity, and reconnection. The [encrypted acceptance service](../../backend/app/agent/run_requests.py) now persists a queued run with the message before its caller commits. The [local fixtures](../../backend/tests/test_agent_run_requests.py) cover retry recovery, changed payload conflicts, stale revisions, case permissions and verified ciphertext. A retry can carry a fresher thread revision because revisions are concurrency metadata; the message identity is the text, language and optional case within its thread.

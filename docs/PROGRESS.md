@@ -151,4 +151,6 @@ The [Task 38.4 proposal freshness check](../planning/practicamia-2/phase-04-agen
 
 The [Task 38.5 LangGraph approval gate](../planning/practicamia-2/phase-04-agent-api-contract.md#resuming-a-langgraph-approval) persists the interrupt with the review. The configured isolated transport resumes it on the same thread after the decision commits. The write, receipt and resumed run state commit together. Signed synthetic tests cover correction, rollback after a write, exact retries, rejection, cancellation and a stale case. A production writer and hosted routing remain gated.
 
+The [Task 38.6 official handoff](../planning/practicamia-2/phase-04-agent-api-contract.md#showing-the-official-handoff) projects an actionable channel from a saved answer only while the current scope and exact reviewed support agree. The isolated English and Italian card explains the user's next step. The submission status stays unconfirmed. Signed synthetic tests cover missing case details, changed scope and withdrawn or replaced sources.
+
 For implementation details see [the documentation index](README.md).

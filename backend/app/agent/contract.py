@@ -231,6 +231,28 @@ class ApprovalProposal(ContractModel):
     origin: Literal["agent_proposal"] = "agent_proposal"
 
 
+class RunHandoff(ContractModel):
+    """Current evidence for the user's next step outside PracticaMIA."""
+
+    language: Language
+    status: Literal["verified_channel", "verification_required"]
+    next_action: NextAction
+    official_channel: OfficialChannel | None = None
+    evidence_ids: list[PassageId] = Field(default_factory=list, max_length=MAX_ANSWER_CITATIONS)
+    submission_status: Literal["unconfirmed"] = "unconfirmed"
+
+    @model_validator(mode="after")
+    def validate_channel(self):
+        verified = self.status == "verified_channel"
+        if verified != (self.official_channel is not None) or verified != bool(self.evidence_ids):
+            raise ValueError("Only a verified handoff includes a channel and supporting evidence")
+        if self.next_action.operation not in ("open_official_channel", "provide_information"):
+            raise ValueError("Handoff requires a channel or verification step")
+        if self.next_action.operation == "open_official_channel" and not verified:
+            raise ValueError("Opening the official channel requires current evidence")
+        return self
+
+
 class RunSnapshot(ContractModel):
     thread_id: UUID
     run_id: UUID
@@ -240,11 +262,14 @@ class RunSnapshot(ContractModel):
     result: AnswerResult | None = None
     pending_proposal: ApprovalProposal | None = None
     approval_recorded: bool = False
+    handoff: RunHandoff | None = None
 
     @model_validator(mode="after")
     def validate_result(self):
         if (self.status == "completed") != (self.result is not None):
             raise ValueError("Only a completed run carries an answer result")
+        if self.handoff is not None and self.result is None:
+            raise ValueError("A handoff requires a completed answer")
         if self.pending_proposal is not None and self.status != "waiting_for_approval":
             raise ValueError("Only a run awaiting approval carries a pending proposal")
         if self.approval_recorded and (self.status != "waiting_for_approval" or self.pending_proposal is not None):

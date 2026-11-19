@@ -10,6 +10,7 @@ from fastapi.routing import APIRoute
 from pydantic import Field, model_validator
 from sqlalchemy.orm import Session
 
+from app.agent.answer_evidence import AnswerEvidenceScopeReader
 from app.agent.approval_resume import ApprovedCaseUpdates, resume_approved_case_update
 from app.agent.checkpoints import CheckpointConflict, RunRevisionConflict, stop_run, submit_clarification_reply
 from app.agent.contract import (
@@ -20,6 +21,7 @@ from app.agent.proposal_decisions import InvalidProposalValue, ProposalDecisionC
 from app.agent.run_events import (
     EventConflict, InvalidClarificationReply, InvalidEventCursor, read_run_events, read_run_snapshot,
 )
+from app.agent.run_handoff import read_run_handoff
 from app.agent.run_requests import _payload_cipher, list_active_runs
 from app.agent.source_cards import RunSourceCard, read_run_source_card
 from app.auth.tokens import Principal, get_principal
@@ -98,7 +100,10 @@ class _PrivateAgentRoute(APIRoute):
         return private_response
 
 
-def build_reconnect_router(*, key: bytes, case_updates: ApprovedCaseUpdates | None = None) -> APIRouter:
+def build_reconnect_router(
+    *, key: bytes, case_updates: ApprovedCaseUpdates | None = None,
+    read_evidence_scope: AnswerEvidenceScopeReader | None = None,
+) -> APIRouter:
     """Build the transport with a key supplied by the isolated application."""
     _payload_cipher(key)
     router = APIRouter(
@@ -123,7 +128,8 @@ def build_reconnect_router(*, key: bytes, case_updates: ApprovedCaseUpdates | No
         snapshot = read_run_snapshot(db, thread_id=thread_id, run_id=run_id, principal=principal, key=key)
         if snapshot is None:
             raise HTTPException(404)
-        return snapshot
+        handoff = read_run_handoff(db, snapshot, principal=principal, key=key, read_evidence_scope=read_evidence_scope)
+        return snapshot.model_copy(update={"handoff": handoff})
 
     @router.get(RUN_PATH + "/events")
     def replay_events(
