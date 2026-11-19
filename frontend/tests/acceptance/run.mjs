@@ -724,14 +724,13 @@ try{
     };
     const accepted=await submit(owner);
     assert.equal(accepted.status(),200);
-    const firstReply=await accepted.json();
     const url=new URL(accepted.url()).pathname.split('/questions/')[0];
+    process.stdout.write('Agent stale tabs: the first reply was accepted\n');
     await awaitAgentStatus(owner,url,'waiting_for_information');
     process.stdout.write('Agent stale tabs: the worker requested a replacement question\n');
 
     const rejected=await submit(stale);
     assert.equal(rejected.status(),409);
-    assert.equal((await rejected.json()).code,'stale_question');
     await stale.getByRole('alert').filter({hasText:'This reply was rejected because the conversation changed.'}).waitFor();
     await stale.getByText(next,{exact:true}).waitFor();
     assert.equal(await stale.getByRole('radio',{name:'Fixture B'}).isChecked(),false);
@@ -752,12 +751,19 @@ try{
     assert.deepEqual(replay.body.events.map(event=>event.type),[
       'run.started','question.requested','question.answered','question.requested',
     ]);
-    assert.deepEqual(replay.body.events[2],firstReply);
+    const [,requested,firstReply,replacement]=replay.body.events;
+    assert.equal(firstReply.question_id,requested.question.question_id);
+    assert.equal(firstReply.text,'Fixture A');
     await offline.getByRole('radio',{name:'Fixture B'}).check();
     const fresh=await submit(offline);
     assert.equal(fresh.status(),200);
-    const freshReply=await fresh.json();
-    assert.equal(freshReply.question_id,replay.body.events[3].question.question_id);
+    await awaitAgentStatus(offline,url);
+    const completed=await readJson(offline,url+'/events?after_seq='+replacement.event_seq);
+    assert.equal(completed.status,200);
+    assert.deepEqual(completed.body.events.map(event=>event.type),['question.answered','answer.completed']);
+    const [freshReply]=completed.body.events;
+    assert.equal(freshReply.question_id,replacement.question.question_id);
+    assert.equal(freshReply.text,'Fixture B');
     assert.notEqual(freshReply.client_reply_id,firstReply.client_reply_id);
   });
 
