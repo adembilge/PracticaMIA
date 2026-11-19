@@ -15,7 +15,7 @@ type Question = {
   options: string[];
   reply_hint?: string | null;
 };
-type RunView = { url: string; snapshot: Snapshot; question: Question | null };
+type RunView = { url: string; snapshot: Snapshot; question: Question | null; retryLater?: boolean };
 type ReplyDisposition = 'answer' | 'unknown' | 'skip' | 'change_topic';
 const activeStatuses = new Set(['queued', 'running', 'waiting_for_information', 'waiting_for_approval', 'stopping']);
 
@@ -27,11 +27,20 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 async function loadRun(url: string): Promise<RunView> {
   const snapshot = await request<Snapshot>(url);
-  if (snapshot.status !== 'waiting_for_information') return { url, snapshot, question: null };
-  const page = await request<{ events: { type: string; event_seq: number; question?: Question }[] }>(
+  if (snapshot.status !== 'waiting_for_information' && snapshot.status !== 'failed') {
+    return { url, snapshot, question: null };
+  }
+  const page = await request<{ events: {
+    type: string; event_seq: number; question?: Question; recovery?: string; retryable?: boolean;
+  }[] }>(
     `${url}/events?after_seq=${snapshot.last_event_seq - 1}&limit=1`,
   );
   const pending = page.events[0];
+  if (snapshot.status === 'failed') {
+    const retryLater = pending?.type === 'run.failed' && pending.event_seq === snapshot.last_event_seq
+      && pending.retryable === true && pending.recovery === 'retry_later';
+    return { url, snapshot, question: null, retryLater };
+  }
   if (
     pending?.type !== 'question.requested' || pending.event_seq !== snapshot.last_event_seq || !pending.question
   ) throw new Error('Pending question changed');
@@ -199,6 +208,11 @@ export function AgentReconnectFixture() {
           <p>{view.snapshot.result.explanation}</p>
         </div> : view.snapshot.status === 'stopped' ? (
           <div role="status"><h2>Conversation stopped</h2></div>
+        ) : view.snapshot.status === 'failed' ? (
+          <div role="status">
+            <h2>Conversation failed</h2>
+            {view.retryLater && <p>Send your request again later.</p>}
+          </div>
         ) : <>
           <p role="status">Answer in progress.</p>
           <button type="button" disabled={busy} onClick={() => void open(view.url)}>Check status</button>
