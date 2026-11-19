@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
+from app.agent.answer_evidence import AnswerEvidenceScope
 from app.agent.candidate_resolution import AssistanceContact, choose_candidate_step
 from app.agent.checkpoints import CheckpointState, load_checkpoint, submit_clarification_reply
 from app.agent.contract import AnswerResult, Citation, ClarificationReply
@@ -14,6 +15,7 @@ from app.agent.run_events import read_run_events
 from app.agent.run_requests import StoredMessage
 from app.agent.worker import RequestClarification, run_worker_step
 from app.knowledge.service_areas import CaseLocation, EffectivePeriod
+from test_agent_answer_evidence import approved_citation  # noqa: F401 - shared synthetic registry fixture
 from test_agent_run_events import queued_run  # noqa: F401 - shared synthetic run fixture
 from test_service_areas import TRUSTED, area
 
@@ -250,15 +252,29 @@ def test_worker_persists_question_and_does_not_repeat_it_or_treat_reply_as_confi
     ("unknown", "non sei sicuro o sicura"),
     ("skip", "dettagli che hai saltato"),
 ])
-def test_deferred_fields_remain_open_and_verified_assistance_is_preserved(queued_run, disposition, note):
+def test_deferred_fields_remain_open_and_verified_assistance_is_preserved(
+    queued_run, approved_citation, disposition, note,
+):
     factory, context, _, _ = queued_run
-    assert run_worker_step(factory, **context, execute=lambda *_: STATE).status == "running"
+    citation, _ = approved_citation
+    state = STATE.model_copy(update={"procedure_candidates": [citation.procedure_id]})
+    assert run_worker_step(factory, **context, execute=lambda *_: state).status == "running"
     dated = replace(
-        SERVICE, effective_period=EffectivePeriod("filing_date", effective_from=date(2026, 4, 1)),
+        SERVICE, procedure_id=citation.procedure_id, unit_ids=(citation.location_id,),
+        effective_period=EffectivePeriod("filing_date", effective_from=date(2026, 4, 1)),
         required_circumstances=(("housing_basis", "rental"),),
     )
+    contact = AssistanceContact(
+        scope=replace(
+            CONTACT.scope, procedure_id=citation.procedure_id, unit_ids=(citation.location_id,),
+            evidence_ref=citation.passage_id,
+        ),
+        citation=citation,
+    )
+    locations = {"destination": CaseLocation(municipality_id=citation.location_id, confirmed=True)}
     step = partial(choose_candidate_step, **(INPUTS | {
-        "assignments": (dated,), "assistance_contacts": (CONTACT,),
+        "case_locations": locations, "assignments": (dated,), "assistance_contacts": (contact,),
+        "trusted_passage_ids": TRUSTED | {citation.passage_id},
     }))
     paused = run_worker_step(factory, **context, execute=step)
     with factory.begin() as db:
@@ -270,10 +286,11 @@ def test_deferred_fields_remain_open_and_verified_assistance_is_preserved(queued
                 client_reply_id=uuid4(), expected_run_revision=paused.run_revision, disposition=disposition,
             ),
         )
-    result = run_worker_step(factory, **context, execute=step).result
+    scope = AnswerEvidenceScope(citation.procedure_id, locations, {}, {}, (contact.scope,))
+    result = run_worker_step(factory, **context, execute=step, read_evidence_scope=lambda *_: scope).result
     assert note in result.explanation
     assert result.verification_status == "insufficient_evidence"
     assert result.missing_information == ["filing_date", "housing_basis"]
-    assert result.official_channel.url == CONTACT.citation.official_url
-    assert result.citations == [CONTACT.citation]
-    assert result.claims[0].evidence_ids == [CONTACT.citation.passage_id]
+    assert result.official_channel.url == citation.official_url
+    assert result.citations == [citation]
+    assert result.claims[0].evidence_ids == [citation.passage_id]

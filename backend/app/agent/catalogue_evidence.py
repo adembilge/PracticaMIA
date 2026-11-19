@@ -113,7 +113,7 @@ def _case_evidence_gap(
     return None
 
 
-def _catalogue_passage(passage: EvidencePassage) -> CataloguePassage:
+def catalogue_passage(passage: EvidencePassage) -> CataloguePassage:
     # All review writes record UTC. SQLite drops the offset on timestamp reads.
     reviewed_at = passage.reviewed_at
     if reviewed_at.tzinfo is None:
@@ -152,7 +152,7 @@ def find_catalogue_evidence(
         rows = search_approved_passages(db, query=hint, **search_scope)
     return CatalogueEvidence(
         status="evidence_found" if rows else "insufficient_evidence",
-        passages=tuple(_catalogue_passage(row) for row in rows),
+        passages=tuple(catalogue_passage(row) for row in rows),
     )
 
 
@@ -174,7 +174,7 @@ def resolve_catalogue_evidence(
     )
     if row is None:
         return CatalogueEvidence(status="insufficient_evidence")
-    return CatalogueEvidence(status="evidence_found", passages=(_catalogue_passage(row),))
+    return CatalogueEvidence(status="evidence_found", passages=(catalogue_passage(row),))
 
 
 def read_tool_evidence(

@@ -214,7 +214,15 @@ Task 37.1 adds separate `claims` records for authorities, official channels, man
 
 The journal requires at least one linked claim for a new verified answer and a channel claim when an answer exposes an official channel. The reviewed official-assistance path attaches its exact passage to the channel claim, including when the overall answer remains unverified. Historical events retain their stored result and can be replayed with an empty claim list.
 
-These checks establish the structural link to a citation. Task 37.2 checks current-run evidence and scope, and Task 37.3 checks whether each cited passage supports the claim. Synthetic fixtures cover all seven claim types, dangling or ambiguous references and encrypted journal compatibility.
+Synthetic fixtures cover all seven claim types, dangling or ambiguous references and encrypted journal compatibility.
+
+## Revalidating answer evidence
+
+Task 37.2 reopens every exact citation from the current approved registry before the worker commits an answer, including citations retrieved earlier in the same run. The registry checks the active version, audit history, and passage integrity. The citation must match the registry's publisher, URL, review timestamp, and procedure and location metadata. The source can use a different language from the answer. In PostgreSQL, shared locks on the cited registry rows serialize this check and answer commit against ingestion and review changes.
+
+The internal worker reads a trusted scope in the terminal transaction using the owned thread, run, case, and principal. Each cited passage needs an active, reviewed assignment for the selected procedure and a confirmed location matching the assignment's role and the citation's exact area. If the assignment restricts dates or circumstances, the corresponding confirmed case facts must satisfy those restrictions. The worker records an insufficient-evidence answer without claims, citations, or an official channel when the trusted scope is unavailable or a citation fails these checks. It preserves the pending case questions.
+
+Run `python -m pytest -q tests/test_agent_answer_evidence.py tests/test_agent_candidate_resolution.py` from `backend/`. Synthetic fixtures cover valid revalidation, withdrawal or replacement after retrieval, citation metadata changes, scope mismatches, and replay of the saved answer. A general production reader for reviewed passage assignments remains to be integrated. Task 37.3 checks whether the passage text supports the linked claim.
 
 ## Failure and concurrency rules
 

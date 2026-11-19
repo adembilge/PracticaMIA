@@ -52,10 +52,10 @@ def normalize_query(raw: str) -> tuple[str, tuple[str, ...]]:
 
 
 def _approved_scope(
-    jurisdiction: str, procedure_id: str, language: str,
+    jurisdiction: str, procedure_id: str, language: str | None,
 ):
     """Metadata gates are enforced in SQL, before text matching or ranking."""
-    return (
+    query = (
         select(KnowledgeSource, KnowledgeSourceVersion, KnowledgePassage)
         .join(KnowledgeSourceVersion,
               KnowledgeSourceVersion.source_id == KnowledgeSource.id)
@@ -68,8 +68,8 @@ def _approved_scope(
         .where(KnowledgeSourceVersion.reviewed_by.is_not(None))
         .where(KnowledgeSource.jurisdiction == jurisdiction)
         .where(KnowledgeSource.procedure_id == procedure_id)
-        .where(KnowledgeSource.language == language)
     )
+    return query if language is None else query.where(KnowledgeSource.language == language)
 
 
 def trusted_active_version(
@@ -191,7 +191,7 @@ def search_approved_passages(
 
 def resolve_approved_passage(
     db: Session, *, citation_id: str, jurisdiction: str,
-    procedure_id: str, language: str,
+    procedure_id: str, language: str | None,
 ) -> EvidencePassage | None:
     """Resolve one citation only while its exact source version remains trusted."""
     rows = db.execute(
