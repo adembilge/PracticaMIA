@@ -1,9 +1,10 @@
 'use client';
 
-import {useId} from 'react';
+import {useId, useState} from 'react';
 
 type Language = 'en' | 'it';
-type ProposalValue = string | number | boolean;
+export type ProposalValue = string | number | boolean;
+export type ProposalDecision = 'accept' | 'correct' | 'reject' | 'cancel';
 
 export type PendingProposal = {
   proposal_id: string;
@@ -19,11 +20,16 @@ const copy = {
     heading: 'Review proposed change', field: 'Affected field', previous: 'Existing value at this revision',
     proposed: 'Proposed value', rationale: 'Reason for the change', revision: 'Case revision',
     id: 'Proposal ID', empty: 'No value saved', yes: 'Yes', no: 'No',
+    accept: 'Accept proposal', correct: 'Correct value', reject: 'Reject proposal', cancel: 'Cancel proposal',
+    corrected: 'Corrected value', review: 'Review correction', back: 'Back to proposal',
   },
   it: {
     heading: 'Esamina la modifica proposta', field: 'Campo interessato', previous: 'Valore esistente a questa revisione',
     proposed: 'Valore proposto', rationale: 'Motivo della modifica', revision: 'Revisione della pratica',
     id: 'ID della proposta', empty: 'Nessun valore salvato', yes: 'Sì', no: 'No',
+    accept: 'Accetta la proposta', correct: 'Correggi il valore', reject: 'Rifiuta la proposta',
+    cancel: 'Annulla la proposta', corrected: 'Valore corretto', review: 'Esamina la correzione',
+    back: 'Torna alla proposta',
   },
 };
 
@@ -42,10 +48,18 @@ function displayValue(value: ProposalValue | null, labels: typeof copy.en) {
   return String(value);
 }
 
-export function AgentProposalPreview({proposal, language}: {proposal: PendingProposal; language: Language}) {
+export function AgentProposalPreview({proposal, language, busy, onDecision}: {
+  proposal: PendingProposal;
+  language: Language;
+  busy: boolean;
+  onDecision: (decision: ProposalDecision, value?: ProposalValue) => void;
+}) {
   const heading = useId();
   const labels = copy[language];
   const fieldLabel = Object.hasOwn(fieldLabels, proposal.field_id) ? fieldLabels[proposal.field_id]?.[language] : undefined;
+  const [editing, setEditing] = useState(false);
+  const [correction, setCorrection] = useState(String(proposal.proposed_value));
+  const valueType = typeof proposal.proposed_value;
   return (
     <section aria-labelledby={heading} lang={language} className="case-state" style={{overflowWrap: 'anywhere'}}>
       <h2 id={heading}>{labels.heading}</h2>
@@ -63,6 +77,37 @@ export function AgentProposalPreview({proposal, language}: {proposal: PendingPro
         <dt>{labels.id}</dt>
         <dd><code>{proposal.proposal_id}</code></dd>
       </dl>
+      {editing ? (
+        <form onSubmit={event => {
+          event.preventDefault();
+          const value = valueType === 'boolean' ? correction === 'true'
+            : valueType === 'number' ? Number(correction) : correction.trim();
+          onDecision('correct', value);
+        }}>
+          <label>
+            {labels.corrected}
+            {valueType === 'boolean' ? (
+              <select value={correction} onChange={event => setCorrection(event.target.value)} disabled={busy}>
+                <option value="true">{labels.yes}</option>
+                <option value="false">{labels.no}</option>
+              </select>
+            ) : (
+              <input type={valueType === 'number' ? 'number' : proposal.field_id === 'move_in_date' ? 'date' : 'text'}
+                maxLength={300} required value={correction} onChange={event => setCorrection(event.target.value)}
+                disabled={busy} />
+            )}
+          </label>
+          <button type="submit" disabled={busy || !correction.trim()}>{labels.review}</button>
+          <button type="button" disabled={busy} onClick={() => setEditing(false)}>{labels.back}</button>
+        </form>
+      ) : (
+        <div>
+          <button type="button" disabled={busy} onClick={() => onDecision('accept')}>{labels.accept}</button>
+          <button type="button" disabled={busy} onClick={() => setEditing(true)}>{labels.correct}</button>
+          <button type="button" disabled={busy} onClick={() => onDecision('reject')}>{labels.reject}</button>
+          <button type="button" disabled={busy} onClick={() => onDecision('cancel')}>{labels.cancel}</button>
+        </div>
+      )}
     </section>
   );
 }

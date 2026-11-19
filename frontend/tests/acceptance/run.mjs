@@ -830,7 +830,7 @@ try{
     assert.equal(active.body.items.some(run=>run.run_id===stoppedRun),false);
   });
 
-  await scenario('Agent proposal: reopen the exact proposed change and its case revision',async()=>{
+  await scenario('Agent proposal: reopen, correct and accept the exact reviewed change',async()=>{
     const owner=await contextFor('alice',{width:390,height:800});
     const route='/__acceptance/agent';
     await owner.goto(origin+route);
@@ -858,7 +858,9 @@ try{
         ['Move-in date move_in_date','2026-11-05','2026-11-06','The user supplied a corrected move-in date.',
           '7',proposal.proposal_id],
       );
-      assert.equal(await preview.getByRole('button').count(),0);
+      for(const name of ['Accept proposal','Correct value','Reject proposal','Cancel proposal']){
+        assert.equal(await preview.getByRole('button',{name,exact:true}).isVisible(),true);
+      }
       assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     }
     await openProposal();
@@ -869,6 +871,26 @@ try{
     await other.goto(origin+route);
     assert.equal((await readJson(other,url)).status,404);
     assert.equal((await readJson(other,url+'/events')).status,404);
+
+    await owner.getByRole('button',{name:'Correct value',exact:true}).click();
+    await owner.getByLabel('Corrected value',{exact:true}).fill('2026-11-07');
+    await owner.getByRole('button',{name:'Review correction',exact:true}).click();
+    const preview=owner.getByRole('region',{name:'Review proposed change',exact:true});
+    await preview.getByText('2026-11-07',{exact:true}).waitFor();
+    const next=(await readJson(owner,url)).body;
+    assert.equal(next.approval_recorded,false);
+    assert.notEqual(next.pending_proposal.proposal_id,proposal.proposal_id);
+    assert.equal(next.pending_proposal.expected_case_revision,proposal.expected_case_revision);
+    await preview.getByRole('button',{name:'Accept proposal',exact:true}).click();
+    await owner.getByText('Approval recorded. The case update is pending.',{exact:true}).waitFor();
+    assert.equal((await readJson(owner,url)).body.approval_recorded,true);
+    const accepted=(await readJson(owner,url+'/events')).body.events;
+    assert.deepEqual(accepted.map(event=>event.type),[
+      'run.started','approval.requested','approval.decided','approval.requested','approval.decided',
+    ]);
+    assert.equal(accepted[2].decision.decision,'correct');
+    assert.equal(accepted[4].decision.decision,'accept');
+    assert.equal(accepted[4].proposal_id,next.pending_proposal.proposal_id);
     await owner.getByRole('button',{name:'Stop conversation',exact:true}).click();
     await owner.getByRole('heading',{name:'Conversation stopped',exact:true}).waitFor();
     assert.equal((await readJson(owner,url)).body.pending_proposal,null);

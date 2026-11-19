@@ -8,7 +8,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.agent.checkpoints import load_checkpoint
-from app.agent.contract import ApprovalProposal, ApprovalRequested, ProposalDecision
+from app.agent.contract import ApprovalDecided, ApprovalProposal, ApprovalRequested, ProposalDecision
 from app.agent.run_events import read_run_events
 from app.agent.tool_access import ToolAccessDenied, authorize_tool_call
 from app.agent.tool_contract import ApplyApprovedUpdate, ExtensionToolCall, ToolCall, UnavailableExtensionResult
@@ -70,7 +70,13 @@ def check_tool_execution(
         raise ToolExecutionDenied("Current user approval is required")
     page = read_run_events(db, **context, after_seq=checkpoint.event_seq - 1, limit=1)
     event = page.events[0] if page is not None and page.events else None
-    if not isinstance(event, ApprovalRequested):
+    recorded = event if isinstance(event, ApprovalDecided) else None
+    if recorded is not None:
+        if recorded.decision.decision != "accept" or recorded.proposal_id != call.proposal_id:
+            raise ToolExecutionDenied("Current user approval is required")
+        proposal_page = read_run_events(db, **context, after_seq=recorded.proposal_event_seq - 1, limit=1)
+        event = proposal_page.events[0] if proposal_page is not None and proposal_page.events else None
+    if not isinstance(event, ApprovalRequested) or (event.requires_recorded_decision and recorded is None):
         raise ToolExecutionDenied("Current user approval is required")
 
     proposal = event.proposal
@@ -85,6 +91,7 @@ def check_tool_execution(
         or (approval.thread_id, approval.run_id, approval.case_id) != (thread_id, run_id, call.case_id)
         or (approval.proposal_event_seq, approval.proposal_id) != (event.event_seq, proposal.proposal_id)
         or approval.decision.decision != "accept" or approval.decision.corrected_value is not None
+        or (recorded is not None and approval.decision != recorded.decision)
         or approval.decision.expected_case_revision != call.expected_case_revision
         or approval.current_case_revision != call.expected_case_revision
         or proposal.expires_at <= datetime.now(timezone.utc)

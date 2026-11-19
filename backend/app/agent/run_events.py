@@ -8,7 +8,7 @@ from sqlalchemy import CheckConstraint, ForeignKey, Integer, LargeBinary, select
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.agent.contract import (
-    AgentEvent, AnswerCompleted, ApprovalRequested, EventPage, QuestionAnswered, QuestionRequested,
+    AgentEvent, AnswerCompleted, ApprovalDecided, ApprovalRequested, EventPage, QuestionAnswered, QuestionRequested,
     RunSnapshot, RunStarted, agent_event_adapter, valid_event_position,
 )
 from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run, _payload_cipher
@@ -50,6 +50,7 @@ _TRANSITIONS = {
     "question.requested": (("running",), "waiting_for_information"),
     "question.answered": (("waiting_for_information",), "running"),
     "approval.requested": (("running",), "waiting_for_approval"),
+    "approval.decided": (("waiting_for_approval",), None),
     "answer.completed": (("running",), "completed"),
     "run.failed": ((*_RUNNING_OR_WAITING, "stopping"), "failed"),
     "run.stopped": (ACTIVE_STATUSES, "stopped"),
@@ -114,6 +115,17 @@ def append_run_event(
         raise EventConflict("Start event must identify the accepted message")
     if isinstance(event, ApprovalRequested) and str(event.proposal.case_id) != run.case_id:
         raise EventConflict("Proposal must belong to the run's case")
+    if isinstance(event, ApprovalDecided):
+        pending = _decode_event(latest, run, principal, key) if latest else None
+        if (
+            not isinstance(pending, ApprovalRequested)
+            or (pending.event_seq, pending.proposal.proposal_id) != (event.proposal_event_seq, event.proposal_id)
+            or pending.proposal.expected_case_revision != event.decision.expected_case_revision
+            or str(pending.proposal.case_id) != run.case_id
+        ):
+            raise EventConflict("Decision must identify the pending proposal")
+        if event.decision.decision == "correct":
+            status = "running"
     if isinstance(event, AnswerCompleted):
         result = event.result
         if result.verification_status == "verified" and not result.claims:
@@ -160,17 +172,21 @@ def read_run_snapshot(
     latest = _latest_event(db, run)
     result = None
     pending_proposal = None
+    approval_recorded = False
     if latest and run.status in ("completed", "waiting_for_approval"):
         current = _decode_event(latest, run, principal, key)
         if isinstance(current, AnswerCompleted) and run.status == "completed":
             result = current.result
         if isinstance(current, ApprovalRequested) and run.status == "waiting_for_approval":
             pending_proposal = current.proposal
+        if isinstance(current, ApprovalDecided) and run.status == "waiting_for_approval":
+            approval_recorded = current.decision.decision == "accept"
 
     last_seq = latest.event_seq if latest else 0
     return RunSnapshot(
         thread_id=thread_id, run_id=run_id, status=run.status, last_event_seq=last_seq,
         run_revision=last_seq + 1, result=result, pending_proposal=pending_proposal,
+        approval_recorded=approval_recorded,
     )
 
 
