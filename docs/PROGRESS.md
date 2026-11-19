@@ -169,4 +169,6 @@ The [Task 40.1 development set](../planning/practicamia-2/phase-04-agent-and-con
 
 The [Task 40.2 component benchmark](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#agent-component-measurement) reports exact matches and misses by probe. The offline baseline is 9/26 for intent, 15/26 for procedure candidates, 20/20 for evidence publication, 14/22 for question fields and 9/9 for tool authorisation. Backend CI checks reproducibility and the withdrawal and access decisions.
 
+The [Task 40.3 next-action replay](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#unassisted-next-action-evaluation) passed 3/26 scenario-language runs and 11/36 checkpoints. It records authorities, citation coverage, unnecessary questions and uncorrected misrouting through the isolated saved conversation. Backend tests check source withdrawal and withhold a scripted reply after a mismatched question. The broader reviewed catalogue and measurements with participants remain open.
+
 For implementation details see [the documentation index](README.md).

@@ -129,7 +129,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 
 - **40.1** [Assemble the agent development set](#agent-development-evaluation-set) from Phase 2 scenarios and Phase 3 authority and evidence records. Cover wrong authorities, missing locations, stale sources, corrections, multiple goals, and resumption.
 - **40.2** [Measure the agent components separately](#agent-component-measurement) for intent, procedure retrieval, evidence, question quality, and authorised tool calls.
-- **40.3** Use unassisted arrival at the correct next action as the primary outcome. Track correct authorities, supported citations, unnecessary questions, and uncorrected misrouting.
+- **40.3** [Use unassisted arrival at the correct next action](#unassisted-next-action-evaluation) as the primary outcome. Track correct authorities, supported citations, unnecessary questions, and uncorrected misrouting.
 - **40.4** Simulate catalogue outages, model timeouts, duplicate messages, and closing the application during approval.
 - **40.5** Measure time to first user-visible event, verified response latency, call counts, and cost per case. Set targets from pilot measurements.
 - **40.6** Record how failures relate to intent, query, tool, and source version. Verify that monitoring excludes unnecessary conversation and document contents.
@@ -162,6 +162,25 @@ From the repository root, with the backend dependencies installed, run `PYTHONPA
 Intent and procedure retrieval use the same extractor with a controlled set of aliases. The question probe supplies the expected intent and procedure candidates to test field selection independently of extraction. It checks what the question asks for. Wording and user comprehension remain to be evaluated. The question misses cover the Torino celebration municipality, permit category, appointment date and cropped attachment name in both languages. Procedure candidate misses include Italian Milan requests and requests for Torino banns and permit intake in both languages.
 
 Evidence uses a disposable approved registry with synthetic text linked to the signed Milan passage IDs in the report. The replay exercises missing and changed destinations, withdrawal and an unsupported form claim. Toolkit probes execute the typed parser and server preflight on temporary case and run state. This offline benchmark measures components on development cases. Live source verification, end-to-end dialogue, participant outcomes and the wider reviewed catalogue remain outside this baseline.
+
+### Unassisted next-action evaluation
+
+From the repository root, with the backend dependencies installed, run `PYTHONPATH=backend python evals/score_phase04_next_action.py`. The report identifies the dataset version and SHA-256 and records the expected and observed actions by scenario, language and turn.
+
+The primary outcome is the share of scenario-language runs that reach the expected next action at every checkpoint using only the scripted user inputs. A matching turn requires the specified action, exact question fields or selected task where applicable, and the expected authority and passage set. The script submits a clarification reply only when the correctly scoped question is pending. A reopen uses the same saved question ID and revision. A withdrawal reads the current handoff from the saved answer after revoking the disposable source. Remaining scripted turns count in the denominator even when a required step is missed.
+
+| Measure | Baseline | Counting rule |
+| --- | ---: | --- |
+| Unassisted next action | 3/26 (11.5%) | Scenario-language runs with every checkpoint correct |
+| Correct turns | 11/36 | Matching checkpoints across all scenarios and both languages |
+| Correct authority | 4/10 | Required authority turns with the exact verified authority |
+| Supported citations | 12/12 emitted, 30 required | Published citations on the exact expected passage list |
+| Unnecessary questions | 17/22 emitted | Newly recorded questions asking for one or more fields outside the expected set |
+| Uncorrected misrouting | 0/26 | Scenario-language runs ending with an incorrect published channel still in effect |
+
+The runner saw four official-channel turns. Both language variants of the pending-destination case restored the correct question, then missed the verified handoff after the reply. Both variants of the multiple-goal case offered the right initial choice, then missed the follow-up about the selected procedure. Neither opening in the withdrawal scenario reached the initial handoff. A regression test starts from a wording that reaches it and confirms that source withdrawal removes the current channel while retaining the historical answer.
+
+The replay executes the owned worker, saved clarification and event services over a separate in-memory database per run. It uses a limited alias catalogue and a synthetic answer adapter that evaluates signed Milan conditions and sends draft claims through the worker's evidence checks. A result must include the requested action. Generic questions lack the specific redacted-excerpt action, and an unverified response without a filing or correction action misses that checkpoint. These results describe simulated interactions through the internal backend. Participant success, live source verification, model behaviour and browser usability need their own evidence.
 
 ## End-to-end closure scenario
 
