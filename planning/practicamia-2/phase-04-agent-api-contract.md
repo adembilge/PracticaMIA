@@ -95,6 +95,12 @@ The worker stores validated values for the current run in its encrypted checkpoi
 
 The [correction tests](../../backend/tests/test_agent_routing_corrections.py) use synthetic assignments and source snapshots to check a worker restart, a fresh source version, an unavailable version, and the handling of old scope.
 
+## Recovering from a stale question
+
+Task 35.6 binds a reply to the question ID and run revision displayed in its tab. Under the existing owned-run lock, a stale revision or mismatched question ID returns `409 stale_question` without recording an event, changing the checkpoint or resuming the worker. An exact retry of an accepted reply can still retrieve its stored event as the run moves forward.
+
+On a reply conflict, the isolated browser client explains the rejection, discards the stale draft and retry key, and reloads the same run. Any new question requires a fresh answer. If the reload fails, the stale controls stay hidden and the user can retry the status read. The synthetic HTTP and Chromium tests verify that a replacement question remains pending until an explicit fresh reply is submitted.
+
 ## Identifiers and state
 
 | Field | Meaning | Rule |

@@ -75,14 +75,14 @@ async function awaitSavedCaseStatus(page,id,expected){
     ', last observed: '+String(last));
 }
 
-async function awaitAgentCompletion(page,url){
+async function awaitAgentStatus(page,url,status='completed'){
   for(let attempt=0;attempt<100;attempt++){
     const response=await readJson(page,url);
     assert.equal(response.status,200);
-    if(response.body.status==='completed')return;
+    if(response.body.status===status)return;
     await page.waitForTimeout(100);
   }
-  throw new Error('Timed out waiting for the agent run to complete');
+  throw new Error('Timed out waiting for agent run status '+status);
 }
 
 async function scopeAnswers(page,values){
@@ -615,7 +615,7 @@ try{
     assert.equal((await readJson(other,url)).status,404);
     assert.equal((await readJson(other,url+'/events')).status,404);
 
-    await awaitAgentCompletion(owner,url);
+    await awaitAgentStatus(owner,url);
     const completed=owner.getByRole('heading',{name:'Conversation complete'});
     if(!await completed.isVisible()) await owner.getByRole('button',{name:'Check status'}).click();
     await completed.waitFor();
@@ -654,7 +654,7 @@ try{
     const [valid]=await Promise.all([nextReply(),send.click()]);
     assert.equal(valid.status(),200);
     await send.waitFor({state:'hidden'});
-    await awaitAgentCompletion(owner,pendingUrl);
+    await awaitAgentStatus(owner,pendingUrl);
     const completed=owner.getByRole('heading',{name:'Conversation complete'});
     if(!await completed.isVisible()) await owner.getByRole('button',{name:'Check status'}).click();
     await completed.waitFor();
@@ -683,7 +683,7 @@ try{
     assert.equal(accepted.status(),200);
     await change.waitFor({state:'hidden'});
     const url=new URL(accepted.url()).pathname.split('/questions/')[0];
-    await awaitAgentCompletion(owner,url);
+    await awaitAgentStatus(owner,url);
     const completed=owner.getByRole('heading',{name:'Topic changed'});
     if(!await completed.isVisible()) await owner.getByRole('button',{name:'Check status'}).click();
     await completed.waitFor();
@@ -697,6 +697,74 @@ try{
     assert.equal(reply.text,null);
     assert.deepEqual(terminal.result.missing_information,['jurisdiction']);
     assert.equal(terminal.result.verification_status,'insufficient_evidence');
+  });
+
+  await scenario('Agent clarification: stale tabs recover without answering the new question',async()=>{
+    const viewport={width:390,height:800};
+    const owner=await contextFor('alice',viewport);
+    const stale=await contextFor('alice',viewport);
+    const offline=await contextFor('alice',viewport);
+    const first='Which synthetic detail should both tabs see first?';
+    const next='Which synthetic detail should the refreshed tab see?';
+    for(const page of [owner,stale,offline]){
+      page.setDefaultTimeout(10000);
+      await page.goto(origin+'/__acceptance/agent');
+      await page.getByRole('button',{name:'Open conversation'}).first().click();
+      await page.getByText(first,{exact:true}).waitFor();
+      await page.getByRole('radio',{name:page===owner?'Fixture A':'Fixture B'}).check();
+    }
+    process.stdout.write('Agent stale tabs: each session opened the first question\n');
+
+    const submit=async page=>{
+      const [response]=await Promise.all([
+        page.waitForResponse(result=>result.request().method()==='POST' && result.url().endsWith('/reply')),
+        page.getByRole('button',{name:'Send reply',exact:true}).click(),
+      ]);
+      return response;
+    };
+    const accepted=await submit(owner);
+    assert.equal(accepted.status(),200);
+    const url=new URL(accepted.url()).pathname.split('/questions/')[0];
+    process.stdout.write('Agent stale tabs: the first reply was accepted\n');
+    await awaitAgentStatus(owner,url,'waiting_for_information');
+    process.stdout.write('Agent stale tabs: the worker requested a replacement question\n');
+
+    const rejected=await submit(stale);
+    assert.equal(rejected.status(),409);
+    await stale.getByRole('alert').filter({hasText:'This reply was rejected because the conversation changed.'}).waitFor();
+    await stale.getByText(next,{exact:true}).waitFor();
+    assert.equal(await stale.getByRole('radio',{name:'Fixture B'}).isChecked(),false);
+    assert.equal(await stale.getByRole('button',{name:'Send reply',exact:true}).isEnabled(),false);
+    process.stdout.write('Agent stale tabs: automatic refresh recovered the replacement\n');
+
+    await offline.route(origin+url,route=>route.fulfill({status:503}),{times:1});
+    assert.equal((await submit(offline)).status(),409);
+    await offline.getByRole('alert').filter({hasText:'Check status to reload it.'}).waitFor();
+    await offline.getByText(first,{exact:true}).waitFor({state:'hidden'});
+    assert.equal(await offline.getByRole('button',{name:'Send reply',exact:true}).isVisible(),false);
+    await offline.getByRole('button',{name:'Check status',exact:true}).click();
+    await offline.getByText(next,{exact:true}).waitFor();
+    process.stdout.write('Agent stale tabs: manual retry recovered after a failed refresh\n');
+
+    const replay=await readJson(owner,url+'/events');
+    assert.equal(replay.status,200);
+    assert.deepEqual(replay.body.events.map(event=>event.type),[
+      'run.started','question.requested','question.answered','question.requested',
+    ]);
+    const [,requested,firstReply,replacement]=replay.body.events;
+    assert.equal(firstReply.question_id,requested.question.question_id);
+    assert.equal(firstReply.text,'Fixture A');
+    await offline.getByRole('radio',{name:'Fixture B'}).check();
+    const fresh=await submit(offline);
+    assert.equal(fresh.status(),200);
+    await awaitAgentStatus(offline,url);
+    const completed=await readJson(offline,url+'/events?after_seq='+replacement.event_seq);
+    assert.equal(completed.status,200);
+    assert.deepEqual(completed.body.events.map(event=>event.type),['question.answered','answer.completed']);
+    const [freshReply]=completed.body.events;
+    assert.equal(freshReply.question_id,replacement.question.question_id);
+    assert.equal(freshReply.text,'Fixture B');
+    assert.notEqual(freshReply.client_reply_id,firstReply.client_reply_id);
   });
 
   await scenario('Agent stop: refresh a stale revision and remove the stopped conversation from discovery',async()=>{
