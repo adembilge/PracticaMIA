@@ -145,6 +145,8 @@ def test_legacy_encrypted_verified_answer_without_claims_remains_readable(queued
         row.status = "completed"
     with factory.begin() as db:
         assert read_run_snapshot(db, **context).result == legacy.result
+        assert legacy.result.next_action.origin == "agent_proposal"
+        assert legacy.result.document_observations == []
         assert read_run_events(db, **context, after_seq=1).events == [legacy]
         assert _append(db, context, legacy) == legacy
 

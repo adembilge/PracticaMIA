@@ -120,6 +120,8 @@ def append_run_event(
             raise EventConflict("A verified answer requires evidence-linked claims")
         if result.official_channel and not any(claim.kind == "channel" for claim in result.claims):
             raise EventConflict("An official channel requires an evidence-linked channel claim")
+        if result.document_observations and run.case_id is None:
+            raise EventConflict("Document observations require a linked case")
 
     if isinstance(event, QuestionAnswered):
         pending = _decode_event(latest, run, principal, key) if latest else None

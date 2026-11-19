@@ -240,6 +240,14 @@ A covered official link stays with its reviewed channel claim. If the proposed c
 
 Synthetic tests verify partial answers in the worker and event replay, including one revoked source alongside a still-supported claim, an unreviewed fee alongside a supported channel, a substituted URL, and missing, ambiguous and available assistance. The optional assistance citations are an internal input to the existing trusted scope reader.
 
+## Preserving information origin
+
+Task 37.5 assigns a typed `origin` to claims, document observations, and proposals. Claims carry `official_source` alongside their exact `evidence_ids`. `next_action` and `approval.requested.proposal` carry `agent_proposal`, including when the suggested action is to open a verified official link. A `document_observations` entry carries `user_document`, a relevant field ID and its review status (`needs_review`, `reviewed`, or `conflict`). Review status describes document metadata. Case facts and public claims keep their existing confirmation and verification rules.
+
+The worker replaces draft observations with a fresh projection of review metadata for the linked, owned case before saving `answer.completed`. It limits the projection to fields relevant to the answer, checkpoint, or active clarification. It uses the existing document consent, scan, expiry, feature and fixture gates. Observations carry field IDs and statuses without values, document IDs, or extracted text. A topic change skips the document read. A case-free run cannot save document observations.
+
+The encrypted journal replays the saved origins through the snapshot and events API. Earlier events lacking the fields derive the origin from their typed structure and have an empty observation list. Synthetic signed-JWT tests cover review status, document removal before answer publication, foreign-case and disabled document access, removal of draft-supplied observations, and owner-only replay. Task 37.6 covers linked source cards and terminology in the user's language.
+
 ## Failure and concurrency rules
 
 - Invalid message or event cursor: `422`; stale thread or case revision: `409`; unavailable owned resource: `404`; unauthenticated: `401`. Rate and capacity limits use `429` or `503` with retry guidance.

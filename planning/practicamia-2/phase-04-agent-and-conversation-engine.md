@@ -98,7 +98,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 - **37.2** [Revalidate references for freshness and applicability](phase-04-agent-api-contract.md#revalidating-answer-evidence). Check procedure, location, date, and conditions.
 - **37.3** [Verify exact passage support for each claim](phase-04-agent-api-contract.md#checking-passage-support-for-claims). A general authority link does not substantiate a date missing from the page.
 - **37.4** [Keep supported claims and guide verification of missing information](phase-04-agent-api-contract.md#publishing-answers-with-partial-evidence). Give the known official channel when its evidence applies.
-- **37.5** Preserve whether information comes from a user document, an official source, or an agent proposal.
+- **37.5** [Preserve information origin](phase-04-agent-api-contract.md#preserving-information-origin) for user documents, official sources, and agent proposals.
 - **37.6** Link source cards to exact Phase 3 passages. Preserve needed Italian terms and explain them in the user's language.
 
 **Acceptance.** Critical claims lead to a valid passage. Evidence from another municipality, withdrawn sources, and old versions cannot appear verified.

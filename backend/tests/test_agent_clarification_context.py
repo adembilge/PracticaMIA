@@ -8,8 +8,9 @@ import pytest
 
 from app.agent.candidate_resolution import choose_candidate_step
 from app.agent.case_context import WorkerCaseContext
-from app.agent.checkpoints import CheckpointState
-from app.agent.contract import SendMessage
+from app.agent.checkpoints import CheckpointState, submit_clarification_reply
+from app.agent.contract import AnswerResult, ClarificationReply, DocumentObservation, NextAction, SendMessage
+from app.agent.reconnect_router import build_reconnect_router
 from app.agent.run_events import read_run_events
 from app.agent.run_requests import StoredMessage, accept_message
 from app.agent.threads import create_thread, link_case_to_thread
@@ -106,6 +107,7 @@ def test_message_conflicts_with_saved_date_without_mutating_it():
     ("disabled", None, "On what date did you move in?"),
     ("corrupt", None, "On what date did you move in?"),
     ("other-case", None, "On what date did you move in?"),
+    ("removed", "needs_review", "review the move-in date in your document"),
 ])
 def test_worker_checks_only_accessible_private_document_reviews(
     document_client, auth_headers, scenario, document_status, phrase,
@@ -126,7 +128,7 @@ def test_worker_checks_only_accessible_private_document_reviews(
     path = f"/api/v1/cases/{document_case}/private-documents/{document_id}/intelligence"
     response = client.post(path + "/extract", headers=headers)
     assert response.status_code == 200
-    if scenario != "pending":
+    if scenario not in {"pending", "removed"}:
         assert client.put(path + "/review", headers=headers, json=review_payload(response.json())).status_code == 200
 
     factory = client.app.state.session_factory
@@ -166,5 +168,45 @@ def test_worker_checks_only_accessible_private_document_reviews(
     assert phrase in event.question.text
     assert "2026-11-06" not in event.question.text
     assert document_id not in event.question.text
+
+    with factory.begin() as db:
+        if scenario == "removed":
+            db.delete(db.get(PrivateCaseDocument, document_id))
+        submit_clarification_reply(
+            db, **context, question_id=event.question.question_id,
+            reply=ClarificationReply(
+                client_reply_id=uuid4(), expected_run_revision=paused.run_revision, disposition="skip",
+            ),
+        )
+    completed = run_worker_step(
+        factory, **context, document_settings=settings,
+        execute=lambda *_: AnswerResult(
+            explanation="Synthetic case still needs follow-up.",
+            verification_status="insufficient_evidence",
+            missing_information=["move_in_date"],
+            next_action=NextAction(label="Review the case", operation="provide_information"),
+            document_observations=[DocumentObservation(field_id="housing_basis", status="reviewed")],
+        ),
+    )
+    expected = (
+        [{"field_id": "move_in_date", "status": document_status, "origin": "user_document"}]
+        if document_status and scenario != "removed" else []
+    )
+    client.app.include_router(build_reconnect_router(key=key))
+    url = f"/api/v1/agent/threads/{thread_id}/runs/{run.run_id}"
+    snapshot = client.get(url, headers=headers)
+    assert snapshot.status_code == 200
+    body = snapshot.json()["result"]
+    assert body["document_observations"] == expected
+    assert body["next_action"]["origin"] == "agent_proposal"
+    assert body["verification_status"] == "insufficient_evidence"
+    assert body["claims"] == body["citations"] == []
+    assert "2026-11-06" not in snapshot.text
+    assert document_id not in snapshot.text
+    replay = client.get(url + "/events", headers=headers, params={"after_seq": completed.last_event_seq - 1})
+    assert replay.status_code == 200
+    assert replay.json()["events"][0]["result"] == body
+    assert client.get(url, headers=auth_headers("bob")).status_code == 404
+
     facts = client.get(case_path + "/intake", headers=headers).json()["facts"]
     assert facts.get("move_in_date") == saved_facts.get("move_in_date")

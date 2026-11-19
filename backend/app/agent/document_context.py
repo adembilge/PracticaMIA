@@ -3,18 +3,16 @@
 from collections import defaultdict
 from datetime import datetime, timezone
 from hashlib import sha256
-from typing import Literal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.agent.contract import DocumentFieldStatus
 from app.cases.intake_schemas import IntakeFacts
 from app.config import Settings
 from app.private_documents import intelligence as intel
 from app.private_documents.model import PrivateCaseDocument
 from app.private_documents.security import CONSENT_VERSION, MAX_DOCS_PER_CASE, fixture_hashes, validate_release_settings
-
-DocumentFieldStatus = Literal["needs_review", "reviewed", "conflict"]
 
 
 def read_document_field_statuses(

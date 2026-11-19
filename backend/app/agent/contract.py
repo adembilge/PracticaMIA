@@ -13,6 +13,7 @@ from app.knowledge.quote_verification import ID as PASSAGE_ID_PATTERN
 
 Language = Literal["it", "en"]
 ClaimKind = Literal["authority", "channel", "mandatory_document", "fee", "deadline", "condition", "form_version"]
+DocumentFieldStatus = Literal["needs_review", "reviewed", "conflict"]
 MAX_ANSWER_EXPLANATION_LENGTH = 2000
 MAX_ANSWER_CITATIONS = 10
 MAX_ANSWER_CLAIMS = 12
@@ -127,12 +128,14 @@ class Citation(ContractModel):
 class NextAction(ContractModel):
     label: ShortText
     operation: Literal["open_official_channel", "provide_information", "start_new_topic"] | None = None
+    origin: Literal["agent_proposal"] = "agent_proposal"
 
 
 class EvidenceLinkedClaim(ContractModel):
     kind: ClaimKind
     statement: ShortText
     evidence_ids: list[PassageId] = Field(min_length=1, max_length=10)
+    origin: Literal["official_source"] = "official_source"
 
     @field_validator("evidence_ids")
     @classmethod
@@ -140,6 +143,14 @@ class EvidenceLinkedClaim(ContractModel):
         if len(set(ids)) != len(ids):
             raise ValueError("Claim evidence IDs must be distinct")
         return ids
+
+
+class DocumentObservation(ContractModel):
+    """Owner-scoped review status for a supported field in a user document."""
+
+    field_id: Identifier
+    status: DocumentFieldStatus
+    origin: Literal["user_document"] = "user_document"
 
 
 class AnswerResult(ContractModel):
@@ -152,6 +163,14 @@ class AnswerResult(ContractModel):
     citations: list[Citation] = Field(default_factory=list, max_length=MAX_ANSWER_CITATIONS)
     missing_information: list[Identifier] = Field(default_factory=list, max_length=12)
     claims: list[EvidenceLinkedClaim] = Field(default_factory=list, max_length=MAX_ANSWER_CLAIMS)
+    document_observations: list[DocumentObservation] = Field(default_factory=list, max_length=12)
+
+    @field_validator("document_observations")
+    @classmethod
+    def require_distinct_observed_fields(cls, observations: list[DocumentObservation]) -> list[DocumentObservation]:
+        if len({item.field_id for item in observations}) != len(observations):
+            raise ValueError("Document observations must identify distinct fields")
+        return observations
 
     @model_validator(mode="after")
     def validate_answer(self):
@@ -241,6 +260,7 @@ class ApprovalProposal(ContractModel):
     rationale: ShortText
     expected_case_revision: PositiveInt
     expires_at: AwareDatetime
+    origin: Literal["agent_proposal"] = "agent_proposal"
 
 
 class EventEnvelope(ContractModel):
