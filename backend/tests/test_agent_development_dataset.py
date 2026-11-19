@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 import pytest
 from pydantic import TypeAdapter
 
-from app.agent.contract import ClarificationText, Identifier, PassageId
+from app.agent.contract import AgentIntent, ClarificationText, Identifier, PassageId
 from app.rules.approval import has_valid_human_review_signature
 from app.rules.engine import JURISDICTION, PROCEDURE, evaluate_rules, load_catalog
 
@@ -21,6 +21,7 @@ REFERENCES = DATA["references"]
 CASES = DATA["cases"]
 CATALOG = load_catalog((ROOT / "backend/app/rules/catalog.json").read_text(encoding="utf-8"))
 IDENTIFIERS = TypeAdapter(list[Identifier])
+INTENTS = TypeAdapter(AgentIntent)
 MESSAGES = TypeAdapter(ClarificationText)
 PASSAGES = TypeAdapter(list[PassageId])
 ACTIONS_BY_OUTCOME = {
@@ -91,7 +92,14 @@ def test_eval_case_records_safe_outcomes_for_each_turn(case):
     assert allowed_refs <= REFERENCES.keys()
     reference_authorities = {REFERENCES[ref].get("authority_id") for ref in allowed_refs}
     reference_procedures = {REFERENCES[ref]["procedure_id"] for ref in allowed_refs}
-    assert case["steps"][0]["event"] == "message"
+    opening = case["steps"][0]
+    assert opening["event"] == "message"
+    INTENTS.validate_python(case["opening_intent"])
+    opening_procedures = IDENTIFIERS.validate_python(case["opening_procedure_ids"])
+    assert len(opening_procedures) == len(set(opening_procedures))
+    assert set(opening_procedures) <= reference_procedures
+    if "procedure_ids" in opening["expect"]:
+        assert set(opening_procedures) == set(opening["expect"]["procedure_ids"])
     if profile := case.get("initial_profile"):
         assert profile in DATA["profiles"]
 
