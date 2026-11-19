@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from pydantic import ValidationError
 from sqlalchemy import (
     CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index,
-    Integer, LargeBinary, String, UniqueConstraint, and_, select, text,
+    Integer, LargeBinary, String, UniqueConstraint, and_, or_, select, text,
 )
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
@@ -27,7 +27,8 @@ from app.cases.model import CaseRecord
 from app.database import Base
 
 WORKER_RUN_STATUSES = ("queued", "running")
-ACTIVE_STATUSES = (*WORKER_RUN_STATUSES, "waiting_for_information", "waiting_for_approval", "stopping")
+FOREGROUND_STATUSES = (*WORKER_RUN_STATUSES, "waiting_for_approval", "stopping")
+ACTIVE_STATUSES = (*FOREGROUND_STATUSES, "waiting_for_information")
 ALL_STATUSES = (*ACTIVE_STATUSES, "completed", "failed", "stopped")
 RECENT_USER_MESSAGE_LIMIT = 3
 RECENT_RUN_SCAN_LIMIT = 24
@@ -51,7 +52,12 @@ class AgentRunRequest(Base):
             sqlite_where=text(f"status IN {WORKER_RUN_STATUSES}"),
         ),
         Index(
-            "uq_agent_runs_active_thread", "thread_id", unique=True,
+            "uq_agent_runs_foreground_thread", "thread_id", unique=True,
+            postgresql_where=text(f"status IN {FOREGROUND_STATUSES}"),
+            sqlite_where=text(f"status IN {FOREGROUND_STATUSES}"),
+        ),
+        Index(
+            "uq_agent_runs_active_thread_case", "thread_id", text("coalesce(case_id, '')"), unique=True,
             postgresql_where=text(f"status IN {ACTIVE_STATUSES}"),
             sqlite_where=text(f"status IN {ACTIVE_STATUSES}"),
         ),
@@ -129,24 +135,32 @@ def _owned_link(thread: str, case: str, principal: Principal):
     )
 
 
+def lock_owned_thread(db: Session, thread_id: UUID, principal: Principal) -> AgentThread | None:
+    """Serialize new runs and resumed replies in the same conversation."""
+    return db.scalar(
+        select(AgentThread)
+        .where(AgentThread.id == str(thread_id), AgentThread.owner_subject == principal.subject)
+        .execution_options(populate_existing=True)
+        .with_for_update(key_share=True)
+    )
+
+
 def accept_message(
     db: Session, *, thread_id: UUID, principal: Principal, message: SendMessage, key: bytes,
 ) -> RunAcceptance:
     """Create an encrypted queued run within the caller's transaction."""
-    thread = db.scalar(
-        select(AgentThread)
-        .where(AgentThread.id == str(thread_id), AgentThread.owner_subject == principal.subject)
-        .execution_options(populate_existing=True)
-        .with_for_update()
-    )
+    thread = lock_owned_thread(db, thread_id, principal)
     if thread is None:
         return RunAcceptance("unavailable")
     case_id = str(message.case_id) if message.case_id else None
-    if case_id and db.scalar(
-        _owned_link(thread.id, case_id, principal)
-        .with_for_update(read=True, of=(CaseRecord, AgentThreadCase))
-    ) is None:
-        return RunAcceptance("unavailable")
+    case_link = None
+    if case_id:
+        case_link = db.execute(
+            _owned_link(thread.id, case_id, principal).add_columns(CaseRecord.archived_at)
+            .with_for_update(read=True, of=(CaseRecord, AgentThreadCase))
+        ).one_or_none()
+        if case_link is None:
+            return RunAcceptance("unavailable")
 
     prior = db.scalar(select(AgentRunRequest).where(
         AgentRunRequest.thread_id == thread.id,
@@ -156,11 +170,18 @@ def accept_message(
         if _decode(prior, principal, key) != StoredMessage(message.text, message.language, message.case_id):
             return RunAcceptance("message_conflict")
         return RunAcceptance("accepted", UUID(prior.id), prior.accepted_revision)
+    if case_link is not None and case_link.archived_at is not None:
+        return RunAcceptance("unavailable")
     if message.expected_thread_revision is not None and message.expected_thread_revision != thread.revision:
         return RunAcceptance("stale_thread")
     if db.scalar(select(AgentRunRequest.id).where(
         AgentRunRequest.thread_id == thread.id,
         AgentRunRequest.status.in_(ACTIVE_STATUSES),
+        or_(
+            case_id is None,
+            AgentRunRequest.case_id == case_id,
+            AgentRunRequest.status.in_(FOREGROUND_STATUSES),
+        ),
     )) is not None:
         return RunAcceptance("active_run")
 

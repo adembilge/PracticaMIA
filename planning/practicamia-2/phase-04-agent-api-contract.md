@@ -167,7 +167,7 @@ The current server verifies the owner and running state before returning a `capa
 | Field | Meaning | Rule |
 | --- | --- | --- |
 | `thread_id` | Server-issued conversation ID | Owner-scoped; a thread may reference multiple cases. |
-| `run_id` | Server-issued attempt to process one message | One active run per thread; a stopped run retains its actual outcome. |
+| `run_id` | Server-issued attempt to process one message | One active run per case in a thread. Each stopped run retains its actual outcome. |
 | `client_message_id` | Client-issued retry key | Unique within a thread; identical retries return the existing run, while a changed body conflicts. |
 | `case_id` | Optional case context | Checked against the principal on every read and tool call. |
 | `event_seq` | Server-issued integer, increasing per run | Stable across reconnect; never inferred from arrival order. |
@@ -304,7 +304,7 @@ Signed synthetic integration tests recreate the session factory, correct and app
 ## Failure and concurrency rules
 
 - Invalid message or event cursor: `422`; stale thread or case revision: `409`; unavailable owned resource: `404`; unauthenticated: `401`. Rate and capacity limits use `429` or `503` with retry guidance.
-- Only one active run per thread. A concurrent different message returns a conflict rather than silently replacing the pending question or approval.
+- A thread runs one task at a time and can retain a pending clarification for each linked case. An approval occupies the processing slot. A new message or reply that needs an occupied slot returns `conversation_busy` and preserves the existing runs.
 - Submit a clarification with the revision shown when the question was requested. Within that question boundary, retrying with the same ID and trimmed text returns the original event, including after the run advances. An old question or changed reply conflicts. A single-choice reply must match an offered value.
 - A catalogue outage or missing applicable passage yields a recoverable, explicitly unverified result. It must not be promoted to a sourced answer by the model.
 - A stop request locks the owned run and checks its revision. An already terminal run returns its saved status. The read-only worker stops at the commit boundary and drops outstanding checkpoints and leases. Computation already in progress may return, but its result cannot commit. A queued run can have `run.stopped` as its first event. The current worker performs read-only steps and reports an empty committed operation list. Task 38 must account for any later case writes that commit before cancellation.
@@ -349,6 +349,14 @@ Task 39.4 lets the isolated candidate resolver reuse the confirmed citizenship c
 The worker projects only that category and rechecks it before committing the routing step. Dates, locations, housing, registration and household details, document observations and official evidence continue to use the current case's own scope. Reuse is a routing input. The saved intake and its confirmation are written through the existing case flow, and approved evidence still requires the current case to meet its own requirements.
 
 The [signed API and worker tests](../../backend/tests/test_agent_shared_case_facts.py) cover a verified case selection followed by a new bound run, draft and archived sources, unrelated accounts and conversations, conflicting values and revocation during a worker step.
+
+### Switching between pending case tasks
+
+Task 39.5 lists active saved cases in the isolated conversation and starts a new message for an explicitly chosen linked case. The owner can move between tasks while a clarification is pending. The browser opens each saved run through its existing snapshot and event cursor. Reloading preserves the pending question ID, revision, options and checkpoint for the selected run.
+
+Migration `20261119_0024` allows one active run per case and one processing slot per conversation. Queued work, running work and pending approvals occupy that slot. A reply or new message that would compete for it returns `conversation_busy`, and the original question remains available. Existing replies and message retries retain their idempotency. The downgrade requires one active run per conversation again. Finish or stop extra active runs before downgrading.
+
+Signed API tests exercise reopening two pending tasks, rejection of an unavailable case or mismatched question, and exact retries. Disposable PostgreSQL tests exercise competing replies. The isolated mobile Chromium scenario starts the other task while the first question is open, returns to it after reload, and answers it while the other question remains pending.
 
 ## Acceptance and dependency checks
 

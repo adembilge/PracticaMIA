@@ -13,7 +13,9 @@ from app.agent.contract import (
     QuestionAnswered, QuestionRequested,
     RunSnapshot, RunStarted, agent_event_adapter, valid_event_position,
 )
-from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run, _payload_cipher
+from app.agent.run_requests import (
+    ACTIVE_STATUSES, FOREGROUND_STATUSES, AgentRunRequest, _owned_run, _payload_cipher,
+)
 from app.agent.threads import active_case_links
 from app.auth.tokens import Principal
 from app.cases.model import CaseRecord
@@ -44,6 +46,10 @@ class InvalidEventCursor(ValueError):
 
 class InvalidClarificationReply(ValueError):
     """The reply does not match the saved question’s answer shape."""
+
+
+class ConversationBusy(ValueError):
+    """Another task in the same conversation is already being processed."""
 
 
 _WAITING = ("waiting_for_information", "waiting_for_approval")
@@ -195,6 +201,11 @@ def append_run_event(
             )) is None
         ):
             raise EventConflict("The selected case is no longer available for this conversation")
+        if db.scalar(select(AgentRunRequest.id).where(
+            AgentRunRequest.thread_id == run.thread_id,
+            AgentRunRequest.status.in_(FOREGROUND_STATUSES),
+        )) is not None:
+            raise ConversationBusy("Another task in this conversation is active")
 
     nonce = urandom(12)
     ciphertext = nonce + _payload_cipher(key).encrypt(

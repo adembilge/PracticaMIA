@@ -19,7 +19,9 @@ from app.agent.checkpoints import (
 from app.agent.contract import (
     AnswerResult, ClarificationReply, ClarifyingQuestion, ProgressUpdated, RunStarted, SendMessage,
 )
-from app.agent.run_events import AgentRunEvent, append_run_event, read_run_events, read_run_snapshot
+from app.agent.run_events import (
+    AgentRunEvent, ConversationBusy, append_run_event, read_run_events, read_run_snapshot,
+)
 from app.agent.run_requests import AgentRunRequest, accept_message, list_active_runs, read_run_message
 from app.agent.threads import AgentThread, AgentThreadCase, create_thread, link_case_to_thread
 from app.agent.worker import RequestClarification, run_worker_step
@@ -33,7 +35,7 @@ from conftest import AUDIENCE, ISSUER, JWKS_URL
 
 pytestmark = pytest.mark.skipif(
     os.getenv("RUN_POSTGRES_SMOKE") != "1",
-    reason="requires disposable PG17 CI migrated through 0023",
+    reason="requires disposable PG17 CI migrated through 0024",
 )
 
 
@@ -42,7 +44,7 @@ def test_migration_includes_preparation_tables_and_real_cascading_delete(auth_he
     engine = create_engine(database)
     try:
         with engine.connect() as connection:
-            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "20261119_0023"
+            assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "20261119_0024"
         assert {"case_preparations", "case_documents", "case_agent_turns"}.issubset(
             set(inspect(engine).get_table_names())
         )
@@ -284,6 +286,67 @@ def test_two_workers_cannot_commit_a_final_answer_from_the_same_boundary():
             db.delete(db.get(AgentThread, str(thread_id)))
         engine.dispose()
 
+
+
+def test_parallel_case_replies_leave_one_question_pending_in_the_same_thread():
+    engine = create_engine(os.environ["DATABASE_URL"])
+    factory = sessionmaker(bind=engine)
+    principal = Principal("synthetic-switching-owner")
+    case_ids = [uuid4(), uuid4()]
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=principal)
+        db.add_all(CaseRecord(id=str(case_id), owner_subject=principal.subject) for case_id in case_ids)
+        db.flush()
+        for case_id in case_ids:
+            assert link_case_to_thread(db, thread_id=thread_id, case_id=case_id, principal=principal)
+    context = {"thread_id": thread_id, "principal": principal, "key": bytes(range(32))}
+    try:
+        boundaries = []
+        for case_id in case_ids:
+            with factory.begin() as db:
+                run = accept_message(db, **context, message=SendMessage(
+                    client_message_id=uuid4(), case_id=case_id, text="Synthetic case", language="en",
+                ))
+            assert run.outcome == "accepted"
+            question = ClarifyingQuestion(
+                question_id=uuid4(), text="Which fixture value?", answer_shape="free_text",
+                options=[], missing_fields=["fixture_field"],
+            )
+            paused = run_worker_step(factory, **context, run_id=run.run_id, execute=lambda *_: RequestClarification(
+                question, CheckpointState(next_node="find_evidence"),
+            ))
+            reply = ClarificationReply(
+                client_reply_id=uuid4(), expected_run_revision=paused.run_revision, text="Synthetic value",
+            )
+            boundaries.append((run.run_id, question.question_id, reply))
+
+        gate = Barrier(2, timeout=10)
+
+        def submit(boundary):
+            run_id, question_id, reply = boundary
+            gate.wait()
+            try:
+                with factory.begin() as db:
+                    event = submit_clarification_reply(db, **context, run_id=run_id, question_id=question_id, reply=reply)
+                    return "accepted" if event is not None else "unavailable"
+            except ConversationBusy:
+                return "busy"
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            assert sorted(executor.map(submit, boundaries)) == ["accepted", "busy"]
+        with factory.begin() as db:
+            snapshots = [read_run_snapshot(db, **context, run_id=boundary[0]) for boundary in boundaries]
+            assert sorted(snapshot.status for snapshot in snapshots) == ["running", "waiting_for_information"]
+            waiting = next(snapshot for snapshot in snapshots if snapshot.status == "waiting_for_information")
+            selected = next(boundary for boundary in boundaries if boundary[0] == waiting.run_id)
+            assert waiting.run_revision == selected[2].expected_run_revision
+            assert load_checkpoint(db, **context, run_id=waiting.run_id).state.pending_question_id == selected[1]
+    finally:
+        with factory.begin() as db:
+            db.delete(db.get(AgentThread, str(thread_id)))
+            for case_id in case_ids:
+                db.delete(db.get(CaseRecord, str(case_id)))
+        engine.dispose()
 
 
 def test_worker_queue_skips_a_run_reserved_by_another_transaction():

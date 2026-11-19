@@ -3,11 +3,12 @@
 import re
 from uuid import UUID, uuid4
 
+from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
-from app.agent.contract import AnswerResult, ClarifyingQuestion, SavedCaseChoice
-from app.agent.run_requests import StoredMessage
-from app.agent.threads import active_case_links
+from app.agent.contract import AnswerResult, ClarifyingQuestion, ContractModel, SavedCaseChoice
+from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, StoredMessage
+from app.agent.threads import AgentThread, active_case_links
 from app.auth.tokens import Principal
 from app.cases.model import CaseRecord
 from app.knowledge.entity_matching import normalize_name
@@ -22,6 +23,45 @@ OTHER_CASE_CUE = re.compile(
 def _label(case: CaseRecord, language: str) -> str:
     title = "Saved case" if language == "en" else "Pratica salvata"
     return f"{title} {case.id[:8]} · {case.created_at.date().isoformat()}"
+
+
+class ThreadCaseTask(SavedCaseChoice):
+    run_id: UUID | None
+
+
+class ThreadCaseTasks(ContractModel):
+    items: list[ThreadCaseTask]
+    next_case_id: UUID | None = None
+    unbound_run_id: UUID | None = None
+
+
+def list_thread_case_tasks(
+    db: Session, *, thread_id: UUID, principal: Principal, language: str, after_case_id: UUID | None,
+) -> ThreadCaseTasks | None:
+    """Return linked cases with active run references, without their private work."""
+    if db.scalar(select(AgentThread.id).where(
+        AgentThread.id == str(thread_id), AgentThread.owner_subject == principal.subject,
+    )) is None:
+        return None
+    query = active_case_links(thread_id, principal).outerjoin(AgentRunRequest, and_(
+        AgentRunRequest.thread_id == str(thread_id),
+        AgentRunRequest.case_id == CaseRecord.id,
+        AgentRunRequest.status.in_(ACTIVE_STATUSES),
+    )).add_columns(AgentRunRequest.id)
+    if after_case_id is not None:
+        query = query.where(CaseRecord.id > str(after_case_id))
+    rows = db.execute(query.order_by(CaseRecord.id).limit(51)).all()
+    items = [
+        ThreadCaseTask(case_id=case.id, label=_label(case, language), run_id=run_id)
+        for case, run_id in rows[:50]
+    ]
+    unbound = db.scalar(select(AgentRunRequest.id).where(
+        AgentRunRequest.thread_id == str(thread_id), AgentRunRequest.case_id.is_(None),
+        AgentRunRequest.status.in_(ACTIVE_STATUSES),
+    ))
+    return ThreadCaseTasks(
+        items=items, next_case_id=items[-1].case_id if len(rows) > 50 else None, unbound_run_id=unbound,
+    )
 
 
 def resolve_saved_case(

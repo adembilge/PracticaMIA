@@ -43,6 +43,7 @@ The dedicated GitHub Actions workflow
 | Agent reconnect | Discover a paused conversation in a fresh browser context, restore its question, retry a lost reply response, verify account isolation and display the result committed by the background worker | Chromium + signed synthetic JWT + FastAPI + PostgreSQL |
 | Agent task selection | Reopen a multi-goal question, select a numbered option and see the same active choice after worker resumption | Chromium + signed synthetic JWT + FastAPI + PostgreSQL |
 | Agent case selection | Clarify an ambiguous application reference and check the link to the selected owned case after worker resumption | Chromium + signed synthetic JWT + FastAPI + PostgreSQL |
+| Agent case switching | Start another linked case while a question waits, return after reload, and answer the original question while the other task stays pending | Chromium + signed synthetic JWT + FastAPI + PostgreSQL |
 | Agent stale question | Open the same question in two or more tabs, confirm that an older form cannot answer its replacement, and recover after a failed refresh | Chromium + signed synthetic JWT + FastAPI + PostgreSQL |
 | Agent stop | Refresh the current status after a stale stop request, confirm the next request stops the conversation, and verify the terminal event and active list after reload | Chromium + signed synthetic JWT + FastAPI + PostgreSQL |
 | A8 | No uncaught browser runtime errors | Chromium |

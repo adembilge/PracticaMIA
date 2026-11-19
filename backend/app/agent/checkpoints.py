@@ -23,7 +23,7 @@ from app.agent.contract import (
 )
 from app.agent.proposal_freshness import ProposalFreshness
 from app.agent.run_events import _latest_event, _read_event_at, append_run_event, read_run_snapshot
-from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run, _payload_cipher
+from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run, _payload_cipher, lock_owned_thread
 from app.auth.tokens import Principal
 from app.cases.intake_schemas import KnownCitizenship
 from app.database import Base
@@ -224,6 +224,8 @@ def submit_clarification_reply(
 ) -> QuestionAnswered | None:
     """Record one answer at the question boundary and make its run runnable."""
     context = {"thread_id": thread_id, "run_id": run_id, "principal": principal, "key": key}
+    if lock_owned_thread(db, thread_id, principal) is None:
+        return None
     run = db.scalar(_owned_run(thread_id, run_id, principal).with_for_update(of=AgentRunRequest))
     if run is None:
         return None
