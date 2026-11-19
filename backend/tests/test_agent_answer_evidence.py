@@ -130,31 +130,54 @@ def test_valid_authority_page_does_not_prove_an_absent_deadline(queued_run, prop
     assert "30 aprile" not in result.explanation
 
 
-def test_a_supported_channel_cannot_cover_an_unreviewed_fee_claim(queued_run, proposal):
+@pytest.mark.parametrize("missing_information", [[], ["filing_date"]])
+def test_a_supported_channel_survives_an_unreviewed_fee_claim(queued_run, proposal, missing_information):
     answer, scope = proposal
     fee = EvidenceLinkedClaim(kind="fee", statement="Costo: 99 euro.", evidence_ids=answer.claims[0].evidence_ids)
-    result = _finish(queued_run, answer.model_copy(update={"claims": [*answer.claims, fee]}), scope)
-    _assert_withheld(result)
+    result = _finish(queued_run, answer.model_copy(update={
+        "claims": [*answer.claims, fee], "missing_information": missing_information,
+    }), scope)
+    assert result.verification_status == "insufficient_evidence"
+    assert result.claims == answer.claims
+    assert result.citations == answer.citations
+    assert result.official_channel == answer.official_channel
+    assert result.missing_information == missing_information
+    assert result.next_action.operation == ("provide_information" if missing_information else "open_official_channel")
     assert "99 euro" not in result.explanation
+    assert "99 euro" not in result.next_action.label
+
+
+def test_partial_answer_recovers_the_reviewed_channel_instead_of_a_proposed_unverified_url(queued_run, proposal):
+    answer, scope = proposal
+    alternative = OfficialChannel(label=answer.official_channel.label, url="https://example.invalid/")
+    result = _finish(queued_run, answer.model_copy(update={"official_channel": alternative}), scope)
+    assert result.verification_status == "insufficient_evidence"
+    assert result.official_channel == answer.official_channel
+    assert result.claims == answer.claims
+    assert result.citations == answer.citations
+
+
+def test_channel_claim_can_be_narrowed_to_its_independently_reviewed_statement(queued_run, proposal):
+    answer, scope = proposal
+    review = replace(scope.claim_reviews[0], statement=CONTACT_QUOTE)
+    result = _finish(queued_run, answer, replace(scope, claim_reviews=(review,)))
+    assert result.verification_status == "insufficient_evidence"
+    assert [claim.statement for claim in result.claims] == [CONTACT_QUOTE]
+    assert result.official_channel == answer.official_channel
+    assert answer.claims[0].statement not in result.explanation
 
 
 @pytest.mark.parametrize("change", [
-    "unreviewed", "new-qualifier", "different-claim-type", "unreviewed-language",
-    "different-scope", "blank-quote", "changed-channel",
+    "unreviewed", "different-claim-type", "unreviewed-language", "different-scope", "blank-quote",
 ])
 def test_claim_support_must_match_review_and_scope(queued_run, proposal, change):
     answer, scope = proposal
     review = scope.claim_reviews[0]
     if change == "unreviewed":
         scope = replace(scope, claim_reviews=())
-    elif change == "changed-channel":
-        answer = answer.model_copy(update={
-            "official_channel": OfficialChannel(label=answer.official_channel.label, url="https://example.invalid/"),
-        })
     else:
         link = review.passages[0]
         reviews = {
-            "new-qualifier": replace(review, statement=review.statement + " Solo per gli inquilini."),
             "different-claim-type": replace(review, kind="authority"),
             "unreviewed-language": replace(review, language="en"),
             "different-scope": replace(review, passages=(replace(link, assignment_id="unavailable-assignment"),)),
@@ -162,6 +185,80 @@ def test_claim_support_must_match_review_and_scope(queued_run, proposal, change)
         }
         scope = replace(scope, claim_reviews=(reviews[change],))
     _assert_withheld(_finish(queued_run, answer, scope))
+
+
+@pytest.mark.parametrize("assistance", ["valid", "expired", "ambiguous"])
+def test_trusted_assistance_helps_verify_missing_information(client, auth_headers, queued_run, proposal, assistance):
+    answer, scope = proposal
+    original = answer.citations[0]
+    deadline = _citation_for(client, auth_headers, "scadenza")
+    deadline_assignment = replace(scope.assignments[0], assignment_id="deadline", evidence_ref=deadline.passage_id)
+    unsupported_claim = EvidenceLinkedClaim(
+        kind="deadline", statement="La scadenza è domani.", evidence_ids=[deadline.passage_id],
+    )
+    draft = answer.model_copy(update={
+        "claims": [unsupported_claim], "citations": [deadline], "official_channel": None, "next_action": None,
+    })
+    scopes = {"assignments": (*scope.assignments, deadline_assignment), "assistance_citations": (original,)}
+    if assistance == "expired":
+        expired = replace(
+            scope.assignments[0], effective_period=EffectivePeriod("filing_date", effective_until=date(2026, 4, 29)),
+        )
+        scopes["assignments"] = (expired, deadline_assignment)
+    if assistance == "ambiguous":
+        other = replace(scope.claim_reviews[0], official_channel=OfficialChannel(
+            label="Second reviewed channel", url="https://example.invalid/synthetic-contact",
+        ))
+        scopes["claim_reviews"] = (*scope.claim_reviews, other)
+    result = _finish(queued_run, draft, replace(scope, **scopes))
+    if assistance == "valid":
+        assert result.verification_status == "insufficient_evidence"
+        assert result.claims == answer.claims
+        assert result.citations == [original]
+        assert result.official_channel == answer.official_channel
+        assert result.next_action.operation == "open_official_channel"
+        assert "domani" not in result.explanation
+    else:
+        _assert_withheld(result)
+
+
+def test_revoked_source_only_removes_its_dependent_claims(client, auth_headers, queued_run, proposal):
+    answer, scope = proposal
+    deadline_html = (
+        f"<html><body><h1>Termini</h1><p>Seconda fonte sintetica. {DEADLINE_QUOTE}</p></body></html>"
+    ).encode()
+    version, digest = _create(client, source_id="milano-residence-faq", html=deadline_html)
+    _approve(client, version, digest)
+    deadline = _citation_for(client, auth_headers, "seconda")
+    assert deadline.source_id == "milano-residence-faq"
+    expired_contact = answer.citations[0]
+    deadline_assignment = replace(scope.assignments[0], assignment_id="deadline", evidence_ref=deadline.passage_id)
+    deadline_claim = EvidenceLinkedClaim(
+        kind="deadline", statement=DEADLINE_QUOTE, evidence_ids=[deadline.passage_id],
+    )
+    deadline_review = ReviewedClaimSupport(
+        kind=deadline_claim.kind, language="it", statement=deadline_claim.statement,
+        passages=(ClaimPassageSupport(deadline.passage_id, deadline_assignment.assignment_id, DEADLINE_QUOTE),),
+    )
+    scope = replace(
+        scope, assignments=(*scope.assignments, deadline_assignment), claim_reviews=(*scope.claim_reviews, deadline_review),
+    )
+    with client.app.state.session_factory.begin() as db:
+        source = resolve_approved_passage(db, citation_id=expired_contact.passage_id, **SCOPE)
+        assert source is not None
+        revoke_version(
+            db, version_id=source.source_version_id, expected_digest=source.source_sha256,
+            actor_subject="synthetic-reviewer", reason="Withdrawn test fixture",
+        )
+    result = _finish(queued_run, answer.model_copy(update={
+        "claims": [*answer.claims, deadline_claim], "citations": [expired_contact, deadline],
+    }), scope)
+    assert result.verification_status == "insufficient_evidence"
+    assert result.claims == [deadline_claim]
+    assert result.citations == [deadline]
+    assert result.official_channel is None
+    assert result.next_action.operation == "provide_information"
+    assert DEADLINE_QUOTE in result.explanation
 
 
 @pytest.mark.parametrize("use_all_sources", [True, False])
