@@ -942,6 +942,29 @@ try{
     assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   });
 
+  await scenario('Agent case choice: confirm which linked application to open',async()=>{
+    const owner=await contextFor('alice',{width:390,height:800});
+    await owner.goto(origin+'/__acceptance/agent');
+    const {body:{items}}=await readJson(owner,'/api/agent/runs/active');
+    const urls=items.map(run=>`/api/agent/threads/${run.thread_id}/runs/${run.run_id}`);
+    const journals=await Promise.all(urls.map(url=>readJson(owner,url+'/events')));
+    const index=journals.findIndex(journal=>journal.body.events.at(-1)?.question?.case_choices?.length===2);
+    assert.ok(index>=0);
+    const {case_choices:choices}=journals[index].body.events.at(-1).question;
+    assert.ok(choices.every(choice=>choice.case_id!==items[index].case_id));
+    await owner.getByRole('button',{name:'Open conversation',exact:true}).nth(index).click();
+    await owner.getByRole('group',{name:'Which saved case do you mean?',exact:true}).waitFor();
+    await owner.getByRole('radio',{name:choices[1].label,exact:true}).check();
+    await owner.getByRole('button',{name:'Send reply',exact:true}).click();
+    await awaitAgentStatus(owner,urls[index]);
+    const link=owner.getByRole('link',{name:new RegExp(choices[1].case_id.slice(0,8))});
+    if(!await link.isVisible()) await owner.getByRole('button',{name:'Check status'}).click();
+    await link.waitFor();
+    assert.equal(await link.getAttribute('href'),`/cases/${choices[1].case_id}`);
+    const {body:snapshot}=await readJson(owner,urls[index]);
+    assert.equal(snapshot.selected_case.case_id,choices[1].case_id);
+  });
+
   await scenario('Agent reconnect: exhausted catalogue retries show a terminal recovery message',async()=>{
     const page=await contextFor('alice',{width:390,height:800});
     const threadId='00000000-0000-4000-8000-000000000001';

@@ -330,9 +330,17 @@ The current worker records the groups before applying any case facts or resolvin
 
 Task 39.2 checks for an explicit starting preference by a numbered goal or an exact, unique reviewed procedure name. It preserves requests listed with a starting cue. If the preference is missing, conflicting, or matches more than one goal, the worker asks a single-choice question in the user's language. Options keep message order. Reviewed procedure and place labels help distinguish them, with a numbered fallback where labels are unavailable.
 
-The existing owner-scoped reply endpoint binds a choice to the pending question and run revision. The encrypted journal records the selected number and its original option text. Exact retries preserve the choice. Invalid options, stale replies, uncertainty and skipping cannot select an active task. The snapshot and resumed result display the same selected task. Case selection and case-level verification belong to Task 39.3.
+The existing owner-scoped reply endpoint binds a choice to the pending question and run revision. The encrypted journal records the selected number and its original option text. Exact retries preserve the choice. Invalid options, stale replies, uncertainty and skipping cannot select an active task. The snapshot and resumed result display the same selected task.
 
 Synthetic tests cover clear and ambiguous preferences, an unauthorized or invalid reply, exact retry, selection display and skip. The mobile Chromium scenario reopens the question, selects a task, and sees the active choice after the worker resumes.
+
+### Verifying the selected case
+
+Task 39.3 verifies an explicitly selected case against the authenticated owner, active record and current conversation link. A relative reference such as “the other application” excludes the existing case binding when one is present and asks the user to choose. A selected goal narrows the case choices by its procedure candidates. A goal pointing exclusively to a different location does not inherit the saved Milan procedure. Options display numbered short references and creation dates. Oversized lists and missing matches direct the user to their saved cases.
+
+The reply endpoint binds the selected label to the case ID recorded on the pending question and current revision. It checks the link and active state again before writing the reply. The worker rechecks availability before completing, and the current snapshot removes a case link that is no longer active. Selecting a case leaves the original run's case binding intact. The user can open the independently verified case and continue from it.
+
+Signed tests cover both languages, separate active-goal procedure candidates, explicit selection, cross-account access, archive races and new-run binding. The mobile synthetic Chromium scenario chooses between linked cases and checks the destination exposed by the authenticated API.
 
 ## Acceptance and dependency checks
 

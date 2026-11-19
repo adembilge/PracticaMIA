@@ -7,6 +7,7 @@ from typing import Literal
 import unicodedata
 
 from app.agent.checkpoints import CheckpointState
+from app.agent.case_selection import OTHER_CASE_CUE
 from app.agent.contract import MAX_MESSAGE_GOALS, MAX_PROCEDURE_CANDIDATES, AgentIntent, MessageGoal
 from app.agent.run_requests import StoredMessage
 from app.knowledge.entity_matching import (
@@ -254,6 +255,8 @@ def extract_intent(
     }
     normalized_text = normalize_name(text)
     intent = next((label for label, cue in _INTENT_CUES if cue.search(normalized_text)), None)
+    if intent in (None, "find_procedure", "request_information") and OTHER_CASE_CUE.search(normalized_text):
+        intent = "resume_case"
     if intent is None and procedures:
         intent = "find_procedure"
 
