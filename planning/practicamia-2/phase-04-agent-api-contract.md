@@ -358,6 +358,12 @@ Migration `20261119_0024` allows one active run per case and one processing slot
 
 Signed API tests exercise reopening two pending tasks, rejection of an unavailable case or mismatched question, and exact retries. Disposable PostgreSQL tests exercise competing replies. The isolated mobile Chromium scenario starts the other task while the first question is open, returns to it after reload, and answers it while the other question remains pending.
 
+### Testing isolation between pending cases
+
+The [cross-case integration test](../../backend/tests/test_agent_cross_case_isolation.py) opens two runs in one signed synthetic conversation. The private vault receives two PDFs with the same filename, different dates, and different review states. The worker derives each question from the corresponding case's review state. Both reply orders are exercised. A question ID from the other case is rejected, and answering one question leaves the other run's event journal intact.
+
+The isolated evidence fixture covers Milano and Como with distinct versioned passages and overlapping effective periods. The worker is offered both passages for each answer. The scope check retains only the current municipality's citation. Each source card and document review stays bound to its own run or case. The Como assignment exists only in the test database. Run from `backend/` with `python -m pytest -q tests/test_agent_cross_case_isolation.py`.
+
 ## Acceptance and dependency checks
 
 The [wire models](../../backend/app/agent/contract.py) encode bounded inputs, typed events, run results and pagination invariants. The [synthetic fixtures](../../backend/tests/test_agent_contract.py) cover verified and conflicting answers, clarification, approval requests, stop, failure, citation identity, and reconnection. The [encrypted acceptance service](../../backend/app/agent/run_requests.py) now persists a queued run with the message before its caller commits. The [local fixtures](../../backend/tests/test_agent_run_requests.py) cover retry recovery, changed payload conflicts, stale revisions, case permissions and verified ciphertext. A retry can carry a fresher thread revision because revisions are concurrency metadata; the message identity is the text, language and optional case within its thread.
