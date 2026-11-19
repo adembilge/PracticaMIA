@@ -653,7 +653,15 @@ try{
     },pendingUrl,{polling:100,timeout:10000});
     const completed=owner.getByRole('heading',{name:'Conversation complete'});
     if(!await completed.isVisible()) await owner.getByRole('button',{name:'Check status'}).click();
-    await owner.getByText('Received 18/11/2026.',{exact:true}).waitFor();
+    await completed.waitFor();
+    const replay=await readJson(owner,pendingUrl+'/events');
+    assert.equal(replay.status,200);
+    assert.deepEqual(replay.body.events.map(event=>event.type),[
+      'run.started','question.requested','question.answered','answer.completed',
+    ]);
+    const [, , answered, terminal]=replay.body.events;
+    assert.equal(answered.text,'18/11/2026');
+    assert.equal(terminal.result.explanation,'Received 18/11/2026.');
   });
 
   await scenario('Agent clarification: changing topics releases the pending question',async()=>{
