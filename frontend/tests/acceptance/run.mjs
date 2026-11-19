@@ -625,6 +625,22 @@ try{
     assert.deepEqual(replay.body.events.map(event=>event.type),[
       'run.started','question.requested','question.answered','answer.completed',
     ]);
+    const [citation]=replay.body.events.at(-1).result.citations;
+    const sourceUrl=url+'/sources/'+encodeURIComponent(citation.citation_id);
+    assert.equal((await readJson(other,sourceUrl)).status,404);
+    const [sourceResponse]=await Promise.all([
+      owner.waitForResponse(response=>new URL(response.url()).pathname===sourceUrl),
+      owner.getByRole('button',{name:'View cited passage'}).click(),
+    ]);
+    assert.equal(sourceResponse.status(),200);
+    const source=await sourceResponse.json();
+    assert.equal(source.passage.citation.passage_id,citation.passage_id);
+    const quote=owner.locator('blockquote[lang="it"]');
+    await quote.getByText('Questo esempio sintetico riguarda il cambio di residenza.',{exact:true}).waitFor();
+    const terms=owner.locator('section[lang="en"]');
+    await terms.getByText('cambio di residenza',{exact:true}).waitFor();
+    await terms.getByText('Updating the address recorded for your registered residence.',{exact:true}).waitFor();
+    assert.equal(await owner.getByRole('link',{name:'Open the official page'}).getAttribute('href'),citation.official_url);
     assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   });
 

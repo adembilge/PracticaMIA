@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import {AgentSourceCards, type AgentCitation} from '../../src/components/AgentSourceCards';
 
 type ActiveRun = { thread_id: string; run_id: string };
 type Snapshot = {
@@ -6,7 +7,11 @@ type Snapshot = {
   status: string;
   last_event_seq: number;
   run_revision: number;
-  result: { explanation: string; next_action?: { operation: string | null } | null } | null;
+  result: {
+    explanation: string;
+    next_action?: { operation: string | null } | null;
+    citations?: AgentCitation[];
+  } | null;
 };
 type Question = {
   question_id: string;
@@ -206,6 +211,7 @@ export function AgentReconnectFixture() {
         </form> : view.snapshot.result ? <div>
           <h2>{view.snapshot.result.next_action?.operation === 'start_new_topic' ? 'Topic changed' : 'Conversation complete'}</h2>
           <p>{view.snapshot.result.explanation}</p>
+          <AgentSourceCards runUrl={view.url} citations={view.snapshot.result.citations ?? []} language="en" />
         </div> : view.snapshot.status === 'stopped' ? (
           <div role="status"><h2>Conversation stopped</h2></div>
         ) : view.snapshot.status === 'failed' ? (
