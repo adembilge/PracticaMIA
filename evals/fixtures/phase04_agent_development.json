@@ -98,6 +98,8 @@
   "cases": [
     {
       "id": "milan-confirmed-route",
+      "opening_intent": "find_procedure",
+      "opening_procedure_ids": ["milan_residence_change"],
       "phase2_section": "phase-02-administrative-domains.md#map-everyday-phrasing-to-procedure-candidates",
       "tags": ["supported_route"],
       "initial_profile": "signed_milan_individual_renter",
@@ -122,6 +124,8 @@
     },
     {
       "id": "milan-wrong-authority",
+      "opening_intent": "find_procedure",
+      "opening_procedure_ids": ["milan_residence_change"],
       "phase2_section": "phase-02-administrative-domains.md#identify-the-responsible-authority",
       "tags": ["wrong_authority"],
       "initial_profile": "signed_milan_individual_renter",
@@ -147,6 +151,8 @@
     },
     {
       "id": "destination-missing",
+      "opening_intent": "find_procedure",
+      "opening_procedure_ids": ["milan_residence_change"],
       "phase2_section": "phase-02-administrative-domains.md#identify-the-responsible-authority",
       "tags": ["missing_location"],
       "reference_ids": ["milan_receiving_office"],
@@ -168,6 +174,8 @@
     },
     {
       "id": "milan-source-withdrawn",
+      "opening_intent": "resume_case",
+      "opening_procedure_ids": ["milan_residence_change"],
       "phase2_section": "phase-02-user-research-and-scope.md#15-assemble-the-first-pilot-case-set",
       "tags": ["stale_source"],
       "initial_profile": "signed_milan_individual_renter",
@@ -197,6 +205,8 @@
     },
     {
       "id": "current-attachment-limit",
+      "opening_intent": "request_information",
+      "opening_procedure_ids": [],
       "phase2_section": "phase-02-user-research-and-scope.md#15-assemble-the-first-pilot-case-set",
       "tags": ["obsolete_form"],
       "initial_profile": "signed_milan_individual_renter",
@@ -219,6 +229,8 @@
     },
     {
       "id": "destination-corrected",
+      "opening_intent": "find_procedure",
+      "opening_procedure_ids": ["milan_residence_change"],
       "phase2_section": "phase-02-user-research-and-scope.md#15-assemble-the-first-pilot-case-set",
       "tags": ["correction", "wrong_jurisdiction"],
       "initial_profile": "signed_milan_individual_renter",
@@ -249,6 +261,8 @@
     },
     {
       "id": "torino-banns-and-delegation",
+      "opening_intent": "find_procedure",
+      "opening_procedure_ids": ["marriage_banns"],
       "phase2_section": "phase-02-administrative-domains.md#synthetic-jurisdiction-examples",
       "tags": ["wrong_authority", "cross_authority"],
       "reference_ids": ["torino_receiving_office", "torino_delegation"],
@@ -269,6 +283,8 @@
     },
     {
       "id": "permit-filing-route-missing",
+      "opening_intent": "find_procedure",
+      "opening_procedure_ids": ["residence_permit_renewal"],
       "phase2_section": "phase-02-administrative-domains.md#identify-the-responsible-authority",
       "tags": ["missing_context"],
       "reference_ids": ["postal_permit_intake", "questura_direct_intake"],
@@ -287,6 +303,8 @@
     },
     {
       "id": "permit-postal-intake",
+      "opening_intent": "find_procedure",
+      "opening_procedure_ids": ["residence_permit_renewal"],
       "phase2_section": "phase-02-administrative-domains.md#map-service-channels-by-step",
       "tags": ["wrong_authority", "review_gap"],
       "reference_ids": ["postal_permit_intake", "questura_direct_intake", "questura_postal_followup"],
@@ -307,6 +325,8 @@
     },
     {
       "id": "permit-appointment-date-unreadable",
+      "opening_intent": "explain_notice",
+      "opening_procedure_ids": ["residence_permit_renewal"],
       "phase2_section": "phase-02-user-case-sampling.md#synthetic-rehearsal",
       "tags": ["unreadable_notice", "ongoing_case"],
       "reference_ids": ["questura_postal_followup"],
@@ -327,6 +347,8 @@
     },
     {
       "id": "two-goals-different-authorities",
+      "opening_intent": "plan_multiple_tasks",
+      "opening_procedure_ids": ["milan_residence_change", "marriage_banns"],
       "phase2_section": "phase-02-administrative-domains.md#map-everyday-phrasing-to-procedure-candidates",
       "tags": ["multiple_goals"],
       "reference_ids": ["milan_receiving_office", "torino_receiving_office", "torino_delegation"],
@@ -358,6 +380,8 @@
     },
     {
       "id": "resume-pending-destination",
+      "opening_intent": "resume_case",
+      "opening_procedure_ids": ["milan_residence_change"],
       "phase2_section": "phase-02-user-case-sampling.md#define-what-the-agent-can-do",
       "tags": ["resumption", "missing_location"],
       "initial_profile": "signed_milan_individual_renter",
@@ -398,6 +422,8 @@
     },
     {
       "id": "attachment-name-cropped",
+      "opening_intent": "explain_notice",
+      "opening_procedure_ids": [],
       "phase2_section": "phase-02-user-case-sampling.md#synthetic-agent-work-rehearsal",
       "tags": ["missing_attachment", "ongoing_case"],
       "reference_ids": [],

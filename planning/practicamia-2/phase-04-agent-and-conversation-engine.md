@@ -128,7 +128,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 ## 40. Evaluate the agent and close Phase 4
 
 - **40.1** [Assemble the agent development set](#agent-development-evaluation-set) from Phase 2 scenarios and Phase 3 authority and evidence records. Cover wrong authorities, missing locations, stale sources, corrections, multiple goals, and resumption.
-- **40.2** Measure intent, procedure retrieval, evidence, question quality, and authorised tool calls separately.
+- **40.2** [Measure the agent components separately](#agent-component-measurement) for intent, procedure retrieval, evidence, question quality, and authorised tool calls.
 - **40.3** Use unassisted arrival at the correct next action as the primary outcome. Track correct authorities, supported citations, unnecessary questions, and uncorrected misrouting.
 - **40.4** Simulate catalogue outages, model timeouts, duplicate messages, and closing the application during approval.
 - **40.5** Measure time to first user-visible event, verified response latency, call counts, and cost per case. Set targets from pilot measurements.
@@ -145,7 +145,23 @@ The Milan handoff expectations use the two exact source versions and three passa
 
 Read the sequence in one language at a time. Each step supplies an input or a state event and an observable expected outcome. The `facts` entries specify controlled evaluation context, with `null` for a missing fact. Saved case writes follow the existing owner approval flow. The `question_step` reference identifies the question to reopen or answer. For a goal reply, translate `selected_procedure_id` into the exact displayed option when replaying the API. A `source_change` invalidates the named reference before reopening current guidance. Previous events retain their history.
 
-From `backend/`, run `python -m pytest -q tests/test_agent_development_dataset.py` to verify the dataset links, both languages, question transitions, and the Milan outcomes against the signed rule engine with controlled passage availability. The check runs offline. The [Phase 2 collection record](phase-02-user-case-sampling.md#collection-status) records no enrolled cases, and the [Phase 3 closure checklist](phase-03-official-sources-and-catalog.md#phase-3-closure-checklist) still requires review of the broader catalogue. Participant evidence, a reviewed multi-authority pilot set, hidden holdout cases and agent performance measurements remain separate deliverables.
+From `backend/`, run `python -m pytest -q tests/test_agent_development_dataset.py` to verify the dataset links, both languages, question transitions, and the Milan outcomes against the signed rule engine with controlled passage availability. The check runs offline. The [Phase 2 collection record](phase-02-user-case-sampling.md#collection-status) records no enrolled cases, and the [Phase 3 closure checklist](phase-03-official-sources-and-catalog.md#phase-3-closure-checklist) still requires review of the broader catalogue. Participant evidence, a reviewed multi-authority pilot set and hidden holdout cases remain open.
+
+### Agent component measurement
+
+From the repository root, with the backend dependencies installed, run `PYTHONPATH=backend python evals/score_phase04_agent.py`. The JSON records the fixture ID and SHA-256 digest, exact expected and observed values for each probe, and a separate pass count and rate for each dimension.
+
+| Dimension | Baseline | Scoring unit |
+| --- | ---: | --- |
+| Intent | 9/26 | Exact intent label on each bilingual opening, including missed intents |
+| Procedure retrieval | 15/26 | Exact set of extracted procedure candidates on the same openings, including openings with no applicable procedure |
+| Evidence | 20/20 | Exact set of published passage references on Milan turns after revalidating synthetic source versions, destination scope and claim support |
+| Question quality | 14/22 | Exact requested fields on openings that expect clarification, a task choice or guidance without a question |
+| Tool authorisation | 9/9 | Exact server preflight decision across run state, owner, case, catalogue scope, capability and approval probes |
+
+Intent and procedure retrieval use the same extractor with a controlled set of aliases. The question probe supplies the expected intent and procedure candidates to test field selection independently of extraction. It checks what the question asks for. Wording and user comprehension remain to be evaluated. The question misses cover the Torino celebration municipality, permit category, appointment date and cropped attachment name in both languages. Procedure candidate misses include Italian Milan requests and requests for Torino banns and permit intake in both languages.
+
+Evidence uses a disposable approved registry with synthetic text linked to the signed Milan passage IDs in the report. The replay exercises missing and changed destinations, withdrawal and an unsupported form claim. Toolkit probes execute the typed parser and server preflight on temporary case and run state. This offline benchmark measures components on development cases. Live source verification, end-to-end dialogue, participant outcomes and the wider reviewed catalogue remain outside this baseline.
 
 ## End-to-end closure scenario
 
