@@ -7,9 +7,11 @@ from uuid import uuid4
 import pytest
 
 from app.agent.case_context import WorkerCaseContext
-from app.agent.checkpoints import CheckpointState, load_checkpoint
+from app.agent.candidate_resolution import choose_candidate_step
+from app.agent.checkpoints import AgentRunCheckpoint, CheckpointState, load_checkpoint
 from app.agent.contract import SendMessage
 from app.agent.intent_extraction import extract_intent, identify_intent_step
+from app.agent.reconnect_router import build_reconnect_router
 from app.agent.run_requests import StoredMessage, accept_message
 from app.agent.threads import create_thread
 from app.agent.worker import run_worker_step
@@ -33,6 +35,7 @@ CATALOGUE = (
     reviewed_name("tax-record", "procedure", "update my tax record"),
     reviewed_name("tax-record", "procedure", "aggiornare la posizione TARI"),
 )
+MULTI_CATALOGUE = (*CATALOGUE, reviewed_name("municipality-como", "municipality", "Como"))
 
 
 @pytest.mark.parametrize(("language", "text", "label"), [
@@ -184,3 +187,108 @@ def test_checkpoint_requests_distinction_if_candidates_exceed_its_bound():
     assert state.next_node == "choose_next_step"
     assert state.procedure_candidates == []
     assert state.missing_fields == ["procedure"]
+
+
+@pytest.mark.parametrize(("language", "text", "expected"), [
+    ("en", "Change my residence in Milan and update my tax record in Como.", [
+        (["residence-change"], ["municipality-milan"], []),
+        (["tax-record"], ["municipality-como"], []),
+    ]),
+    ("en", "Change my residence in Milan, update my tax record in Como.", [
+        (["residence-change"], ["municipality-milan"], []),
+        (["tax-record"], ["municipality-como"], []),
+    ]),
+    ("it", "Cambio di residenza e aggiornare la posizione TARI a Como.", [
+        (["residence-change"], [], ["procedure_location"]),
+        (["tax-record"], ["municipality-como"], []),
+    ]),
+    ("en", "Change my residence at Comune di Milano; apply for a synthetic permit in Como.", [
+        (["residence-change"], [], ["procedure_location"]),
+        ([], ["municipality-como"], ["procedure"]),
+    ]),
+    ("it", "Cambio di residenza a Milano. Vorrei richiedere un permesso fittizio.", [
+        (["residence-change"], ["municipality-milan"], []),
+        ([], [], ["procedure", "procedure_location"]),
+    ]),
+    ("en", "Change my residence in Milan and change my residence in Como.", [
+        (["residence-change"], ["municipality-milan"], []),
+        (["residence-change"], ["municipality-como"], []),
+    ]),
+])
+def test_groups_candidates_and_context_by_bilingual_goal(language, text, expected):
+    result = extract_intent(StoredMessage(text, language, None), catalogue_names=MULTI_CATALOGUE)
+    assert result.intent == "plan_multiple_tasks" and result.procedure_candidates == ()
+    assert [(goal.procedure_candidates, goal.location_candidates, goal.missing_fields)
+            for goal in result.goals] == expected
+
+
+@pytest.mark.parametrize(("text", "missing"), [
+    ("Residence change and change my residence in Milan", ()),
+    ("Residence change or update my tax record in Milan?", ("procedure",)),
+    ("Residence change, or update my tax record in Milan?", ("procedure",)),
+    ("I want to change my residence and not update my tax record in Milan.", ("procedure_location",)),
+    ("Residence change in Milan and update the address field.", ()),
+])
+def test_aliases_alternatives_and_steps_do_not_create_independent_goals(text, missing):
+    result = extract_intent(StoredMessage(text, "en", None), catalogue_names=MULTI_CATALOGUE)
+    assert result.intent == "find_procedure"
+    assert result.goals == ()
+    assert result.missing_context == missing
+
+
+def test_conjunction_inside_reviewed_name_does_not_split_a_goal():
+    reviewed = reviewed_name("synthetic-training", "procedure", "training and learning request")
+    result = extract_intent(
+        StoredMessage("Training and learning request in Milan; change my residence in Como", "en", None),
+        catalogue_names=(*MULTI_CATALOGUE, reviewed),
+    )
+    assert [goal.procedure_candidates for goal in result.goals] == [["synthetic-training"], ["residence-change"]]
+
+
+def test_goal_and_per_goal_candidate_bounds_fail_closed():
+    many = tuple(reviewed_name(f"candidate-{i}", "procedure", "residence change") for i in range(10))
+    result = extract_intent(
+        StoredMessage("Residence change in Milan; update my tax record in Como", "en", None),
+        catalogue_names=(*MULTI_CATALOGUE, *many),
+    )
+    assert result.goals[0].procedure_candidates == []
+    assert result.goals[0].missing_fields == ["procedure"]
+    assert result.goals[1].procedure_candidates == ["tax-record"]
+
+    text = "; ".join(f"Apply for a synthetic permit {i}" for i in range(7))
+    result = extract_intent(StoredMessage(text, "en", None), catalogue_names=MULTI_CATALOGUE)
+    assert result.intent == "plan_multiple_tasks"
+    assert result.goals == () and result.procedure_candidates == () and result.missing_context == ("procedure",)
+
+
+def test_worker_retains_goal_sets_and_replays_owner_result_without_routing_them_together(client, auth_headers):
+    factory = client.app.state.session_factory
+    text = "Change my residence in Milan; update my tax record in Como."
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=ALICE)
+        accepted = accept_message(
+            db, thread_id=thread_id, principal=ALICE, key=KEY,
+            message=SendMessage(client_message_id=uuid4(), language="en", text=text),
+        )
+    context = {"thread_id": thread_id, "run_id": accepted.run_id, "principal": ALICE, "key": KEY}
+    run_worker_step(factory, **context, execute=lambda *_: CheckpointState(next_node="identify_intent"))
+    run_worker_step(factory, **context, execute=partial(identify_intent_step, catalogue_names=MULTI_CATALOGUE))
+    with factory.begin() as db:
+        saved = load_checkpoint(db, **context).state
+        assert saved.next_node == "choose_next_step" and saved.procedure_candidates == []
+        assert [goal.location_candidates for goal in saved.goals] == [["municipality-milan"], ["municipality-como"]]
+        assert b"municipality-como" not in db.get(AgentRunCheckpoint, str(accepted.run_id)).ciphertext
+
+    run_worker_step(factory, **context, execute=partial(
+        choose_candidate_step, case_locations={}, confirmed_dates={}, confirmed_circumstances={},
+        assignments=(), trusted_passage_ids=frozenset(), reviewed_labels={},
+    ))
+    client.app.include_router(build_reconnect_router(key=KEY))
+    url = f"/api/v1/agent/threads/{thread_id}/runs/{accepted.run_id}"
+    response = client.get(url, headers=auth_headers("alice"))
+    assert response.status_code == 200 and response.headers["Cache-Control"] == "private, no-store"
+    wire = response.json()
+    assert wire["result"]["goals"] == [goal.model_dump() for goal in saved.goals]
+    assert wire["handoff"] is None and wire["result"]["citations"] == []
+    assert client.get(url + "/events", headers=auth_headers("alice")).json()["events"][-1]["result"] == wire["result"]
+    assert client.get(url, headers=auth_headers("bob")).status_code == 404

@@ -6,10 +6,12 @@ from datetime import date
 from uuid import uuid4
 
 from app.agent.catalogue_applicability import resolve_candidate_applicability
-from app.agent.checkpoints import MAX_PROCEDURE_CANDIDATES, CheckpointState
+from app.agent.checkpoints import CheckpointState
 from app.agent.clarification_context import ClarificationHint, prepare_clarification_context
 from app.agent.clarification_priority import prioritize_routing_fields
-from app.agent.contract import AnswerResult, Citation, ClarifyingQuestion, EvidenceLinkedClaim, NextAction, OfficialChannel
+from app.agent.contract import (
+    MAX_PROCEDURE_CANDIDATES, AnswerResult, Citation, ClarifyingQuestion, EvidenceLinkedClaim, NextAction, OfficialChannel,
+)
 from app.agent.routing_corrections import ROUTING_FIELD_LABELS as _FIELD_LABELS, apply_routing_reply, housing_options
 from app.agent.run_requests import StoredMessage
 from app.agent.worker import RequestClarification
@@ -116,6 +118,16 @@ def choose_candidate_step(
     """Use server-reviewed assignments and confirmed facts at a worker boundary."""
     if state.next_node != "choose_next_step":
         raise ValueError("Candidate resolution requires the choose_next_step node")
+    if state.goals:
+        return AnswerResult(
+            explanation=(
+                "I found separate requests that each need their own procedure and case details checked."
+                if message.language == "en" else
+                "Ho individuato richieste distinte. La procedura e i dati vanno verificati per ciascuna."
+            ),
+            verification_status="insufficient_evidence", missing_information=state.missing_fields,
+            goals=state.goals,
+        )
 
     revised = apply_routing_reply(message, state, catalogue_names)
     applied_correction = revised is not state

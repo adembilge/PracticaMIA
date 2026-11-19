@@ -15,8 +15,9 @@ from app.agent.approval_graph import ApprovalPause
 from app.agent.case_operations import AgentCaseOperation
 from app.agent.clarification_disposition import resolve_disposition
 from app.agent.contract import (
+    MAX_MESSAGE_GOALS, MAX_PROCEDURE_CANDIDATES,
     AgentEvent, AgentIntent, AnswerCompleted, ApprovalApplied, ApprovalRequested, ClarificationReply, ContractModel,
-    Identifier, PassageId, PositiveInt, QuestionAnswered, QuestionRequested, RunFailed, RunSnapshot, RunStopped,
+    Identifier, MessageGoal, PassageId, PositiveInt, QuestionAnswered, QuestionRequested, RunFailed, RunSnapshot, RunStopped,
     TERMINAL_EVENTS,
 )
 from app.agent.proposal_freshness import ProposalFreshness
@@ -25,7 +26,6 @@ from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run,
 from app.auth.tokens import Principal
 from app.database import Base
 
-MAX_PROCEDURE_CANDIDATES = 10
 RoutingField = Literal["procedure", "destination", "activity_location", "move_in_date", "filing_date", "housing_basis"]
 
 
@@ -69,6 +69,7 @@ class CheckpointState(ContractModel):
     ]
     intent: AgentIntent | None = None
     procedure_candidates: list[Identifier] = Field(default_factory=list, max_length=MAX_PROCEDURE_CANDIDATES)
+    goals: list[MessageGoal] = Field(default_factory=list, max_length=MAX_MESSAGE_GOALS)
     evidence_ids: list[PassageId] = Field(default_factory=list, max_length=10)
     routing_corrections: RoutingCorrections | None = None
     missing_fields: list[Identifier] = Field(default_factory=list, max_length=12)
@@ -79,6 +80,10 @@ class CheckpointState(ContractModel):
 
     @model_validator(mode="after")
     def validate_pending_work(self):
+        if self.goals and (
+            self.intent != "plan_multiple_tasks" or len(self.goals) < 2 or self.procedure_candidates
+        ):
+            raise ValueError("Multiple goals require an independent candidate set for each goal")
         if self.pending_question_id is not None and self.pending_proposal_id is not None:
             raise ValueError("A checkpoint can hold one pending interaction")
         if self.pending_proposal_id is None and (self.proposal_freshness is not None or self.approval_pause is not None):
