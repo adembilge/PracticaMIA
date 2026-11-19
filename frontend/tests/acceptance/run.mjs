@@ -700,17 +700,20 @@ try{
   });
 
   await scenario('Agent clarification: stale tabs recover without answering the new question',async()=>{
-    const owner=await contextFor('alice',{width:390,height:800});
-    const stale=await owner.context().newPage();
-    const offline=await owner.context().newPage();
+    const viewport={width:390,height:800};
+    const owner=await contextFor('alice',viewport);
+    const stale=await contextFor('alice',viewport);
+    const offline=await contextFor('alice',viewport);
     const first='Which synthetic detail should both tabs see first?';
     const next='Which synthetic detail should the refreshed tab see?';
     for(const page of [owner,stale,offline]){
+      page.setDefaultTimeout(10000);
       await page.goto(origin+'/__acceptance/agent');
       await page.getByRole('button',{name:'Open conversation'}).first().click();
       await page.getByText(first,{exact:true}).waitFor();
       await page.getByRole('radio',{name:page===owner?'Fixture A':'Fixture B'}).check();
     }
+    process.stdout.write('Agent stale tabs: each session opened the first question\n');
 
     const submit=async page=>{
       const [response]=await Promise.all([
@@ -724,6 +727,7 @@ try{
     const firstReply=await accepted.json();
     const url=new URL(accepted.url()).pathname.split('/questions/')[0];
     await awaitAgentStatus(owner,url,'waiting_for_information');
+    process.stdout.write('Agent stale tabs: the worker requested a replacement question\n');
 
     const rejected=await submit(stale);
     assert.equal(rejected.status(),409);
@@ -732,6 +736,7 @@ try{
     await stale.getByText(next,{exact:true}).waitFor();
     assert.equal(await stale.getByRole('radio',{name:'Fixture B'}).isChecked(),false);
     assert.equal(await stale.getByRole('button',{name:'Send reply',exact:true}).isEnabled(),false);
+    process.stdout.write('Agent stale tabs: automatic refresh recovered the replacement\n');
 
     await offline.route(origin+url,route=>route.fulfill({status:503}),{times:1});
     assert.equal((await submit(offline)).status(),409);
@@ -740,6 +745,7 @@ try{
     assert.equal(await offline.getByRole('button',{name:'Send reply',exact:true}).isVisible(),false);
     await offline.getByRole('button',{name:'Check status',exact:true}).click();
     await offline.getByText(next,{exact:true}).waitFor();
+    process.stdout.write('Agent stale tabs: manual retry recovered after a failed refresh\n');
 
     const replay=await readJson(owner,url+'/events');
     assert.equal(replay.status,200);
