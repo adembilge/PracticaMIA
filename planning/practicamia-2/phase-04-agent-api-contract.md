@@ -150,6 +150,18 @@ An empty or out-of-scope result preserves the unverified outcome and asks the us
 
 The [recovery tests](../../backend/tests/test_agent_catalogue_recovery.py) exercise transient recovery in a fresh session, exhausted retries, signed event replay, a new request after failure, empty results and English and Italian validation guidance.
 
+## Document and form extension tools
+
+Task 36.6 adds three case-scoped requests to the typed tool boundary. The requests carry references. Document access and form preparation remain on their own release paths.
+
+| Tool | Request | Prerequisites for a future executor |
+| --- | --- | --- |
+| `read_document_evidence` | Case and document IDs, and a bounded set of distinct field IDs | The case owns the document and the document passes consent, scan, retention and evidence review checks. Return selected field references and provenance. |
+| `find_applicable_form` | Case ID and a known procedure/location pair | The form is applicable to the case and its current official version is supported by approved evidence. |
+| `prepare_form_draft` | Case ID, exact form and mapping versions, and expected case revision | The versions and validated case inputs match the reviewed mapping and required user approvals. The output remains a private draft. |
+
+The current server verifies the owner and running state before returning a `capability_disabled` error with a typed `unavailable` result. The result schema accepts identifiers for the tool and its unavailable state. It rejects completion statuses, evidence contents, draft or operation IDs, and submission claims. The [synthetic tests](../../backend/tests/test_agent_extension_tools.py) exercise case isolation, strict inputs, and rejection of fabricated results. Document and form executors are defined by Phases 6 and 7.
+
 ## Identifiers and state
 
 | Field | Meaning | Rule |
