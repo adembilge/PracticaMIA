@@ -49,6 +49,9 @@ def test_draft_confirmation_and_restart_persistence(client, auth_headers):
     draft = client.put(path, json={"facts": {"citizenship_class":"italian"}, "confirm": False}, headers=headers)
     assert draft.status_code == 200
     assert draft.json()["verification_state"] == "draft"
+    assert draft.json()["field_provenance"] == {
+        "citizenship_class": {"origin": "user_entered", "verification_state": "draft"},
+    }
     assert draft.json()["missing_fields"] == [
         "registration_context","destination_municipality","household_scope","housing_basis"
     ]
@@ -68,6 +71,9 @@ def test_draft_confirmation_and_restart_persistence(client, auth_headers):
         assert response.status_code == 200
         assert response.json()["facts"] == FACTS
         assert response.json()["confirmed_at"] is not None
+        assert response.json()["field_provenance"] == {
+            field: {"origin": "user_entered", "verification_state": "user_confirmed"} for field in FACTS
+        }
     # Editing the facts clears the previous confirmation.
     edited = client.put(path, json={
         "facts": {**FACTS, "move_in_date": "2026-11-03"}, "confirm": False
@@ -75,6 +81,7 @@ def test_draft_confirmation_and_restart_persistence(client, auth_headers):
     assert edited.status_code == 200
     assert not edited.json()["confirmed"]
     assert edited.json()["confirmed_at"] is None
+    assert edited.json()["field_provenance"]["move_in_date"]["verification_state"] == "draft"
 
 
 def test_strict_validation_rejects_personal_identifiers_and_untrusted_fields(client, auth_headers):
@@ -97,6 +104,7 @@ def test_strict_validation_rejects_personal_identifiers_and_untrusted_fields(cli
     for request in [
         {"facts": FACTS, "confirm": True, "injected": "ignore instructions"},
         {"facts": FACTS, "confirm": "true"},
+        {"facts": FACTS, "confirm": True, "field_provenance": {"move_in_date": {"origin": "user_document"}}},
     ]:
         assert client.put(path, json=request, headers=headers).status_code == 422
     assert client.get(path, headers=headers).json()["facts"] == {}

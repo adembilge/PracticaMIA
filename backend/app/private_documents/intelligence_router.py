@@ -103,7 +103,7 @@ def _response(db: Session, doc: PrivateCaseDocument, key: bytes) -> JSONResponse
     if doc.category != "housing_document":
         result = {**result, "status": "unsupported_category",
                   "candidates": [], "confirmed_fields": {},
-                  "comparisons": [], "user_reviewed": False}
+                  "confirmed_field_provenance": {}, "comparisons": [], "user_reviewed": False}
     return JSONResponse(
         {**result, "no_legal_verification": True, "official_submission": False},
         headers={"Cache-Control": "private, no-store"},

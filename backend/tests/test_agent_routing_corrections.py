@@ -47,7 +47,9 @@ def test_reviewed_procedure_correction_clears_old_scope_before_evaluating_the_ne
     state = CheckpointState(
         next_node="choose_next_step", intent="find_procedure", procedure_candidates=["old-procedure"],
         missing_fields=["procedure"], evidence_ids=[f"{uuid4()}:0001"],
-        routing_corrections=RoutingCorrections(procedure="old-procedure", destination="old-town"),
+        routing_corrections=RoutingCorrections(
+            procedure="old-procedure", destination="old-town", reply_event_seqs={"destination": 2},
+        ),
     )
     answer = _answer("New procedure", ["procedure"])
     result = choose_candidate_step(
@@ -60,7 +62,9 @@ def test_reviewed_procedure_correction_clears_old_scope_before_evaluating_the_ne
     assert isinstance(result, RequestClarification)
     assert result.question.missing_fields == ["destination"]
     assert result.resume_state.procedure_candidates == ["new-procedure"]
-    assert result.resume_state.routing_corrections == RoutingCorrections(procedure="new-procedure")
+    assert result.resume_state.routing_corrections == RoutingCorrections(
+        procedure="new-procedure", reply_event_seqs={"procedure": 3},
+    )
     assert result.resume_state.evidence_ids == []
     assert apply_routing_reply(replace(answer, clarification_question=None), state, (name,)) == state
     assert apply_routing_reply(answer, state, (replace(name, approved_for_search=False),)) == state
@@ -83,7 +87,9 @@ def test_grouped_correction_applies_only_unambiguous_requested_fields_and_asks_f
     )
     assert isinstance(result, RequestClarification)
     assert result.question.missing_fields == ["housing_basis"]
-    assert result.resume_state.routing_corrections == RoutingCorrections(filing_date=date(2026, 11, 18))
+    assert result.resume_state.routing_corrections == RoutingCorrections(
+        filing_date=date(2026, 11, 18), reply_event_seqs={"filing_date": 3},
+    )
 
 
 def test_destination_correction_uses_a_unique_reviewed_municipality_and_drops_old_evidence():
@@ -183,6 +189,7 @@ def test_corrected_date_rechecks_routing_and_fresh_evidence_across_worker_restar
         with restarted.begin() as db:
             state = load_checkpoint(db, **context).state
         assert state.next_node == "verify_and_respond"
+        assert state.routing_corrections.reply_event_seqs == {"move_in_date": paused.run_revision}
         assert state.evidence_ids and all(citation.startswith(replacement + ":") for citation in state.evidence_ids)
     else:
         assert result.status == "completed"

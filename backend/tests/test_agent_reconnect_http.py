@@ -109,6 +109,7 @@ def test_owner_reconnects_replies_and_resumes_the_same_run(client, auth_headers,
         assert saved.status_code == 200
         assert saved.headers["Cache-Control"] == "private, no-store"
         assert saved.json()["type"] == "question.answered"
+        assert saved.json()["origin"] == "user_entered"
         assert saved.json()["run_id"] == str(context["run_id"])
         assert reconnected.post(reply_url, headers=owner, json=reply).json() == saved.json()
 

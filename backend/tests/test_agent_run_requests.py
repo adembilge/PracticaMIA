@@ -54,6 +54,7 @@ def test_accepted_message_resumes_after_session_restart_and_replays_exactly(clie
         found = read_run_message(db, **context, run_id=accepted.run_id)
         assert found.text == message.text
         assert found.language == "it"
+        assert found.origin == "user_entered"
         assert found.case_id is None
         assert read_run_message(
             db, thread_id=thread_id, run_id=accepted.run_id, principal=BOB, key=KEY,

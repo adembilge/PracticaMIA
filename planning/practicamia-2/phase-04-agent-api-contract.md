@@ -257,6 +257,14 @@ The card loads on demand and shows the original passage, its section and revisio
 
 Signed-JWT tests exercise both explanation languages, exact text, citation membership and source withdrawal. The isolated Chromium reconnect scenario opens a card backed by a synthetic approved registry passage and checks the displayed wording and account boundary. Historical events retain their recorded citations for replay. The Phase 4 router and conversation view remain isolated from the production entry points.
 
+## Recording case input provenance
+
+Task 38.1 keeps the origin and review state associated with the existing authoritative record. Accepted messages originate from the authenticated user and stay in the encrypted request. The `question.answered` event carries `user_entered`. Each bounded routing value derived from a reply records that event's sequence in the encrypted checkpoint. A procedure change discards the previous routing values and their references. Routing values apply to the current run. Saved intake changes through its existing explicit confirmation path.
+
+The case intake API pairs its saved values with server-derived `field_provenance`. An entered value keeps `user_entered` as it moves from `draft` to `user_confirmed`. The private-document vault tags each extracted candidate `user_document` and saves the selected candidate ID with the reviewed value's origin. Retaining the suggested value preserves document origin. A user correction carries `user_entered` and keeps the candidate reference and original suggestion. Document review has its own `user_reviewed` state. Both the candidate and its review follow the document's existing protection and lifecycle.
+
+Older intake rows derive provenance from the existing confirmation timestamp. Earlier document reviews derive it from their selected candidate and stored value. Older routing checkpoints still load when they lack reply references. Synthetic tests verify encrypted provenance after reopening, procedure reset, document correction, and separate case confirmation. The schema and input validation of case writes stay compatible with earlier clients. Task 38.2 will present this information with the proposed change.
+
 ## Failure and concurrency rules
 
 - Invalid message or event cursor: `422`; stale thread or case revision: `409`; unavailable owned resource: `404`; unauthenticated: `401`. Rate and capacity limits use `429` or `503` with retry guidance.

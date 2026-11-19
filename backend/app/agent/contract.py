@@ -293,6 +293,7 @@ class QuestionAnswered(EventEnvelope):
     client_reply_id: UUID
     text: ClarificationText | None = None
     disposition: ClarificationDisposition = "answer"
+    origin: Literal["user_entered"] = "user_entered"
 
     @model_validator(mode="after")
     def validate_answer_text(self):

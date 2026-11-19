@@ -105,7 +105,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 
 ## 38. Build proposals, user approval, and safe resumption
 
-- **38.1** Record user statements, extracted values, and confirmed values with their origin.
+- **38.1** [Record case input provenance](phase-04-agent-api-contract.md#recording-case-input-provenance) for user statements, extracted values, and user-confirmed values.
 - **38.2** Show proposal ID, affected field, existing and proposed values, rationale, and case revision.
 - **38.3** Implement accept, correct, reject, and cancel. Revalidate corrected values when needed and keep rejected values from being applied.
 - **38.4** Recheck outdated proposals if case data or sources change. Verify freshness and permissions before committing.
