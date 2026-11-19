@@ -165,4 +165,6 @@ The [Task 39.5 switch flow](../planning/practicamia-2/phase-04-agent-api-contrac
 
 The [Task 39.6 isolation regression](../planning/practicamia-2/phase-04-agent-api-contract.md#testing-isolation-between-pending-cases) exercises both answer orders with two pending cases. The signed synthetic API and worker checks bind same-name PDFs, review states, date replies, municipal citations and source cards to the correct case. The second municipality uses a disposable catalogue fixture.
 
+The [Task 40.1 development set](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#agent-development-evaluation-set) contains 13 bilingual synthetic scenario families. The offline checks validate Phase 2 and Phase 3 provenance, retain the signed Milan passage references, and check the effects of missing, changed or withdrawn inputs against the rule engine. Torino and permit references are ready for review as catalogue candidates. The reviewed multi-authority pilot and agent scoring remain open.
+
 For implementation details see [the documentation index](README.md).
