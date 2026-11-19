@@ -83,7 +83,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 | Propose case update | Draft field or task change |
 | Apply approved update | Commit a write with valid approval and revision |
 
-- **36.1** Define typed inputs and outputs. Validate catalogue IDs and reject unknown parameters.
+- **36.1** Define [typed tool inputs and outputs](phase-04-agent-api-contract.md#typed-tool-contracts). Validate catalogue IDs and reject unknown parameters.
 - **36.2** Verify the acting user and ownership server-side. Model output does not confer access.
 - **36.3** Define execution conditions for reads and writes. Check required approval on the server.
 - **36.4** Prevent duplicate writes during retries, network failures, and resume with idempotency keys and case revisions.

@@ -1,9 +1,7 @@
 """Internal Phase 4 adapter for the existing approved Milan passage catalogue."""
 
-from dataclasses import dataclass
 from datetime import timezone
 import re
-from typing import Literal
 from uuid import UUID
 
 from pydantic import ValidationError
@@ -13,6 +11,9 @@ from sqlalchemy.orm import Session
 from app.agent.checkpoints import CheckpointState
 from app.agent.contract import AnswerResult, Citation, Language
 from app.agent.threads import AgentThread, AgentThreadCase
+from app.agent.tool_contract import (
+    CatalogueEvidence, CataloguePassage, CatalogueScope, FindEvidence, OpenSourceDetails,
+)
 from app.auth.tokens import Principal
 from app.cases.intake_model import CaseIntake
 from app.cases.intake_schemas import IntakeFacts, describe_intake
@@ -33,6 +34,7 @@ _ADDRESS_CHANGE_TERMS = re.compile(
     r"(?:comunicar|registrar)e il nuovo indirizzo)\b"
 )
 _ANPR_TERMS = re.compile(r"\b(?:anpr|a n p r)\b")
+_MILAN_SCOPE = CatalogueScope(procedure_id=PROCEDURE, location_id=JURISDICTION)
 
 
 def _milan_search_hint(query: str) -> str:
@@ -50,23 +52,6 @@ def _milan_search_hint(query: str) -> str:
     if _ANPR_TERMS.search(key):
         terms.append("anpr")
     return " ".join(terms)
-
-
-@dataclass(frozen=True)
-class CataloguePassage:
-    citation: Citation
-    section_path: str
-    content: str
-
-
-@dataclass(frozen=True)
-class CatalogueEvidence:
-    status: Literal[
-        "evidence_found", "insufficient_evidence", "needs_information", "unsupported_scope",
-        "case_unavailable",
-    ]
-    passages: tuple[CataloguePassage, ...] = ()
-    missing_fields: tuple[str, ...] = ()
 
 
 def _case_evidence_gap(
@@ -136,6 +121,7 @@ def _catalogue_passage(passage: EvidencePassage) -> CataloguePassage:
             procedure_id=passage.procedure_id,
             location_id=passage.jurisdiction,
         ),
+        source_revision=passage.source_revision,
         section_path=passage.section_path,
         content=passage.content,
     )
@@ -147,11 +133,13 @@ def find_catalogue_evidence(
     """Read Italian excerpts using the owning case's confirmed scope."""
     if gap := _case_evidence_gap(db, thread_id, case_id, principal):
         return gap
+    call = FindEvidence(tool="find_evidence", case_id=case_id, scope=_MILAN_SCOPE, query=query, limit=limit)
     search_scope = {
-        "jurisdiction": JURISDICTION, "procedure_id": PROCEDURE, "language": "it", "limit": limit,
+        "jurisdiction": call.scope.location_id, "procedure_id": call.scope.procedure_id,
+        "language": "it", "limit": call.limit,
     }
-    rows = search_approved_passages(db, query=query, **search_scope)
-    if not rows and (hint := _milan_search_hint(query)) and hint != normalize_query(query)[0]:
+    rows = search_approved_passages(db, query=call.query, **search_scope)
+    if not rows and (hint := _milan_search_hint(call.query)) and hint != normalize_query(call.query)[0]:
         rows = search_approved_passages(db, query=hint, **search_scope)
     return CatalogueEvidence(
         status="evidence_found" if rows else "insufficient_evidence",
@@ -165,9 +153,15 @@ def resolve_catalogue_evidence(
     """Recheck an exact citation at use time with the current approval gates."""
     if gap := _case_evidence_gap(db, thread_id, case_id, principal):
         return gap
+    try:
+        call = OpenSourceDetails(
+            tool="open_source_details", case_id=case_id, scope=_MILAN_SCOPE, citation_id=citation_id,
+        )
+    except ValidationError:
+        return CatalogueEvidence(status="insufficient_evidence")
     row = resolve_approved_passage(
-        db, citation_id=citation_id, jurisdiction=JURISDICTION,
-        procedure_id=PROCEDURE, language="it",
+        db, citation_id=call.citation_id, jurisdiction=call.scope.location_id,
+        procedure_id=call.scope.procedure_id, language="it",
     )
     if row is None:
         return CatalogueEvidence(status="insufficient_evidence")

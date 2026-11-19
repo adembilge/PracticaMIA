@@ -251,6 +251,7 @@ def test_phase4_catalogue_and_search_api_share_exact_approved_evidence(client, a
         ).passages == result.passages
 
     assert str(match.citation.source_version_id) == found["source_version_id"] == version
+    assert match.source_revision == found["source_revision"]
     assert match.citation.source_id == found["source_id"]
     assert match.citation.passage_id == found["passage_id"]
     assert match.citation.citation_id == found["citation_id"]
