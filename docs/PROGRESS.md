@@ -145,6 +145,8 @@ The [Task 38.1 input provenance](../planning/practicamia-2/phase-04-agent-api-co
 
 The [Task 38.2 proposal preview](../planning/practicamia-2/phase-04-agent-api-contract.md#previewing-a-proposed-case-change) persists the worker's approval pause and displays the exact recorded change in the isolated conversation view. The snapshot is owner-scoped and carries the affected field, existing and proposed values, rationale, case revision and proposal ID. Synthetic API and mobile Chromium tests exercise reopening and stopping without a case update.
 
-The [Task 38.3 proposal decisions](../planning/practicamia-2/phase-04-agent-api-contract.md#recording-proposal-decisions) record the owner's decision at the exact review boundary. A valid correction opens a replacement review. Retried decisions replay the saved outcome. The existing write gate recognizes the recorded acceptance and blocks declined or replaced proposals. Live case and evidence revalidation and graph resumption follow in Tasks 38.4 and 38.5.
+The [Task 38.3 proposal decisions](../planning/practicamia-2/phase-04-agent-api-contract.md#recording-proposal-decisions) record the owner's decision at the exact review boundary. A valid correction opens a replacement review. Retried decisions replay the saved outcome. The existing write gate recognizes the recorded acceptance and blocks declined or replaced proposals.
+
+The [Task 38.4 proposal freshness check](../planning/practicamia-2/phase-04-agent-api-contract.md#rechecking-proposal-freshness) binds each worker proposal to the case snapshot and exact approved passages in its encrypted checkpoint. The internal write transaction rechecks ownership, acceptance, case state and registry versions before calling the writer. Synthetic integration tests cover stale case data, source changes and legacy proposals without a snapshot. Task 38.5 covers graph resumption.
 
 For implementation details see [the documentation index](README.md).

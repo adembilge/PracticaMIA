@@ -17,7 +17,8 @@ from app.agent.contract import (
     AnswerCompleted, AnswerResult, ApprovalProposal, ApprovalRequested, ClarifyingQuestion, DocumentObservation,
     NextAction, ProgressUpdated, QuestionAnswered, QuestionRequested, RunFailed, RunSnapshot, RunStarted,
 )
-from app.agent.run_events import _read_event_at, read_run_snapshot
+from app.agent.proposal_freshness import ProposalFreshness, proposal_evidence_fingerprint
+from app.agent.run_events import EventConflict, _read_event_at, read_run_snapshot
 from app.agent.run_requests import (
     WORKER_RUN_STATUSES, AgentRunRequest, StoredMessage, _owned_run, read_recent_user_messages, read_run_message,
 )
@@ -26,6 +27,7 @@ from app.agent.tool_contract import ReadCaseContext
 from app.agent.tool_execution import check_tool_execution
 from app.agent.worker_leases import WorkerLease, WorkerLeaseConflict, claim_next_run, require_worker_lease
 from app.auth.tokens import Principal
+from app.cases.intake_schemas import IntakeFacts
 from app.config import Settings
 
 
@@ -199,6 +201,41 @@ def run_worker_step(
         if run is None:
             return None
         require_worker_lease(db, run, lease)
+        proposal_state = None
+        if isinstance(result, RequestApproval):
+            if str(result.proposal.case_id) != run.case_id:
+                raise EventConflict("Proposal must belong to the run's case")
+            case_fingerprint = case_context.proposal_case_fingerprint if case_context else None
+            field_id = result.proposal.field_id
+            checklist_evidence = () if field_id in IntakeFacts.model_fields else (
+                case_context.checklist_evidence_ids.get(field_id) if case_context else None
+            )
+            evidence_ids = sorted(set(checkpoint.state.evidence_ids).union(
+                result.resume_state.evidence_ids, checklist_evidence or (),
+            ))
+            evidence_fingerprint = (
+                proposal_evidence_fingerprint(db, evidence_ids)
+                if case_fingerprint is not None and checklist_evidence is not None else None
+            )
+            if case_fingerprint is None or evidence_fingerprint is None:
+                explanation, label = (
+                    ("Review the case and current sources before requesting this change again.", "Review case details")
+                    if message.language == "en" else
+                    ("Rivedi la pratica e le fonti attuali prima di richiedere di nuovo la modifica.",
+                     "Rivedi i dati della pratica")
+                )
+                result = AnswerResult(
+                    explanation=explanation, verification_status="insufficient_evidence",
+                    next_action=NextAction(label=label, operation="provide_information"),
+                )
+            else:
+                proposal_state = result.resume_state.model_copy(update={
+                    "pending_proposal_id": result.proposal.proposal_id,
+                    "proposal_freshness": ProposalFreshness(
+                        case_fingerprint=case_fingerprint, passage_ids=evidence_ids,
+                        evidence_fingerprint=evidence_fingerprint,
+                    ),
+                })
         if isinstance(result, AnswerResult):
             if result.citations:
                 scope = (
@@ -250,9 +287,8 @@ def run_worker_step(
                 )
                 event = QuestionRequested(**envelope, type="question.requested", question=result.question)
             elif isinstance(result, RequestApproval):
-                state = result.resume_state.model_copy(
-                    update={"pending_proposal_id": result.proposal.proposal_id},
-                )
+                assert proposal_state is not None
+                state = proposal_state
                 event = ApprovalRequested(
                     **envelope, type="approval.requested", proposal=result.proposal, requires_recorded_decision=True,
                 )

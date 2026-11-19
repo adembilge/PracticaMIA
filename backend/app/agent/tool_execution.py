@@ -9,6 +9,9 @@ from sqlalchemy.orm import Session
 
 from app.agent.checkpoints import load_checkpoint
 from app.agent.contract import ApprovalDecided, ApprovalProposal, ApprovalRequested, ProposalDecision
+from app.agent.proposal_freshness import (
+    case_proposal_fingerprint, case_snapshot_query, proposal_evidence_fingerprint,
+)
 from app.agent.run_events import read_run_events
 from app.agent.tool_access import ToolAccessDenied, authorize_tool_call
 from app.agent.tool_contract import ApplyApprovedUpdate, ExtensionToolCall, ToolCall, UnavailableExtensionResult
@@ -17,6 +20,10 @@ from app.auth.tokens import Principal
 
 class ToolExecutionDenied(ToolAccessDenied):
     """The owned run currently lacks the conditions for this tool."""
+
+
+class ProposalOutdated(ToolExecutionDenied):
+    """The approved proposal must be drafted and reviewed again."""
 
 
 class ToolCapabilityUnavailable(ToolExecutionDenied):
@@ -52,7 +59,8 @@ def check_tool_execution(
 
     The optional reader looks up the run and proposal IDs in the server's approval
     store. It must load the authenticated decision and current locked case revision
-    via this session. Without a reader, an update is unavailable.
+    via this session. The writer holds the case row lock when calling this
+    preflight so the checked case and sources stay current through commit.
     """
     status = authorize_tool_call(db, principal=principal, thread_id=thread_id, run_id=run_id, call=call)
     if not isinstance(call, ApplyApprovedUpdate):
@@ -96,5 +104,16 @@ def check_tool_execution(
         or approval.current_case_revision != call.expected_case_revision
         or proposal.expires_at <= datetime.now(timezone.utc)
     ):
+        raise ToolExecutionDenied("Current user approval is required")
+
+    freshness = checkpoint.state.proposal_freshness
+    if freshness is None:
+        raise ProposalOutdated("Proposal is outdated and requires a new review")
+    case = db.execute(case_snapshot_query(str(proposal.case_id), principal.subject)).one_or_none()
+    if case is None or case_proposal_fingerprint(*case) != freshness.case_fingerprint:
+        raise ProposalOutdated("Proposal is outdated and requires a new review")
+    if proposal_evidence_fingerprint(db, freshness.passage_ids) != freshness.evidence_fingerprint:
+        raise ProposalOutdated("Proposal is outdated and requires a new review")
+    if proposal.expires_at <= datetime.now(timezone.utc):
         raise ToolExecutionDenied("Current user approval is required")
     return proposal
