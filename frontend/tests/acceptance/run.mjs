@@ -974,7 +974,7 @@ try{
       items:[{thread_id:threadId,run_id:runId}],next_cursor:null,
     }}));
     await page.route(origin+url,route=>route.fulfill({json:{
-      run_id:runId,status:'failed',last_event_seq:3,run_revision:4,result:null,
+      thread_id:threadId,run_id:runId,status:'failed',last_event_seq:3,run_revision:4,result:null,
     }}));
     await page.route(request=>request.pathname===url+'/events',route=>route.fulfill({json:{events:[{
       type:'run.failed',event_seq:3,code:'catalogue_unavailable',retryable:true,recovery:'retry_later',
@@ -984,6 +984,51 @@ try{
     await page.getByRole('heading',{name:'Conversation failed',exact:true}).waitFor({timeout:10000});
     await page.getByText('Send your request again later.',{exact:true}).waitFor({timeout:10000});
     assert.equal(await page.getByRole('button',{name:'Check status',exact:true}).isVisible(),false);
+  });
+
+  await scenario('Agent task switching: open another case and return to its original question after reload',async()=>{
+    const owner=await contextFor('alice',{width:390,height:800});
+    const route='/__acceptance/agent';
+    const firstPrompt='Which detail belongs to the first saved case?';
+    const secondPrompt='Which detail belongs to the second saved case?';
+    await owner.goto(origin+route);
+    const {body:{items}}=await readJson(owner,'/api/agent/runs/active');
+    const urls=items.map(run=>`/api/agent/threads/${run.thread_id}/runs/${run.run_id}`);
+    const journals=await Promise.all(urls.map(url=>readJson(owner,url+'/events')));
+    const index=journals.findIndex(journal=>journal.body.events.at(-1)?.question?.text===firstPrompt);
+    assert.ok(index>=0);
+    const first=items[index];
+    const firstQuestion=journals[index].body.events.at(-1).question;
+    const path=`/api/agent/threads/${first.thread_id}`;
+    await owner.getByRole('button',{name:'Open conversation',exact:true}).nth(index).click();
+    await owner.getByRole('group',{name:firstPrompt}).waitFor();
+    await owner.getByRole('button',{name:'Cases in this conversation'}).click();
+    await owner.getByRole('button',{name:/Start task for Saved case/}).click();
+    await owner.getByRole('textbox',{name:/Message for Saved case/}).fill('Continue the second saved case.');
+    const accepted=owner.waitForResponse(response=>response.url()===origin+path+'/messages' && response.status()===202);
+    await owner.getByRole('button',{name:'Start task',exact:true}).click();
+    const {run_id:secondId}=await (await accepted).json();
+    const secondUrl=path+'/runs/'+secondId;
+    await awaitAgentStatus(owner,secondUrl,'waiting_for_information');
+    const check=owner.getByRole('button',{name:'Check status',exact:true});
+    await check.or(owner.getByRole('group',{name:secondPrompt})).first().waitFor();
+    if(await check.isVisible()) await check.click();
+    await owner.getByRole('group',{name:secondPrompt}).waitFor();
+    await owner.getByRole('button',{name:new RegExp('Open task for Saved case '+first.case_id.slice(0,8))}).click();
+    await owner.getByRole('group',{name:firstPrompt}).waitFor();
+    assert.equal(await owner.getByRole('group',{name:secondPrompt}).isVisible(),false);
+    assert.equal((await readJson(owner,urls[index]+'/events')).body.events.at(-1).question.question_id,
+      firstQuestion.question_id);
+
+    await owner.reload();
+    const {body:{items:reopened}}=await readJson(owner,'/api/agent/runs/active');
+    assert.equal(reopened.filter(run=>run.thread_id===first.thread_id).length,2);
+    await owner.getByRole('button',{name:'Open saved case task '+first.case_id.slice(0,8),exact:true}).click();
+    await owner.getByRole('group',{name:firstPrompt}).waitFor();
+    await owner.getByRole('radio',{name:'Fixture A',exact:true}).check();
+    await owner.getByRole('button',{name:'Send reply',exact:true}).click();
+    await awaitAgentStatus(owner,urls[index]);
+    assert.equal((await readJson(owner,secondUrl)).body.status,'waiting_for_information');
   });
 
   await scenario('A8: browser runs without uncaught runtime errors',async()=>{

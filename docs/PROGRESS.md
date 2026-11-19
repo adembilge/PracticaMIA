@@ -161,4 +161,6 @@ The [Task 39.3 saved-case selection](../planning/practicamia-2/phase-04-agent-ap
 
 The [Task 39.4 shared-fact projection](../planning/practicamia-2/phase-04-agent-api-contract.md#reusing-confirmed-shared-facts) reuses the agreed citizenship category in the isolated worker after the owner starts a run bound to another individual case in the same conversation. The worker rechecks the source values before committing, and dates, documents and evidence remain tied to the active case. Signed synthetic tests exercise the case-selection path, case and owner isolation, conflicting facts and a mid-step archive.
 
+The [Task 39.5 switch flow](../planning/practicamia-2/phase-04-agent-api-contract.md#switching-between-pending-case-tasks) uses the existing run snapshots and event journal to reopen separate tasks within an owned conversation. Migration `20261119_0024` retains one processing slot and permits separate pending case questions. Signed API, disposable PostgreSQL and isolated mobile acceptance cover the switching flow, original question recovery and competing replies.
+
 For implementation details see [the documentation index](README.md).

@@ -12,29 +12,33 @@ from sqlalchemy.orm import Session
 
 from app.agent.answer_evidence import AnswerEvidenceScopeReader
 from app.agent.approval_resume import ApprovedCaseUpdates, resume_approved_case_update
+from app.agent.case_selection import ThreadCaseTasks, list_thread_case_tasks
 from app.agent.checkpoints import CheckpointConflict, RunRevisionConflict, stop_run, submit_clarification_reply
 from app.agent.contract import (
     ActiveRunCursor, ActiveRunCursorTime, ActiveRunPage, ApprovalDecided, ClarificationReply, ContractModel,
-    EventPage, PassageId, QuestionAnswered, RunSnapshot, StopRun, SubmitProposalDecision,
+    EventPage, Language, PassageId, PositiveInt, QuestionAnswered, RunSnapshot, SendMessage, StopRun,
+    SubmitProposalDecision,
 )
 from app.agent.proposal_decisions import InvalidProposalValue, ProposalDecisionConflict, submit_proposal_decision
 from app.agent.run_events import (
-    EventConflict, InvalidClarificationReply, InvalidEventCursor, read_run_events, read_run_snapshot,
+    ConversationBusy, EventConflict, InvalidClarificationReply, InvalidEventCursor, read_run_events, read_run_snapshot,
 )
 from app.agent.run_handoff import read_run_handoff
-from app.agent.run_requests import _payload_cipher, list_active_runs
+from app.agent.run_requests import _payload_cipher, accept_message, list_active_runs
 from app.agent.source_cards import RunSourceCard, read_run_source_card
 from app.auth.tokens import Principal, get_principal
 from app.database import get_session
 
 AuthenticatedOwner = Annotated[Principal, Depends(get_principal)]
 DatabaseSession = Annotated[Session, Depends(get_session)]
-RUN_PATH = "/threads/{thread_id}/runs/{run_id}"
+THREAD_PATH = "/threads/{thread_id}"
+RUN_PATH = THREAD_PATH + "/runs/{run_id}"
 
 
 ErrorCode = Literal[
     "unauthenticated", "unavailable", "invalid_request", "invalid_cursor", "invalid_reply",
     "stale_question", "stale_run", "stale_proposal", "invalid_proposal_value",
+    "conversation_busy", "stale_thread", "message_conflict",
 ]
 
 
@@ -54,6 +58,15 @@ class AgentHttpError(ContractModel):
     code: ErrorCode
     message: str
     request_id: UUID
+
+
+class CaseTaskMessage(SendMessage):
+    case_id: UUID
+
+
+class CaseTaskAccepted(ContractModel):
+    run_id: UUID
+    accepted_revision: PositiveInt
 
 
 def _error(status: int, code: ErrorCode, message: str, *, headers=None) -> JSONResponse:
@@ -83,6 +96,8 @@ class _PrivateAgentRoute(APIRoute):
                 response = _error(409, "stale_proposal", "Review the current proposal before deciding.")
             except RunRevisionConflict:
                 response = _error(409, "stale_run", "Reopen the run to check its current status.")
+            except ConversationBusy:
+                response = _error(409, "conversation_busy", "Wait for the current task to pause or finish, then try again.")
             except (CheckpointConflict, EventConflict):
                 response = _error(409, "stale_question", "Reopen the run to check its current question.")
             except HTTPException as exc:
@@ -120,6 +135,34 @@ def build_reconnect_router(
         if query.before_accepted_at is not None and query.before_run_id is not None:
             cursor = ActiveRunCursor(accepted_at=query.before_accepted_at, run_id=query.before_run_id)
         return list_active_runs(db, principal=principal, limit=query.limit, before=cursor)
+
+    @router.get(THREAD_PATH + "/cases")
+    def case_tasks(
+        thread_id: UUID, principal: AuthenticatedOwner, db: DatabaseSession,
+        language: Language = "en", after_case_id: UUID | None = None,
+    ) -> ThreadCaseTasks:
+        tasks = list_thread_case_tasks(
+            db, thread_id=thread_id, principal=principal, language=language, after_case_id=after_case_id,
+        )
+        if tasks is None:
+            raise HTTPException(404)
+        return tasks
+
+    @router.post(THREAD_PATH + "/messages", status_code=202, responses={409: {"model": AgentHttpError}})
+    def start_case_task(
+        thread_id: UUID, message: CaseTaskMessage, principal: AuthenticatedOwner, db: DatabaseSession,
+    ) -> CaseTaskAccepted:
+        with db.begin():
+            accepted = accept_message(db, thread_id=thread_id, message=message, principal=principal, key=key)
+        if accepted.outcome == "unavailable":
+            raise HTTPException(404)
+        if accepted.outcome == "active_run":
+            raise ConversationBusy()
+        if accepted.outcome == "stale_thread":
+            return _error(409, "stale_thread", "Reopen the conversation and try again.")
+        if accepted.outcome == "message_conflict":
+            return _error(409, "message_conflict", "Send the updated message as a new request.")
+        return CaseTaskAccepted(run_id=accepted.run_id, accepted_revision=accepted.accepted_revision)
 
     @router.get(RUN_PATH)
     def run_snapshot(

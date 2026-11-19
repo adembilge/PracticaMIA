@@ -61,6 +61,88 @@ def assert_private_error(response, status, code):
     return body["message"]
 
 
+def test_switch_between_owned_cases_and_reopen_the_original_question(client, auth_headers, paused_run):
+    first, question, first_case = paused_run
+    owner = auth_headers()
+    thread_url = f"/api/v1/agent/threads/{first['thread_id']}"
+    first_url = run_url(first)
+    factory = client.app.state.session_factory
+    second_case, archived, unlinked = [
+        UUID(client.post("/api/v1/cases", headers=owner, json={}).json()["id"]) for _ in range(3)
+    ]
+    with factory.begin() as db:
+        for case in (second_case, archived):
+            assert link_case_to_thread(db, principal=OWNER, thread_id=first["thread_id"], case_id=case)
+    assert client.patch(f"/api/v1/cases/{archived}/archive", json={"archived": True}, headers=owner).status_code == 200
+    client.app.include_router(build_reconnect_router(key=KEY))
+
+    path = thread_url + "/cases"
+    tasks = client.get(path, headers=owner)
+    assert tasks.headers["Cache-Control"] == "private, no-store"
+    assert {UUID(item["case_id"]): item["run_id"] for item in tasks.json()["items"]} == {
+        first_case: str(first["run_id"]), second_case: None,
+    }
+    ordered = sorted([first_case, second_case])
+    assert [item["case_id"] for item in client.get(
+        path, headers=owner, params={"after_case_id": str(ordered[0]), "language": "it"},
+    ).json()["items"]] == [str(ordered[1])]
+    assert_private_error(client.get(path, headers=auth_headers("bob")), 404, "unavailable")
+
+    message = {"client_message_id": str(uuid4()), "case_id": str(second_case), "text": "Second task", "language": "en"}
+    send_url = thread_url + "/messages"
+    assert_private_error(client.post(send_url, headers=auth_headers("bob"), json=message), 404, "unavailable")
+    for unavailable in (archived, unlinked):
+        assert_private_error(client.post(
+            send_url, headers=owner, json=message | {"case_id": str(unavailable)},
+        ), 404, "unavailable")
+    assert_private_error(client.post(
+        send_url, headers=owner, json=message | {"case_id": str(first_case)},
+    ), 409, "conversation_busy")
+    before = client.get(first_url, headers=owner).json()
+    accepted = client.post(send_url, headers=owner, json=message)
+    assert accepted.status_code == 202
+    assert client.post(send_url, headers=owner, json=message).json() == accepted.json()
+    second = first | {"run_id": UUID(accepted.json()["run_id"])}
+    second_url = run_url(second)
+
+    reply = {"client_reply_id": str(uuid4()), "expected_run_revision": before["run_revision"], "text": "Fixture A"}
+    reply_url = f"{first_url}/questions/{question.question_id}/reply"
+    assert_private_error(client.post(reply_url, headers=owner, json=reply), 409, "conversation_busy")
+    assert client.get(first_url, headers=owner).json() == before
+
+    second_question = ClarifyingQuestion(
+        question_id=uuid4(), text="Which other detail?", answer_shape="free_text", options=[], missing_fields=["date"],
+    )
+    second_pause = run_worker_step(factory, **second, execute=lambda *_: RequestClarification(
+        second_question, CheckpointState(next_node="find_evidence"),
+    ))
+    assert second_pause.status == "waiting_for_information"
+    assert {item["run_id"] for item in client.get(path, headers=owner).json()["items"]} == {
+        str(first["run_id"]), str(second["run_id"]),
+    }
+    assert client.get(first_url + "/events", headers=owner).json()["events"][-1]["question"] == (
+        question.model_dump(mode="json")
+    )
+    assert_private_error(client.post(
+        f"{second_url}/questions/{question.question_id}/reply",
+        headers=owner, json=reply | {"expected_run_revision": second_pause.run_revision},
+    ), 409, "stale_question")
+    answered = client.post(reply_url, headers=owner, json=reply)
+    assert answered.status_code == 200
+    assert client.post(reply_url, headers=owner, json=reply).json() == answered.json()
+
+    def resume(message, state):
+        assert message.case_id == first_case and state.next_node == "find_evidence"
+        assert message.clarification_reply.question_id == question.question_id
+        return AnswerResult(explanation="First case resumed.", verification_status="insufficient_evidence")
+
+    assert run_worker_step(factory, **first, execute=resume).status == "completed"
+    assert client.get(second_url, headers=owner).json()["run_revision"] == second_pause.run_revision
+    assert client.get(second_url + "/events", headers=owner).json()["events"][-1]["question"]["question_id"] == (
+        str(second_question.question_id)
+    )
+
+
 def test_pending_proposal_replays_the_exact_read_only_preview(client, auth_headers):
     owner = auth_headers()
     case = client.post("/api/v1/cases", headers=owner, json={})

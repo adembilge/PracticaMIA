@@ -51,6 +51,7 @@ class AgentReconnectFixture:
         stop = self.seed_question("Which synthetic route should be stopped?")
         self.seed_case_choice()
         self.seed_goal_choice()
+        self.switch_questions = self.seed_switch_tasks()
         self.proposal_case_id = self.seed_proposal()
         api.include_router(build_reconnect_router(
             key=self.key, case_updates=ApprovedCaseUpdates(self.proposal_revision, self.write_proposal),
@@ -66,6 +67,7 @@ class AgentReconnectFixture:
         self.municipality_question_id = self.seed_question("Which synthetic municipality applies?")
         self.question_ids = {
             stop, topic, date, self.municipality_question_id, self.replaced_question_id, self.followup_question.question_id,
+            *(question.question_id for question in self.switch_questions.values()),
         }
 
     def seed_source(self):
@@ -234,9 +236,42 @@ class AgentReconnectFixture:
             reviewed_labels={name.catalogue_id: name.display_name for name in GOAL_NAMES},
         )
 
+    def seed_switch_tasks(self):
+        principal = Principal("alice")
+        first, second = uuid4(), uuid4()
+        questions = {
+            case: ClarifyingQuestion(
+                question_id=uuid4(), text=prompt, answer_shape="single_choice",
+                options=["Fixture A", "Fixture B"], missing_fields=["housing_basis"],
+            ) for case, prompt in (
+                (first, "Which detail belongs to the first saved case?"),
+                (second, "Which detail belongs to the second saved case?"),
+            )
+        }
+        with self.sessions.begin() as db:
+            db.add_all(CaseRecord(id=str(case), owner_subject=principal.subject) for case in questions)
+            db.flush()
+            thread_id = create_thread(db, principal=principal)
+            for case in questions:
+                if not link_case_to_thread(db, thread_id=thread_id, case_id=case, principal=principal):
+                    raise RuntimeError("Expected to link both synthetic cases")
+            accepted = accept_message(
+                db, thread_id=thread_id, principal=principal, key=self.key,
+                message=SendMessage(client_message_id=uuid4(), text="First saved case", language="en", case_id=first),
+            )
+        run_worker_step(
+            self.sessions, thread_id=thread_id, run_id=accepted.run_id, principal=principal, key=self.key,
+            execute=lambda *_: RequestClarification(questions[first], CheckpointState(next_node="find_evidence")),
+        )
+        return questions
+
     def finish(self, message, state):
         if state.goals:
             return self.choose_goal(message, state)
+        if state.next_node == "load_context":
+            if question := self.switch_questions.get(message.case_id):
+                return RequestClarification(question, CheckpointState(next_node="find_evidence"))
+            return AnswerResult(explanation="This synthetic case is open.", verification_status="insufficient_evidence")
         if message.approval_applied is not None:
             if state.next_node != "verify_and_respond" or message.case_id != self.proposal_case_id:
                 raise RuntimeError("The worker did not resume the saved proposal run")
