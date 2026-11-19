@@ -214,6 +214,7 @@ def refresh_corrected_evidence(
         or corrections.destination not in (None, JURISDICTION)
         or corrections.activity_location is not None
         or corrections.housing_basis not in (None, "registered_private_rental")
+        or corrections.citizenship_class not in (None, "italian")
     ):
         return _unverified_evidence(language, state.missing_fields)
 

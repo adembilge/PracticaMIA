@@ -13,7 +13,9 @@ from app.agent.contract import (
     MAX_PROCEDURE_CANDIDATES, AnswerResult, Citation, ClarifyingQuestion, EvidenceLinkedClaim, GoalSelection,
     NextAction, OfficialChannel,
 )
-from app.agent.routing_corrections import ROUTING_FIELD_LABELS as _FIELD_LABELS, apply_routing_reply, housing_options
+from app.agent.routing_corrections import (
+    ROUTING_FIELD_LABELS as _FIELD_LABELS, apply_routing_reply, citizenship_options, housing_options,
+)
 from app.agent.run_requests import StoredMessage
 from app.agent.worker import RequestClarification
 from app.knowledge.entity_matching import CatalogueName
@@ -49,6 +51,9 @@ _QUESTIONS = {
     ("circumstance", "housing_basis"): (
         "Do you own the home, rent it, or live there under another arrangement?",
         "La casa è di tua proprietà, è in affitto o ci abiti a un altro titolo?",
+    ),
+    ("circumstance", "citizenship_class"): (
+        "What citizenship category applies to this case?", "Quale categoria di cittadinanza vale per questa pratica?",
     ),
 }
 _IDENTITY_FIELDS = ("intent", "case_reference", "procedure")
@@ -145,8 +150,9 @@ def choose_candidate_step(
     for field in ("move_in_date", "filing_date"):
         if value := corrected_fields.get(field):
             confirmed_dates[field] = value
-    if corrections and corrections.housing_basis:
-        confirmed_circumstances["housing_basis"] = corrections.housing_basis
+    for field in ("housing_basis", "citizenship_class"):
+        if value := corrected_fields.get(field):
+            confirmed_circumstances[field] = value
     hints = {field: hint for field, hint in context.hints.items() if field not in corrected_fields}
     results = resolve_candidate_applicability(
         state, case_locations=case_locations, confirmed_dates=confirmed_dates,
@@ -193,6 +199,8 @@ def choose_candidate_step(
                 "Put each detail on its own line in the form label: value.",
                 "Scrivi ogni dato su una riga separata nel formato etichetta: valore.",
             )[language]
+        elif question_field == "citizenship_class":
+            options = citizenship_options(message.language)
         elif context_hint is None:
             if question_field == "housing_basis":
                 options = housing_options(message.language)

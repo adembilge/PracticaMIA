@@ -5,15 +5,16 @@ from typing import Literal, get_args
 from uuid import UUID
 
 from pydantic import ValidationError
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.agent.contract import DocumentFieldStatus
 from app.agent.document_context import read_document_field_statuses
 from app.agent.proposal_freshness import case_proposal_fingerprint, case_snapshot_query
-from app.agent.threads import AgentThread, AgentThreadCase
+from app.agent.threads import AgentThread, AgentThreadCase, active_case_links
 from app.auth.tokens import Principal
 from app.cases.intake_model import CaseIntake
-from app.cases.intake_schemas import IntakeFacts, describe_intake
+from app.cases.intake_schemas import IntakeFacts, KnownCitizenship, describe_intake
 from app.cases.model import CaseRecord
 from app.cases.scope import DEMO_ANSWERS
 from app.cases.workflow_service import build_workflow
@@ -34,6 +35,7 @@ class WorkerCaseContext:
     document_fields: dict[str, DocumentFieldStatus] = field(default_factory=dict)
     proposal_case_fingerprint: str | None = None
     checklist_evidence_ids: dict[str, tuple[str, ...]] = field(default_factory=dict)
+    shared_citizenship_class: KnownCitizenship | None = None
 
 
 def _confirmed_facts(case: CaseRecord, intake: CaseIntake | None) -> IntakeFacts | None:
@@ -48,6 +50,47 @@ def _confirmed_facts(case: CaseRecord, intake: CaseIntake | None) -> IntakeFacts
         return None
     missing = describe_intake(facts.model_dump(exclude_none=True), confirmed=True)["missing_fields"]
     return facts if not missing else None
+
+
+def read_shared_citizenship(
+    db: Session, *, thread_id: UUID, case_id: UUID, principal: Principal,
+) -> KnownCitizenship | None:
+    """Read the agreed citizenship category from confirmed, individual cases in this thread."""
+    target_id = str(case_id)
+    rows = db.execute(
+        active_case_links(thread_id, principal).outerjoin(CaseIntake, and_(
+            CaseIntake.case_id == CaseRecord.id, CaseIntake.owner_subject == CaseRecord.owner_subject,
+        )).add_columns(CaseIntake).where(
+            CaseRecord.procedure == PROCEDURE,
+            CaseRecord.status == "provisionally_in_scope",
+            or_(CaseRecord.id == target_id, CaseIntake.confirmed_at.is_not(None)),
+        )
+    )
+    target_allows_reuse = False
+    shared = None
+    for case, intake in rows:
+        if case.id == target_id:
+            if case.scope_answers != list(DEMO_ANSWERS):
+                return None
+            try:
+                draft = IntakeFacts.model_validate(intake.facts) if intake is not None else IntakeFacts()
+            except ValidationError:
+                return None
+            if draft.citizenship_class is not None or draft.household_scope not in (
+                None, "individual_no_aggregation",
+            ):
+                return None
+            target_allows_reuse = True
+            continue
+        facts = _confirmed_facts(case, intake)
+        if facts is None or facts.household_scope != "individual_no_aggregation":
+            continue
+        citizenship = facts.citizenship_class
+        if citizenship in ("italian", "non_italian"):
+            if shared is not None and citizenship != shared:
+                return None
+            shared = citizenship
+    return shared if target_allows_reuse else None
 
 
 def read_worker_case_context(
