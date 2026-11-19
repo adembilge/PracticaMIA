@@ -117,4 +117,6 @@ The [Task 35.5 correction flow](../planning/practicamia-2/phase-04-agent-api-con
 
 The [Task 35.6 stale-question recovery](../planning/practicamia-2/phase-04-agent-api-contract.md#recovering-from-a-stale-question) explains a rejected reply and refreshes the isolated browser view. Synthetic tests exercise mismatched question IDs and revisions, exact retries, and multiple tabs recovering the replacement question after a successful or failed status refresh.
 
+The [Task 36.1 tool contracts](../planning/practicamia-2/phase-04-agent-api-contract.md#typed-tool-contracts) define typed input and result models for six catalogue and case tools. Synthetic tests cover unknown parameters, catalogue scope mismatches, exact passage identity and typed changes. The existing Milan evidence reader uses the new evidence models. The update models describe payloads for the later execution and approval steps.
+
 For implementation details see [the documentation index](README.md).

@@ -101,6 +101,23 @@ Task 35.6 binds a reply to the question ID and run revision displayed in its tab
 
 On a reply conflict, the isolated browser client explains the rejection, discards the stale draft and retry key, and reloads the same run. Any new question requires a fresh answer. If the reload fails, the stale controls stay hidden and the user can retry the status read. The synthetic HTTP and Chromium tests verify that a replacement question remains pending until an explicit fresh reply is submitted.
 
+## Typed tool contracts
+
+Task 36.1 defines six internal tool calls and results in [the tool contract](../../backend/app/agent/tool_contract.py). The `tool` discriminator selects a schema. Unknown tools and extra fields are rejected, including extra fields in catalogue scopes and case changes. The parser checks location IDs and exact procedure/location pairs against a server-supplied catalogue. Formatted passage IDs identify an exact version and passage. The evidence service still checks current approval and applicability when resolving one.
+
+| Tool | Typed input | Typed result |
+| --- | --- | --- |
+| `find_procedure` | Name query, language and optional catalogue location | Candidate procedure/location pairs, authority IDs and evidenced channels |
+| `find_evidence` | Case ID, procedure/location pair, search terms and bounded limit | Status and applicable passages with citations, or missing information |
+| `open_source_details` | Case ID, procedure/location pair and exact citation ID | Status and at most one passage with source version, official URL, scope and section |
+| `read_case_context` | Case ID | Confirmed intake, next action and outstanding checklist IDs |
+| `propose_case_update` | Case ID, expected revision, one typed fact or checklist change, and rationale | The proposal for user review |
+| `apply_approved_update` | Case and proposal IDs, expected revision and client operation ID | Committed operation ID and new revision when an execution service applies the change |
+
+The existing internal Milan evidence reader uses the evidence and source detail models with its owned-case and approved-source checks. Procedure discovery, case context and update schemas define payloads for later tool integration. Parsing an update leaves the case untouched. Acting identity, ownership and actual execution remain server responsibilities.
+
+Run `python -m pytest -q tests/test_agent_tool_contract.py tests/test_knowledge_search.py` from `backend/` to exercise all six schema pairs, invalid catalogue IDs and parameters, and approved-source lookup and withdrawal in the synthetic database.
+
 ## Identifiers and state
 
 | Field | Meaning | Rule |
