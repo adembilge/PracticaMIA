@@ -1,16 +1,20 @@
 """Synthetic coverage for the encrypted run journal and reconnect cursor."""
 
 from datetime import datetime, timezone
+from os import urandom
 from uuid import uuid4
 
 import pytest
 from cryptography.exceptions import InvalidTag
 
 from app.agent.contract import agent_event_adapter
-from app.agent.run_events import AgentRunEvent, EventConflict, append_run_event, read_run_events, read_run_snapshot
-from app.agent.run_requests import accept_message
+from app.agent.run_events import (
+    AgentRunEvent, EventConflict, _event_aad, append_run_event, read_run_events, read_run_snapshot,
+)
+from app.agent.run_requests import AgentRunRequest, _payload_cipher, accept_message
 from app.agent.threads import create_thread
 from app.auth.tokens import Principal
+from test_agent_contract import ANSWER, PASSAGE
 from test_agent_run_requests import ALICE, KEY, request
 
 
@@ -106,6 +110,43 @@ def test_retries_are_stable_and_state_rejects_invalid_events(queued_run):
         assert read_run_snapshot(db, **context).status == "stopped"
         with pytest.raises(EventConflict, match="run state"):
             _append(db, context, event("progress.updated", 5, stage="test", text="late"))
+
+
+def test_journal_requires_claim_links_for_new_verified_answers_and_official_channels(queued_run):
+    factory, context, started, event = queued_run
+    claim = {"kind": "channel", "statement": "The synthetic source identifies a contact.", "evidence_ids": [PASSAGE]}
+    with factory.begin() as db:
+        _append(db, context, started)
+        with pytest.raises(EventConflict, match="verified answer requires evidence-linked claims"):
+            _append(db, context, event("answer.completed", 2, result=ANSWER))
+        with pytest.raises(EventConflict, match="official channel requires an evidence-linked channel claim"):
+            _append(db, context, event("answer.completed", 2, result={
+                **ANSWER, "verification_status": "insufficient_evidence", "claims": [{**claim, "kind": "authority"}],
+            }))
+        assert read_run_snapshot(db, **context).status == "running"
+        linked = event("answer.completed", 2, result={**ANSWER, "claims": [claim]})
+        assert _append(db, context, linked) == linked
+    with factory() as db:
+        assert read_run_snapshot(db, **context).result.claims == linked.result.claims
+        assert read_run_events(db, **context, after_seq=1).events == [linked]
+
+
+def test_legacy_encrypted_verified_answer_without_claims_remains_readable(queued_run):
+    factory, context, started, event = queued_run
+    legacy = event("answer.completed", 2, result=ANSWER)
+    with factory.begin() as db:
+        _append(db, context, started)
+        row = db.get(AgentRunRequest, str(context["run_id"]))
+        payload = legacy.model_dump_json(exclude_unset=True).encode()
+        assert b'"claims"' not in payload
+        nonce = urandom(12)
+        ciphertext = _payload_cipher(KEY).encrypt(nonce, payload, _event_aad(row, 2, ALICE))
+        db.add(AgentRunEvent(run_id=row.id, event_seq=2, ciphertext=nonce + ciphertext))
+        row.status = "completed"
+    with factory.begin() as db:
+        assert read_run_snapshot(db, **context).result == legacy.result
+        assert read_run_events(db, **context, after_seq=1).events == [legacy]
+        assert _append(db, context, legacy) == legacy
 
 
 def test_wrong_owner_cannot_replay_or_append_and_rolled_back_events_are_absent(queued_run):

@@ -166,6 +166,37 @@ def test_evidence_conflict_can_carry_candidate_citations():
     assert answer.verification_status == "conflicting_evidence"
 
 
+def test_consequential_claims_round_trip_with_their_own_passage_ids():
+    kinds = ("authority", "channel", "mandatory_document", "fee", "deadline", "condition", "form_version")
+    citations = []
+    claims = []
+    for ordinal, kind in enumerate(kinds, 1):
+        passage = f"{SOURCE_VERSION}:{ordinal:04d}"
+        citations.append({**CITATION, "citation_id": passage, "passage_id": passage})
+        claims.append({"kind": kind, "statement": f"Synthetic {kind} assertion", "evidence_ids": [passage]})
+    claims[-1]["evidence_ids"].append(citations[0]["passage_id"])
+
+    answer = AnswerResult.model_validate({**ANSWER, "citations": citations, "claims": claims})
+    assert AnswerResult.model_validate_json(answer.model_dump_json()) == answer
+    assert [claim.model_dump() for claim in answer.claims] == claims
+
+
+@pytest.mark.parametrize("changes", [
+    {"kind": "government_submission"}, {"statement": "  "}, {"evidence_ids": []},
+    {"evidence_ids": [PASSAGE, PASSAGE]}, {"evidence_ids": [f"{SOURCE_VERSION}:0004"]},
+])
+def test_claim_requires_known_kind_text_and_distinct_linked_evidence(changes):
+    claim = {"kind": "deadline", "statement": "Synthetic deadline assertion", "evidence_ids": [PASSAGE]}
+    with pytest.raises(ValidationError):
+        AnswerResult.model_validate({**ANSWER, "claims": [{**claim, **changes}]})
+
+
+def test_a_claim_cannot_link_to_ambiguous_duplicate_citation_ids():
+    claim = {"kind": "fee", "statement": "Synthetic fee assertion", "evidence_ids": [PASSAGE]}
+    with pytest.raises(ValidationError, match="unique IDs"):
+        AnswerResult.model_validate({**ANSWER, "claims": [claim], "citations": [CITATION, CITATION]})
+
+
 def test_reconnect_cursors_and_terminal_order():
     start = event("run.started", 1, client_message_id=MESSAGE)
     progress = event("progress.updated", 2, stage="lookup", text="Checking scope")

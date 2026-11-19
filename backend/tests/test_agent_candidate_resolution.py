@@ -178,6 +178,9 @@ def test_official_assistance_is_independent_of_authority_conflict():
     assert result.verification_status == "conflicting_evidence"
     assert all(INPUTS["reviewed_labels"][item] in result.explanation for item in ("authority-a", "authority-b"))
     assert result.citations == [CONTACT.citation]
+    [claim] = result.claims
+    assert claim.kind == "channel"
+    assert claim.evidence_ids == [CONTACT.citation.passage_id]
     assert result.official_channel.url == CONTACT.citation.official_url
     assert result.next_action.operation == "open_official_channel"
 
@@ -208,6 +211,7 @@ def test_unverified_inapplicable_or_conflicting_contact_is_never_published(chang
     assert result.official_channel is None
     assert result.next_action is None
     assert result.citations == []
+    assert result.claims == []
 
 
 @pytest.mark.parametrize("all_fields", [False, True])
@@ -272,3 +276,4 @@ def test_deferred_fields_remain_open_and_verified_assistance_is_preserved(queued
     assert result.missing_information == ["filing_date", "housing_basis"]
     assert result.official_channel.url == CONTACT.citation.official_url
     assert result.citations == [CONTACT.citation]
+    assert result.claims[0].evidence_ids == [CONTACT.citation.passage_id]

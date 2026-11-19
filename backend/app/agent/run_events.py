@@ -114,6 +114,12 @@ def append_run_event(
         raise EventConflict("Start event must identify the accepted message")
     if isinstance(event, ApprovalRequested) and str(event.proposal.case_id) != run.case_id:
         raise EventConflict("Proposal must belong to the run's case")
+    if isinstance(event, AnswerCompleted):
+        result = event.result
+        if result.verification_status == "verified" and not result.claims:
+            raise EventConflict("A verified answer requires evidence-linked claims")
+        if result.official_channel and not any(claim.kind == "channel" for claim in result.claims):
+            raise EventConflict("An official channel requires an evidence-linked channel claim")
 
     if isinstance(event, QuestionAnswered):
         pending = _decode_event(latest, run, principal, key) if latest else None

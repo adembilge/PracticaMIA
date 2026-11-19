@@ -9,7 +9,7 @@ from app.agent.catalogue_applicability import resolve_candidate_applicability
 from app.agent.checkpoints import MAX_PROCEDURE_CANDIDATES, CheckpointState
 from app.agent.clarification_context import ClarificationHint, prepare_clarification_context
 from app.agent.clarification_priority import prioritize_routing_fields
-from app.agent.contract import AnswerResult, Citation, ClarifyingQuestion, NextAction, OfficialChannel
+from app.agent.contract import AnswerResult, Citation, ClarifyingQuestion, EvidenceLinkedClaim, NextAction, OfficialChannel
 from app.agent.routing_corrections import ROUTING_FIELD_LABELS as _FIELD_LABELS, apply_routing_reply, housing_options
 from app.agent.run_requests import StoredMessage
 from app.agent.worker import RequestClarification
@@ -253,11 +253,18 @@ def choose_candidate_step(
         ).status == "supported"
     ]
     channel = action = None
+    claims = []
     if len(contacts) == 1:
         citation = contacts[0]
         label = ("Ask for official assistance", "Chiedi assistenza ufficiale")[language]
         action = NextAction(label=label, operation="open_official_channel")
         channel = OfficialChannel(label=citation.publisher, url=citation.official_url)
+        claims.append(EvidenceLinkedClaim(
+            kind="channel", evidence_ids=[citation.passage_id], statement=(
+                "The cited source provides an official contact for this procedure.",
+                "La fonte citata fornisce un contatto ufficiale per questa pratica.",
+            )[language],
+        ))
     elif deferral_note and missing_information:
         label = ("Provide the missing details later", "Fornisci i dettagli mancanti in seguito")[language]
         action = NextAction(label=label, operation="provide_information")
@@ -265,7 +272,7 @@ def choose_candidate_step(
         explanation=explanation,
         verification_status="conflicting_evidence" if conflict else "insufficient_evidence",
         missing_information=missing_information,
-        official_channel=channel, next_action=action, citations=contacts if channel else [],
+        official_channel=channel, next_action=action, citations=contacts if channel else [], claims=claims,
     )
 
 

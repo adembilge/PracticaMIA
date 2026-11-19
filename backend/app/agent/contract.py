@@ -125,6 +125,19 @@ class NextAction(ContractModel):
     operation: Literal["open_official_channel", "provide_information", "start_new_topic"] | None = None
 
 
+class EvidenceLinkedClaim(ContractModel):
+    kind: Literal["authority", "channel", "mandatory_document", "fee", "deadline", "condition", "form_version"]
+    statement: ShortText
+    evidence_ids: list[PassageId] = Field(min_length=1, max_length=10)
+
+    @field_validator("evidence_ids")
+    @classmethod
+    def require_distinct_evidence(cls, ids: list[str]) -> list[str]:
+        if len(set(ids)) != len(ids):
+            raise ValueError("Claim evidence IDs must be distinct")
+        return ids
+
+
 class AnswerResult(ContractModel):
     explanation: str = Field(min_length=1, max_length=2000)
     verification_status: Literal[
@@ -134,6 +147,7 @@ class AnswerResult(ContractModel):
     official_channel: OfficialChannel | None = None
     citations: list[Citation] = Field(default_factory=list, max_length=10)
     missing_information: list[Identifier] = Field(default_factory=list, max_length=12)
+    claims: list[EvidenceLinkedClaim] = Field(default_factory=list, max_length=12)
 
     @model_validator(mode="after")
     def validate_answer(self):
@@ -141,6 +155,12 @@ class AnswerResult(ContractModel):
             raise ValueError("A verified answer must reference an evidence passage")
         if self.next_action and self.next_action.operation == "open_official_channel" and not self.official_channel:
             raise ValueError("Opening a channel requires a channel link")
+        if self.claims:
+            citations = {citation.citation_id for citation in self.citations}
+            if len(citations) != len(self.citations):
+                raise ValueError("Claim citations must have unique IDs")
+            if any(evidence_id not in citations for claim in self.claims for evidence_id in claim.evidence_ids):
+                raise ValueError("Each claim evidence ID must identify a citation in the answer")
         return self
 
 
