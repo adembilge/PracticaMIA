@@ -136,7 +136,16 @@ jobs:
       - name: Install isolated document acceptance tools
         timeout-minutes: 5
         run: |
-          apt_options=(-o Acquire::Retries=2 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
+          # Regional runner mirrors can throttle the document packages past the job timeout.
+          apt_sources="$RUNNER_TEMP/practicamia-document-tools.list"
+          trap 'rm -f "$apt_sources"' EXIT
+          cat > "$apt_sources" <<'EOF'
+          deb [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg] http://azure.archive.ubuntu.com/ubuntu noble main universe
+          deb [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg] http://azure.archive.ubuntu.com/ubuntu noble-updates main universe
+          deb [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg] http://azure.archive.ubuntu.com/ubuntu noble-security main universe
+          EOF
+          apt_options=(-o Dir::Etc::sourcelist="$apt_sources" -o Dir::Etc::sourceparts=-
+            -o Acquire::Retries=2 -o Acquire::http::Timeout=20)
           sudo apt-get "${apt_options[@]}" -o Acquire::Languages=none update
           sudo apt-get "${apt_options[@]}" install -y --no-install-recommends \
             clamav tesseract-ocr tesseract-ocr-ita fonts-dejavu-core poppler-utils
