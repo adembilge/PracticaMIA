@@ -342,6 +342,14 @@ The reply endpoint binds the selected label to the case ID recorded on the pendi
 
 Signed tests cover both languages, separate active-goal procedure candidates, explicit selection, cross-account access, archive races and new-run binding. The mobile synthetic Chromium scenario chooses between linked cases and checks the destination exposed by the authenticated API.
 
+### Reusing confirmed shared facts
+
+Task 39.4 lets the isolated candidate resolver reuse the confirmed citizenship category when the owner continues with an independently bound individual Milan case in the same conversation. Only active individual cases with valid confirmed intake can supply the field. The target must be in the individual scope and have no citizenship entry of its own. If the source values disagree, the worker leaves the field open. An explicit conflicting statement in the current message prompts for clarification. A reply applies to the current run.
+
+The worker projects only that category and rechecks it before committing the routing step. Dates, locations, housing, registration and household details, document observations and official evidence continue to use the current case's own scope. Reuse is a routing input. The saved intake and its confirmation are written through the existing case flow, and approved evidence still requires the current case to meet its own requirements.
+
+The [signed API and worker tests](../../backend/tests/test_agent_shared_case_facts.py) cover a verified case selection followed by a new bound run, draft and archived sources, unrelated accounts and conversations, conflicting values and revocation during a worker step.
+
 ## Acceptance and dependency checks
 
 The [wire models](../../backend/app/agent/contract.py) encode bounded inputs, typed events, run results and pagination invariants. The [synthetic fixtures](../../backend/tests/test_agent_contract.py) cover verified and conflicting answers, clarification, approval requests, stop, failure, citation identity, and reconnection. The [encrypted acceptance service](../../backend/app/agent/run_requests.py) now persists a queued run with the message before its caller commits. The [local fixtures](../../backend/tests/test_agent_run_requests.py) cover retry recovery, changed payload conflicts, stale revisions, case permissions and verified ciphertext. A retry can carry a fresher thread revision because revisions are concurrency metadata; the message identity is the text, language and optional case within its thread.

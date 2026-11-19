@@ -159,4 +159,6 @@ The [Task 39.2 task choice](../planning/practicamia-2/phase-04-agent-api-contrac
 
 The [Task 39.3 saved-case selection](../planning/practicamia-2/phase-04-agent-api-contract.md#verifying-the-selected-case) clarifies relative case references and checks ownership, thread linkage and active state before the user can continue. The original run preserves its case binding. Signed synthetic tests cover archive races, separate procedures and access isolation. The mobile acceptance scenario checks the verified saved-case link.
 
+The [Task 39.4 shared-fact projection](../planning/practicamia-2/phase-04-agent-api-contract.md#reusing-confirmed-shared-facts) reuses the agreed citizenship category in the isolated worker after the owner starts a run bound to another individual case in the same conversation. The worker rechecks the source values before committing, and dates, documents and evidence remain tied to the active case. Signed synthetic tests exercise the case-selection path, case and owner isolation, conflicting facts and a mid-step archive.
+
 For implementation details see [the documentation index](README.md).

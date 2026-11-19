@@ -18,6 +18,8 @@ SUPPORTED_FACTS = {
     "housing_basis": "registered_private_rental",
 }
 
+KnownCitizenship = Literal["italian", "non_italian"]
+
 
 class IntakeFacts(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)

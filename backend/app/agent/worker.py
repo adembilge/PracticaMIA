@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.agent.answer_evidence import AnswerEvidenceScopeReader, revalidate_answer_evidence
 from app.agent.approval_graph import pause_for_approval
-from app.agent.case_context import read_worker_case_context
+from app.agent.case_context import read_shared_citizenship, read_worker_case_context
 from app.agent.case_selection import resolve_saved_case
 from app.agent.catalogue_evidence import CatalogueUnavailable, refresh_corrected_evidence
 from app.agent.checkpoints import (
@@ -32,6 +32,7 @@ from app.agent.worker_leases import WorkerLease, WorkerLeaseConflict, claim_next
 from app.auth.tokens import Principal
 from app.cases.intake_schemas import IntakeFacts
 from app.config import Settings
+from app.rules.engine import PROCEDURE
 
 
 @dataclass(frozen=True)
@@ -161,6 +162,14 @@ def run_worker_step(
             )
             if case_context is None:
                 return None
+            if (
+                checkpoint.state.next_node == "choose_next_step"
+                and checkpoint.state.procedure_candidates == [PROCEDURE]
+                and case_context.user_confirmed_facts is None
+            ):
+                case_context = replace(case_context, shared_citizenship_class=read_shared_citizenship(
+                    db, thread_id=thread_id, case_id=message.case_id, principal=principal,
+                ))
 
         message = replace(
             message,
@@ -221,6 +230,17 @@ def run_worker_step(
         if run is None:
             return None
         require_worker_lease(db, run, lease)
+        if (
+            case_context is not None and case_context.shared_citizenship_class is not None
+            and read_shared_citizenship(
+                db, thread_id=thread_id, case_id=case_context.case_id, principal=principal,
+            ) != case_context.shared_citizenship_class
+        ):
+            # Drop this computation. The next worker can resolve the same step with current facts.
+            if lease is not None:
+                run.lease_token = None
+                run.lease_expires_at = None
+            return None
         if isinstance(result, AnswerResult) and (
             resolve_case or (result.goal_selection and result.goal_selection.active_goal)
         ):

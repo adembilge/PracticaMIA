@@ -25,9 +25,13 @@ from app.agent.proposal_freshness import ProposalFreshness
 from app.agent.run_events import _latest_event, _read_event_at, append_run_event, read_run_snapshot
 from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run, _payload_cipher
 from app.auth.tokens import Principal
+from app.cases.intake_schemas import KnownCitizenship
 from app.database import Base
 
-RoutingField = Literal["procedure", "destination", "activity_location", "move_in_date", "filing_date", "housing_basis"]
+RoutingField = Literal[
+    "procedure", "destination", "activity_location", "move_in_date", "filing_date", "housing_basis",
+    "citizenship_class",
+]
 
 
 class AgentRunCheckpoint(Base):
@@ -54,6 +58,7 @@ class RoutingCorrections(ContractModel):
     move_in_date: date | None = None
     filing_date: date | None = None
     housing_basis: Literal["registered_private_rental", "owner", "guest", "other"] | None = None
+    citizenship_class: KnownCitizenship | None = None
     reply_event_seqs: dict[RoutingField, PositiveInt] = Field(default_factory=dict)
 
     @model_validator(mode="after")

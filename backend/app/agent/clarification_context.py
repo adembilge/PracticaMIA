@@ -22,6 +22,16 @@ _MILAN_DESTINATION = re.compile(
     r"(?:destination municipality|comune di destinazione)\s*:\s*)"
     r"(?:milan|milano)\s*[.!]?\s*$", re.I | re.M,
 )
+_ITALIAN_CITIZENSHIP = re.compile(
+    r"^\s*(?:i(?: am|['’]m) (?:an? )?italian(?: citizen)?|sono cittadin[oa] italian[oa]|"
+    r"(?:citizenship(?: category)?|categoria di cittadinanza)\s*:\s*(?:italian|italian[ao]))\s*[.!]?\s*$",
+    re.I | re.M,
+)
+_NON_ITALIAN_CITIZENSHIP = re.compile(
+    r"^\s*(?:i(?: am|['’]m) not (?:an? )?italian(?: citizen)?|non sono cittadin[oa] italian[oa]|"
+    r"(?:citizenship(?: category)?|categoria di cittadinanza)\s*:\s*(?:non[- ]italian|non italian[ao]))"
+    r"\s*[.!]?\s*$", re.I | re.M,
+)
 
 ClarificationHint = Literal["message"] | DocumentFieldStatus
 
@@ -50,6 +60,19 @@ def prepare_clarification_context(
     dates = dict(confirmed_dates)
     circumstances = dict(confirmed_circumstances)
     hints: dict[str, ClarificationHint] = dict(case.document_fields) if same_case else {}
+    citizenship = facts.citizenship_class if facts is not None else (
+        case.shared_citizenship_class if same_case else None
+    )
+    if citizenship is not None:
+        circumstances.setdefault("citizenship_class", citizenship)
+    stated_citizenships = {
+        value for value, pattern in (
+            ("italian", _ITALIAN_CITIZENSHIP), ("non_italian", _NON_ITALIAN_CITIZENSHIP),
+        ) if pattern.search(message.text)
+    }
+    _add_message_hint(hints, "citizenship_class", stated_citizenships, circumstances.get("citizenship_class"))
+    if hints.get("citizenship_class") == "conflict":
+        circumstances.pop("citizenship_class", None)
     if facts is not None:
         destination = locations.get("destination")
         if facts.destination_municipality == "milano" and not (destination and destination.confirmed):

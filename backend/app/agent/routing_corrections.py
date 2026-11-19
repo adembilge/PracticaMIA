@@ -20,18 +20,27 @@ _DISPLAY_HOUSING = (
         "Ho un altro tipo di affitto": "other", "Ci abito come ospite": "guest", "Un altro titolo": "other",
     },
 )
+_DISPLAY_CITIZENSHIP = {
+    "en": {"Italian": "italian", "Non-Italian": "non_italian"},
+    "it": {"Italiana": "italian", "Non italiana": "non_italian"},
+}
 ROUTING_FIELD_LABELS = {
     "destination": ("the destination municipality", "il comune di destinazione"),
     "activity_location": ("the municipality where the activity takes place", "il comune in cui si svolge l’attività"),
     "filing_date": ("the filing date", "la data di presentazione"),
     "move_in_date": ("the move-in date", "la data del trasferimento"),
     "housing_basis": ("the housing arrangement", "il titolo di occupazione"),
+    "citizenship_class": ("the citizenship category", "la categoria di cittadinanza"),
 }
 _NAME_FIELDS = {"procedure", "destination", "activity_location"}
 
 
 def housing_options(language: Language) -> list[str]:
     return list(_DISPLAY_HOUSING[0 if language == "en" else 1])
+
+
+def citizenship_options(language: Language) -> list[str]:
+    return list(_DISPLAY_CITIZENSHIP[language])
 
 
 def apply_routing_reply(
@@ -52,6 +61,13 @@ def apply_routing_reply(
             options = _DISPLAY_HOUSING[0 if message.language == "en" else 1]
             if housing := options.get(value) or HOUSING_VALUES.get(value.casefold()):
                 updates[field] = housing
+        elif field == "citizenship_class":
+            options = _DISPLAY_CITIZENSHIP[message.language]
+            citizenship = value.casefold().replace("-", " ").replace("_", " ")
+            for label, category in options.items():
+                if citizenship in (label.casefold().replace("-", " "), category.replace("_", " ")):
+                    updates[field] = category
+                    break
         elif field in _NAME_FIELDS and len(value) <= MAX_NAME_QUERY_LENGTH and normalize_name(value):
             match = match_catalogue_names(
                 value, list(catalogue_names), entity_type="procedure" if field == "procedure" else "municipality",
