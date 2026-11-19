@@ -974,7 +974,7 @@ try{
       items:[{thread_id:threadId,run_id:runId}],next_cursor:null,
     }}));
     await page.route(origin+url,route=>route.fulfill({json:{
-      run_id:runId,status:'failed',last_event_seq:3,run_revision:4,result:null,
+      thread_id:threadId,run_id:runId,status:'failed',last_event_seq:3,run_revision:4,result:null,
     }}));
     await page.route(request=>request.pathname===url+'/events',route=>route.fulfill({json:{events:[{
       type:'run.failed',event_seq:3,code:'catalogue_unavailable',retryable:true,recovery:'retry_later',

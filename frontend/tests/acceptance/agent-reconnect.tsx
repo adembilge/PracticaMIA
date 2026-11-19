@@ -113,7 +113,7 @@ export function AgentReconnectFixture() {
     setNewTask(null);
     setMessage('');
     setCaseTasks(current => {
-      if (current?.threadId !== next.snapshot.thread_id) return null;
+      if (!current || current.threadId !== next.snapshot.thread_id) return null;
       return activeStatuses.has(next.snapshot.status) ? current : {
         ...current, items: current.items.map(task => task.run_id === next.snapshot.run_id
           ? { ...task, run_id: null } : task),
