@@ -11,10 +11,10 @@ from sqlalchemy.orm import Session
 from app.agent.checkpoints import CheckpointState
 from app.agent.contract import AnswerResult, Citation, Language
 from app.agent.threads import AgentThread, AgentThreadCase
-from app.agent.tool_access import authorize_tool_call
 from app.agent.tool_contract import (
     CatalogueEvidence, CataloguePassage, CatalogueScope, FindEvidence, OpenSourceDetails,
 )
+from app.agent.tool_execution import check_tool_execution
 from app.auth.tokens import Principal
 from app.cases.intake_model import CaseIntake
 from app.cases.intake_schemas import IntakeFacts, describe_intake
@@ -174,7 +174,7 @@ def read_tool_evidence(
     call: FindEvidence | OpenSourceDetails,
 ) -> CatalogueEvidence:
     """Authorize the typed read against the current run before looking up evidence."""
-    authorize_tool_call(db, principal=principal, thread_id=thread_id, run_id=run_id, call=call)
+    check_tool_execution(db, principal=principal, thread_id=thread_id, run_id=run_id, call=call)
     if call.scope != _MILAN_SCOPE:
         return CatalogueEvidence(status="unsupported_scope")
     context = {"thread_id": thread_id, "case_id": call.case_id, "principal": principal}

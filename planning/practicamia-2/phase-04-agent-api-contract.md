@@ -126,6 +126,14 @@ The [ownership guard](../../backend/app/agent/tool_access.py) checks the six typ
 
 The [synthetic authorization tests](../../backend/tests/test_agent_tool_access.py) cover signed-token identity, missing and invalid tokens, case substitution, wrong threads, unlinked runs and deleted or no longer owned cases. A probe mounted only in the test application verifies that denied evidence calls do not reach the lookup.
 
+## Checking tool execution and approval
+
+Task 36.3 checks the owned run before any tool operation. Procedure discovery, evidence search, source details, case context and draft proposals require a `running` run. Evidence and case readers also enforce their existing source and case checks. Drafting a proposal makes no case change.
+
+An `apply_approved_update` call requires a run paused at the matching `approval.requested` checkpoint. The [server gate](../../backend/app/agent/tool_execution.py) locks the owned run, reads the exact proposal from its encrypted event and checks the case, proposal ID, revision and expiration. A server-provided reader must find an explicit accept decision recorded for the same owner, thread, run, case and proposal event. It must also read the current case revision under a lock in the same transaction. The gate returns the persisted proposal for the eventual writer. Missing readers or decisions, rejected or corrected decisions, and stale revisions fail closed.
+
+The [synthetic policy tests](../../backend/tests/test_agent_tool_execution.py) use real encrypted proposals and fixture approval records. The product currently has no approval reader or writer connected. Task 36.4 covers retry-safe execution. Task 38 covers recording user decisions and safely resuming the workflow.
+
 ## Identifiers and state
 
 | Field | Meaning | Rule |
