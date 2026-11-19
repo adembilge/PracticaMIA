@@ -108,6 +108,7 @@ def _candidate(field: str, raw: str, value: str, page: int, digest: str) -> dict
         "raw_value": raw,
         "suggested_value": value,
         "page": page,
+        "origin": "user_document",
         "verification_state": "needs_user_confirmation",
     }
 
@@ -178,9 +179,26 @@ def new_review(body: bytes, media_type: str, digest: str) -> dict:
         "extraction_digest": extraction_digest(digest, result),
         "confirmed_fields": {},
         "selected_evidence": {},
+        "confirmed_field_provenance": {},
         "user_reviewed": False,
     })
     return result
+
+
+def _confirmed_provenance(candidates: list[dict], confirmed: dict, selected: dict) -> dict:
+    extracted = {
+        (candidate["field_name"], candidate["candidate_id"]): candidate["suggested_value"]
+        for candidate in candidates
+    }
+    return {
+        field: {
+            "origin": "user_document" if extracted[(field, candidate_id)] == confirmed[field] else "user_entered",
+            "verification_state": "user_reviewed",
+            "candidate_id": candidate_id,
+        }
+        for field, candidate_id in selected.items()
+        if field in confirmed and (field, candidate_id) in extracted
+    }
 
 
 def validate_user_review(review: dict, *, token: str, selections: list[dict]) -> dict:
@@ -219,8 +237,10 @@ def validate_user_review(review: dict, *, token: str, selections: list[dict]) ->
         evidence[field] = candidate_id
     if seen != fields:
         raise ValueError("Missing field review")
-    return {**review, "confirmed_fields": chosen, "selected_evidence": evidence,
-            "user_reviewed": True}
+    return {
+        **review, "confirmed_fields": chosen, "selected_evidence": evidence,
+        "confirmed_field_provenance": _confirmed_provenance(candidates, chosen, evidence), "user_reviewed": True,
+    }
 
 
 def compare_review(review: dict | None, *, intake_facts: dict | None,
@@ -231,12 +251,19 @@ def compare_review(review: dict | None, *, intake_facts: dict | None,
             "status": "needs_extraction", "candidates": [], "confirmed_fields": {},
             "extraction_digest": None, "comparisons": [], "ambiguous_fields": [],
             "user_reviewed": False, "selected_evidence": {},
+            "confirmed_field_provenance": {},
         }
     status = review.get("status")
-    confirmed = review.get("confirmed_fields") if review.get("user_reviewed") else {}
+    is_reviewed = review.get("user_reviewed") is True
+    confirmed = review.get("confirmed_fields") if is_reviewed else {}
     confirmed = confirmed if isinstance(confirmed, dict) else {}
-    chosen_evidence = review.get("selected_evidence") if review.get("user_reviewed") else {}
+    chosen_evidence = review.get("selected_evidence") if is_reviewed else {}
     chosen_evidence = chosen_evidence if isinstance(chosen_evidence, dict) else {}
+    candidates = review.get("candidates", [])
+    provenance = review.get("confirmed_field_provenance") if is_reviewed else {}
+    if not isinstance(provenance, dict):
+        # Encrypted reviews created before provenance was explicit still have the selected candidate.
+        provenance = _confirmed_provenance(candidates, confirmed, chosen_evidence)
     results: list[dict] = []
     for field, confirmed_value in sorted(confirmed.items()):
         case_value = (intake_facts or {}).get(field) if intake_confirmed else None
@@ -251,7 +278,6 @@ def compare_review(review: dict | None, *, intake_facts: dict | None,
         })
     ambiguous = review.get("ambiguous_fields", [])
     conflicts = any(r["comparison"] == "conflict" for r in results)
-    is_reviewed = review.get("user_reviewed") is True
     return {
         "status": (
             "unreadable" if status == "unreadable" else
@@ -265,8 +291,9 @@ def compare_review(review: dict | None, *, intake_facts: dict | None,
             ) else
             "user_reviewed_unverified"
         ),
-        "candidates": review.get("candidates", []),
+        "candidates": [{**candidate, "origin": "user_document"} for candidate in candidates],
         "confirmed_fields": confirmed,
+        "confirmed_field_provenance": provenance,
         "selected_evidence": chosen_evidence,
         "extraction_digest": review.get("extraction_digest"),
         "comparisons": results,

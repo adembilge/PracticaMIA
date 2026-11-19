@@ -65,7 +65,10 @@ def apply_routing_reply(
     procedure = updates.get("procedure")
     if procedure and procedure != previous.procedure:
         previous = RoutingCorrections()
-    corrections = RoutingCorrections.model_validate(previous.model_dump() | updates)
+    corrections = RoutingCorrections.model_validate({
+        **previous.model_dump(), **updates,
+        "reply_event_seqs": previous.reply_event_seqs | dict.fromkeys(updates, reply.event_seq),
+    })
     return state.model_copy(update={
         "routing_corrections": corrections,
         "procedure_candidates": [procedure] if procedure else state.procedure_candidates,

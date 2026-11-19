@@ -14,7 +14,8 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 from app.agent.clarification_disposition import resolve_disposition
 from app.agent.contract import (
     AgentEvent, AgentIntent, AnswerCompleted, ApprovalRequested, ClarificationReply, ContractModel,
-    Identifier, PassageId, QuestionAnswered, QuestionRequested, RunFailed, RunSnapshot, RunStopped, TERMINAL_EVENTS,
+    Identifier, PassageId, PositiveInt, QuestionAnswered, QuestionRequested, RunFailed, RunSnapshot, RunStopped,
+    TERMINAL_EVENTS,
 )
 from app.agent.run_events import _latest_event, _read_event_at, append_run_event, read_run_snapshot
 from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run, _payload_cipher
@@ -22,6 +23,7 @@ from app.auth.tokens import Principal
 from app.database import Base
 
 MAX_PROCEDURE_CANDIDATES = 10
+RoutingField = Literal["procedure", "destination", "activity_location", "move_in_date", "filing_date", "housing_basis"]
 
 
 class AgentRunCheckpoint(Base):
@@ -48,6 +50,13 @@ class RoutingCorrections(ContractModel):
     move_in_date: date | None = None
     filing_date: date | None = None
     housing_basis: Literal["registered_private_rental", "owner", "guest", "other"] | None = None
+    reply_event_seqs: dict[RoutingField, PositiveInt] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_reply_refs(self):
+        if any(getattr(self, name) is None for name in self.reply_event_seqs):
+            raise ValueError("A routing reply reference requires a recorded value")
+        return self
 
 
 class CheckpointState(ContractModel):

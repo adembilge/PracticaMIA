@@ -1,6 +1,6 @@
 """Accept and recover encrypted agent messages before worker execution."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import json
 from os import urandom
@@ -80,6 +80,7 @@ class RunAcceptance:
 class RecentUserMessage:
     text: str
     language: Language
+    origin: Literal["user_entered"] = field(default="user_entered", init=False)
 
 
 @dataclass(frozen=True)
@@ -91,6 +92,7 @@ class StoredMessage:
     recent_user_messages: tuple[RecentUserMessage, ...] = ()
     case_context: WorkerCaseContext | None = None
     clarification_question: ClarifyingQuestion | None = None
+    origin: Literal["user_entered"] = field(default="user_entered", init=False)
 
 
 def _associated_data(run: AgentRunRequest, subject: str) -> bytes:

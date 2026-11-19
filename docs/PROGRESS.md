@@ -141,4 +141,6 @@ The [Task 37.5 answer provenance](../planning/practicamia-2/phase-04-agent-api-c
 
 The [Task 37.6 source cards](../planning/practicamia-2/phase-04-agent-api-contract.md#opening-exact-source-cards) load the exact approved passage from the saved answer in the isolated conversation view. English and Italian explanations accompany the original terms. Signed-JWT and Chromium tests cover the cited passage, revocation and account isolation.
 
+The [Task 38.1 input provenance](../planning/practicamia-2/phase-04-agent-api-contract.md#recording-case-input-provenance) traces routing values to encrypted user replies and maps intake fields to their user-entered origin and confirmation state. The private vault preserves document candidates alongside the origin of the reviewed value, including a user correction. Synthetic tests cover restart, earlier document reviews, edited intake and separate document review and case confirmation.
+
 For implementation details see [the documentation index](README.md).

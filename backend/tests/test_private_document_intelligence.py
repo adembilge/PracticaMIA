@@ -112,6 +112,8 @@ def test_private_housing_extraction_review_comparison_and_isolation(
         "housing_basis","move_in_date"
     }
     assert len(result["candidates"])==2
+    assert all(candidate["origin"] == "user_document" for candidate in result["candidates"])
+    assert result["confirmed_field_provenance"] == {}
     assert result["no_legal_verification"] is True
     assert result["official_submission"] is False
     assert "Property address" not in generated.text
@@ -150,6 +152,17 @@ def test_private_housing_extraction_review_comparison_and_isolation(
     result=saved.json()
     assert result["status"]=="conflict"
     assert result["user_reviewed"] is True
+    by_field = {c["field_name"]: c for c in result["candidates"]}
+    assert by_field["housing_basis"]["suggested_value"] == "registered_private_rental"
+    assert result["confirmed_fields"]["housing_basis"] == "guest"
+    provenance = {
+        field: {
+            "origin": origin, "verification_state": "user_reviewed",
+            "candidate_id": by_field[field]["candidate_id"],
+        }
+        for field, origin in (("housing_basis", "user_entered"), ("move_in_date", "user_document"))
+    }
+    assert result["confirmed_field_provenance"] == provenance
     assert len(result["comparisons"])==2
     assert any(x["field_name"]=="housing_basis" and
                x["comparison"]=="conflict" for x in result["comparisons"])
@@ -162,7 +175,20 @@ def test_private_housing_extraction_review_comparison_and_isolation(
     assert intake["confirmed"] is True
 
     # Saved review survives an owner reload and is no more valid after intake edit.
-    assert client.get(base,headers=alice).json()["status"]=="conflict"
+    replay = client.get(base, headers=alice).json()
+    assert replay["status"] == "conflict"
+    assert replay["confirmed_field_provenance"] == provenance
+    with client.app.state.session_factory.begin() as db:
+        document = db.get(PrivateCaseDocument, doc_id)
+        key = client.app.state.private_document_key
+        metadata = route._read_metadata(document, key)
+        assert metadata.pop("confirmed_field_provenance") == provenance
+        for candidate in metadata["candidates"]:
+            assert candidate.pop("origin") == "user_document"
+        route._write_metadata(document, metadata, key)
+    legacy = client.get(base, headers=alice).json()
+    assert legacy["confirmed_field_provenance"] == provenance
+    assert legacy["candidates"] == replay["candidates"]
     assert client.put(f"/api/v1/cases/{case_id}/intake",
                       json={"facts":FACTS,"confirm":False},headers=alice).status_code==200
     missing=client.get(base,headers=alice).json()

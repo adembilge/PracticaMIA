@@ -39,6 +39,10 @@ def _intake(db: Session, case_id: UUID, owner: str) -> CaseIntake | None:
 def _state(record: CaseIntake | None) -> dict:
     facts = dict(record.facts) if record else {}
     result = describe_intake(facts, bool(record and record.confirmed_at))
+    result["field_provenance"] = {
+        field: {"origin": "user_entered", "verification_state": result["verification_state"]}
+        for field in facts
+    }
     result["confirmed_at"] = record.confirmed_at.isoformat() if record and record.confirmed_at else None
     result["updated_at"] = record.updated_at.isoformat() if record else None
     return result
