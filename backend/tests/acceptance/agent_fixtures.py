@@ -49,6 +49,7 @@ class AgentReconnectFixture:
         self.key = token_bytes(32)
         self.citation, self.claim, self.channel, self.evidence_scope = self.seed_source()
         stop = self.seed_question("Which synthetic route should be stopped?")
+        self.seed_case_choice()
         self.seed_goal_choice()
         self.proposal_case_id = self.seed_proposal()
         api.include_router(build_reconnect_router(
@@ -200,6 +201,31 @@ class AgentReconnectFixture:
         snapshot = run_worker_step(self.sessions, **context, execute=self.choose_goal)
         if snapshot.status != "waiting_for_information":
             raise RuntimeError("Expected a pending choice between the synthetic goals")
+
+    def seed_case_choice(self):
+        principal = Principal("alice")
+        cases = [uuid4() for _ in range(3)]
+        with self.sessions.begin() as db:
+            db.add_all(CaseRecord(id=str(case_id), owner_subject=principal.subject) for case_id in cases)
+            db.flush()
+            thread_id = create_thread(db, principal=principal)
+            for case_id in cases:
+                if not link_case_to_thread(db, thread_id=thread_id, case_id=case_id, principal=principal):
+                    raise RuntimeError("Expected to link the synthetic saved case")
+            accepted = accept_message(
+                db, thread_id=thread_id, principal=principal, key=self.key,
+                message=SendMessage(
+                    client_message_id=uuid4(), language="en", case_id=cases[0], text="What about the other application?",
+                ),
+            )
+        context = {"thread_id": thread_id, "run_id": accepted.run_id, "principal": principal, "key": self.key}
+        run_worker_step(self.sessions, **context, execute=lambda *_: CheckpointState(next_node="identify_intent"))
+        run_worker_step(self.sessions, **context, execute=lambda message, state: identify_intent_step(
+            message, state, catalogue_names=(),
+        ))
+        snapshot = run_worker_step(self.sessions, **context, execute=self.finish)
+        if snapshot.status != "waiting_for_information":
+            raise RuntimeError("Expected a pending choice between the linked cases")
 
     def choose_goal(self, message, state):
         return choose_candidate_step(

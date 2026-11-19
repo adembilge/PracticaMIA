@@ -14,7 +14,9 @@ from app.agent.contract import (
     RunSnapshot, RunStarted, agent_event_adapter, valid_event_position,
 )
 from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, _owned_run, _payload_cipher
+from app.agent.threads import active_case_links
 from app.auth.tokens import Principal
+from app.cases.model import CaseRecord
 from app.database import Base
 from app.private_documents.intelligence import normalize_labeled_move_date
 
@@ -142,12 +144,27 @@ def append_run_event(
             raise EventConflict("Applied approval must follow its decision and saved case receipt")
     if isinstance(event, AnswerCompleted):
         result = event.result
+        if result.selected_case is not None:
+            chosen = result.selected_case.case_id
+            previous = _decode_event(latest, run, principal, key) if latest else None
+            if (str(chosen) != run.case_id and (
+                not isinstance(previous, QuestionAnswered) or previous.selected_case_id != chosen
+            )) or db.scalar(active_case_links(event.thread_id, principal).where(CaseRecord.id == str(chosen))) is None:
+                raise EventConflict("The saved case must match the verified selection")
         if result.verification_status == "verified" and not result.claims:
             raise EventConflict("A verified answer requires evidence-linked claims")
         if result.official_channel and not any(claim.kind == "channel" for claim in result.claims):
             raise EventConflict("An official channel requires an evidence-linked channel claim")
         if result.document_observations and run.case_id is None:
             raise EventConflict("Document observations require a linked case")
+
+    if isinstance(event, QuestionRequested) and event.question.case_choices:
+        case_ids = {str(choice.case_id) for choice in event.question.case_choices}
+        active_ids = set(db.scalars(active_case_links(event.thread_id, principal).with_only_columns(CaseRecord.id).where(
+            CaseRecord.id.in_(case_ids),
+        )).all())
+        if case_ids != active_ids:
+            raise EventConflict("A case question may only offer active linked cases")
 
     if isinstance(event, QuestionAnswered):
         pending = _decode_event(latest, run, principal, key) if latest else None
@@ -168,6 +185,16 @@ def append_run_event(
         )
         if event.selected_goal != selected_goal:
             raise EventConflict("The selected task must match the recorded option")
+        selected_case = next((
+            choice.case_id for choice in question.case_choices
+            if event.disposition == "answer" and choice.label == event.text
+        ), None)
+        if event.selected_case_id != selected_case or (
+            selected_case is not None and db.scalar(active_case_links(event.thread_id, principal).where(
+                CaseRecord.id == str(selected_case),
+            )) is None
+        ):
+            raise EventConflict("The selected case is no longer available for this conversation")
 
     nonce = urandom(12)
     ciphertext = nonce + _payload_cipher(key).encrypt(
@@ -195,28 +222,41 @@ def read_run_snapshot(
     pending_proposal = None
     approval_recorded = False
     goal_selection = None
-    if latest and run.status in ("completed", "waiting_for_approval", "running"):
+    selected_case = None
+    if latest and run.status in ("completed", "waiting_for_approval", "waiting_for_information", "running"):
         current = _decode_event(latest, run, principal, key)
         if isinstance(current, AnswerCompleted) and run.status == "completed":
             result = current.result
             goal_selection = result.goal_selection
+            selected_case = result.selected_case
+            if selected_case is not None and db.scalar(active_case_links(thread_id, principal).where(
+                CaseRecord.id == str(selected_case.case_id),
+            )) is None:
+                selected_case = None
+                result = result.model_copy(update={"selected_case": None})
         if isinstance(current, ApprovalRequested) and run.status == "waiting_for_approval":
             pending_proposal = current.proposal
         if isinstance(current, ApprovalDecided) and run.status == "waiting_for_approval":
             approval_recorded = current.decision.decision == "accept"
-        if isinstance(current, QuestionAnswered) and current.selected_goal is not None:
+        if isinstance(current, QuestionRequested):
+            goal_selection = current.question.case_goal
+        if isinstance(current, QuestionAnswered) and (
+            current.selected_goal is not None or current.selected_case_id is not None
+        ):
             asked = _read_event_at(db, run, current.event_seq - 1, principal, key)
             if isinstance(asked, QuestionRequested) and asked.question.goal_selection_language is not None:
                 goal_selection = GoalSelection(
                     language=asked.question.goal_selection_language, options=asked.question.options,
                     active_goal=current.selected_goal,
                 )
+            elif isinstance(asked, QuestionRequested):
+                goal_selection = asked.question.case_goal
 
     last_seq = latest.event_seq if latest else 0
     return RunSnapshot(
         thread_id=thread_id, run_id=run_id, status=run.status, last_event_seq=last_seq,
         run_revision=last_seq + 1, result=result, pending_proposal=pending_proposal,
-        approval_recorded=approval_recorded, goal_selection=goal_selection,
+        approval_recorded=approval_recorded, goal_selection=goal_selection, selected_case=selected_case,
     )
 
 

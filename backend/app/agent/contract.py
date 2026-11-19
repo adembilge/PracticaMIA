@@ -182,6 +182,11 @@ class GoalSelection(ContractModel):
         return self
 
 
+class SavedCaseChoice(ContractModel):
+    case_id: UUID
+    label: ShortText
+
+
 class AnswerResult(ContractModel):
     explanation: str = Field(min_length=1, max_length=MAX_ANSWER_EXPLANATION_LENGTH)
     verification_status: Literal[
@@ -195,6 +200,7 @@ class AnswerResult(ContractModel):
     document_observations: list[DocumentObservation] = Field(default_factory=list, max_length=12)
     goals: list[MessageGoal] = Field(default_factory=list, max_length=MAX_MESSAGE_GOALS)
     goal_selection: GoalSelection | None = None
+    selected_case: SavedCaseChoice | None = None
 
     @field_validator("document_observations")
     @classmethod
@@ -298,6 +304,7 @@ class RunSnapshot(ContractModel):
     approval_recorded: bool = False
     handoff: RunHandoff | None = None
     goal_selection: GoalSelection | None = None
+    selected_case: SavedCaseChoice | None = None
 
     @model_validator(mode="after")
     def validate_result(self):
@@ -321,16 +328,27 @@ class ClarifyingQuestion(ContractModel):
     answer_format: Literal["calendar_date"] | None = None
     reply_hint: ShortText | None = None
     goal_selection_language: Language | None = None
+    case_choices: list[SavedCaseChoice] = Field(default_factory=list, max_length=10)
+    case_goal: GoalSelection | None = None
 
     @model_validator(mode="after")
     def validate_options(self):
+        if self.case_goal is not None and (not self.case_choices or self.case_goal.active_goal is None):
+            raise ValueError("The active goal belongs to a saved-case question")
+        if self.case_choices and (
+            self.answer_shape != "single_choice" or self.missing_fields != ["case_reference"]
+            or self.goal_selection_language is not None
+            or [choice.label for choice in self.case_choices] != self.options
+            or len({choice.case_id for choice in self.case_choices}) != len(self.case_choices)
+        ):
+            raise ValueError("A saved-case choice must identify the cases in the question")
         if self.goal_selection_language is not None and (
             self.answer_shape != "single_choice" or len(self.options) > MAX_MESSAGE_GOALS
             or self.missing_fields != ["active_goal"]
         ):
             raise ValueError("A goal-selection question requires bounded task options")
         if self.answer_shape == "single_choice":
-            if len(set(self.options)) != len(self.options) or len(self.options) < 2:
+            if len(set(self.options)) != len(self.options) or len(self.options) < (1 if self.case_choices else 2):
                 raise ValueError("A choice needs at least two distinct options")
         elif self.options:
             raise ValueError("Free-text questions do not include options")
@@ -371,13 +389,14 @@ class QuestionAnswered(EventEnvelope):
     disposition: ClarificationDisposition = "answer"
     origin: Literal["user_entered"] = "user_entered"
     selected_goal: GoalNumber | None = None
+    selected_case_id: UUID | None = None
 
     @model_validator(mode="after")
     def validate_answer_text(self):
         if self.disposition == "answer" and self.text is None:
             raise ValueError("An answer includes reply text")
-        if self.selected_goal is not None and self.disposition != "answer":
-            raise ValueError("Only a choice reply can select a goal")
+        if self.disposition != "answer" and (self.selected_goal is not None or self.selected_case_id is not None):
+            raise ValueError("Only a choice reply can select a goal or case")
         return self
 
 

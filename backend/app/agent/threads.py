@@ -33,6 +33,20 @@ class AgentThreadCase(Base):
     )
 
 
+def active_case_links(thread_id: UUID, principal: Principal):
+    """Read currently active cases linked to an owned thread."""
+    return (
+        select(CaseRecord)
+        .join(AgentThreadCase, AgentThreadCase.case_id == CaseRecord.id)
+        .join(AgentThread, AgentThread.id == AgentThreadCase.thread_id)
+        .where(
+            AgentThread.id == str(thread_id), AgentThread.owner_subject == principal.subject,
+            CaseRecord.owner_subject == principal.subject, CaseRecord.archived_at.is_(None),
+        )
+        .execution_options(populate_existing=True)
+    )
+
+
 def create_thread(db: Session, *, principal: Principal) -> UUID:
     """Create a server-identified thread inside the caller's transaction."""
     thread_id = uuid4()

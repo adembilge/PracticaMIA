@@ -155,6 +155,8 @@ The [Task 38.6 official handoff](../planning/practicamia-2/phase-04-agent-api-co
 
 The [Task 39.1 goal extraction](../planning/practicamia-2/phase-04-agent-api-contract.md#identifying-separate-goals) keeps reviewed procedure and place candidates and missing context with the individual goal. The groups survive the encrypted worker boundary and are replayed only to the owner. Synthetic English and Italian inputs exercise separate municipalities, unknown requests, alternative procedures and the fallback for oversized input.
 
-The [Task 39.2 task choice](../planning/practicamia-2/phase-04-agent-api-contract.md#choosing-the-active-task) applies an unambiguous starting preference or asks the owner where to begin. The isolated UI shows the available goals and identifies the active choice from the saved run. Signed synthetic tests cover invalid replies, retries and skip. Task 39.3 covers verifying the linked case.
+The [Task 39.2 task choice](../planning/practicamia-2/phase-04-agent-api-contract.md#choosing-the-active-task) applies an unambiguous starting preference or asks the owner where to begin. The isolated UI shows the available goals and identifies the active choice from the saved run. Signed synthetic tests cover invalid replies, retries and skip.
+
+The [Task 39.3 saved-case selection](../planning/practicamia-2/phase-04-agent-api-contract.md#verifying-the-selected-case) clarifies relative case references and checks ownership, thread linkage and active state before the user can continue. The original run preserves its case binding. Signed synthetic tests cover archive races, separate procedures and access isolation. The mobile acceptance scenario checks the verified saved-case link.
 
 For implementation details see [the documentation index](README.md).

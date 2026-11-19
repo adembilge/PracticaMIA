@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.agent.answer_evidence import AnswerEvidenceScopeReader, revalidate_answer_evidence
 from app.agent.approval_graph import pause_for_approval
 from app.agent.case_context import read_worker_case_context
+from app.agent.case_selection import resolve_saved_case
 from app.agent.catalogue_evidence import CatalogueUnavailable, refresh_corrected_evidence
 from app.agent.checkpoints import (
     CheckpointConflict, CheckpointState, finish_checkpoint, load_checkpoint, save_checkpoint,
@@ -140,9 +141,13 @@ def run_worker_step(
                 raise CheckpointConflict("A clarification reply requires its recorded question")
             question = requested.question
         topic_changed = reply is not None and reply.disposition == "change_topic"
+        case_question = question is not None and bool(question.case_choices)
+        resume_case = checkpoint.state.next_node == "choose_next_step" and checkpoint.state.intent == "resume_case"
+        resolve_case = not topic_changed and (case_question or resume_case)
 
         case_context = None
-        if message.case_id is not None and not topic_changed:
+        choosing_goal = checkpoint.state.next_node == "choose_next_step" and bool(checkpoint.state.goals)
+        if message.case_id is not None and not topic_changed and not resolve_case and not choosing_goal:
             try:
                 check_tool_execution(
                     db, principal=principal, thread_id=thread_id, run_id=run_id,
@@ -181,6 +186,18 @@ def run_worker_step(
             missing_information=question.missing_fields,
             next_action=NextAction(label=label, operation="start_new_topic"),
         )
+    elif resolve_case:
+        goal_selection = question.case_goal if case_question else None
+        result = AnswerResult(
+            explanation="Choose a saved case." if message.language == "en" else "Scegli una pratica salvata.",
+            verification_status="insufficient_evidence",
+            missing_information=(
+                checkpoint.state.goals[goal_selection.active_goal - 1].missing_fields
+                if goal_selection is not None else ["case_reference"]
+            ),
+            goals=checkpoint.state.goals,
+            goal_selection=goal_selection,
+        )
     elif checkpoint.state.next_node == "find_evidence" and checkpoint.state.routing_corrections:
         for attempt in range(2):
             try:
@@ -204,6 +221,13 @@ def run_worker_step(
         if run is None:
             return None
         require_worker_lease(db, run, lease)
+        if isinstance(result, AnswerResult) and (
+            resolve_case or (result.goal_selection and result.goal_selection.active_goal)
+        ):
+            resolved = resolve_saved_case(
+                db, thread_id=thread_id, principal=principal, message=message, answer=result, resume_case=resume_case,
+            )
+            result = RequestClarification(resolved, checkpoint.state) if isinstance(resolved, ClarifyingQuestion) else resolved
         proposal_state = None
         if isinstance(result, RequestApproval):
             if str(result.proposal.case_id) != run.case_id:

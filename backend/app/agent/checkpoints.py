@@ -186,6 +186,10 @@ def save_checkpoint(
             len(event.question.options) != len(state.goals) or state.preferred_goal is not None
         ):
             raise CheckpointConflict("Task choices must match the pending goals")
+        if isinstance(event, QuestionRequested) and event.question.case_goal is not None and (
+            len(event.question.case_goal.options) != len(state.goals)
+        ):
+            raise CheckpointConflict("Saved-case selection must preserve the active goal")
         if isinstance(event, ApprovalRequested) and state.pending_proposal_id != event.proposal.proposal_id:
             raise CheckpointConflict("Checkpoint must reference the pending proposal")
         if isinstance(event, ApprovalApplied) and state.pending_proposal_id is not None:
@@ -250,11 +254,15 @@ def submit_clarification_reply(
         if question.goal_selection_language is not None and disposition == "answer" and reply.text in question.options
         else None
     )
+    selected_case_id = next((
+        choice.case_id for choice in question.case_choices
+        if disposition == "answer" and choice.label == reply.text
+    ), None)
     answered = QuestionAnswered(
         schema_version=1, thread_id=thread_id, run_id=run_id, event_seq=reply_seq,
         occurred_at=datetime.now(timezone.utc), type="question.answered",
         question_id=question_id, client_reply_id=reply.client_reply_id, text=reply.text,
-        disposition=disposition, selected_goal=selected_goal,
+        disposition=disposition, selected_goal=selected_goal, selected_case_id=selected_case_id,
     )
     updated = save_checkpoint(
         db, **context, expected_revision=checkpoint.revision, expected_event_seq=checkpoint.event_seq,

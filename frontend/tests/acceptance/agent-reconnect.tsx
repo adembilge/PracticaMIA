@@ -16,6 +16,7 @@ type Snapshot = {
   approval_recorded?: boolean;
   handoff?: OfficialHandoff | null;
   goal_selection?: GoalSelection | null;
+  selected_case?: {case_id: string; label: string} | null;
   result: {
     explanation: string;
     next_action?: { operation: string | null } | null;
@@ -296,6 +297,9 @@ export function AgentReconnectFixture() {
         ) : view.snapshot.result ? <div>
           <h2>{view.snapshot.result.next_action?.operation === 'start_new_topic' ? 'Topic changed' : 'Conversation complete'}</h2>
           <p>{view.snapshot.result.explanation}</p>
+          {view.snapshot.selected_case && (
+            <a href={`/cases/${view.snapshot.selected_case.case_id}`}>{view.snapshot.selected_case.label}</a>
+          )}
           {view.snapshot.handoff && <AgentOfficialHandoff handoff={view.snapshot.handoff} />}
           <AgentSourceCards runUrl={view.url} citations={view.snapshot.result.citations ?? []} language="en" />
         </div> : view.snapshot.status === 'stopped' ? (
