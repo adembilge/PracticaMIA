@@ -20,6 +20,8 @@ from app.agent.run_events import _read_event_at, read_run_snapshot
 from app.agent.run_requests import (
     WORKER_RUN_STATUSES, AgentRunRequest, StoredMessage, _owned_run, read_recent_user_messages, read_run_message,
 )
+from app.agent.tool_access import ToolAccessDenied, authorize_tool_call
+from app.agent.tool_contract import ReadCaseContext
 from app.agent.worker_leases import WorkerLease, WorkerLeaseConflict, claim_next_run, require_worker_lease
 from app.auth.tokens import Principal
 from app.config import Settings
@@ -124,6 +126,13 @@ def run_worker_step(
 
         case_context = None
         if message.case_id is not None and not topic_changed:
+            try:
+                authorize_tool_call(
+                    db, principal=principal, thread_id=thread_id, run_id=run_id,
+                    call=ReadCaseContext(tool="read_case_context", case_id=message.case_id),
+                )
+            except ToolAccessDenied:
+                return None
             case_context = read_worker_case_context(
                 db, thread_id=thread_id, case_id=message.case_id, principal=principal,
                 document_settings=document_settings if checkpoint.state.next_node == "choose_next_step" else None,
@@ -156,10 +165,13 @@ def run_worker_step(
         )
     elif checkpoint.state.next_node == "find_evidence" and checkpoint.state.routing_corrections:
         with sessions() as db:
-            result = refresh_corrected_evidence(
-                db, state=checkpoint.state, thread_id=thread_id, case_id=message.case_id,
-                principal=principal, query=message.text, language=message.language,
-            )
+            try:
+                result = refresh_corrected_evidence(
+                    db, state=checkpoint.state, thread_id=thread_id, run_id=run_id, case_id=message.case_id,
+                    principal=principal, query=message.text, language=message.language,
+                )
+            except ToolAccessDenied:
+                return None
     else:
         result = execute(message, checkpoint.state.model_copy(deep=True))
     with sessions.begin() as db:

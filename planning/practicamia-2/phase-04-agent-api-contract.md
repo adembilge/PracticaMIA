@@ -118,6 +118,14 @@ The existing internal Milan evidence reader uses the evidence and source detail 
 
 Run `python -m pytest -q tests/test_agent_tool_contract.py tests/test_knowledge_search.py` from `backend/` to exercise all six schema pairs, invalid catalogue IDs and parameters, and approved-source lookup and withdrawal in the synthetic database.
 
+## Authorizing tool calls
+
+Task 36.2 checks tool ownership against the persisted run in the caller's database transaction. The acting principal comes from the validated API token or the internal worker's persisted lease. The request body can name a case. The server verifies that the run belongs to the principal's thread and that its stored case is still linked and owned by that same principal. Every case-scoped call must name the exact case recorded for the run. A procedure discovery call can use an owned run without a case.
+
+The [ownership guard](../../backend/app/agent/tool_access.py) checks the six typed call variants. The worker uses it when loading case context and refreshing evidence. The [typed evidence reader](../../backend/app/agent/catalogue_evidence.py) uses it for search and exact source details before applying existing approved-source checks. An unavailable run or case produces the same access denial. Ownership permits only moving to the operation's own checks. Approval, execution and revision checks for future writes have their own steps.
+
+The [synthetic authorization tests](../../backend/tests/test_agent_tool_access.py) cover signed-token identity, missing and invalid tokens, case substitution, wrong threads, unlinked runs and deleted or no longer owned cases. A probe mounted only in the test application verifies that denied evidence calls do not reach the lookup.
+
 ## Identifiers and state
 
 | Field | Meaning | Rule |

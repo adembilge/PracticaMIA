@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.agent.checkpoints import CheckpointState
 from app.agent.contract import AnswerResult, Citation, Language
 from app.agent.threads import AgentThread, AgentThreadCase
+from app.agent.tool_access import authorize_tool_call
 from app.agent.tool_contract import (
     CatalogueEvidence, CataloguePassage, CatalogueScope, FindEvidence, OpenSourceDetails,
 )
@@ -168,8 +169,22 @@ def resolve_catalogue_evidence(
     return CatalogueEvidence(status="evidence_found", passages=(_catalogue_passage(row),))
 
 
+def read_tool_evidence(
+    db: Session, *, thread_id: UUID, run_id: UUID, principal: Principal,
+    call: FindEvidence | OpenSourceDetails,
+) -> CatalogueEvidence:
+    """Authorize the typed read against the current run before looking up evidence."""
+    authorize_tool_call(db, principal=principal, thread_id=thread_id, run_id=run_id, call=call)
+    if call.scope != _MILAN_SCOPE:
+        return CatalogueEvidence(status="unsupported_scope")
+    context = {"thread_id": thread_id, "case_id": call.case_id, "principal": principal}
+    if isinstance(call, FindEvidence):
+        return find_catalogue_evidence(db, **context, query=call.query, limit=call.limit)
+    return resolve_catalogue_evidence(db, **context, citation_id=call.citation_id)
+
+
 def refresh_corrected_evidence(
-    db: Session, *, state: CheckpointState, thread_id: UUID, case_id: UUID | None,
+    db: Session, *, state: CheckpointState, thread_id: UUID, run_id: UUID, case_id: UUID | None,
     principal: Principal, query: str, language: Language,
 ) -> CheckpointState | AnswerResult:
     """Refresh evidence after routing has been reevaluated with a corrected input."""
@@ -182,9 +197,12 @@ def refresh_corrected_evidence(
         and corrections.activity_location is None
         and corrections.housing_basis in (None, "registered_private_rental")
     ):
-        evidence = find_catalogue_evidence(
-            db, thread_id=thread_id, case_id=case_id, principal=principal,
-            query="cambio di residenza" if corrections.procedure else query,
+        evidence = read_tool_evidence(
+            db, thread_id=thread_id, run_id=run_id, principal=principal,
+            call=FindEvidence(
+                tool="find_evidence", case_id=case_id, scope=_MILAN_SCOPE,
+                query="cambio di residenza" if corrections.procedure else query,
+            ),
         )
         if evidence.passages:
             return state.model_copy(update={
