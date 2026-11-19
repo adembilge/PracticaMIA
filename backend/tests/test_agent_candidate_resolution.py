@@ -7,15 +7,15 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from app.agent.answer_evidence import AnswerEvidenceScope
+from app.agent.answer_evidence import AnswerEvidenceScope, ClaimPassageSupport, ReviewedClaimSupport
 from app.agent.candidate_resolution import AssistanceContact, choose_candidate_step
 from app.agent.checkpoints import CheckpointState, load_checkpoint, submit_clarification_reply
-from app.agent.contract import AnswerResult, Citation, ClarificationReply
+from app.agent.contract import AnswerResult, Citation, ClarificationReply, OfficialChannel
 from app.agent.run_events import read_run_events
 from app.agent.run_requests import StoredMessage
 from app.agent.worker import RequestClarification, run_worker_step
 from app.knowledge.service_areas import CaseLocation, EffectivePeriod
-from test_agent_answer_evidence import approved_citation  # noqa: F401 - shared synthetic registry fixture
+from test_agent_answer_evidence import CONTACT_QUOTE, approved_citation  # noqa: F401 - shared registry fixture
 from test_agent_run_events import queued_run  # noqa: F401 - shared synthetic run fixture
 from test_service_areas import TRUSTED, area
 
@@ -286,7 +286,13 @@ def test_deferred_fields_remain_open_and_verified_assistance_is_preserved(
                 client_reply_id=uuid4(), expected_run_revision=paused.run_revision, disposition=disposition,
             ),
         )
-    scope = AnswerEvidenceScope(citation.procedure_id, locations, {}, {}, (contact.scope,))
+    review = ReviewedClaimSupport(
+        kind="channel", language="it",
+        statement="La fonte citata fornisce un contatto ufficiale per questa pratica.",
+        official_channel=OfficialChannel(label=citation.publisher, url=citation.official_url),
+        passages=(ClaimPassageSupport(citation.passage_id, contact.scope.assignment_id, CONTACT_QUOTE),),
+    )
+    scope = AnswerEvidenceScope(citation.procedure_id, locations, {}, {}, (contact.scope,), (review,))
     result = run_worker_step(factory, **context, execute=step, read_evidence_scope=lambda *_: scope).result
     assert note in result.explanation
     assert result.verification_status == "insufficient_evidence"

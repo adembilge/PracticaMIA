@@ -12,6 +12,8 @@ from pydantic import (
 from app.knowledge.quote_verification import ID as PASSAGE_ID_PATTERN
 
 Language = Literal["it", "en"]
+ClaimKind = Literal["authority", "channel", "mandatory_document", "fee", "deadline", "condition", "form_version"]
+MAX_ANSWER_EXPLANATION_LENGTH = 2000
 ClarificationDisposition = Literal["answer", "unknown", "skip", "change_topic"]
 # An intent describes a user's request. It grants no access or authority.
 AgentIntent = Literal[
@@ -126,7 +128,7 @@ class NextAction(ContractModel):
 
 
 class EvidenceLinkedClaim(ContractModel):
-    kind: Literal["authority", "channel", "mandatory_document", "fee", "deadline", "condition", "form_version"]
+    kind: ClaimKind
     statement: ShortText
     evidence_ids: list[PassageId] = Field(min_length=1, max_length=10)
 
@@ -139,7 +141,7 @@ class EvidenceLinkedClaim(ContractModel):
 
 
 class AnswerResult(ContractModel):
-    explanation: str = Field(min_length=1, max_length=2000)
+    explanation: str = Field(min_length=1, max_length=MAX_ANSWER_EXPLANATION_LENGTH)
     verification_status: Literal[
         "verified", "insufficient_evidence", "conflicting_evidence", "unsupported",
     ]
