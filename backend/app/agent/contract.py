@@ -14,6 +14,8 @@ from app.knowledge.quote_verification import ID as PASSAGE_ID_PATTERN
 Language = Literal["it", "en"]
 ClaimKind = Literal["authority", "channel", "mandatory_document", "fee", "deadline", "condition", "form_version"]
 MAX_ANSWER_EXPLANATION_LENGTH = 2000
+MAX_ANSWER_CITATIONS = 10
+MAX_ANSWER_CLAIMS = 12
 ClarificationDisposition = Literal["answer", "unknown", "skip", "change_topic"]
 # An intent describes a user's request. It grants no access or authority.
 AgentIntent = Literal[
@@ -147,9 +149,9 @@ class AnswerResult(ContractModel):
     ]
     next_action: NextAction | None = None
     official_channel: OfficialChannel | None = None
-    citations: list[Citation] = Field(default_factory=list, max_length=10)
+    citations: list[Citation] = Field(default_factory=list, max_length=MAX_ANSWER_CITATIONS)
     missing_information: list[Identifier] = Field(default_factory=list, max_length=12)
-    claims: list[EvidenceLinkedClaim] = Field(default_factory=list, max_length=12)
+    claims: list[EvidenceLinkedClaim] = Field(default_factory=list, max_length=MAX_ANSWER_CLAIMS)
 
     @model_validator(mode="after")
     def validate_answer(self):
