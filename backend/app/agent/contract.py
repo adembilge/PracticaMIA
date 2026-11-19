@@ -17,6 +17,8 @@ DocumentFieldStatus = Literal["needs_review", "reviewed", "conflict"]
 MAX_ANSWER_EXPLANATION_LENGTH = 2000
 MAX_ANSWER_CITATIONS = 10
 MAX_ANSWER_CLAIMS = 12
+MAX_PROCEDURE_CANDIDATES = 10
+MAX_MESSAGE_GOALS = 6
 ClarificationDisposition = Literal["answer", "unknown", "skip", "change_topic"]
 # An intent describes a user's request. It grants no access or authority.
 AgentIntent = Literal[
@@ -157,6 +159,14 @@ class DocumentObservation(ContractModel):
     origin: Literal["user_document"] = "user_document"
 
 
+class MessageGoal(ContractModel):
+    """Catalogue hypotheses and identity gaps for one segment of an owned message."""
+
+    procedure_candidates: list[Identifier] = Field(default_factory=list, max_length=MAX_PROCEDURE_CANDIDATES)
+    location_candidates: list[Identifier] = Field(default_factory=list, max_length=MAX_PROCEDURE_CANDIDATES)
+    missing_fields: list[Literal["procedure", "procedure_location"]] = Field(default_factory=list, max_length=2)
+
+
 class AnswerResult(ContractModel):
     explanation: str = Field(min_length=1, max_length=MAX_ANSWER_EXPLANATION_LENGTH)
     verification_status: Literal[
@@ -168,6 +178,7 @@ class AnswerResult(ContractModel):
     missing_information: list[Identifier] = Field(default_factory=list, max_length=12)
     claims: list[EvidenceLinkedClaim] = Field(default_factory=list, max_length=MAX_ANSWER_CLAIMS)
     document_observations: list[DocumentObservation] = Field(default_factory=list, max_length=12)
+    goals: list[MessageGoal] = Field(default_factory=list, max_length=MAX_MESSAGE_GOALS)
 
     @field_validator("document_observations")
     @classmethod
@@ -178,6 +189,11 @@ class AnswerResult(ContractModel):
 
     @model_validator(mode="after")
     def validate_answer(self):
+        if self.goals and (
+            len(self.goals) < 2 or self.verification_status != "insufficient_evidence"
+            or self.official_channel is not None or self.citations
+        ):
+            raise ValueError("Separated goals are unresolved catalogue hypotheses")
         if self.verification_status == "verified" and not self.citations:
             raise ValueError("A verified answer must reference an evidence passage")
         if self.next_action and self.next_action.operation == "open_official_channel" and not self.official_channel:

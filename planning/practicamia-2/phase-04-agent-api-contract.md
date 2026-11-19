@@ -318,6 +318,14 @@ The English and Italian handoff card displays the next step and the supported de
 
 Signed tests exercise both languages, unknown submission status, changed case scope, withdrawal and supersession. The mobile Chromium synthetic acceptance displays the verified channel and the user's next step beside the exact source card. The Phase 4 transport and reviewed-scope reader remain isolated.
 
+### Identifying separate goals
+
+Task 39.1 recognizes independently stated English and Italian requests using reviewed names and explicit request cues. Each detected goal carries its own procedure candidate IDs, place candidate IDs and missing procedure or location fields. The order follows the message. A location attached to one goal does not fill another goal's gap. Reviewed names remain intact across punctuation and conjunctions. Repeated aliases and alternatives can remain part of the same request.
+
+The encrypted worker checkpoint and owned terminal result carry up to six candidate groups, with up to ten procedure IDs and ten place IDs per group. The checkpoint carries IDs and missing fields without copying raw goal text. Oversized or insufficiently separated requests fall back to clarification. An independently stated request with no reviewed match remains a separate goal with an empty procedure list. A place mention remains a candidate and does not establish jurisdiction or authority.
+
+The current worker records the groups before applying any case facts or resolving authorities across them. The isolated snapshot and event replay preserve the same groups. Task 39.2 covers displaying choices and selecting the active task. Synthetic tests cover both languages, unknown procedures, distinct locations, repeated aliases, alternatives, negation, overflow, checkpoint encryption and authenticated replay.
+
 ## Acceptance and dependency checks
 
 The [wire models](../../backend/app/agent/contract.py) encode bounded inputs, typed events, run results and pagination invariants. The [synthetic fixtures](../../backend/tests/test_agent_contract.py) cover verified and conflicting answers, clarification, approval requests, stop, failure, citation identity, and reconnection. The [encrypted acceptance service](../../backend/app/agent/run_requests.py) now persists a queued run with the message before its caller commits. The [local fixtures](../../backend/tests/test_agent_run_requests.py) cover retry recovery, changed payload conflicts, stale revisions, case permissions and verified ciphertext. A retry can carry a fresher thread revision because revisions are concurrency metadata; the message identity is the text, language and optional case within its thread.
