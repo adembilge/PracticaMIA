@@ -95,8 +95,40 @@ class ApplyApprovedUpdate(ContractModel):
     client_operation_id: UUID
 
 
+class ReadDocumentEvidence(ContractModel):
+    tool: Literal["read_document_evidence"]
+    case_id: UUID
+    document_id: UUID
+    field_ids: tuple[Identifier, ...] = Field(min_length=1, max_length=12)
+
+    @field_validator("field_ids")
+    @classmethod
+    def require_distinct_fields(cls, field_ids: tuple[str, ...]) -> tuple[str, ...]:
+        if len(set(field_ids)) != len(field_ids):
+            raise ValueError("Document field IDs must be distinct")
+        return field_ids
+
+
+class FindApplicableForm(ContractModel):
+    tool: Literal["find_applicable_form"]
+    case_id: UUID
+    scope: CatalogueScope
+
+
+class PrepareFormDraft(ContractModel):
+    tool: Literal["prepare_form_draft"]
+    case_id: UUID
+    form_version_id: UUID
+    mapping_version_id: UUID
+    expected_case_revision: PositiveInt
+
+
+ExtensionToolCall = ReadDocumentEvidence | FindApplicableForm | PrepareFormDraft
+
+
 ToolCall = Annotated[
-    FindProcedure | FindEvidence | OpenSourceDetails | ReadCaseContext | ProposeCaseUpdate | ApplyApprovedUpdate,
+    FindProcedure | FindEvidence | OpenSourceDetails | ReadCaseContext | ProposeCaseUpdate
+    | ApplyApprovedUpdate | ExtensionToolCall,
     Field(discriminator="tool"),
 ]
 _tool_call_adapter = TypeAdapter(ToolCall)
@@ -105,7 +137,7 @@ _tool_call_adapter = TypeAdapter(ToolCall)
 def parse_tool_call(payload: object, *, catalogue_scopes: Set[tuple[str, str]]) -> ToolCall:
     """Check ID membership against procedure/location pairs from trusted server data."""
     call = _tool_call_adapter.validate_python(payload)
-    if isinstance(call, (FindEvidence, OpenSourceDetails)):
+    if isinstance(call, (FindEvidence, OpenSourceDetails, FindApplicableForm)):
         if (call.scope.procedure_id, call.scope.location_id) not in catalogue_scopes:
             raise ValueError("Unknown procedure and location combination")
     elif isinstance(call, FindProcedure) and call.location_id is not None:
@@ -195,9 +227,17 @@ class ApplyApprovedUpdateResult(ContractModel):
     case_revision: PositiveInt
 
 
+class UnavailableExtensionResult(ContractModel):
+    model_config = ConfigDict(frozen=True)
+
+    tool: Literal["read_document_evidence", "find_applicable_form", "prepare_form_draft"]
+    status: Literal["unavailable"] = "unavailable"
+    reason: Literal["capability_disabled"] = "capability_disabled"
+
+
 ToolResult = Annotated[
     FindProcedureResult | FindEvidenceResult | OpenSourceDetailsResult | ReadCaseContextResult
-    | ProposeCaseUpdateResult | ApplyApprovedUpdateResult,
+    | ProposeCaseUpdateResult | ApplyApprovedUpdateResult | UnavailableExtensionResult,
     Field(discriminator="tool"),
 ]
 tool_result_adapter = TypeAdapter(ToolResult)

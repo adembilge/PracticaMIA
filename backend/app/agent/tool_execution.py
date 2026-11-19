@@ -11,12 +11,20 @@ from app.agent.checkpoints import load_checkpoint
 from app.agent.contract import ApprovalProposal, ApprovalRequested, ProposalDecision
 from app.agent.run_events import read_run_events
 from app.agent.tool_access import ToolAccessDenied, authorize_tool_call
-from app.agent.tool_contract import ApplyApprovedUpdate, ToolCall
+from app.agent.tool_contract import ApplyApprovedUpdate, ExtensionToolCall, ToolCall, UnavailableExtensionResult
 from app.auth.tokens import Principal
 
 
 class ToolExecutionDenied(ToolAccessDenied):
     """The owned run currently lacks the conditions for this tool."""
+
+
+class ToolCapabilityUnavailable(ToolExecutionDenied):
+    """The schema exists for a capability that has no enabled executor."""
+
+    def __init__(self, result: UnavailableExtensionResult) -> None:
+        super().__init__("Tool capability unavailable")
+        self.result = result
 
 
 @dataclass(frozen=True)
@@ -50,6 +58,8 @@ def check_tool_execution(
     if not isinstance(call, ApplyApprovedUpdate):
         if status != "running":
             raise ToolExecutionDenied("Read and proposal tools require a running run")
+        if isinstance(call, ExtensionToolCall):
+            raise ToolCapabilityUnavailable(UnavailableExtensionResult(tool=call.tool))
         return None
 
     if status != "waiting_for_approval" or key is None or read_approval is None:

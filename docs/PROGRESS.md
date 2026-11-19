@@ -127,4 +127,6 @@ The [Task 36.4 retry boundary](../planning/practicamia-2/phase-04-agent-api-cont
 
 The [Task 36.5 catalogue recovery](../planning/practicamia-2/phase-04-agent-api-contract.md#recovering-from-catalogue-lookup-problems) retries temporary lookup failures once with a fresh session and records a retryable failure when both attempts fail. Empty results and invalid queries return localized next steps without citations. Synthetic tests verify the retry boundary and replay through the isolated authenticated API.
 
+The [Task 36.6 extension contracts](../planning/practicamia-2/phase-04-agent-api-contract.md#document-and-form-extension-tools) define case-scoped requests for document evidence, applicable forms and draft preparation. The authorization boundary reports all three as unavailable. Tests verify that completion states, evidence contents and artifact IDs cannot pass validation as extension outcomes.
+
 For implementation details see [the documentation index](README.md).

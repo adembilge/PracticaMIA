@@ -88,7 +88,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 - **36.3** Define [tool execution conditions](phase-04-agent-api-contract.md#checking-tool-execution-and-approval) for reads, drafts, and approved writes.
 - **36.4** [Persist retry receipts](phase-04-agent-api-contract.md#retrying-an-approved-case-write) with the approved update to prevent duplicate writes after a retry or resume.
 - **36.5** [Recover from catalogue lookup problems](phase-04-agent-api-contract.md#recovering-from-catalogue-lookup-problems) with bounded retries and actionable unverified results.
-- **36.6** Define extension contracts for document and form tools. Unavailable capabilities cannot appear as completed work.
+- **36.6** Define [document and form extension contracts](phase-04-agent-api-contract.md#document-and-form-extension-tools) and return unavailability until their executors are enabled.
 
 **Acceptance.** Tests cover unauthorised access, invalid calls, and duplicate writes. Visible state reflects the actual operation.
 
