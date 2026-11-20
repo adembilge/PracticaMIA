@@ -56,6 +56,39 @@ def test_extracts_the_six_intents_from_bilingual_messages(language, text, label)
     assert extract_intent(StoredMessage(text, language, None), catalogue_names=CATALOGUE).intent == label
 
 
+@pytest.mark.parametrize(("language", "text", "label"), [
+    ("en", "Can we submit the declaration online?", "find_procedure"),
+    ("en", "Where should I lodge the application?", "find_procedure"),
+    ("it", "Dove deposito la domanda?", "find_procedure"),
+    ("it", "A quale ufficio ci rivolgiamo?", "find_procedure"),
+    ("en", "Which exact limit applies in this form?", "request_information"),
+    ("it", "Quale massimo vale per gli allegati?", "request_information"),
+])
+def test_distinguishes_filing_requests_from_requests_for_limits(language, text, label):
+    result = extract_intent(StoredMessage(text, language, None), catalogue_names=CATALOGUE)
+    assert result.intent == label
+    assert result.procedure_candidates == ()
+    if label == "find_procedure":
+        assert result.missing_context == ("procedure", "procedure_location")
+
+
+def test_italian_registration_address_resolves_only_with_the_reviewed_alias():
+    alias = reviewed_name("residence-change", "procedure", "indirizzo all’anagrafe")
+    message = StoredMessage("Dove invio la richiesta per l'indirizzo all'anagrafe?", "it", None)
+    assert extract_intent(message, catalogue_names=CATALOGUE).procedure_candidates == ()
+    pending = replace(alias, approved_for_search=False)
+    assert extract_intent(message, catalogue_names=(*CATALOGUE, pending)).procedure_candidates == ()
+    result = extract_intent(message, catalogue_names=(*CATALOGUE, alias))
+    assert (result.intent, result.procedure_candidates, result.missing_context) == (
+        "find_procedure", ("residence-change",), ("procedure_location",),
+    )
+    generic = extract_intent(
+        StoredMessage("Dove invio la richiesta per il nuovo indirizzo di domicilio?", "it", None),
+        catalogue_names=(*CATALOGUE, alias),
+    )
+    assert generic.intent == "find_procedure" and generic.procedure_candidates == ()
+
+
 def test_uses_reviewed_matches_preserves_authority_mentions_and_skips_nested_place():
     unreviewed = replace(reviewed_name("unreviewed", "procedure", "tax"), approved_for_search=False)
     no_evidence = replace(reviewed_name("candidate", "authority", "Ufficio Finto"), evidence_ref="")

@@ -179,4 +179,6 @@ The [Task 40.6 failure diagnostics](../planning/practicamia-2/phase-04-agent-and
 
 The [Task 40.7 Phase 5 handoff](../planning/practicamia-2/phase-04-phase-05-handoff.md) records the implemented isolated message API, event replay, citations, questions and approvals. Tests validate the examples against the runtime wire models and link the client transitions across reconnects. Phase 4 still needs the reviewed multi-authority participant pilot. Hosted transport, scheduling and account-session verification remain open.
 
+The [Phase 4 bilingual intent follow-up](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#bilingual-intent-follow-up) improved intent from 9/26 to 15/26 with the original aliases. With the explicit synthetic Italian registration alias the scores were 16/26 for intent, 17/26 for procedure candidates and 5/26 for successful unassisted runs. The next-action replay still shows gaps on notices and saved-case continuation.
+
 For implementation details see [the documentation index](README.md).
