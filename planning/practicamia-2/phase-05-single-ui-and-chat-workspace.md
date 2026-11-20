@@ -4,6 +4,8 @@
 
 Connect the Phase 3 catalogue and working Phase 4 agent API to real application data. Phase 6 connects document upload and review to its processing pipeline. Phase 7 connects form preparation. The interface uses backend capability information to expose actions actually available for the case.
 
+The [Phase 4 agent API handoff](phase-04-phase-05-handoff.md) records the implemented isolated routes, client state transitions, checked wire examples and integration decisions still open.
+
 ## Workspace layout
 
 | Area | Desktop | Mobile |
