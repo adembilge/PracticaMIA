@@ -134,4 +134,4 @@
 | Prepared output and handoff | 67–69 | Portal-ready guidance or compatible draft, response preparation, and the verified channel |
 | Change recovery and pilot | 70 | Version-change regression and handoff contract verified for Phase 8 |
 
-**Closure demonstration.** A user opens a reviewed notice from Phase 6. PracticaMIA explains one conditional requirement and identifies an unresolved field. The user corrects it and reviews the prepared values in the same workspace. When the form version changes, the affected field returns to review. After confirming it again, the user opens the verified official channel and can later return to the same prepared case.
+**Closure demonstration.** A user opens a reviewed notice from Phase 6. PracticaMIA explains one conditional requirement and identifies an unresolved field. The user corrects it and reviews the prepared values in inline chat cards. When the form version changes, the affected field returns to review. After confirming it again, the user opens the verified official channel and can later return to the same prepared case.
