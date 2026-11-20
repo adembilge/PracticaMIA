@@ -211,4 +211,6 @@ The [Phase 4 Preview registration](../planning/practicamia-2/phase-04-pilot-sour
 
 The [protected reviewer Preview](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md#protected-reviewer-preview) serves `a8e6121` on both branch aliases. An authorized Auth0 session read all five exact Preview versions through the web proxy. All returned `integrity_verified: true`; the original hashes, 364 passages in total and all eleven pinned passage IDs and hashes matched. The hosted IDs confirmed the Preview registry binding. All five versions were still pending, and the six human claim decisions remain open.
 
+The [public-source comparison](../planning/practicamia-2/phase-04-claim-review-handoff.md#public-source-comparison-for-the-reviewer) adds evidence and scope notes for all six pending claims. It records the Torino service link with authenticated steps unverified, and distinguishes the postal submission, the Questura appointment and the announcement of a later summons. The comparison is preparatory evidence for the human review.
+
 For implementation details see [the documentation index](README.md).
