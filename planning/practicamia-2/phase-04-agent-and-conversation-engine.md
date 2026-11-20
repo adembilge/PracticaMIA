@@ -132,7 +132,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 - **40.3** [Use unassisted arrival at the correct next action](#unassisted-next-action-evaluation) as the primary outcome. Track correct authorities, supported citations, unnecessary questions, and uncorrected misrouting.
 - **40.4** [Simulate interrupted runs and client recovery](#interruption-and-recovery-scenarios) for catalogue outages, model timeouts, duplicate messages, and closing the application during approval.
 - **40.5** [Measure response time, calls and cost per case](#agent-performance-measurement). Set targets from pilot measurements.
-- **40.6** Record how failures relate to intent, query, tool, and source version. Verify that monitoring excludes unnecessary conversation and document contents.
+- **40.6** [Record failure metadata](#failure-monitoring-metadata) by intent, query type, tool, and source version. Verify that monitoring excludes conversation and document contents.
 - **40.7** Hand off the message API, events, citations, questions, approvals, and reconnection examples to Phase 5.
 
 **Acceptance.** In a pilot set spanning at least three authorities, the agent finds a competent authority, applicable evidence, and a concrete next step. It clarifies missing or conflicting facts. Users can close and reopen the same task.
@@ -211,6 +211,22 @@ The offline timing includes worker execution, persisted state and read-side proj
 The Chromium acceptance report also captures two click-to-display times under `agentPerformanceMs`. The first measures a new task until its question appears. The other measures a clarification reply until the reviewed handoff link is visible, including a forced lost acknowledgement and a repeat submission. These single-run observations include polling and browser interaction on the isolated test stack.
 
 Numeric pilot targets remain open. The [pilot guide](../../docs/MILAN_PILOT.md#agent-performance-observations) specifies how to collect participant timing, verified coverage, calls and billed cost on a reviewed build. The synthetic baseline documents the current worker and supports repeat measurements during development.
+
+### Failure monitoring metadata
+
+The isolated backend emits one structured JSON record under `app.agent.diagnostics` at the failure boundary. The schema contains an event name and version, failure code, execution stage, known intent, query type, tool name, and a bounded list of related public registry version IDs. Query type distinguishes corrected message search, procedure-hint lookup and model requests. Unknown or inapplicable dimensions are empty.
+
+| Failure | Metadata source |
+| --- | --- |
+| Corrected catalogue lookup is rejected, returns no evidence or exhausts its retry | Checkpoint intent, bounded query type, and tool name once the lookup starts |
+| A typed case or evidence read is denied | Owned checkpoint and actual tool name |
+| Model deadline expires | Checkpoint intent and model request category |
+| Publication revalidation changes the verification status, citations, claims or channel | Checkpoint intent and draft citation versions linked to reviewed assignments in the server scope |
+| Approval requires a new review | Checkpoint intent, approved update tool and versions from the saved proposal's verified evidence dependencies |
+
+Source version IDs describe the evidence considered at the failure boundary. Terminal failure and publication records are emitted after the journal transaction commits. Read denials and invalid or empty lookups record the attempt at the read boundary. Exact approval retries replay the existing result without emitting another diagnostic.
+
+The schema has no free-text or private identifier fields. Prompt, query, reply, OCR, document, proposal and exception details stay out of this logger. Tests capture and inspect the exact JSON, including a synthetic uploaded PDF and its extracted date, a model exception with private test values, failed source revalidation with a forged reference, and a revoked approval dependency. These tests exercise the isolated worker and signed routes. Collector configuration, retention and verification of hosted log pipelines remain release work.
 
 ## End-to-end closure scenario
 

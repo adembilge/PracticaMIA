@@ -175,4 +175,6 @@ The [Task 40.4 interruption scenarios](../planning/practicamia-2/phase-04-agent-
 
 The [Task 40.5 performance measurement](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#agent-performance-measurement) records request latency, successful verified responses, worker steps, tool checks and paid model spend on the existing synthetic replay. Chromium records the time until a question or reviewed handoff is visible. The baseline uses a deterministic adapter, and numeric targets await participant measurements and billed pilot usage.
 
+The [Task 40.6 failure diagnostics](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#failure-monitoring-metadata) emit a bounded JSON record from the isolated worker and approval service. The record links typed failures with intent, query category, tool and reviewed source versions when known. Synthetic regression tests capture the log and check that private conversation, document, exception and proposal data stay out.
+
 For implementation details see [the documentation index](README.md).

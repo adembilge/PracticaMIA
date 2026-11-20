@@ -16,7 +16,8 @@ from app.agent.case_operations import AgentCaseOperation
 from app.agent.clarification_disposition import resolve_disposition
 from app.agent.contract import (
     MAX_MESSAGE_GOALS, MAX_PROCEDURE_CANDIDATES,
-    AgentEvent, AgentIntent, AnswerCompleted, ApprovalApplied, ApprovalRequested, ClarificationReply, ContractModel,
+    AgentEvent, AgentIntent, AgentNode, AnswerCompleted, ApprovalApplied, ApprovalRequested, ClarificationReply,
+    ContractModel,
     GoalNumber, Identifier, MessageGoal, PassageId, PositiveInt, QuestionAnswered, QuestionRequested,
     RunFailed, RunSnapshot, RunStopped,
     TERMINAL_EVENTS,
@@ -70,9 +71,7 @@ class RoutingCorrections(ContractModel):
 
 class CheckpointState(ContractModel):
     schema_version: Literal[1] = 1
-    next_node: Literal[
-        "load_context", "identify_intent", "find_evidence", "choose_next_step", "verify_and_respond",
-    ]
+    next_node: AgentNode
     intent: AgentIntent | None = None
     procedure_candidates: list[Identifier] = Field(default_factory=list, max_length=MAX_PROCEDURE_CANDIDATES)
     goals: list[MessageGoal] = Field(default_factory=list, max_length=MAX_MESSAGE_GOALS)

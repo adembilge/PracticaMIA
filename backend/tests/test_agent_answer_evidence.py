@@ -2,6 +2,8 @@
 
 from dataclasses import replace
 from datetime import date
+import json
+from uuid import uuid4
 
 import pytest
 
@@ -330,12 +332,14 @@ def test_altered_citation_metadata_withholds_official_channel(queued_run, propos
 
 @pytest.mark.parametrize("change", ["revoke", "supersede"])
 def test_stale_checkpoints_cannot_publish_withdrawn_or_replaced_passages(
-    client, queued_run, approved_citation, proposal, change,
+    client, queued_run, approved_citation, proposal, caplog, change,
 ):
     factory, context, _, _ = queued_run
     answer, scope = proposal
     citation, digest = approved_citation
-    state = CheckpointState(next_node="verify_and_respond", evidence_ids=[citation.passage_id])
+    state = CheckpointState(
+        next_node="verify_and_respond", intent="find_procedure", evidence_ids=[citation.passage_id],
+    )
     assert run_worker_step(factory, **context, execute=lambda *_: state).status == "running"
     if change == "revoke":
         with factory.begin() as db:
@@ -346,4 +350,19 @@ def test_stale_checkpoints_cannot_publish_withdrawn_or_replaced_passages(
     else:
         new_version, new_digest = _create(client, html=OTHER_HTML)
         _approve(client, new_version, new_digest)
-    _assert_withheld(_finish(queued_run, answer, scope))
+    unknown_version = uuid4()
+    unknown_passage = f"{unknown_version}:0000"
+    draft_citation = citation.model_copy(update={
+        "source_version_id": unknown_version, "citation_id": unknown_passage, "passage_id": unknown_passage,
+    })
+    draft = answer.model_copy(update={"citations": [citation, draft_citation]})
+    _assert_withheld(_finish(queued_run, draft, scope))
+    [record] = [row for row in caplog.records if row.name == "app.agent.diagnostics"]
+    assert json.loads(record.getMessage()) == {
+        "event": "agent_failure", "schema_version": 1, "code": "evidence_revalidation_failed",
+        "stage": "verify_and_respond", "intent": "find_procedure", "query_kind": None, "tool": None,
+        "source_version_ids": [str(citation.source_version_id)],
+    }
+    assert record.exc_info is None
+    for private_value in (str(unknown_version), str(citation.official_url), answer.explanation, CONTACT_QUOTE):
+        assert private_value not in record.getMessage()

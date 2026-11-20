@@ -1,6 +1,7 @@
 """Exercise recovery at the end of a corrected-scope worker run."""
 
 from datetime import date
+import json
 from uuid import UUID, uuid4
 
 import pytest
@@ -19,7 +20,7 @@ from test_knowledge_search import FACTS, _approve, _create, _thread_context, cre
 
 
 CORRECTED_SCOPE = CheckpointState(
-    next_node="find_evidence", procedure_candidates=[PROCEDURE],
+    next_node="find_evidence", intent="find_procedure", procedure_candidates=[PROCEDURE],
     routing_corrections=RoutingCorrections(move_in_date=date(2026, 4, 2)),
 )
 
@@ -46,7 +47,9 @@ def _continue(factory, run):
 
 
 @pytest.mark.parametrize("persistent", [False, True])
-def test_transient_catalogue_failure_gets_one_fresh_session_retry(client, auth_headers, monkeypatch, persistent):
+def test_transient_catalogue_failure_gets_one_fresh_session_retry(
+    client, auth_headers, monkeypatch, caplog, persistent,
+):
     factory, run, owner = _start_corrected_run(client, auth_headers)
     version, digest = _create(client)
     _approve(client, version, digest)
@@ -64,6 +67,13 @@ def test_transient_catalogue_failure_gets_one_fresh_session_retry(client, auth_h
     snapshot = _continue(factory, run)
     assert len(attempts) == 2 and attempts[0] is not attempts[1]
     assert all(not session.in_transaction() for session in attempts)
+    records = [row for row in caplog.records if row.name == "app.agent.diagnostics"]
+    assert [json.loads(row.getMessage()) for row in records] == ([{
+        "event": "agent_failure", "schema_version": 1, "code": "catalogue_unavailable", "stage": "find_evidence",
+        "intent": "find_procedure", "query_kind": "message_lexical", "tool": "find_evidence", "source_version_ids": [],
+    }] if persistent else [])
+    assert all(row.exc_info is None for row in records)
+    assert "private SQL fixture" not in caplog.text and "residenza" not in caplog.text
 
     client.app.include_router(build_reconnect_router(key=KEY))
     url = f"/api/v1/agent/threads/{run['thread_id']}/runs/{run['run_id']}"
@@ -110,8 +120,9 @@ def test_transient_catalogue_failure_gets_one_fresh_session_retry(client, auth_h
     ("residenza " * 13, "it", "Riformula la ricerca"),
     ("residenza", "en", "Review the case details"),
 ])
-def test_invalid_or_unmatched_search_returns_actionable_unverified_result(client, auth_headers, monkeypatch,
-                                                                       query, language, label):
+def test_invalid_or_unmatched_search_returns_actionable_unverified_result(
+    client, auth_headers, monkeypatch, caplog, query, language, label,
+):
     factory, run, _ = _start_corrected_run(client, auth_headers, query=query, language=language)
     calls = []
 
@@ -127,6 +138,10 @@ def test_invalid_or_unmatched_search_returns_actionable_unverified_result(client
     assert snapshot.result.next_action.label == label
     assert snapshot.result.next_action.operation == "provide_information"
     assert calls == ([query] if query == "residenza" else [])
+    [record] = [json.loads(row.getMessage()) for row in caplog.records if row.name == "app.agent.diagnostics"]
+    assert record["query_kind"] == "message_lexical"
+    assert record["code"] == ("catalogue_evidence_unavailable" if calls else "catalogue_invalid_query")
+    assert record["tool"] == ("find_evidence" if calls else None)
 
 
 def test_non_transient_storage_error_is_not_retried_or_reported_as_evidence(client, auth_headers, monkeypatch):

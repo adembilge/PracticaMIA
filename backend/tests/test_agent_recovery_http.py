@@ -1,6 +1,7 @@
 """Exercise synthetic timeouts and lost acknowledgements at signed HTTP boundaries."""
 
 from datetime import timedelta
+import json
 from uuid import UUID, uuid4
 
 import pytest
@@ -34,7 +35,7 @@ def conversation(client, auth_headers):
     return factory, owner, thread, thread_id, message
 
 
-def test_model_timeout_replays_a_safe_failure_and_allows_an_explicit_retry(client, auth_headers, conversation):
+def test_model_timeout_replays_a_safe_failure_and_allows_an_explicit_retry(client, auth_headers, conversation, caplog):
     factory, owner, thread, thread_id, message = conversation
     accepted = client.post(thread + "/messages", headers=owner, json=message)
     assert accepted.status_code == 202
@@ -45,7 +46,7 @@ def test_model_timeout_replays_a_safe_failure_and_allows_an_explicit_retry(clien
     def timed_out(_message, state):
         visits.append(state.next_node)
         if state.next_node == "load_context":
-            return CheckpointState(next_node="verify_and_respond")
+            return CheckpointState(next_node="verify_and_respond", intent="find_procedure")
         raise ModelProviderTimeout("private provider diagnostic")
 
     options = {"key": KEY, "lease_for": timedelta(minutes=1)}
@@ -63,6 +64,15 @@ def test_model_timeout_replays_a_safe_failure_and_allows_an_explicit_retry(clien
     assert failure["retryable"] is True and failure["recovery"] == "retry_later"
     assert "private provider diagnostic" not in response.text
     assert_private_error(client.get(run_url + "/events", headers=auth_headers("bob")), 404, "unavailable")
+    [record] = [row for row in caplog.records if row.name == "app.agent.diagnostics"]
+    assert json.loads(record.getMessage()) == {
+        "event": "agent_failure", "schema_version": 1, "code": "provider_unavailable",
+        "stage": "verify_and_respond", "intent": "find_procedure", "query_kind": "model_request",
+        "tool": None, "source_version_ids": [],
+    }
+    assert record.exc_info is None
+    assert "private provider diagnostic" not in caplog.text and message["text"] not in caplog.text
+    assert str(run_id) not in caplog.text and message["case_id"] not in caplog.text
     with factory() as db:
         assert load_checkpoint(db, thread_id=thread_id, run_id=run_id, principal=OWNER, key=KEY) is None
         run = db.get(AgentRunRequest, str(run_id))

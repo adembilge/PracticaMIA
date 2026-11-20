@@ -20,6 +20,7 @@ MAX_ANSWER_CLAIMS = 12
 MAX_PROCEDURE_CANDIDATES = 10
 MAX_MESSAGE_GOALS = 6
 ClarificationDisposition = Literal["answer", "unknown", "skip", "change_topic"]
+AgentNode = Literal["load_context", "identify_intent", "find_evidence", "choose_next_step", "verify_and_respond"]
 # An intent describes a user's request. It grants no access or authority.
 AgentIntent = Literal[
     "request_information",

@@ -20,6 +20,7 @@ from app.agent.contract import (
     ClarifyingQuestion, DocumentObservation,
     NextAction, ProgressUpdated, QuestionAnswered, QuestionRequested, RunFailed, RunSnapshot, RunStarted,
 )
+from app.agent.diagnostics import AgentFailureDiagnostic, corrected_query_kind
 from app.agent.proposal_freshness import ProposalFreshness, proposal_evidence_fingerprint
 from app.agent.run_events import EventConflict, _read_event_at, read_run_snapshot
 from app.agent.run_requests import (
@@ -159,6 +160,10 @@ def run_worker_step(
                     call=ReadCaseContext(tool="read_case_context", case_id=message.case_id),
                 )
             except ToolAccessDenied:
+                AgentFailureDiagnostic(
+                    code="tool_denied", stage=checkpoint.state.next_node, intent=checkpoint.state.intent,
+                    tool="read_case_context",
+                ).emit()
                 return None
             case_context = read_worker_case_context(
                 db, thread_id=thread_id, case_id=message.case_id, principal=principal,
@@ -188,6 +193,7 @@ def run_worker_step(
 
     # Only completed boundaries survive a crash. Uncommitted computation can
     # run again, so this callback must not perform external writes.
+    corrections = checkpoint.state.routing_corrections
     if topic_changed and question is not None:
         explanation, label = (
             ("The previous question is still open. Send a new message to change topics.", "Start a new topic")
@@ -211,7 +217,7 @@ def run_worker_step(
             goals=checkpoint.state.goals,
             goal_selection=goal_selection,
         )
-    elif checkpoint.state.next_node == "find_evidence" and checkpoint.state.routing_corrections:
+    elif checkpoint.state.next_node == "find_evidence" and corrections:
         for attempt in range(2):
             try:
                 with sessions() as db:
@@ -224,12 +230,18 @@ def run_worker_step(
                 if attempt == 1:
                     result = failure
             except ToolAccessDenied:
+                AgentFailureDiagnostic(
+                    code="tool_denied", stage=checkpoint.state.next_node, intent=checkpoint.state.intent,
+                    query_kind=corrected_query_kind(procedure_changed=corrections.procedure is not None),
+                    tool="find_evidence",
+                ).emit()
                 return None
     else:
         try:
             result = execute(message, checkpoint.state.model_copy(deep=True))
         except ModelProviderTimeout as failure:
             result = failure
+    diagnostic = None
     with sessions.begin() as db:
         run = db.scalar(_owned_run(thread_id, run_id, principal).with_for_update(
             of=AgentRunRequest,
@@ -297,7 +309,24 @@ def run_worker_step(
                     read_evidence_scope(db, thread_id, run_id, message.case_id, principal)
                     if read_evidence_scope is not None else None
                 )
-                result = revalidate_answer_evidence(db, result, scope=scope, language=message.language)
+                draft = result
+                result = revalidate_answer_evidence(db, draft, scope=scope, language=message.language)
+                if (
+                    result.verification_status != draft.verification_status or result.citations != draft.citations
+                    or result.claims != draft.claims or result.official_channel != draft.official_channel
+                ):
+                    scoped_passages = {
+                        assignment.evidence_ref for assignment in scope.assignments
+                        if assignment.approved_for_routing and assignment.procedure_id == scope.procedure_id
+                    } if scope is not None else set()
+                    versions = tuple(sorted({
+                        citation.source_version_id for citation in draft.citations
+                        if citation.passage_id in scoped_passages
+                    }))
+                    diagnostic = AgentFailureDiagnostic(
+                        code="evidence_revalidation_failed", stage=checkpoint.state.next_node,
+                        intent=checkpoint.state.intent, source_version_ids=versions,
+                    )
 
             relevant_fields = set(result.missing_information).union(checkpoint.state.missing_fields)
             if question is not None:
@@ -328,8 +357,20 @@ def run_worker_step(
             "event_seq": checkpoint.event_seq + 1, "occurred_at": datetime.now(timezone.utc),
         }
         if isinstance(result, (CatalogueUnavailable, ModelProviderTimeout)):
-            code = "catalogue_unavailable" if isinstance(result, CatalogueUnavailable) else "provider_unavailable"
-            terminal = RunFailed(**envelope, type="run.failed", code=code, retryable=True, recovery="retry_later")
+            if isinstance(result, CatalogueUnavailable):
+                diagnostic = AgentFailureDiagnostic(
+                    code="catalogue_unavailable", stage=checkpoint.state.next_node, intent=checkpoint.state.intent,
+                    query_kind=corrected_query_kind(procedure_changed=bool(corrections and corrections.procedure)),
+                    tool="find_evidence",
+                )
+            else:
+                diagnostic = AgentFailureDiagnostic(
+                    code="provider_unavailable", stage=checkpoint.state.next_node, intent=checkpoint.state.intent,
+                    query_kind="model_request",
+                )
+            terminal = RunFailed(
+                **envelope, type="run.failed", code=diagnostic.code, retryable=True, recovery="retry_later",
+            )
             finish_checkpoint(db, principal=principal, key=key, **boundary, event=terminal)
         elif isinstance(result, AnswerResult):
             terminal = AnswerCompleted(**envelope, type="answer.completed", result=result)
@@ -356,4 +397,7 @@ def run_worker_step(
         if lease is not None:
             run.lease_token = None
             run.lease_expires_at = None
-        return read_run_snapshot(db, **context)
+        snapshot = read_run_snapshot(db, **context)
+    if diagnostic is not None:
+        diagnostic.emit()
+    return snapshot

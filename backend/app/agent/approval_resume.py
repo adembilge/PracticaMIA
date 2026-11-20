@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.agent.approval_graph import resume_approval
 from app.agent.checkpoints import CheckpointConflict, finish_checkpoint, load_checkpoint, save_checkpoint
 from app.agent.contract import ApprovalApplied, ApprovalDecided, RunFailed, RunSnapshot
+from app.agent.diagnostics import AgentFailureDiagnostic
 from app.agent.run_events import _read_event_at, read_run_snapshot
 from app.agent.run_requests import AgentRunRequest, _owned_run
 from app.agent.tool_contract import ApplyApprovedUpdate
@@ -35,6 +36,7 @@ def resume_approved_case_update(
 ) -> RunSnapshot | None:
     """Run a bounded approval step. Return None for runs outside its waiting state."""
     context = {"thread_id": thread_id, "run_id": run_id, "principal": principal, "key": key}
+    diagnostic = None
     with sessions.begin() as db:
         owned_run = _owned_run(thread_id, run_id, principal)
         linked_case = db.scalar(owned_run.with_only_columns(AgentRunRequest.case_id).where(
@@ -92,6 +94,14 @@ def resume_approved_case_update(
         try:
             ready = prepare_approved_case_update(db, **context, call=call, read_approval=read_approval)
         except ToolExecutionDenied:
+            freshness = checkpoint.state.proposal_freshness
+            versions = tuple(sorted({
+                UUID(passage.split(":")[0]) for passage in freshness.passage_ids
+            })) if freshness is not None else ()
+            diagnostic = AgentFailureDiagnostic(
+                code="proposal_outdated", stage="resume_approval", intent=checkpoint.state.intent,
+                tool=call.tool, source_version_ids=versions,
+            )
             finish_checkpoint(
                 db, principal=principal, key=key, **boundary,
                 event=RunFailed(
@@ -112,4 +122,7 @@ def resume_approved_case_update(
                     operation_id=receipt.operation_id, case_revision=receipt.case_revision,
                 ),
             )
-        return read_run_snapshot(db, **context)
+        snapshot = read_run_snapshot(db, **context)
+    if diagnostic is not None:
+        diagnostic.emit()
+    return snapshot
