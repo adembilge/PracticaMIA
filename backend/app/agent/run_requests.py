@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 from sqlalchemy import (
     CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index,
     Integer, LargeBinary, String, UniqueConstraint, and_, or_, select, text,
@@ -18,8 +18,8 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.agent.case_context import WorkerCaseContext
 from app.agent.contract import (
-    ActiveRunCursor, ActiveRunPage, ActiveRunSummary, AnswerCompleted, ApprovalApplied, ClarifyingQuestion,
-    Language, QuestionAnswered, SendMessage,
+    ActiveRunCursor, ActiveRunPage, ActiveRunSummary, AnswerCompleted, AnswerResult, ApprovalApplied, ClarifyingQuestion,
+    ContractModel, Language, PositiveInt, QuestionAnswered, RunStatus, SendMessage,
 )
 from app.agent.destination_correction import DestinationCorrection, destination_correction_name
 from app.agent.threads import AgentThread, AgentThreadCase
@@ -82,6 +82,22 @@ class RunAcceptance:
     outcome: Literal["accepted", "unavailable", "message_conflict", "stale_thread", "active_run"]
     run_id: UUID | None = None
     accepted_revision: int | None = None
+
+
+class ConversationTurn(ContractModel):
+    run_id: UUID
+    case_id: UUID | None
+    status: RunStatus
+    accepted_revision: PositiveInt
+    user_message: str
+    language: Language
+    answer: AnswerResult | None = None
+
+
+class ConversationHistoryPage(ContractModel):
+    thread_id: UUID
+    items: list[ConversationTurn]
+    next_before_revision: PositiveInt | None = None
 
 
 @dataclass(frozen=True)
@@ -259,16 +275,18 @@ def latest_destination_correction(
     return _decode(run, principal, key).destination_correction if run is not None else None
 
 
-def list_active_runs(
-    db: Session, *, principal: Principal, limit: int = 20, before: ActiveRunCursor | None = None,
+def _list_run_summaries(
+    db: Session, *, principal: Principal, limit: int,
+    before: ActiveRunCursor | None, active_only: bool,
 ) -> ActiveRunPage:
-    """Discover owned active runs without loading message or event payloads."""
     if not 1 <= limit <= 50:
-        raise ValueError("Invalid active run page size")
+        raise ValueError("Invalid run page size")
     query = _owned_runs(principal).with_only_columns(
         AgentRunRequest.id, AgentRunRequest.thread_id, AgentRunRequest.case_id,
         AgentRunRequest.status, AgentRunRequest.accepted_at,
-    ).where(AgentRunRequest.status.in_(ACTIVE_STATUSES))
+    )
+    if active_only:
+        query = query.where(AgentRunRequest.status.in_(ACTIVE_STATUSES))
     if before is not None:
         accepted_at = before.accepted_at
         query = query.where(
@@ -291,6 +309,67 @@ def list_active_runs(
         last = items[-1]
         cursor = ActiveRunCursor(accepted_at=last.accepted_at, run_id=last.run_id)
     return ActiveRunPage(items=items, next_cursor=cursor)
+
+
+def list_active_runs(
+    db: Session, *, principal: Principal, limit: int = 20, before: ActiveRunCursor | None = None,
+) -> ActiveRunPage:
+    """Discover owned active runs without loading message or event payloads."""
+    return _list_run_summaries(db, principal=principal, limit=limit, before=before, active_only=True)
+
+
+def list_recent_runs(
+    db: Session, *, principal: Principal, limit: int = 20, before: ActiveRunCursor | None = None,
+) -> ActiveRunPage:
+    """Discover owned active and terminal runs with the same safe metadata cursor."""
+    return _list_run_summaries(db, principal=principal, limit=limit, before=before, active_only=False)
+
+
+def list_thread_history(
+    db: Session, *, thread_id: UUID, principal: Principal, key: bytes,
+    limit: int = 20, before_revision: int | None = None,
+) -> ConversationHistoryPage | None:
+    """Read bounded, decrypted user turns and completed answers in an owned chat.
+
+    Clarification events and their full evidence remain available via the
+    existing per-run event endpoint; this view does not reinterpret them.
+    """
+    if not 1 <= limit <= 30:
+        raise ValueError("Invalid conversation history page size")
+    if before_revision is not None and before_revision < 1:
+        raise ValueError("Invalid thread revision cursor")
+    if db.scalar(select(AgentThread.id).where(
+        AgentThread.id == str(thread_id), AgentThread.owner_subject == principal.subject,
+    )) is None:
+        return None
+
+    query = _owned_runs(principal).where(AgentRunRequest.thread_id == str(thread_id))
+    if before_revision is not None:
+        query = query.where(AgentRunRequest.accepted_revision < before_revision)
+    rows = db.scalars(query.order_by(
+        AgentRunRequest.accepted_revision.desc(),
+    ).limit(limit + 1)).all()
+    from app.agent.run_events import _decode_event, _latest_event
+
+    turns = []
+    for run in rows[:limit]:
+        message = _decode(run, principal, key)
+        answer = None
+        if run.status == "completed":
+            final = _latest_event(db, run)
+            event = _decode_event(final, run, principal, key) if final is not None else None
+            if not isinstance(event, AnswerCompleted):
+                raise ValueError("Completed run is missing its terminal answer")
+            answer = event.result
+        turns.append(ConversationTurn(
+            run_id=UUID(run.id), case_id=UUID(run.case_id) if run.case_id else None,
+            status=run.status, accepted_revision=run.accepted_revision,
+            user_message=message.text, language=message.language, answer=answer,
+        ))
+    next_cursor = turns[-1].accepted_revision if len(rows) > limit else None
+    return ConversationHistoryPage(
+        thread_id=thread_id, items=list(reversed(turns)), next_before_revision=next_cursor,
+    )
 
 
 def read_run_message(
