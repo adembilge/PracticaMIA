@@ -6,7 +6,14 @@ import {AgentSourceCards, type AgentCitation} from '../../src/components/AgentSo
 import {AgentOfficialHandoff, type OfficialHandoff} from '../../src/components/AgentOfficialHandoff';
 import {AgentGoalSelection, type GoalSelection} from '../../src/components/AgentGoalSelection';
 
-type ActiveRun = { thread_id: string; run_id: string; case_id: string | null };
+type ActiveRun = { thread_id: string; run_id: string; case_id: string | null; status?: string };
+type SavedRun = ActiveRun & { status: string };
+type HistoryTurn = {
+  run_id: string; case_id: string | null; status: string;
+  accepted_revision: number; user_message: string; language: 'en' | 'it';
+  answer: { explanation: string } | null;
+};
+type HistoryPage = { thread_id: string; items: HistoryTurn[]; next_before_revision: number | null };
 type CaseTask = { case_id: string; label: string; run_id: string | null };
 type CaseTaskPage = { items: CaseTask[]; next_case_id: string | null; unbound_run_id: string | null };
 type Snapshot = {
@@ -75,6 +82,9 @@ async function loadRun(url: string): Promise<RunView> {
 
 export function AgentReconnectFixture() {
   const [runs, setRuns] = useState<ActiveRun[] | null>(null);
+  const [savedRuns, setSavedRuns] = useState<SavedRun[] | null>(null);
+  const [history, setHistory] = useState<HistoryPage | null>(null);
+  const [historyBusy, setHistoryBusy] = useState(false);
   const [view, setView] = useState<RunView | null>(null);
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
@@ -107,8 +117,54 @@ export function AgentReconnectFixture() {
     void request<{ items: ActiveRun[] }>('/api/agent/runs/active', { signal: controller.signal })
       .then(page => { if (!controller.signal.aborted) setRuns(current => current ?? page.items); })
       .catch(() => { if (!controller.signal.aborted) setError('Could not load conversations.'); });
+    void request<{ items: SavedRun[] }>('/api/agent/runs/recent', { signal: controller.signal })
+      .then(page => {
+        if (!controller.signal.aborted) setSavedRuns(
+          page.items.filter(run => !activeStatuses.has(run.status)),
+        );
+      })
+      .catch(() => { if (!controller.signal.aborted) setSavedRuns([]); });
     return () => controller.abort();
   }, []);
+
+  const historyThreadId = view?.snapshot.thread_id;
+  const historyRunId = view?.snapshot.run_id;
+  const historyStatus = view?.snapshot.status;
+  useEffect(() => {
+    if (!historyThreadId) {
+      setHistory(null);
+      return;
+    }
+    const controller = new AbortController();
+    void request<HistoryPage>(`/api/agent/threads/${historyThreadId}/history`, {
+      signal: controller.signal,
+    }).then(page => {
+      if (!controller.signal.aborted) setHistory(page);
+    }).catch(() => {
+      if (!controller.signal.aborted) setHistory(null);
+    });
+    return () => controller.abort();
+  }, [historyThreadId, historyRunId, historyStatus]);
+
+  async function loadEarlierHistory() {
+    if (!history?.next_before_revision || historyBusy || busy || !view) return;
+    const threadId = view.snapshot.thread_id;
+    const before = history.next_before_revision;
+    setHistoryBusy(true);
+    try {
+      const older = await request<HistoryPage>(
+        `/api/agent/threads/${threadId}/history?before_revision=${before}`,
+      );
+      setHistory(current => current && current.thread_id === threadId
+        && current.next_before_revision === before ? {
+          ...older, items: [...older.items, ...current.items],
+        } : current);
+    } catch {
+      setError('Could not load earlier messages.');
+    } finally {
+      setHistoryBusy(false);
+    }
+  }
 
   function displayRun(next: RunView) {
     setView(next);
@@ -126,6 +182,11 @@ export function AgentReconnectFixture() {
     });
     if (!activeStatuses.has(next.snapshot.status)) {
       setRuns(items => items?.filter(run => run.run_id !== next.snapshot.run_id) ?? null);
+      setSavedRuns(items => [
+        { thread_id: next.snapshot.thread_id, run_id: next.snapshot.run_id,
+          case_id: null, status: next.snapshot.status },
+        ...(items ?? []).filter(run => run.run_id !== next.snapshot.run_id),
+      ]);
     }
   }
 
@@ -403,7 +464,25 @@ export function AgentReconnectFixture() {
           </li>;
         })}
       </ul>}
+      {savedRuns && savedRuns.length > 0 && <section aria-label="Past conversations">
+        <h2>Past conversations</h2>
+        <ul>{savedRuns.map(run => <li key={run.run_id}>
+          <button type="button" disabled={busy} onClick={() => void open(
+            `/api/agent/threads/${run.thread_id}/runs/${run.run_id}`,
+          )}>Open completed conversation</button>
+        </li>)}</ul>
+      </section>}
       {view && <section aria-label="Conversation" aria-busy={busy}>
+        {history?.thread_id === view.snapshot.thread_id && <section aria-label="Conversation history">
+          {history.next_before_revision && <button type="button" disabled={busy || historyBusy}
+            onClick={() => void loadEarlierHistory()}>Earlier messages</button>}
+          {history.items.map(turn => <article key={turn.run_id}>
+            <p><strong>You:</strong> {turn.user_message}</p>
+            {turn.answer && turn.run_id !== view.snapshot.run_id && <p>
+              <strong>PracticaMIA:</strong> {turn.answer.explanation}
+            </p>}
+          </article>)}
+        </section>}
         {view.snapshot.thread_id && <button type="button" disabled={busy} aria-expanded={!!caseTasks}
           onClick={() => {
             if (caseTasks) {
