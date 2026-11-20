@@ -213,4 +213,6 @@ The [protected reviewer Preview](../planning/practicamia-2/phase-04-pilot-source
 
 The [public-source comparison](../planning/practicamia-2/phase-04-claim-review-handoff.md#public-source-comparison-for-the-reviewer) adds evidence and scope notes for all six pending claims. It records the Torino service link with authenticated steps unverified, and distinguishes the postal submission, the Questura appointment and the announcement of a later summons. The comparison is preparatory evidence for the human review.
 
+The [Task 40 pilot session guide](../planning/practicamia-2/phase-04-pilot-session-guide.md) prepares bilingual fictional briefs for the three authorities, one staff rehearsal variant per case, and the observation fields for unassisted next action, reviewed citations, resumption and performance. Participant sessions have yet to run. Confirm the scope, reviewed sources and isolated build before counting participant outcomes.
+
 For implementation details see [the documentation index](README.md).
