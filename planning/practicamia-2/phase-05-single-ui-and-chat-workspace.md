@@ -1,28 +1,30 @@
 # PracticaMIA 2.0 — Phase 5 · Single UI and chat workspace
 
-**Roadmap tasks 41–50.** Deliver the chat-centred PracticaMIA web application. Users describe a task in their own words, answer the agent's questions, open official evidence, and see their next action. They can switch between tasks within a conversation and return later to the active case and pending step.
+**Roadmap tasks 41–50.** Deliver one user-facing chatbot interface for PracticaMIA. Users describe a task in their own words, answer the agent's questions, open official evidence, and see their next action. They can switch between tasks within a conversation and return later to the active case and pending step.
 
-Connect the Phase 3 catalogue and working Phase 4 agent API to real application data. Phase 6 connects document upload and review to its processing pipeline. Phase 7 connects form preparation. The interface uses backend capability information to expose actions actually available for the case.
+Connect the Phase 3 catalogue and Phase 4 agent API to real application data. Phases 6–8 add document handling, form preparation, checklist management, case history, and tracking **inside the same conversation**. Show actions only when the backend reports the capability available for the active case.
+
+**Binding product decision — one UI, one chat.** The customer has a single main conversation route and one message composer. Starting a procedure, asking questions, uploading documents, seeing OCR results, correcting fields, reviewing requirements and forms, approving changes, tracking cases, and resuming work all happen in the transcript using inline messages and interactive cards. A compact conversation/case switcher may live in that same shell. **Do not build standalone case dashboards, document workspaces, source browsers, form editor pages, separate task wizards, split-screen workspaces, or a separate Preview experience.** Sources and document pages may expand within the conversation without replacing it. An exported file is a downloadable result, not a second application screen. Government sign-in/payment/submission may still require an external official channel; show the verified handoff in chat and never claim the app performed it. Internal development, CI, and isolated test/staging deployments are engineering environments, not user-facing products or alternative UIs.
 
 The [Phase 4 agent API handoff](phase-04-phase-05-handoff.md) records the implemented isolated routes, client state transitions, checked wire examples and integration decisions still open.
 
-## Workspace layout
+## Single-chat layout
 
-| Area | Desktop | Mobile |
+| Element | Desktop | Mobile |
 | --- | --- | --- |
-| Navigation | Compact menu for New Chat, My Cases, and Official Sources | The same destinations in a top menu |
-| Chat | Main area for messages, questions, and action cards | Full-width main view |
-| Next action | Expandable panel alongside an active case | Short chat card with a detail view |
-| Source, document, or form | Detail panel opens on selection | Full-screen detail with a clear return path |
+| Conversation | One main transcript with persistent composer | The same transcript and composer, full width |
+| History and case switching | Collapsible list in the chat shell, never a separate dashboard | Collapsible list in the same chat shell |
+| Questions, approvals and next steps | Interactive cards inserted at the relevant message | The same inline cards with touch-friendly controls |
+| Sources, documents, forms and checklists | Expandable inline evidence, file, field and task cards | The same cards in the transcript; no route change or separate preview page |
 
-Chat stays the primary workspace at each size. Show the active case name and its next action. Open detail on demand and retain the case name in the detail view.
+Changing topic or case changes the active conversation context, not the interface. Expanded details must preserve composer drafts, transcript position, focus and the correct case binding. Keep official source links and downloads as explicit user actions.
 
 ## 41. Build the information architecture and application shell
 
-- **41.1** Set up three entry points. New Chat starts with free text. My Cases lists saved matters and pending actions. Official Sources opens the Phase 3 catalogue within the same shell.
+- **41.1** Set up one user-facing chat entry route and composer. New conversation, saved cases, previous chats, and reviewed official-source lookup are actions or expandable lists inside the chat shell, not standalone destinations.
 - **41.2** Model the active conversation and case separately. A general question can exist without a case title. When the user switches to another case, update its detail panels.
-- **41.3** Define route and panel behaviour. Deep-link to an authorised source or saved view. Browser back and panel close return to the originating message or list.
-- **41.4** Restore authorised chat, selected task, and open detail from the backend after reload. Show a safe access state for another account's link.
+- **41.3** Define chat-state URLs that reopen an authorised conversation, case or anchored message without navigating to a separate feature page. Expanding or closing an inline source, file or form preserves the originating message, scroll and focus.
+- **41.4** Restore the authorised conversation, selected case, draft-safe context and expanded inline detail from the backend after reload. For another account's link, show a safe unavailable message in chat.
 - **41.5** Share component styles for headings, buttons, citations, cards, panels, errors, and progress. Use text and icons to convey status.
 
 **Acceptance.** Users can open a source and return to the same message. Reload restores the authorised case and view.
@@ -32,7 +34,7 @@ Chat stays the primary workspace at each size. Show the active case name and its
 - **42.1** Show a prompt such as “What do you need help with?” and a message field. Let users type before choosing an authority, document type, or procedure.
 - **42.2** Offer three optional starting points covering finding an authority, understanding a notice, and tracking an application. Each opens an editable draft that the user can send.
 - **42.3** Show the first reply directly in the conversation. Ask for a city, authority, or stage in plain language when it changes the next step.
-- **42.4** For someone with an open case, offer a single resume link showing its name and pending action. Keep new chat available.
+- **42.4** For someone with an open case, offer a resume suggestion inside the same chat surface, including the pending action. Keep the composer ready for an unrelated question.
 - **42.5** Design Italian and English prompts, controls, empty states, and errors together. Keep official Italian terms in source and form views.
 
 **Acceptance.** New users can send a question without selecting an example. Returning users can find an open task from the home view.
@@ -44,7 +46,7 @@ Chat stays the primary workspace at each size. Show the active case name and its
 - **43.3** Use the Phase 4 client message ID for safe retries and duplicate suppression.
 - **43.4** Define per-file name, upload state, cancellation, and retry. A failed attachment preserves the message and other attachments.
 - **43.5** Connect attachment availability to backend capability. Show actual progress once Phase 6 is enabled. Treat selection, upload, and processing as separate states.
-- **43.6** Preserve drafts across in-app panel changes. Avoid assuming persistent browser storage for text that can contain personal data.
+- **43.6** Preserve the composer draft when expanding inline cards, switching cases, or reopening message history. Avoid persisting sensitive drafts in unprotected browser storage.
 
 **Acceptance.** Failed messages can be edited and retried without duplicates. A failed attachment does not remove other files or the draft.
 
@@ -77,13 +79,13 @@ Chat stays the primary workspace at each size. Show the active case name and its
 
 **Acceptance.** Users can answer a question, correct a value, and see the result in chat. Stale cards cannot change the current case inadvertently.
 
-## 46. Build the “What should I do next?” panel
+## 46. Build the in-chat “What should I do next?” card
 
 - **46.1** Include active case, next step, rationale, any missing input or document, and competent channel.
-- **46.2** Show one primary action, such as reviewing a value or opening the official service. Keep other tasks reachable in the same panel.
+- **46.2** Show one primary in-chat action, such as reviewing a value or opening the official service. Keep other tasks reachable through the chat's own case switcher.
 - **46.3** Show whether a case event comes from a user note, agent proposal, receipt, or official status. Make the basis of a completion claim inspectable.
 - **46.4** Use actionable recovery for missing data, unverified sources, and technical failures. Link to the corresponding question, source, or retry.
-- **46.5** Show the case name when several tasks exist. Switching cases replaces the previous next action with the current case's action.
+- **46.5** Show the case name when several tasks exist. Switching the active case inside the chat reveals that case's next-action card without mixing previous case details.
 - **46.6** Refresh from backend case state after changes. Merely writing a chat message does not complete a task.
 
 **Acceptance.** A returning user can find and understand the next step without rereading the conversation. Switching cases shows the right task.
@@ -93,29 +95,29 @@ Chat stays the primary workspace at each size. Show the active case name and its
 - **47.1** Put the citation control beside the claim it supports. Make the relationship clear when one paragraph refers to several sources.
 - **47.2** Show authority, title, exact passage or PDF page, scope, and last check date. Label the official link clearly.
 - **47.3** Distinguish the original Italian wording from the explanation. Preserve terms the user will need to find on the official page.
-- **47.4** Use Phase 3 identifiers so the chat citation and Official Sources view resolve to the same passage and version.
+- **47.4** Use Phase 3 identifiers so citation expansion and the in-chat source search resolve to the same exact passage and version.
 - **47.5** Mark the affected recommendation when a source changes or is withdrawn. Keep historical support visible on previous messages.
-- **47.6** Verify mobile and keyboard navigation. Closing the detail returns focus and scroll position to the citation that opened it.
+- **47.6** Verify mobile and keyboard navigation. Collapsing an inline passage returns focus and scroll position to the citation that opened it.
 
 **Acceptance.** Users can reach the supporting official passage and return to the same place in chat.
 
-## 48. Set the shared document, form, and history panel structure
+## 48. Set the inline document, form, and history card structure
 
 - **48.1** Define document name, type, upload and processing state, preview, and page reference components.
 - **48.2** Define the form name and version, original labels, proposed values, evidence, and confirmation controls. Show the difference between missing and confirmed fields.
 - **48.3** Show case events chronologically, including messages, attachments, proposals, corrections, and saved changes.
-- **48.4** Standardise open, close, deep links, scroll, and return. Ask how to proceed when closing a panel would discard an unsaved edit.
-- **48.5** Pass contracts to Phase 6 for documents and pages, Phase 7 for forms and fields, and Phase 8 for tracking events.
-- **48.6** Verify component structure with safe fixtures. Once real tools are enabled, render their backend results in the corresponding case.
+- **48.4** Standardise expand, collapse, in-chat anchors, scroll, and focus. Ask how to proceed when collapsing a card would discard an unsaved edit.
+- **48.5** Pass inline-card contracts to Phase 6 for documents and pages, Phase 7 for forms and fields, and Phase 8 for tracking events.
+- **48.6** Verify card composition with safe fixtures. Once real tools are enabled, render results in the same conversation bound to the correct case.
 
-**Acceptance.** All three panels open in the same case context and return to chat. Later phases can supply data without changing navigation.
+**Acceptance.** Document evidence, form review, and case history expand inline in one chat route. Later phases can supply data without adding a user-facing page or changing navigation.
 
 ## 49. Complete session, saving, and return flows
 
 - **49.1** Make sign-in requirements clear according to product rules. Test questions, case saving, personal attachments, and history independently.
 - **49.2** Carry a safe internal return target during sign-in. Restore the intended conversation or case after successful authentication.
 - **49.3** On expiry, show which operations completed and what must be retried after signing in again.
-- **49.4** In My Cases, show name, status, last update, and next action. Reload case context and related conversation when selected.
+- **49.4** In the conversation/case switcher inside chat, show name, status, last update, and next action. Selecting a case restores its chat context and current cards.
 - **49.5** Clear private data and visible case state when accounts change. Previous account messages, documents, and notes must disappear.
 - **49.6** Use two test accounts for shared links, expiry, sign-in, case switching, and return behaviour.
 
@@ -124,7 +126,7 @@ Chat stays the primary workspace at each size. Show the active case name and its
 ## 50. Verify mobile, accessibility, and the full journey
 
 - **50.1** Test desktop, tablet, and narrow mobile screens. Include long Italian authority names, source links, conversations, and the on-screen keyboard.
-- **50.2** Complete the workflow with a keyboard. Verify focus when opening and closing a panel, correcting approval, and switching cases.
+- **50.2** Complete the workflow with a keyboard. Verify focus when expanding and collapsing cards, correcting approvals, and switching cases in the same chat.
 - **50.3** Announce meaningful states such as new question, answer ready, and error. Avoid announcing each streaming update. Use [WCAG 2.2 AA](https://www.w3.org/TR/WCAG22/) as the accessibility target.
 - **50.4** Measure initial usability, first status event, conversation scrolling, and detail open time. Load heavy viewers on demand.
 - **50.5** Automate first question, clarification, source review, correction, saving, disconnect, and sign-in recovery.
@@ -141,4 +143,4 @@ Chat stays the primary workspace at each size. Show the active case name and its
 | Return to the same task | 48–49 and reconnection in 44 | Resume after leaving a panel, closing the tab, or signing in again |
 | Verify the journey | 50 | Mobile, keyboard, and network interruption tests pass |
 
-**End-to-end demonstration.** The user starts in free text, answers a short clarification, opens the official passage, saves the next action, and finds it again after leaving the page. Use the real agent and catalogue. Phase 6 adds document reading and verification to that working journey.
+**End-to-end demonstration.** The user starts with free text and completes clarification, cited-source expansion, case saving and resumption **without leaving the chatbot route**. Phase 6 adds in-chat document upload, extraction review and confirmation; Phase 7 adds inline checklist/form preparation and official handoff; Phase 8 adds case history and tracking through the same composer. Any external government interaction is a clearly labelled link-out, not another PracticaMIA UI.
