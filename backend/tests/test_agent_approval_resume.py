@@ -55,6 +55,18 @@ def test_owner_accepts_after_restart_and_the_same_run_continues(client, auth_hea
     assert client.post(url, headers=auth_headers("bob"), json=correction).status_code == 404
     assert client.post(url, headers=owner, json=correction).status_code == 200
     assert writes == []
+    history_url = f"/api/v1/agent/threads/{context['thread_id']}/history"
+    corrected_history = client.get(history_url, headers=owner)
+    assert corrected_history.status_code == 200
+    assert corrected_history.headers["Cache-Control"] == "private, no-store"
+    assert client.get(history_url, headers=auth_headers("bob")).status_code == 404
+    corrected_reviews = corrected_history.json()["items"][0]["approvals"]
+    assert len(corrected_reviews) == 2
+    assert corrected_reviews[0]["proposal_id"] == str(proposal.proposal_id)
+    assert corrected_reviews[0]["decision"] == "correct"
+    assert corrected_reviews[0]["corrected_value"] == "2026-11-20"
+    assert corrected_reviews[0]["applied_operation_id"] is None
+    assert corrected_reviews[1]["decision"] is None
     revised = client.get(base, headers=owner).json()
     new_id = revised["pending_proposal"]["proposal_id"]
     assert new_id != str(proposal.proposal_id)
@@ -81,6 +93,14 @@ def test_owner_accepts_after_restart_and_the_same_run_continues(client, auth_hea
     applied = client.get(base + "/events", headers=owner).json()["events"][-1]
     assert applied["type"] == "approval.applied"
     assert applied["proposal_id"] == new_id
+    applied_reviews = client.get(history_url, headers=owner).json()["items"][0]["approvals"]
+    assert len(applied_reviews) == 2
+    assert applied_reviews[0]["applied_operation_id"] is None
+    assert applied_reviews[1]["proposal_id"] == new_id
+    assert applied_reviews[1]["proposed_value"] == "2026-11-20"
+    assert applied_reviews[1]["decision"] == "accept"
+    assert applied_reviews[1]["applied_operation_id"] == applied["operation_id"]
+    assert applied_reviews[1]["applied_case_revision"] == applied["case_revision"]
     with factory() as db:
         assert db.get(CaseIntake, str(proposal.case_id)).facts == {"move_in_date": "2026-11-20"}
         [receipt] = db.scalars(select(AgentCaseOperation)).all()
@@ -116,12 +136,20 @@ def test_journal_failure_rolls_back_the_write_and_exact_decision_retry_recovers(
         assert db.get(CaseIntake, str(proposal.case_id)) is None
         assert db.scalars(select(AgentCaseOperation)).all() == []
     assert client.get(base, headers=owner).json()["approval_recorded"]
+    history_url = f"/api/v1/agent/threads/{context['thread_id']}/history"
+    recorded = client.get(history_url, headers=owner).json()["items"][0]["approvals"]
+    assert len(recorded) == 1 and recorded[0]["decision"] == "accept"
+    assert recorded[0]["applied_operation_id"] is None
+    assert recorded[0]["applied_case_revision"] is None
 
     response = client.post(url, headers=owner, json=decision)
     assert response.status_code == 200
     resumed = client.get(base, headers=owner).json()
     with factory() as db:
         [receipt] = db.scalars(select(AgentCaseOperation.id)).all()
+    applied_history = client.get(history_url, headers=owner).json()["items"][0]["approvals"]
+    assert applied_history[0]["applied_operation_id"] == receipt
+    assert applied_history[0]["applied_case_revision"] is not None
     stopped = client.post(base + "/stop", headers=owner, json={"expected_run_revision": resumed["run_revision"]})
     assert stopped.json()["status"] == "stopped"
     assert client.get(base + "/events", headers=owner).json()["events"][-1]["committed_operation_ids"] == [receipt]
@@ -146,6 +174,11 @@ def test_declined_or_stale_approval_cannot_write_through_resume(client, approval
         )
     else:
         assert last["type"] == "run.stopped"
+    history_url = f"/api/v1/agent/threads/{context['thread_id']}/history"
+    review = client.get(history_url, headers=owner).json()["items"][0]["approvals"]
+    assert len(review) == 1 and review[0]["decision"] == decision
+    assert review[0]["applied_operation_id"] is None
+    assert review[0]["applied_case_revision"] is None
     with factory() as db:
         assert db.get(CaseIntake, str(proposal.case_id)) is None
         assert db.scalars(select(AgentCaseOperation)).all() == []
