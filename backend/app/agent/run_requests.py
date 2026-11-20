@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from pydantic import Field, ValidationError
+from pydantic import ValidationError
 from sqlalchemy import (
     CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index,
     Integer, LargeBinary, String, UniqueConstraint, and_, or_, select, text,
