@@ -207,6 +207,8 @@ The [Phase 4 claim review worksheet](../planning/practicamia-2/phase-04-claim-re
 
 The [Phase 4 Preview import command](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md#import-into-the-isolated-preview-registry) validates the five originals, the direct Preview database identity and all eleven passage references before committing candidates. The initial check found no pilot rows at revision `20261116_0017`. The work environment could not resolve the direct database host for the CLI run.
 
-The [Phase 4 Preview registration](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md#verified-preview-registration) added five candidates to the non-default Neon branch in one control-plane transaction. An independent read verified all five original hashes, 364 passage hashes and eleven pinned references. All affected versions remain pending, with zero active pointers and zero review events. The protected reviewer build, its live database binding and an authenticated review remain pending.
+The [Phase 4 Preview registration](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md#verified-preview-registration) added five candidates to the non-default Neon branch in one control-plane transaction. An independent read verified all five original hashes, 364 passage hashes and eleven pinned references. All affected versions were pending, with zero active pointers and zero review events.
+
+The [protected reviewer Preview](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md#protected-reviewer-preview) serves `a8e6121` on both branch aliases. The backported verifier passed a signed local read of all five exact originals, including the Q3 `html-v2` snapshot. The live API responded and denied an anonymous Q3 read. The authorized Auth0 session, live database binding and six human claim decisions remain pending.
 
 For implementation details see [the documentation index](README.md).
