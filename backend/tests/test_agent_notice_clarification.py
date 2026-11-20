@@ -28,7 +28,7 @@ from test_agent_reconnect_http import KEY, OWNER, run_url
     ("en", "A letter requests an attachment. The copy cuts off the name. Which file is needed?",
      "attachment_name", "line that names the requested attachment", "Remove names, identifiers",
      {"disposition": "skip"}),
-    ("it", "La comunicazione chiede un allegato, ma il nome è illeggibile. Quale file devo inviare?",
+    ("it", "Non riesco a leggere quale allegato chiede la comunicazione. Quale file devo inviare?",
      "attachment_name", "riga con il nome dell’allegato richiesto", "Oscura nomi, identificativi",
      {"text": "Nome allegato forse documento sintetico"}),
 ])
@@ -104,6 +104,7 @@ def test_notice_question_reconnects_and_keeps_the_reply_unverified(
     "The notice requests a named attachment. Where do I send it?",
     "The letter gives my appointment date. The screenshot footer is unreadable.",
     "The appointment notice is clear. The date on the attachment is smudged.",
+    "The notice names the requested attachment. The completed attachment itself is unreadable.",
 ])
 def test_unreadable_notice_detection_preserves_unrelated_requests(opening):
     assert unreadable_notice_field(opening) is None
