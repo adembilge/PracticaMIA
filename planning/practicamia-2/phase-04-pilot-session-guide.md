@@ -10,7 +10,7 @@ Use this guide with the [three-authority pilot scope](phase-04-three-authority-p
 
 ## Give the participant one brief
 
-Start every scenario in the same chatbot with its composer empty. Show the brief in the participant's preferred language. Ask them to describe the goal in their own words, answer any follow-up in the conversation using the brief, and identify what they would do next. Stop at the in-chat handoff before signing into a government service, uploading a document, paying or submitting a request.
+Start every scenario in the same chatbot with its composer empty. Show the brief in the participant's preferred language. Ask them to describe the goal in their own words, answer every follow-up in the conversation using the brief, and identify the next step from its inline action card. Do not navigate to a separate PracticaMIA dashboard, saved-case details, source page, document workspace or Preview UI. The selected Phase 4 scenarios finish at the in-chat handoff; actual government sign-in, payment and submission are external and untested here. Later phases will exercise in-chat document uploads, field reviews, form preparation and case tracking.
 
 | Scenario | English brief | Brief in italiano |
 | --- | --- | --- |
@@ -32,7 +32,7 @@ For the appointment case, supply a plainly fictional summons marked as a test ex
 | Torino | Identifies Torino's banns office and municipal service as the starting point. Explains that the registrar sends the delegation to Collegno after publication. | Provide only the ceremony municipality and omit registered residence. The application asks for residence before choosing the receiving office. |
 | Questura | Distinguishes the completed postal intake from the immigration office appointment and uses the fictional summons for the date, time and venue. | Provide only a receipt or a letter saying an appointment will follow. The application leaves the date, time and venue unresolved. |
 
-A participant run meets the primary outcome when the participant reaches the expected action without a hint, explains the competent body and next step, and the application shows current reviewed citations for that action. Report resumption separately. Record an assisted, incorrect or stopped attempt with the outcome observed. Keep a run blocked before launch by a missing review or an unavailable build separate from started attempts. A safe clarification or withholding result in a staff variant provides rehearsal evidence.
+A participant run meets the primary outcome when the participant reaches the expected action within the same chat UI without a hint, explains the competent body and next step, and the application shows current reviewed citations for that action. Report resumption separately. Record an assisted, incorrect or stopped attempt with the outcome observed. Keep a run blocked before launch by a missing review or an unavailable build separate from started attempts. A safe clarification or withholding result in a staff variant provides rehearsal evidence.
 
 ## Record one row per attempted scenario
 
