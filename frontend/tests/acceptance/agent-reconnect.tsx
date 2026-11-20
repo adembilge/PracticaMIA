@@ -145,6 +145,7 @@ export function AgentReconnectFixture() {
   const historyThreadId = view?.snapshot.thread_id;
   const historyRunId = view?.snapshot.run_id;
   const historyStatus = view?.snapshot.status;
+  const historyRunRevision = view?.snapshot.run_revision;
   useEffect(() => {
     if (!historyThreadId) {
       setHistory(null);
@@ -159,7 +160,7 @@ export function AgentReconnectFixture() {
       if (!controller.signal.aborted) setHistory(null);
     });
     return () => controller.abort();
-  }, [historyThreadId, historyRunId, historyStatus]);
+  }, [historyThreadId, historyRunId, historyStatus, historyRunRevision]);
 
   async function loadEarlierHistory() {
     if (!history?.next_before_revision || historyBusy || busy || !view) return;
