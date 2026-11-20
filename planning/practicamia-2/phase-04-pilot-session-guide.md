@@ -10,7 +10,7 @@ Use this guide with the [three-authority pilot scope](phase-04-three-authority-p
 
 ## Give the participant one brief
 
-Show the brief in the participant's preferred language. Ask them to describe the goal in their own words, answer any follow-up from the application using the brief, and identify what they would do next. Stop at the in-app handoff before signing into a government service, uploading a document, paying or submitting a request.
+Start every scenario in the same chatbot with its composer empty. Show the brief in the participant's preferred language. Ask them to describe the goal in their own words, answer any follow-up in the conversation using the brief, and identify what they would do next. Stop at the in-chat handoff before signing into a government service, uploading a document, paying or submitting a request.
 
 | Scenario | English brief | Brief in italiano |
 | --- | --- | --- |

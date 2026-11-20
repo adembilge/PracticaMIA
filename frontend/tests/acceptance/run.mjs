@@ -1048,6 +1048,45 @@ try{
     assert.equal((await readJson(owner,secondUrl)).body.status,'waiting_for_information');
   });
 
+  await scenario('Agent chat starts with a question and resumes without a saved case',async()=>{
+    const owner=await contextFor('alice',{width:390,height:800});
+    const route='/__acceptance/agent';
+    await owner.goto(origin+route);
+    const composer=owner.getByRole('form',{name:'New conversation'});
+    await composer.getByRole('textbox',{name:'What would you like help with?'}).fill('How do I change my registered address?');
+    const receipts=[];
+    await owner.route('**/api/agent/conversations',async intercepted=>{
+      const response=await intercepted.fetch();
+      receipts.push({status:response.status(),body:await response.json()});
+      if(receipts.length===1) await intercepted.abort();
+      else await intercepted.fulfill({response});
+    });
+    const send=composer.getByRole('button',{name:'Send message',exact:true});
+    await send.click();
+    await owner.getByRole('alert').filter({hasText:'Could not confirm the new message. Try again.'}).waitFor();
+    const accepted=owner.waitForResponse(response=>response.url()===origin+'/api/agent/conversations' && response.status()===202);
+    await send.click();
+    const {thread_id,run_id}=await (await accepted).json();
+    assert.equal(receipts.length,2);
+    assert.deepEqual(receipts[1],receipts[0]);
+    const url=`/api/agent/threads/${thread_id}/runs/${run_id}`;
+    await awaitAgentStatus(owner,url,'waiting_for_information');
+    const {body:{items}}=await readJson(owner,'/api/agent/runs/active');
+    assert.equal(items.find(run=>run.run_id===run_id).case_id,null);
+    await composer.getByRole('textbox').waitFor();
+    await owner.reload();
+    await owner.getByRole('button',{name:'Open conversation',exact:true}).first().click();
+    const question=owner.getByRole('group',{name:'Which municipality is this about?'});
+    await question.getByRole('textbox',{name:'Your reply'}).fill('Milan');
+    await owner.getByRole('button',{name:'Send reply',exact:true}).click();
+    await awaitAgentStatus(owner,url);
+    const check=owner.getByRole('button',{name:'Check status',exact:true});
+    const result=owner.getByText('Received Milan.',{exact:true});
+    await check.or(result).first().waitFor();
+    if(await check.isVisible()) await check.click();
+    await result.waitFor();
+  });
+
   await scenario('A8: browser runs without uncaught runtime errors',async()=>{
     assert.deepEqual(errors,[]);
   });

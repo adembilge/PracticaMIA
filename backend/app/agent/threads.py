@@ -1,7 +1,7 @@
 """Persist thread ownership and explicit links to saved cases."""
 
 from datetime import datetime, timezone
-from uuid import UUID, uuid4
+from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -53,6 +53,24 @@ def create_thread(db: Session, *, principal: Principal) -> UUID:
     db.add(AgentThread(
         id=str(thread_id), owner_subject=principal.subject, created_at=datetime.now(timezone.utc),
     ))
+    return thread_id
+
+
+def create_thread_for_message(db: Session, *, principal: Principal, message_id: UUID) -> UUID:
+    """Atomically reuse a first-message thread when its acknowledgement is lost."""
+    thread_id = uuid5(NAMESPACE_URL, f"urn:practicamia:first-message:{principal.subject}:{message_id}")
+    dialect = db.get_bind().dialect.name
+    if dialect == "postgresql":
+        insert = pg_insert
+    elif dialect == "sqlite":
+        insert = sqlite_insert
+    else:
+        raise RuntimeError("Agent threads require PostgreSQL or SQLite")
+    db.execute(
+        insert(AgentThread)
+        .values(id=str(thread_id), owner_subject=principal.subject, created_at=datetime.now(timezone.utc))
+        .on_conflict_do_nothing(index_elements=["id"])
+    )
     return thread_id
 
 
