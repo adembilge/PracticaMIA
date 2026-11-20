@@ -67,7 +67,7 @@ The command stores original bytes and extracted passages through the existing sn
 
 The extended 20 November import and repeat preserved the four baseline version IDs and produced five `pending_review` versions, 364 passages and eleven claim references. The integrity and foreign-key checks passed. The review audit contained zero approval events. The extended SQLite file's SHA-256 is `a539ddb3c1b1a34deb7c1001b095a0532342c517bd00f60e862d5056568d6b9a`.
 
-These IDs refer to the offline review copy. A hosted import will have its own version and passage IDs, to be bound by the original and extracted hashes. The authorized reviewer can inspect the six pending claims against the published sources and record the scoped rationale using the [claim-specific process](phase-03-claim-evidence.md#claim-and-evidence-contract). Hosted candidate registration and [authenticated approval](../../docs/OFFICIAL_SOURCE_INTAKE.md#5-human-evidence-review) remain pending.
+These IDs refer to the offline review copy. The [verified Preview mapping](#verified-preview-registration) links them to the hosted versions by original and passage hashes. The authorized reviewer can inspect the six pending claims against the published sources and record the scoped rationale using the [claim-specific process](phase-03-claim-evidence.md#claim-and-evidence-contract). [Authenticated approval](../../docs/OFFICIAL_SOURCE_INTAKE.md#5-human-evidence-review) remains pending.
 
 The [claim review worksheet](phase-04-claim-review-handoff.md) lists the exact claims, case boundaries and eleven pinned references in a read-only query. It also provides the fields for recording a human decision.
 
@@ -86,4 +86,18 @@ python -m app.knowledge.pilot_source_review --preview --originals /path/to/all-f
 
 The command accepts the five pinned original files in one transaction. It checks their hashes, scopes, the database identity and schema, and all eleven passage fingerprints. A failed check rolls back the transaction. A successful run prints the hosted source-version and passage IDs for the review worksheet. Repeating the same pending import preserves those IDs. The separate reviewer workflow owns the approval decisions.
 
-The isolated Neon branch was reachable through the control plane on 20 November 2026 at Alembic revision `20261116_0017` with zero pilot source IDs present. The direct database connection from the work environment failed at DNS resolution. The documented API Preview alias could not be resolved in the deployment lookup. The hosted write and authenticated review remain pending. The disposable PostgreSQL exercise runs on the repository's backend CI.
+### Verified Preview registration
+
+On 20 November 2026 the work environment could reach Neon through its control plane, while direct database host resolution failed. The operator used one control-plane transaction scoped to the existing `preview-preparation-mvp-20261107` branch (`br-broad-sea-ba61e95a`), database `practicamia`, and Alembic revision `20261116_0017`. The transaction copied the verified offline originals, snapshots and passages into the existing candidate registry. The source and claim pins were checked against the `ff2967167b59f68b07f58c30085bd5e81c3ea058` tree. Temporary tables backed exact row comparisons before commit.
+
+| Source ID | Preview version ID, revision 1 |
+| --- | --- |
+| `torino-banns-office` | `0e7ae724-e6cc-5dd7-8606-019bf8876f73` |
+| `torino-banns-service` | `3d8c045e-f51b-55e6-b7e6-da217236d815` |
+| `portale-immigrazione-code-16` | `5923cbd1-4247-57e1-9437-5696faf01f7d` |
+| `portale-immigrazione-procedure` | `63a2e1ca-42af-5fd2-a327-4f6983f07cf0` |
+| `poste-residence-permit-appointments` | `67fb7666-c037-5b98-aa33-34f3173373ad` |
+
+An independent read after commit verified five `candidate` sources, five `pending_review` versions, five matching original byte hashes, 364 matching passage hashes and all eleven pinned references. The pilot sources had zero active version pointers and zero review events. Preview passage IDs use the listed version ID followed by `:` and the same four-digit ordinal as the offline copy.
+
+The protected reviewer API alias was present, but its deployment record and running database binding could not be verified. The configured `preview/auth-review-isolated` Git branch was at `74208a0`, whose snapshot verifier lacks Q3's `html-v2` support. A compatible protected build and verified reviewer session are required for the reviewer acceptance check and decisions. The disposable PostgreSQL import exercise runs in backend CI.

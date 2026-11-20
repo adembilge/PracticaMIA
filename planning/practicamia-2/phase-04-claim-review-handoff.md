@@ -17,7 +17,7 @@ Review each proposition within the stated scope, using the linked publisher page
 
 ## Read the eleven pinned passages
 
-Open the review copy in read-only mode with `sqlite3 -readonly PracticaMIA-Phase4-Source-Review.sqlite3` or an equivalent SQLite viewer. Use the file hash recorded in the acquisition record. The query returns the stored text, version and passage identifiers, both hashes and the capture time for each expected reference. Missing rows or changed hashes require investigation before a decision.
+Open the review copy in read-only mode with `sqlite3 -readonly PracticaMIA-Phase4-Source-Review.sqlite3` or an equivalent SQLite viewer. Use the file hash recorded in the acquisition record. For a read-only query on the verified isolated Preview database, substitute the [five Preview version IDs](phase-04-pilot-source-acquisition-2026-11-20.md#verified-preview-registration) for their SQLite counterparts and retain the same ordinals. The query returns the stored text, version and passage identifiers, both hashes and the capture time for each expected reference. Missing rows or changed hashes require investigation before a decision.
 
 ```sql
 WITH expected(claim, version_id, ordinal) AS (
@@ -58,4 +58,4 @@ Use a private review copy. Record the outcome, exact approved wording and scope 
 | Q2 | Pending | | |
 | Q3 | Pending | | |
 
-After hosted candidate registration, map each local reference to the hosted source and passage using its original and passage SHA-256 hashes. Use the [authenticated source approval workflow](../../docs/KNOWLEDGE_REVIEW_WORKFLOW.md#approval-invariants) for any activation. A claim also needs its own scoped review record under the [claim-evidence contract](phase-03-claim-evidence.md#claim-and-evidence-contract). The current reviewer API records source-version decisions. This worksheet prepares the separate claim review record.
+For a hosted decision, record the Preview source version and passage IDs with the verified original and passage hashes. Use the [authenticated source approval workflow](../../docs/KNOWLEDGE_REVIEW_WORKFLOW.md#approval-invariants) for any activation. A claim also needs its own scoped review record under the [claim-evidence contract](phase-03-claim-evidence.md#claim-and-evidence-contract). The current reviewer API records source-version decisions. This worksheet prepares the separate claim review record.
