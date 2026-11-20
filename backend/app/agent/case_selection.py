@@ -6,8 +6,11 @@ from uuid import UUID, uuid4
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
+from app.agent.case_context import read_worker_case_context
 from app.agent.contract import AnswerResult, ClarifyingQuestion, ContractModel, SavedCaseChoice
-from app.agent.filing_clarification import MARRIAGE_BANNS, marriage_municipality_question
+from app.agent.filing_clarification import (
+    MARRIAGE_BANNS, SAVED_CASE_FILING, confirm_saved_intake, marriage_municipality_question,
+)
 from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, StoredMessage
 from app.agent.threads import AgentThread, active_case_links
 from app.auth.tokens import Principal
@@ -84,7 +87,8 @@ def resolve_saved_case(
         if goal.location_candidates and JURISDICTION not in goal.location_candidates:
             query = query.where(CaseRecord.procedure != PROCEDURE)
 
-    other = OTHER_CASE_CUE.search(normalize_name(message.text)) is not None
+    normalized_text = normalize_name(message.text)
+    other = OTHER_CASE_CUE.search(normalized_text) is not None
     if other and message.case_id is not None:
         query = query.where(CaseRecord.id != str(message.case_id))
 
@@ -102,6 +106,13 @@ def resolve_saved_case(
     elif message.case_id is not None and not other:
         case = db.scalar(query.where(CaseRecord.id == str(message.case_id)))
         if case is not None:
+            filing = SAVED_CASE_FILING.fullmatch(normalized_text) if resume_case else None
+            if filing and not (filing["en_place"] or filing["it_place"]):
+                context = read_worker_case_context(
+                    db, thread_id=thread_id, case_id=message.case_id, principal=principal, lock_case=True,
+                )
+                if context is not None and case.archived_at is None and context.next_action == "confirm_intake":
+                    return confirm_saved_intake(message.language)
             return _confirmed_case(answer, case, message.language)
 
     cases = db.scalars(query.order_by(CaseRecord.created_at.desc(), CaseRecord.id).limit(11)).all()

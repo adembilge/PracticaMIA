@@ -295,6 +295,8 @@ Run `PYTHONPATH=backend python evals/score_phase04_next_action.py --confirmation
 
 The default v1 run preserves the original fixture and scores **24/26 and 34/36**. Signed HTTP tests exercise both languages, the case link, blocked handoff before confirmation, cross-owner checks and the verified response after a fresh request. The results apply to the synthetic development set.
 
+Asking for the filing step again before confirmation returns the same intake action on an active linked case awaiting intake confirmation. The signed API tests cover incomplete and complete unconfirmed drafts in English and Italian, checking that the chosen case links to intake and that the filing request leaves the saved draft unchanged. After the owner confirms the form and asks again, the existing evidence gate checks the official handoff.
+
 ## End-to-end closure scenario
 
 The user describes a need without knowing the authority. The agent finds the task and source and asks a question when necessary. After a correction, the agent reassesses affected results, shows the action, competent channel, and supporting passage, then lets the user save the task and resume it after returning.

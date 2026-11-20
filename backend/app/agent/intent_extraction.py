@@ -11,7 +11,7 @@ from app.agent.case_selection import OTHER_CASE_CUE
 from app.agent.contract import MAX_MESSAGE_GOALS, MAX_PROCEDURE_CANDIDATES, AgentIntent, MessageGoal
 from app.agent.destination_correction import destination_correction_name
 from app.agent.filing_clarification import (
-    MARRIAGE_BANNS, PERMIT_RENEWAL, mentions_marriage_banns, reports_conflicting_postal_filing,
+    MARRIAGE_BANNS, PERMIT_RENEWAL, SAVED_CASE_FILING, mentions_marriage_banns, reports_conflicting_postal_filing,
 )
 from app.agent.notice_clarification import unreadable_notice_field
 from app.agent.run_requests import StoredMessage
@@ -35,12 +35,6 @@ _PREFERENCE_CUE = re.compile(
     r"(?:iniziamo|cominciamo|vorrei iniziare|vorrei cominciare) da(?:l|lla)? )(.+)"
 )
 _NUMBERED_GOAL = re.compile(r"(?:the |la |il )?(?:task|goal|option|pratica|obiettivo|opzione) ([1-6])")
-_SAVED_CASE_FILING = re.compile(
-    r"(?:(?:open|show(?: me)?) (?:the )?(?:filing|submission) (?:step|instructions) for my "
-    r"(?:saved )?(?:(?P<en_place>.+) )?case|"
-    r"(?:apri|mostrami) (?:il passaggio|le istruzioni) (?:di|per l) (?:invio|presentazione) "
-    r"della mia pratica(?: salvat[ao])?(?: di (?P<it_place>.+))?)"
-)
 _MOVE_AND_UPDATE_ADDRESS = re.compile(
     r"(?:(?:i (?:have )?moved and (?:need to|want to) (?:change|update) my "
     r"(?:registered |residential )?address (?:in|to))|"
@@ -303,7 +297,7 @@ def extract_intent(
     }
     normalized_text = normalize_name(text)
     intent = next((label for label, cue in _INTENT_CUES if cue.search(normalized_text)), None)
-    saved_filing = _SAVED_CASE_FILING.fullmatch(normalized_text)
+    saved_filing = SAVED_CASE_FILING.fullmatch(normalized_text)
     if intent in (None, "find_procedure", "request_information") and OTHER_CASE_CUE.search(normalized_text):
         intent = "resume_case"
     if intent in (None, "find_procedure") and saved_filing:

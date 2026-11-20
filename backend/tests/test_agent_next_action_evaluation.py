@@ -146,10 +146,20 @@ def test_reopened_case_confirms_through_owned_intake_before_fresh_verified_hando
 
     draft = client.get(intake_url, headers=owner).json()
     assert not draft["confirmed"] and "destination_municipality" not in draft["facts"]
-    early = client.get(send(followup), headers=owner).json()
-    assert early["handoff"] is None and early["result"]["verification_status"] == "insufficient_evidence"
+    draft_facts = draft["facts"] | confirmation["facts"]
+    for facts in (draft["facts"], draft_facts):
+        draft_response = client.put(intake_url, headers=owner, json={"facts": facts, "confirm": False})
+        assert draft_response.status_code == 200 and not draft_response.json()["confirmed"]
+        early_url = send(followup)
+        early = client.get(early_url, headers=owner).json()
+        assert early["selected_case"]["case_id"] == str(replay.case_id)
+        assert early["result"]["next_action"]["operation"] == "confirm_saved_intake"
+        assert early["result"]["missing_information"] == ["intake_confirmation"]
+        assert early["handoff"] is None and early["result"]["citations"] == []
+        assert client.get(early_url, headers=outsider).status_code == 404
+        assert client.get(intake_url, headers=owner).json() == draft_response.json()
 
-    payload = {"facts": draft["facts"] | confirmation["facts"], "confirm": True}
+    payload = {"facts": draft_facts, "confirm": True}
     assert client.put(intake_url, headers=outsider, json=payload).status_code == 404
     response = client.put(intake_url, headers=owner, json=payload)
     assert response.status_code == 200 and response.json()["confirmed"]

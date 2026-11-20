@@ -107,7 +107,7 @@ The [correction tests](../../backend/tests/test_agent_routing_corrections.py) us
 
 A new owned request for a linked Milan case can also carry an explicit English or Italian destination correction. The server records its revision and time inside the encrypted request and carries them forward for that conversation and case. Earlier request payloads also remain readable. The current handoff for an earlier answer resolves to `verification_required` once the correction is accepted. Pending or unsupported routing returns `reassess_destination` with insufficient evidence and no citations or channel. A new verified handoff still requires current supported evidence and an intake confirmation after the correction.
 
-When a destination reply leaves saved intake unconfirmed, the result carries `confirm_saved_intake` and the missing field `intake_confirmation`. The snapshot derives the case link from the run's owned, active binding. Confirmation uses the existing case intake endpoint and the owner can then start a fresh filing request on that case. The agent's conversational reply writes no intake facts.
+When a destination reply leaves saved intake unconfirmed, the result carries `confirm_saved_intake` and the missing field `intake_confirmation`. The same action applies when the owner asks for the filing step on an explicitly linked saved case whose workflow awaits intake confirmation. The snapshot derives the case link from the run's owned, active binding. Confirmation uses the existing case intake endpoint and the owner can then start a fresh filing request on that case. The agent's conversational reply writes no intake facts.
 
 ## Recovering from a stale question
 
