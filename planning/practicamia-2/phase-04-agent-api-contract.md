@@ -33,6 +33,8 @@ Task 34.3 recognises compact, dotted and letter-spaced forms of reviewed acronym
 
 The Phase 4 follow-up recognises additional filing questions and requests for limits in English and Italian. A filing cue without a reviewed procedure match keeps the procedure open for clarification. The offline catalogue includes the explicit Italian phrase `indirizzo all’anagrafe` from the [synthetic Phase 2 examples](phase-02-administrative-domains.md). [Replay results](phase-04-agent-and-conversation-engine.md#bilingual-intent-follow-up) show the effect of the cue change and the fixture alias separately.
 
+Bounded references to the filing step of a saved case can reuse the linked case's confirmed intake for the first Milan route. A move-and-address-update statement paired with a filing question can do the same when the named municipality matches a reviewed Milan name. The checkpoint records when lookup relied on this confirmed case scope. The worker rechecks the owned active intake before publishing any evidence from that path.
+
 Run `python -m pytest -q tests/test_agent_intent_extraction.py tests/test_knowledge_search.py` from `backend/` for synthetic bilingual extraction, saved-worker-boundary coverage and search parity.
 
 ## Procedure candidate applicability
@@ -50,6 +52,8 @@ Task 34.5 adds an [internal worker step](../../backend/app/agent/candidate_resol
 A remaining conflict produces `conflicting_evidence`. An empty or incomplete result produces `insufficient_evidence`. Either can offer a public assistance page for one identified procedure if exactly one separately reviewed assistance assignment applies to the confirmed case. The server supplies current registry citations and approval state. The assignment and citation must agree on the procedure, location and exact passage. The page describes where to ask for help. Competence and filing remain unresolved.
 
 The worker persists the question with its encrypted checkpoint. If it cannot interpret a usable value, it leaves the unresolved fields open. A usable correction can lead to a different question or refresh the evidence. The [worker and resolver fixtures](../../backend/tests/test_agent_candidate_resolution.py) use fictional records and cover localized questions, authority collisions, invalid contact scopes and encrypted resumption. Integration with the full reviewed catalogue and a hosted user-facing route remains open.
+
+For a question comparing an old ANPR guide's upload limit with the current form, the result can carry the `check_current_form` next action. The contract restricts this action to an insufficient-evidence result without citations or an official channel.
 
 ## Bilingual matching evaluation
 

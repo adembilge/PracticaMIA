@@ -304,6 +304,20 @@ def run_worker_step(
                     ),
                 })
         if isinstance(result, AnswerResult):
+            if checkpoint.state.uses_confirmed_case_scope and (result.citations or result.official_channel):
+                current_case = read_worker_case_context(
+                    db, thread_id=thread_id, case_id=message.case_id, principal=principal, lock_case=True,
+                ) if message.case_id is not None else None
+                if not result.citations or current_case is None or not current_case.matches_first_milan_route:
+                    explanation, label = (
+                        ("Review and confirm the saved case details before checking the filing step.", "Review case details")
+                        if message.language == "en" else
+                        ("Rivedi e conferma i dati della pratica prima di verificare l’invio.", "Rivedi i dati della pratica")
+                    )
+                    result = AnswerResult(
+                        explanation=explanation, verification_status="insufficient_evidence",
+                        next_action=NextAction(label=label, operation="provide_information"),
+                    )
             if result.citations:
                 scope = (
                     read_evidence_scope(db, thread_id, run_id, message.case_id, principal)

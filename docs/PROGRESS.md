@@ -185,4 +185,6 @@ The [Phase 4 reopened destination correction](../planning/practicamia-2/phase-04
 
 The [Phase 4 unreadable notice follow-up](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#unreadable-notice-details) asks for one line with personal details removed when an appointment date or attachment name is unreadable. The development replay passed 9/26 scenario-language runs and 17/36 checkpoints. The isolated signed HTTP tests verify that the saved question survives reconnection and the result keeps the notice detail unverified.
 
+The [Phase 4 saved filing and current form follow-up](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#saved-milan-filing-and-current-form-checks) retrieves reviewed guidance for a confirmed Milan case and gives a form-check step for obsolete ANPR upload limits. The unchanged synthetic development set passed 14/26 scenario-language runs and 24/36 checkpoints. Intake invalidation during retrieval and source withdrawal after publication both withhold the channel at the relevant boundary.
+
 For implementation details see [the documentation index](README.md).

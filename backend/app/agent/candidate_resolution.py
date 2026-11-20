@@ -3,6 +3,7 @@
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
+import re
 from uuid import uuid4
 
 from app.agent.catalogue_applicability import resolve_candidate_applicability
@@ -19,7 +20,7 @@ from app.agent.routing_corrections import (
 )
 from app.agent.run_requests import StoredMessage
 from app.agent.worker import RequestClarification
-from app.knowledge.entity_matching import CatalogueName
+from app.knowledge.entity_matching import CatalogueName, normalize_name
 from app.knowledge.service_areas import CaseLocation, ServiceArea, resolve_service_areas
 
 
@@ -58,6 +59,13 @@ _QUESTIONS = {
     ),
 }
 _IDENTITY_FIELDS = ("intent", "case_reference", "procedure")
+_FORM_LIMIT_CUES = (
+    re.compile(r"\banpr\b"),
+    re.compile(r"\b(?:old(?:er)? (?:anpr )?(?:guide|handbook)|(?:vecchia|precedente) guida|guida (?:vecchia|precedente))\b"),
+    re.compile(r"\b(?:upload|uploads|attachment size|caricamento|dimensione (?:degli )?allegati)\b"),
+    re.compile(r"\b(?:limit|maximum|limite|massimo)\b"),
+    re.compile(r"\b(?:(?:current|today s|latest) (?:anpr )?form|modulo (?:attuale|di oggi|aggiornato))\b"),
+)
 _NOTICE_PROMPTS = {
     "appointment_date": (
         "Can you share just the line with the appointment date, if you can read it?",
@@ -143,6 +151,8 @@ def choose_candidate_step(
         return _choose_message_goal(message, state, reviewed_labels)
     if state.intent == "explain_notice" and (field := unreadable_notice_field(message.text)):
         return _clarify_notice(message, state, field)
+    if state.intent == "request_information" and _asks_about_current_upload_limit(message.text):
+        return _check_current_form(message.language)
 
     revised = apply_routing_reply(message, state, catalogue_names)
     applied_correction = revised is not state
@@ -328,6 +338,27 @@ def _clarify_notice(
         verification_status="insufficient_evidence", missing_information=[field],
         next_action=NextAction(
             label="Check the notice" if language == 0 else "Controlla l’avviso", operation="provide_information",
+        ),
+    )
+
+
+def _asks_about_current_upload_limit(text: str) -> bool:
+    normalized = normalize_name(text)
+    return all(cue.search(normalized) for cue in _FORM_LIMIT_CUES)
+
+
+def _check_current_form(language: str) -> AnswerResult:
+    en = language == "en"
+    return AnswerResult(
+        explanation=(
+            "Check the upload limit shown in the current ANPR form. If it is unclear, ask the registry office to confirm it."
+            if en else
+            "Controlla il limite di caricamento nel modulo ANPR attuale. Se non è chiaro, chiedi conferma all’ufficio anagrafe."
+        ),
+        verification_status="insufficient_evidence",
+        next_action=NextAction(
+            label="Check the current ANPR form" if en else "Controlla il modulo ANPR attuale",
+            operation="check_current_form",
         ),
     )
 

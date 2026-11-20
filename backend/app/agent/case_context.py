@@ -37,10 +37,17 @@ class WorkerCaseContext:
     checklist_evidence_ids: dict[str, tuple[str, ...]] = field(default_factory=dict)
     shared_citizenship_class: KnownCitizenship | None = None
 
+    @property
+    def matches_first_milan_route(self) -> bool:
+        return self.user_confirmed_facts is not None and describe_intake(
+            self.user_confirmed_facts.model_dump(exclude_none=True), confirmed=True,
+        )["first_scenario_match"]
+
 
 def _confirmed_facts(case: CaseRecord, intake: CaseIntake | None) -> IntakeFacts | None:
     if (
-        intake is None or intake.confirmed_at is None or case.status != "provisionally_in_scope"
+        intake is None or intake.confirmed_at is None or case.archived_at is not None
+        or case.status != "provisionally_in_scope"
         or case.scope_answers != list(DEMO_ANSWERS)
     ):
         return None
@@ -96,16 +103,23 @@ def read_shared_citizenship(
 def read_worker_case_context(
     db: Session, *, thread_id: UUID, case_id: UUID, principal: Principal,
     document_settings: Settings | None = None,
+    lock_case: bool = False,
 ) -> WorkerCaseContext | None:
     """Project case state after checking ownership of both sides of the link."""
-    row = db.execute(
+    query = (
         case_snapshot_query(str(case_id), principal.subject)
         .join(AgentThreadCase, AgentThreadCase.case_id == CaseRecord.id)
         .join(AgentThread, AgentThread.id == AgentThreadCase.thread_id)
         .where(
             AgentThread.id == str(thread_id), AgentThread.owner_subject == principal.subject,
         )
-    ).one_or_none()
+    )
+    if lock_case:
+        # Take the intake snapshot in a new statement after any concurrent writer commits.
+        locked_id = db.scalar(query.with_only_columns(CaseRecord.id).with_for_update(read=True, of=CaseRecord))
+        if locked_id is None:
+            return None
+    row = db.execute(query).one_or_none()
     if row is None:
         return None
 

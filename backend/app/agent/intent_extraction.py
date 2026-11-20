@@ -14,6 +14,7 @@ from app.agent.run_requests import StoredMessage
 from app.knowledge.entity_matching import (
     CatalogueName, MAX_NAME_QUERY_LENGTH, NameMatchResult, match_catalogue_names, normalize_name,
 )
+from app.rules.engine import JURISDICTION, PROCEDURE
 
 MissingContext = Literal["intent", "procedure", "procedure_location", "case_reference"]
 _PLACE_TYPES = ("municipality", "province", "region")
@@ -30,6 +31,23 @@ _PREFERENCE_CUE = re.compile(
     r"(?:iniziamo|cominciamo|vorrei iniziare|vorrei cominciare) da(?:l|lla)? )(.+)"
 )
 _NUMBERED_GOAL = re.compile(r"(?:the |la |il )?(?:task|goal|option|pratica|obiettivo|opzione) ([1-6])")
+_SAVED_CASE_FILING = re.compile(
+    r"(?:(?:open|show(?: me)?) (?:the )?(?:filing|submission) (?:step|instructions) for my "
+    r"(?:saved )?(?:(?P<en_place>.+) )?case|"
+    r"(?:apri|mostrami) (?:il passaggio|le istruzioni) (?:di|per l) (?:invio|presentazione) "
+    r"della mia pratica(?: salvat[ao])?(?: di (?P<it_place>.+))?)"
+)
+_MOVE_AND_UPDATE_ADDRESS = re.compile(
+    r"(?:(?:i (?:have )?moved and (?:need to|want to) (?:change|update) my "
+    r"(?:registered |residential )?address (?:in|to))|"
+    r"(?:(?:ho cambiato casa|mi sono trasferit[oa]) e (?:devo|voglio) (?:cambiare|aggiornare) "
+    r"(?:il mio|l) indirizzo (?:a|in))) (?P<place>.+)"
+)
+_FILE_DECLARATION = re.compile(
+    r"(?:(?:where|how) (?:do|can|should) i (?:file|send|submit|deliver) "
+    r"(?:the|my) (?:declaration|application)|"
+    r"(?:dove|come) (?:invio|presento|consegno|deposito) (?:la|l) (?:dichiarazione|domanda))"
+)
 
 # Narrow bilingual intent cues. Bare procedure names and reviewed variants
 # come from the supplied catalogue.
@@ -85,6 +103,7 @@ class IntentExtraction:
     missing_context: tuple[MissingContext, ...]
     goals: tuple[MessageGoal, ...] = ()
     preferred_goal: int | None = None
+    uses_confirmed_case_scope: bool = False
 
 
 def _catalogue_mentions(
@@ -143,6 +162,24 @@ def _places(mentions: Sequence[CatalogueMention]) -> tuple[tuple[str, str], ...]
         (candidate.entity_type, candidate.catalogue_id) for mention in mentions
         for candidate in mention.match.candidates if candidate.entity_type in _PLACE_TYPES
     ))
+
+
+def _matches_confirmed_case(
+    message: StoredMessage, place: str | None, mentions: Sequence[CatalogueMention],
+    catalogue_names: Sequence[CatalogueName],
+) -> bool:
+    case = message.case_context
+    if case is None or case.case_id != message.case_id or not case.matches_first_milan_route:
+        return False
+    places = _places(mentions)
+    if places and places != (("municipality", JURISDICTION),):
+        return False
+    if place is None:
+        return True
+    if len(place) > MAX_NAME_QUERY_LENGTH:
+        return False
+    match = match_catalogue_names(place, list(catalogue_names), entity_type="municipality")
+    return match.selected_type == "municipality" and match.selected_id == JURISDICTION
 
 
 def _goal(mentions: list[CatalogueMention]) -> MessageGoal:
@@ -262,12 +299,27 @@ def extract_intent(
     }
     normalized_text = normalize_name(text)
     intent = next((label for label, cue in _INTENT_CUES if cue.search(normalized_text)), None)
+    saved_filing = _SAVED_CASE_FILING.fullmatch(normalized_text)
     if intent in (None, "find_procedure", "request_information") and OTHER_CASE_CUE.search(normalized_text):
+        intent = "resume_case"
+    if intent in (None, "find_procedure") and saved_filing:
         intent = "resume_case"
     if intent in (None, "find_procedure", "request_information") and unreadable_notice_field(text):
         intent = "explain_notice"
     if intent is None and procedures:
         intent = "find_procedure"
+
+    if not procedures:
+        if intent == "resume_case" and saved_filing:
+            place = saved_filing["en_place"] or saved_filing["it_place"]
+            if _matches_confirmed_case(message, place, routing_mentions, catalogue_names):
+                return IntentExtraction(intent, mentions, (PROCEDURE,), (), uses_confirmed_case_scope=True)
+        if intent == "find_procedure":
+            clauses = [clause for sentence in re.split(r"[.!?;\n]+", text) if (clause := normalize_name(sentence))]
+            if len(clauses) == 2 and _FILE_DECLARATION.fullmatch(clauses[1]):
+                move = _MOVE_AND_UPDATE_ADDRESS.fullmatch(clauses[0])
+                if move and _matches_confirmed_case(message, move["place"], routing_mentions, catalogue_names):
+                    return IntentExtraction(intent, mentions, (PROCEDURE,), (), uses_confirmed_case_scope=True)
 
     missing: list[MissingContext] = []
     if intent is None:
@@ -303,7 +355,7 @@ def identify_intent_step(
         procedures = []
         if "procedure" not in missing:
             missing.append("procedure")
-    evidence_ready = (
+    evidence_ready = result.uses_confirmed_case_scope or (
         not missing and len(procedures) == 1
         and result.intent in ("find_procedure", "request_information")
     )
@@ -311,4 +363,5 @@ def identify_intent_step(
         next_node="find_evidence" if evidence_ready else "choose_next_step",
         intent=result.intent, procedure_candidates=procedures, missing_fields=missing,
         goals=list(result.goals), preferred_goal=result.preferred_goal,
+        uses_confirmed_case_scope=result.uses_confirmed_case_scope,
     )
