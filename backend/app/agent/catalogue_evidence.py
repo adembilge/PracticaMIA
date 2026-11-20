@@ -10,9 +10,9 @@ from sqlalchemy import and_, select
 from sqlalchemy.exc import DBAPIError, TimeoutError as PoolTimeout
 from sqlalchemy.orm import Session
 
-from app.agent.checkpoints import CheckpointState
+from app.agent.checkpoints import CheckpointState, RoutingCorrections
 from app.agent.contract import AnswerResult, Citation, Language, NextAction
-from app.agent.diagnostics import AgentFailureDiagnostic, corrected_query_kind
+from app.agent.diagnostics import AgentFailureDiagnostic, EvidenceQueryKind
 from app.agent.threads import AgentThread, AgentThreadCase
 from app.agent.tool_contract import (
     CatalogueEvidence, CataloguePassage, CatalogueScope, FindEvidence, OpenSourceDetails,
@@ -47,6 +47,12 @@ class CatalogueUnavailable(RuntimeError):
     """An evidence lookup failed with a temporary storage error."""
 
 
+def corrected_query_kind(corrections: RoutingCorrections | None) -> EvidenceQueryKind:
+    if corrections is not None and (corrections.procedure is not None or corrections.destination is not None):
+        return "procedure_hint"
+    return "message_lexical"
+
+
 def _milan_search_hint(query: str) -> str:
     """Build one lexical fallback. Its terms narrow retrieval inside case scope."""
     key = normalize_name(query)
@@ -71,7 +77,7 @@ def _case_evidence_gap(
     # snapshot. Select columns directly to avoid reusing cached ORM instances.
     context = db.execute(
         select(
-            CaseRecord.procedure, CaseRecord.status, CaseRecord.scope_answers,
+            CaseRecord.procedure, CaseRecord.status, CaseRecord.scope_answers, CaseRecord.archived_at,
             CaseIntake.facts, CaseIntake.confirmed_at,
         )
         .join(AgentThreadCase, AgentThreadCase.case_id == CaseRecord.id)
@@ -90,8 +96,8 @@ def _case_evidence_gap(
     if context is None:
         return CatalogueEvidence(status="case_unavailable")
 
-    procedure, status, scope_answers, facts, confirmed_at = context
-    if procedure != PROCEDURE or status == "unsupported":
+    procedure, status, scope_answers, archived_at, facts, confirmed_at = context
+    if archived_at is not None or procedure != PROCEDURE or status == "unsupported":
         return CatalogueEvidence(status="unsupported_scope")
     if not isinstance(scope_answers, list):
         return CatalogueEvidence(status="needs_information", missing_fields=("scope_answers",))
@@ -219,7 +225,7 @@ def refresh_corrected_evidence(
     ):
         return _unverified_evidence(language, state.missing_fields)
 
-    query_kind = corrected_query_kind(procedure_changed=corrections.procedure is not None)
+    query_kind = corrected_query_kind(corrections)
     try:
         call = FindEvidence(
             tool="find_evidence", case_id=case_id, scope=_MILAN_SCOPE,
@@ -253,6 +259,20 @@ def refresh_corrected_evidence(
         code="catalogue_evidence_unavailable", stage=state.next_node, intent=state.intent,
         query_kind=query_kind, tool=call.tool,
     ).emit()
+    if "intake_confirmation" in evidence.missing_fields:
+        return AnswerResult(
+            explanation=(
+                "Complete and confirm your saved case details before I check the official sources."
+                if language == "en"
+                else "Completa e conferma i dati della pratica salvata prima della verifica delle fonti ufficiali."
+            ),
+            verification_status="insufficient_evidence",
+            missing_information=["intake_confirmation"],
+            next_action=NextAction(
+                label="Confirm saved case details" if language == "en" else "Conferma i dati della pratica",
+                operation="provide_information",
+            ),
+        )
     return _unverified_evidence(language, list(evidence.missing_fields) or state.missing_fields)
 
 

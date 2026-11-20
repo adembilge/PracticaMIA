@@ -12,6 +12,8 @@ from app.agent.candidate_resolution import choose_candidate_step
 from app.agent.catalogue_evidence import refresh_corrected_evidence
 from app.agent.checkpoints import CheckpointState, RoutingCorrections, load_checkpoint, submit_clarification_reply
 from app.agent.contract import ClarificationReply, ClarifyingQuestion, QuestionAnswered, SendMessage
+from app.agent.intent_extraction import identify_intent_step
+from app.agent.reconnect_router import build_reconnect_router
 from app.agent.routing_corrections import apply_routing_reply
 from app.agent.run_events import read_run_events
 from app.agent.run_requests import StoredMessage, accept_message
@@ -110,6 +112,118 @@ def test_destination_correction_uses_a_unique_reviewed_municipality_and_drops_ol
     assert result.evidence_ids == []
     other = replace(name, catalogue_id="another-town")
     assert apply_routing_reply(message, state, (name, other)) == state
+
+
+@pytest.mark.parametrize(("language", "text", "ambiguous"), [
+    ("en", "The destination is the municipality of Milan.", "The destination is Milan or Como."),
+    ("it", "Il Comune di destinazione è Milano.", "Il Comune di destinazione è Milano?"),
+])
+def test_destination_sentence_uses_only_the_requested_field_and_a_unique_reviewed_name(language, text, ambiguous):
+    name = "Milan" if language == "en" else "Milano"
+    catalogue = (CatalogueName(
+        JURISDICTION, "municipality", "Milano", name, "reviewed_alias", "synthetic-name", approved_for_search=True,
+    ),)
+    state = CheckpointState(next_node="choose_next_step")
+    reply = replace(_answer(text, ["destination"]), language=language)
+    assert apply_routing_reply(reply, state, catalogue).routing_corrections == RoutingCorrections(
+        destination=JURISDICTION, reply_event_seqs={"destination": 3},
+    )
+    assert apply_routing_reply(replace(_answer(ambiguous, ["destination"]), language=language), state, catalogue) == state
+    assert apply_routing_reply(replace(_answer(text, ["activity_location"]), language=language), state, catalogue) == state
+    namesake = replace(catalogue[0], catalogue_id="other-municipality")
+    assert apply_routing_reply(reply, state, (*catalogue, namesake)) == state
+
+
+@pytest.mark.parametrize("saved_state", ["draft", "confirmed", "archived"])
+@pytest.mark.parametrize(("language", "opening", "name", "reply", "confirm_label"), [
+    ("en", "Can we finish the address change I saved?", "Milan", "The destination is the municipality of Milan.",
+     "Confirm saved case details"),
+    ("it", "Possiamo finire il cambio di residenza che ho salvato?", "Milano", "Il Comune di destinazione è Milano.",
+     "Conferma i dati della pratica"),
+])
+def test_reopened_destination_question_rechecks_saved_intake_before_retrieving(
+    client, auth_headers, monkeypatch, saved_state, language, opening, name, reply, confirm_label,
+):
+    owner = auth_headers("bob")
+    case_id = UUID(create_scoped_case(client, owner))
+    intake_url = f"/api/v1/cases/{case_id}/intake"
+    draft = {key: value for key, value in FACTS.items() if key != "destination_municipality"}
+    assert client.put(intake_url, headers=owner, json={"facts": draft}).status_code == 200
+
+    version, digest = _create(client)
+    _approve(client, version, digest)
+    scope = _thread_context(client, case_id, "bob")
+    factory = client.app.state.session_factory
+    client.app.include_router(build_reconnect_router(key=KEY))
+    thread_url = f"/api/v1/agent/threads/{scope['thread_id']}"
+    sent = client.post(thread_url + "/messages", headers=owner, json={
+        "client_message_id": str(uuid4()), "case_id": str(case_id), "text": opening, "language": language,
+    })
+    assert sent.status_code == 202
+    run_id = UUID(sent.json()["run_id"])
+    context = {"thread_id": scope["thread_id"], "run_id": run_id, "principal": scope["principal"], "key": KEY}
+    catalogue = (
+        CatalogueName(JURISDICTION, "municipality", "Milano", name, "reviewed_alias", "synthetic-name",
+                      approved_for_search=True),
+        CatalogueName(PROCEDURE, "procedure", "Cambio di residenza",
+                      "address change" if language == "en" else "cambio di residenza",
+                      "reviewed_alias", "synthetic-name", approved_for_search=True),
+    )
+    choose = partial(
+        choose_candidate_step, catalogue_names=catalogue,
+        case_locations={}, confirmed_dates={}, confirmed_circumstances={},
+        assignments=(area(procedure_id=PROCEDURE, unit_ids=(JURISDICTION,)),),
+        trusted_passage_ids=TRUSTED, reviewed_labels={},
+    )
+    run_worker_step(factory, **context, execute=lambda *_: CheckpointState(next_node="identify_intent"))
+    run_worker_step(factory, **context, execute=partial(identify_intent_step, catalogue_names=catalogue))
+    paused = run_worker_step(factory, **context, execute=choose)
+    assert paused.status == "waiting_for_information"
+    run_url = f"{thread_url}/runs/{run_id}"
+    snapshot = client.get(run_url, headers=owner).json()
+    assert snapshot["run_revision"] == paused.run_revision
+    page = client.get(run_url + "/events", headers=owner, params={"after_seq": paused.last_event_seq - 1})
+    [event] = page.json()["events"]
+    assert event["type"] == "question.requested" and event["question"]["missing_fields"] == ["destination"]
+    assert client.post(run_url + "/questions/" + event["question"]["question_id"] + "/reply",
+                       headers=owner, json={
+                           "client_reply_id": str(uuid4()), "expected_run_revision": paused.run_revision,
+                           "text": reply,
+                       }).status_code == 200
+
+    restarted = sessionmaker(bind=factory.kw["bind"])
+    assert run_worker_step(restarted, **context, execute=choose).status == "running"
+    with restarted() as db:
+        state = load_checkpoint(db, **context).state
+        assert state.routing_corrections.reply_event_seqs == {"destination": paused.run_revision}
+        assert state.routing_corrections.destination == JURISDICTION
+        assert state.evidence_ids == []
+    if saved_state != "draft":
+        assert client.put(intake_url, headers=owner, json={"facts": FACTS, "confirm": True}).status_code == 200
+    if saved_state == "archived":
+        archive_url = f"/api/v1/cases/{case_id}/archive"
+        assert client.patch(archive_url, headers=owner, json={"archived": True}).status_code == 200
+    if saved_state != "confirmed":
+        monkeypatch.setattr(
+            "app.agent.catalogue_evidence.search_approved_passages",
+            lambda *_args, **_kwargs: pytest.fail("draft or archived intake must not be searched"),
+        )
+    saved = client.get(intake_url, headers=owner).json()
+    result = run_worker_step(restarted, **context, execute=lambda *_: pytest.fail("expected the corrected scope adapter"))
+    if saved_state == "confirmed":
+        assert result.status == "running"
+        with restarted() as db:
+            next_state = load_checkpoint(db, **context).state
+            assert next_state.next_node == "verify_and_respond"
+            assert next_state.evidence_ids and all(item.startswith(version + ":") for item in next_state.evidence_ids)
+    else:
+        assert result.status == "completed"
+        assert result.result.verification_status == "insufficient_evidence"
+        assert result.result.official_channel is None and not result.result.citations
+        if saved_state == "draft":
+            assert result.result.missing_information == ["intake_confirmation"]
+            assert result.result.next_action.label == confirm_label
+    assert client.get(intake_url, headers=owner).json() == saved
 
 
 @pytest.mark.parametrize("correction", [

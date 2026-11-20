@@ -14,10 +14,6 @@ logger = logging.getLogger(__name__)
 EvidenceQueryKind = Literal["message_lexical", "procedure_hint"]
 
 
-def corrected_query_kind(*, procedure_changed: bool) -> EvidenceQueryKind:
-    return "procedure_hint" if procedure_changed else "message_lexical"
-
-
 class AgentFailureDiagnostic(ContractModel):
     """Keep the record limited to code-owned labels and public registry version IDs."""
 
