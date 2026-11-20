@@ -7,6 +7,7 @@ from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
 from app.agent.contract import AnswerResult, ClarifyingQuestion, ContractModel, SavedCaseChoice
+from app.agent.filing_clarification import MARRIAGE_BANNS, marriage_municipality_question
 from app.agent.run_requests import ACTIVE_STATUSES, AgentRunRequest, StoredMessage
 from app.agent.threads import AgentThread, active_case_links
 from app.auth.tokens import Principal
@@ -70,9 +71,13 @@ def resolve_saved_case(
 ) -> AnswerResult | ClarifyingQuestion:
     """Verify an explicit case or ask the owner to choose from the matching links."""
     en = message.language == "en"
+    question, reply = message.clarification_question, message.clarification_reply
+    if question is not None and question.procedure_goal is not None and reply is not None:
+        return answer
     query = active_case_links(thread_id, principal)
-    if answer.goal_selection and answer.goal_selection.active_goal:
-        goal = answer.goals[answer.goal_selection.active_goal - 1]
+    selection = answer.goal_selection
+    goal = answer.goals[selection.active_goal - 1] if selection and selection.active_goal else None
+    if goal is not None:
         if not goal.procedure_candidates:
             return answer
         query = query.where(CaseRecord.procedure.in_(goal.procedure_candidates))
@@ -83,7 +88,6 @@ def resolve_saved_case(
     if other and message.case_id is not None:
         query = query.where(CaseRecord.id != str(message.case_id))
 
-    question, reply = message.clarification_question, message.clarification_reply
     case_reply = question is not None and bool(question.case_choices) and reply is not None
     if case_reply:
         if reply.selected_case_id is None:
@@ -101,6 +105,11 @@ def resolve_saved_case(
             return _confirmed_case(answer, case, message.language)
 
     cases = db.scalars(query.order_by(CaseRecord.created_at.desc(), CaseRecord.id).limit(11)).all()
+    if not cases and not case_reply and goal is not None and goal.procedure_candidates == [MARRIAGE_BANNS] and (
+        "procedure" not in goal.missing_fields
+    ):
+        if clarification := marriage_municipality_question(message.text, message.language, goal=selection):
+            return clarification
     if not cases and not resume_case and not case_reply and message.case_id is None:
         return answer
     if not cases or len(cases) > 10:

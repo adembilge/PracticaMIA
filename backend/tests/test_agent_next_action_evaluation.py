@@ -52,6 +52,10 @@ def test_documented_next_action_command_reports_cases_and_turns():
         "milan-confirmed-route:it", "milan-source-withdrawn:en", "milan-source-withdrawn:it",
         "current-attachment-limit:en", "current-attachment-limit:it",
         "destination-corrected:en", "destination-corrected:it",
+        "torino-banns-and-delegation:en", "torino-banns-and-delegation:it",
+        "permit-filing-route-missing:en", "permit-filing-route-missing:it",
+        "permit-postal-intake:en", "permit-postal-intake:it",
+        "two-goals-different-authorities:en", "two-goals-different-authorities:it",
     }.issubset(passing)
 
 

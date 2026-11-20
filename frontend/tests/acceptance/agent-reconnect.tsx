@@ -33,6 +33,7 @@ type Question = {
   options: string[];
   reply_hint?: string | null;
   goal_selection_language?: 'en' | 'it' | null;
+  procedure_goal?: GoalSelection | null;
 };
 type RunView = {
   url: string;
@@ -323,8 +324,10 @@ export function AgentReconnectFixture() {
   }
 
   const goalLanguage = view?.question?.goal_selection_language;
+  const replyLanguage = goalLanguage ?? view?.question?.procedure_goal?.language;
   const replyAction = goalLanguage === 'it' ? 'Inizia con questa pratica'
-    : goalLanguage === 'en' ? 'Start with this task' : 'Send reply';
+    : goalLanguage === 'en' ? 'Start with this task'
+    : replyLanguage === 'it' ? 'Invia risposta' : 'Send reply';
 
   return <main className="case-page" id="main-content">
     <div className="container account-shell">
@@ -386,7 +389,7 @@ export function AgentReconnectFixture() {
         {view.snapshot.goal_selection && <AgentGoalSelection selection={view.snapshot.goal_selection} />}
         {staleReply ? (
           <button type="button" disabled={busy} onClick={() => void open(view.url)}>Check status</button>
-        ) : view.question ? <form onSubmit={answer} lang={goalLanguage ?? undefined}>
+        ) : view.question ? <form onSubmit={answer} lang={replyLanguage ?? undefined}>
           <fieldset disabled={busy} aria-describedby={view.question.reply_hint ? 'reply-hint' : undefined}>
             <legend>{view.question.text}</legend>
             {view.question.reply_hint && <p id="reply-hint">{view.question.reply_hint}</p>}
@@ -395,20 +398,20 @@ export function AgentReconnectFixture() {
                 checked={reply === option} onChange={() => setReply(option)} />
               {option}
             </label>) : <label>
-              Your reply
+              {replyLanguage === 'it' ? 'La tua risposta' : 'Your reply'}
               <textarea name="reply" rows={3} maxLength={2000} value={reply}
                 onChange={event => setReply(event.target.value)} />
             </label>}
           </fieldset>
           <button type="submit" disabled={!reply.trim() || busy}>{replyAction}</button>
           <button type="button" disabled={busy} onClick={() => void sendReply('unknown')}>
-            {goalLanguage === 'it' ? 'Non lo so' : 'I don’t know'}
+            {replyLanguage === 'it' ? 'Non lo so' : 'I don’t know'}
           </button>
           <button type="button" disabled={busy} onClick={() => void sendReply('skip')}>
-            {goalLanguage === 'it' ? 'Salta per ora' : 'Skip for now'}
+            {replyLanguage === 'it' ? 'Salta per ora' : 'Skip for now'}
           </button>
           <button type="button" disabled={busy} onClick={() => void sendReply('change_topic')}>
-            {goalLanguage === 'it' ? 'Cambia argomento' : 'Change topic'}
+            {replyLanguage === 'it' ? 'Cambia argomento' : 'Change topic'}
           </button>
         </form> : view.snapshot.status === 'waiting_for_approval' ? (
           view.snapshot.pending_proposal ? (

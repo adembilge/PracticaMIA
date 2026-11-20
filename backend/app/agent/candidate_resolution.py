@@ -14,6 +14,10 @@ from app.agent.contract import (
     MAX_PROCEDURE_CANDIDATES, AnswerResult, Citation, ClarifyingQuestion, EvidenceLinkedClaim, GoalSelection,
     NextAction, OfficialChannel,
 )
+from app.agent.filing_clarification import (
+    MARRIAGE_BANNS, PERMIT_RENEWAL, marriage_municipality_question, permit_category_question,
+    mentions_renewal, reports_conflicting_postal_filing, verify_filing_channel,
+)
 from app.agent.notice_clarification import NoticeField, unreadable_notice_field
 from app.agent.routing_corrections import (
     ROUTING_FIELD_LABELS as _FIELD_LABELS, apply_routing_reply, citizenship_options, housing_options,
@@ -153,6 +157,8 @@ def choose_candidate_step(
         return _clarify_notice(message, state, field)
     if state.intent == "request_information" and _asks_about_current_upload_limit(message.text):
         return _check_current_form(message.language)
+    if state.intent == "find_procedure" and reports_conflicting_postal_filing(message.text):
+        return verify_filing_channel(message.language, reported_notice=True)
 
     revised = apply_routing_reply(message, state, catalogue_names)
     applied_correction = revised is not state
@@ -186,6 +192,25 @@ def choose_candidate_step(
         confirmed_circumstances=confirmed_circumstances, assignments=tuple(assignments),
         trusted_passage_ids=trusted_passage_ids,
     )
+    if state.intent == "find_procedure" and len(results) == 1 and "procedure" not in state.missing_fields:
+        procedure, applicability = next(iter(results.items()))
+        if applicability.status == "unresolved":
+            question = None
+            if procedure == PERMIT_RENEWAL and mentions_renewal(message.text) and not confirmed_circumstances.get(
+                "permit_category"
+            ):
+                question = permit_category_question(message.language)
+            elif procedure == MARRIAGE_BANNS:
+                question = marriage_municipality_question(
+                    message.text, message.language, catalogue_names=catalogue_names, case_locations=case_locations,
+                )
+            if question is not None:
+                if message.clarification_reply is None:
+                    return RequestClarification(question, state)
+                answer = verify_filing_channel(message.language)
+                if message.clarification_reply.disposition in ("unknown", "skip"):
+                    return answer.model_copy(update={"missing_information": question.missing_fields})
+                return answer
     plausible = [procedure for procedure, result in results.items() if result.status != "unresolved"]
     separate_tasks = state.intent == "plan_multiple_tasks" and "procedure" not in state.missing_fields
     procedure_conflict = len(plausible) > 1 and not separate_tasks
@@ -375,6 +400,14 @@ def _choose_message_goal(
     language = message.language
     en = language == "en"
     question, reply = message.clarification_question, message.clarification_reply
+    if question is not None and question.procedure_goal is not None and reply is not None and (
+        reply.question_id == question.question_id
+    ):
+        answer = verify_filing_channel(language)
+        return answer.model_copy(update={
+            "goals": state.goals, "goal_selection": question.procedure_goal,
+            "missing_information": question.missing_fields if reply.disposition in ("unknown", "skip") else [],
+        })
     responded = (
         question is not None and question.goal_selection_language is not None
         and reply is not None and reply.question_id == question.question_id

@@ -10,6 +10,9 @@ from app.agent.checkpoints import CheckpointState, RoutingCorrections
 from app.agent.case_selection import OTHER_CASE_CUE
 from app.agent.contract import MAX_MESSAGE_GOALS, MAX_PROCEDURE_CANDIDATES, AgentIntent, MessageGoal
 from app.agent.destination_correction import destination_correction_name
+from app.agent.filing_clarification import (
+    MARRIAGE_BANNS, PERMIT_RENEWAL, mentions_marriage_banns, reports_conflicting_postal_filing,
+)
 from app.agent.notice_clarification import unreadable_notice_field
 from app.agent.run_requests import StoredMessage
 from app.knowledge.entity_matching import (
@@ -307,6 +310,15 @@ def extract_intent(
         intent = "resume_case"
     if intent in (None, "find_procedure", "request_information") and unreadable_notice_field(text):
         intent = "explain_notice"
+    if intent is None and reports_conflicting_postal_filing(text):
+        intent = "find_procedure"
+    if not procedures and intent in (None, "find_procedure") and mentions_marriage_banns(text) and any(
+        entry.catalogue_id == MARRIAGE_BANNS and entry.entity_type == "procedure"
+        and entry.approved_for_search and entry.evidence_ref.strip()
+        for entry in catalogue_names
+    ):
+        procedures = (MARRIAGE_BANNS,)
+        resolved_procedures.add(MARRIAGE_BANNS)
     if intent is None and procedures:
         intent = "find_procedure"
 
@@ -370,6 +382,7 @@ def identify_intent_step(
             missing.append("procedure")
     evidence_ready = result.uses_confirmed_case_scope or (
         not missing and len(procedures) == 1
+        and procedures[0] not in (MARRIAGE_BANNS, PERMIT_RENEWAL)
         and result.intent in ("find_procedure", "request_information")
     )
     return CheckpointState(

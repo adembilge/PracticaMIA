@@ -189,4 +189,6 @@ The [Phase 4 saved filing and current form follow-up](../planning/practicamia-2/
 
 The [Phase 4 destination correction follow-up](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#destination-correction-in-a-new-message) withholds the old live handoff when the owner sends an explicit destination correction for the same linked case. The unchanged synthetic replay passed 16/26 scenario-language runs and 26/36 checkpoints. The signed tests cover retries, separate linked cases and the confirmation required before offering a fresh verified handoff.
 
+The [Phase 4 unresolved filing follow-up](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#clarifying-unresolved-filing-context) asks targeted permit and marriage-banns questions and withholds filing links on conflicting reported instructions. The same synthetic cases and scoring criteria passed 24/26 runs and 34/36 checkpoints. The remaining two runs depend on a separate saved intake confirmation before the verified handoff.
+
 For implementation details see [the documentation index](README.md).

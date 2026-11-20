@@ -277,6 +277,16 @@ The unchanged synthetic development set passed 16/26 scenario-language runs and 
 
 Run `python -m pytest -q tests/test_agent_source_cards.py tests/test_agent_next_action_evaluation.py` from `backend/` to reproduce the signed handoff and offline replay checks.
 
+### Clarifying unresolved filing context
+
+For a recognised residence-permit renewal without a reviewed route, the worker asks what type of permit the applicant is renewing. When the user reports a postal renewal notice and asks about delivering it at the Questura instead, the worker recommends confirming the filing channel with the issuing office. That response carries no official link or citation.
+
+The marriage-banns clarification keeps registered residence and the ceremony municipality distinct. A clear stated municipality can inform the next question while the route remains unverified. If the user selects banns from a request with multiple tasks and there is no compatible saved case, the next question asks for both municipal roles. The selected task survives reload and reply. The worker preserves the original case link and leaves filing instructions unverified.
+
+The unchanged synthetic dataset and scoring criteria passed 24/26 scenario-language runs and 34/36 checkpoints, up from 16/26 and 26/36. The evaluator reads a follow-up question's selected task from the saved question and encrypted goal state. It observed no uncorrected misroutes and eight verified-channel turns. The remaining two runs are the two languages of the reopened destination scenario and need a separate saved intake confirmation.
+
+Run `python -m pytest -q tests/test_agent_filing_clarification.py tests/test_agent_case_selection.py tests/test_agent_next_action_evaluation.py` from `backend/` to reproduce the clarification, signed reconnect and replay checks.
+
 ## End-to-end closure scenario
 
 The user describes a need without knowing the authority. The agent finds the task and source and asks a question when necessary. After a correction, the agent reassesses affected results, shows the action, competent channel, and supporting passage, then lets the user save the task and resume it after returning.

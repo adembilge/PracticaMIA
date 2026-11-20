@@ -13,7 +13,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.agent.answer_evidence import AnswerEvidenceScope, ClaimPassageSupport, ReviewedClaimSupport
 from app.agent.candidate_resolution import choose_candidate_step
-from app.agent.checkpoints import CheckpointState, submit_clarification_reply
+from app.agent.checkpoints import CheckpointState, load_checkpoint, submit_clarification_reply
 from app.agent.contract import (
     AnswerResult, ClarificationReply, EvidenceLinkedClaim, NextAction, OfficialChannel,
     QuestionRequested, SendMessage,
@@ -180,11 +180,23 @@ class ScenarioReplay:
                 "destination_municipality" if field == "destination" else field for field in question.missing_fields
             ))
             action = "provide_information"
+            selected_procedure = None
             if question.goal_selection_language:
                 action = "choose_active_goal"
             elif question.answer_format == "redacted_excerpt":
                 action = "provide_redacted_excerpt"
-            return Observation(action=action, fields=fields, question=not restored and not current_only)
+            elif question.procedure_goal is not None:
+                with self.sessions() as db:
+                    checkpoint = load_checkpoint(db, **self.context)
+                active = question.procedure_goal.active_goal
+                if active is not None and checkpoint is not None and active <= len(checkpoint.state.goals):
+                    procedures = checkpoint.state.goals[active - 1].procedure_candidates
+                    if len(procedures) == 1:
+                        selected_procedure = procedures[0]
+            return Observation(
+                action=action, fields=fields, selected_procedure=selected_procedure,
+                question=not restored and not current_only,
+            )
         if self.snapshot is None or self.snapshot.result is None:
             return Observation()
 

@@ -182,3 +182,56 @@ def test_a_goal_with_a_different_destination_does_not_use_the_bound_milan_case(c
     ))
     assert result.goal_selection.active_goal == 2
     assert result.selected_case is None and result.result.missing_information == ["case_reference"]
+
+
+@pytest.mark.parametrize("language", ["en", "it"])
+def test_banns_task_asks_for_both_roles_and_preserves_selection_across_reconnect(client, auth_headers, language):
+    factory, context, url, bound, _, _ = _run(client, "Synthetic two-task request", bind=True, language=language)
+    state = CheckpointState(
+        next_node="choose_next_step", intent="plan_multiple_tasks",
+        goals=[
+            MessageGoal(procedure_candidates=["milan_residence_change"], location_candidates=["IT-MI-MILANO"]),
+            MessageGoal(procedure_candidates=["marriage_banns"], location_candidates=["IT-TO-TORINO"]),
+        ],
+    )
+    choose = partial(
+        choose_candidate_step, case_locations={}, confirmed_dates={}, confirmed_circumstances={},
+        assignments=(), trusted_passage_ids=frozenset(), reviewed_labels={
+            "milan_residence_change": "Milan residence change",
+            "marriage_banns": "Marriage banns" if language == "en" else "Pubblicazioni di matrimonio",
+            "IT-TO-TORINO": "Torino",
+        },
+    )
+    run_worker_step(factory, **context, execute=lambda *_: state)
+    run_worker_step(factory, **context, execute=choose)
+    owner = auth_headers("alice")
+    snapshot, question = _read_question(client, url, owner)
+    assert question["missing_fields"] == ["active_goal"]
+    reply_path = f"{url}/questions/{question['question_id']}/reply"
+    reply = {
+        "client_reply_id": str(uuid4()), "expected_run_revision": snapshot["run_revision"], "text": question["options"][1],
+    }
+    choice = client.post(reply_path, headers=owner, json=reply)
+    assert choice.status_code == 200 and choice.json()["selected_goal"] == 2
+    assert run_worker_step(factory, **context, execute=choose).status == "waiting_for_information"
+
+    snapshot, question = _read_question(client, url, owner)
+    assert snapshot["goal_selection"] == question["procedure_goal"]
+    assert question["procedure_goal"]["active_goal"] == 2
+    assert question["missing_fields"] == ["residence_municipality", "celebration_municipality"]
+    assert question["answer_shape"] == "free_text" and not question["case_choices"]
+    assert ("registered as residents" if language == "en" else "residenza anagrafica") in question["text"]
+    assert client.get(url, headers=auth_headers("bob")).status_code == 404
+    reply_path = f"{url}/questions/{question['question_id']}/reply"
+    reply = {"client_reply_id": str(uuid4()), "expected_run_revision": snapshot["run_revision"], "text": "Torino\nAsti"}
+    answered = client.post(reply_path, headers=owner, json=reply)
+    assert answered.status_code == 200 and answered.json()["selected_goal"] is None
+    assert client.post(reply_path, headers=owner, json=reply).json() == answered.json()
+    assert client.get(url, headers=owner).json()["goal_selection"]["active_goal"] == 2
+    final = run_worker_step(factory, **context, execute=choose)
+    assert final.status == "completed" and final.goal_selection.active_goal == 2 and final.selected_case is None
+    assert final.result.next_action.operation == "verify_filing_channel"
+    assert final.result.verification_status == "insufficient_evidence"
+    assert final.result.citations == [] and final.result.official_channel is None
+    with factory() as db:
+        assert db.get(AgentRunRequest, str(context["run_id"])).case_id == str(bound)

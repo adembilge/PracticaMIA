@@ -137,6 +137,7 @@ class NextAction(ContractModel):
     label: ShortText
     operation: Literal[
         "open_official_channel", "provide_information", "start_new_topic", "check_current_form", "reassess_destination",
+        "verify_filing_channel",
     ] | None = None
     origin: Literal["agent_proposal"] = "agent_proposal"
 
@@ -233,6 +234,10 @@ class AnswerResult(ContractModel):
             self.verification_status != "insufficient_evidence" or self.official_channel is not None or self.citations
         ):
             raise ValueError("Reassessing a destination requires an unverified result without a channel or citations")
+        if self.next_action and self.next_action.operation == "verify_filing_channel" and (
+            self.verification_status != "insufficient_evidence" or self.official_channel is not None or self.citations
+        ):
+            raise ValueError("A filing channel check requires an unverified result without a channel or citations")
         if self.claims:
             citations = {citation.citation_id for citation in self.citations}
             if len(citations) != len(self.citations):
@@ -341,9 +346,15 @@ class ClarifyingQuestion(ContractModel):
     goal_selection_language: Language | None = None
     case_choices: list[SavedCaseChoice] = Field(default_factory=list, max_length=10)
     case_goal: GoalSelection | None = None
+    procedure_goal: GoalSelection | None = None
 
     @model_validator(mode="after")
     def validate_options(self):
+        if self.procedure_goal is not None and (
+            self.procedure_goal.active_goal is None or self.answer_shape != "free_text"
+            or self.case_goal is not None or self.goal_selection_language is not None
+        ):
+            raise ValueError("A procedure clarification requires an active task and a free-text reply")
         if self.case_goal is not None and (not self.case_choices or self.case_goal.active_goal is None):
             raise ValueError("The active goal belongs to a saved-case question")
         if self.case_choices and (
