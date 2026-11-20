@@ -61,6 +61,31 @@ def assert_private_error(response, status, code):
     return body["message"]
 
 
+def test_first_message_creates_one_private_conversation_without_a_case(client, auth_headers):
+    client.app.include_router(build_reconnect_router(key=KEY))
+    url = "/api/v1/agent/conversations"
+    owner, other = auth_headers(), auth_headers("bob")
+    message = {"client_message_id": str(uuid4()), "text": "Vorrei capire come cambiare residenza.", "language": "it"}
+    assert_private_error(client.post(url, json=message), 401, "unauthenticated")
+    assert_private_error(client.post(url, headers=owner, json={**message, "case_id": str(uuid4())}), 422, "invalid_request")
+    first = client.post(url, headers=owner, json=message)
+    assert first.status_code == 202
+    assert first.headers["Cache-Control"] == "private, no-store"
+    body = first.json()
+    assert client.post(url, headers=owner, json=message).json() == body
+    assert_private_error(client.post(url, headers=owner, json={**message, "text": "A different request"}), 409, "message_conflict")
+
+    active = client.get(ACTIVE_RUNS_URL, headers=owner).json()["items"]
+    assert len(active) == 1
+    assert {field: active[0][field] for field in ("thread_id", "run_id")} == {
+        field: body[field] for field in ("thread_id", "run_id")
+    }
+    assert active[0]["case_id"] is None
+    assert_private_error(client.get(run_url(body), headers=other), 404, "unavailable")
+    separate = client.post(url, headers=other, json=message)
+    assert separate.status_code == 202 and separate.json()["thread_id"] != body["thread_id"]
+
+
 def test_switch_between_owned_cases_and_reopen_the_original_question(client, auth_headers, paused_run):
     first, question, first_case = paused_run
     owner = auth_headers()

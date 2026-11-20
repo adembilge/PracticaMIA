@@ -33,6 +33,12 @@ The product owner authorized work to resolve the roadmap blockers. The [criterio
 
 The product owner authorized automatic merges going forward. Review the actual diff and relevant checks, confirm the pull request head, and merge within the repository's required checks and approvals. Keep release and source approval decisions on their existing review paths.
 
+## D-007 — Use one chatbot for the Italian bureaucracy experience (20 November 2026)
+
+The product owner wants all Italian administrative questions to start in the same chatbot. The first interaction is a free-text message. Clarifications, case facts, reviewed answers, sources, next actions and resumption belong in that same interface. Establish the relevant procedure and jurisdiction from the conversation. Let the user confirm a case or a proposed change in the chat when one is needed.
+
+Use this approach for all three Phase 4 pilot scenarios. A vetted official handoff appears in the conversation at the applicable step. Existing release and claim review requirements still apply.
+
 ## Decisions still unresolved
 
 - Currency and applicability reviews for the approved first Milan scenario, especially the officially required attachments and exceptions.

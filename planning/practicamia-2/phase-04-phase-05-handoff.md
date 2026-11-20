@@ -11,6 +11,7 @@ Use `/api/v1/agent` as the FastAPI prefix. In the paths below, `T` is a thread U
 | Method and path | Read or write boundary |
 | --- | --- |
 | `GET /runs/active` | Owned active runs. Pass both `before_accepted_at` and `before_run_id` from `next_cursor` when paging. |
+| `POST /conversations` | Start a thread and queue the first message in one transaction. The first interaction needs only `client_message_id`, `text` and `language`. |
 | `GET /threads/T/cases` | Linked active cases, their active run IDs and any unbound run. Use `after_case_id` with `next_case_id` to page cases. |
 | `POST /threads/T/messages` | Commit an idempotent case-bound request and return a 202 receipt. |
 | `GET /threads/T/runs/R` | Read the latest status, revision and any pending proposal, result or current handoff. |
@@ -24,7 +25,9 @@ The routes require an authenticated owner and return `Cache-Control: private, no
 
 ## Send a message
 
-The isolated message endpoint requires a `case_id` already linked to the owned thread. Generate a `client_message_id` once for each new submission. If the client loses the receipt, resend the same ID with the same text, language and case. An identical replay returns the original receipt even after the run advances. An edited submission needs a new ID. Use `expected_thread_revision` only when the client has a confirmed revision for the thread.
+Use `POST /conversations` from the initial composer. The 202 receipt includes `thread_id`, `run_id` and `accepted_revision`. Use the returned thread and run to open the conversation and recover it after reload. No case ID or thread revision is required at this step.
+
+Use `POST /threads/T/messages` for a task in an already linked case. Generate a `client_message_id` once for each new submission. If the client loses the receipt, resend the same ID with the same text, language and, where applicable, case. An identical replay returns the original receipt even after the run advances. An edited submission needs a new ID. Use `expected_thread_revision` only when the client has a confirmed revision for the thread.
 
 <!-- wire: message -->
 ```json

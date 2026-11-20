@@ -26,6 +26,7 @@ from app.agent.run_events import (
 from app.agent.run_handoff import read_run_handoff
 from app.agent.run_requests import _payload_cipher, accept_message, list_active_runs
 from app.agent.source_cards import RunSourceCard, read_run_source_card
+from app.agent.threads import create_thread_for_message
 from app.auth.tokens import Principal, get_principal
 from app.database import get_session
 
@@ -67,6 +68,15 @@ class CaseTaskMessage(SendMessage):
 class CaseTaskAccepted(ContractModel):
     run_id: UUID
     accepted_revision: PositiveInt
+
+
+class FirstMessage(SendMessage):
+    case_id: None = None
+    expected_thread_revision: None = None
+
+
+class ConversationAccepted(CaseTaskAccepted):
+    thread_id: UUID
 
 
 def _error(status: int, code: ErrorCode, message: str, *, headers=None) -> JSONResponse:
@@ -135,6 +145,21 @@ def build_reconnect_router(
         if query.before_accepted_at is not None and query.before_run_id is not None:
             cursor = ActiveRunCursor(accepted_at=query.before_accepted_at, run_id=query.before_run_id)
         return list_active_runs(db, principal=principal, limit=query.limit, before=cursor)
+
+    @router.post("/conversations", status_code=202, responses={409: {"model": AgentHttpError}})
+    def start_conversation(
+        message: FirstMessage, principal: AuthenticatedOwner, db: DatabaseSession,
+    ) -> ConversationAccepted:
+        with db.begin():
+            thread_id = create_thread_for_message(db, principal=principal, message_id=message.client_message_id)
+            accepted = accept_message(db, thread_id=thread_id, message=message, principal=principal, key=key)
+            if accepted.outcome == "unavailable":
+                raise HTTPException(404)
+            if accepted.outcome == "message_conflict":
+                return _error(409, "message_conflict", "Send the updated message as a new request.")
+            if accepted.outcome != "accepted":
+                raise ConversationBusy()
+        return ConversationAccepted(thread_id=thread_id, run_id=accepted.run_id, accepted_revision=accepted.accepted_revision)
 
     @router.get(THREAD_PATH + "/cases")
     def case_tasks(

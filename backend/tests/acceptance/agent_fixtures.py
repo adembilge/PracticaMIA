@@ -65,9 +65,19 @@ class AgentReconnectFixture:
         topic = self.seed_question("Which synthetic detail should stay open when changing topics?")
         date = self.seed_question("What was the synthetic move-in date?", calendar_date=True)
         self.municipality_question_id = self.seed_question("Which synthetic municipality applies?")
+        self.first_questions = {
+            language: ClarifyingQuestion(
+                question_id=uuid4(), text=text, answer_shape="free_text", options=[], missing_fields=["jurisdiction"],
+            )
+            for language, text in (
+                ("en", "Which municipality is this about?"),
+                ("it", "Quale Comune riguarda la pratica?"),
+            )
+        }
         self.question_ids = {
             stop, topic, date, self.municipality_question_id, self.replaced_question_id, self.followup_question.question_id,
             *(question.question_id for question in self.switch_questions.values()),
+            *(question.question_id for question in self.first_questions.values()),
         }
 
     def seed_source(self):
@@ -269,6 +279,8 @@ class AgentReconnectFixture:
         if state.goals:
             return self.choose_goal(message, state)
         if state.next_node == "load_context":
+            if message.case_id is None:
+                return RequestClarification(self.first_questions[message.language], CheckpointState(next_node="find_evidence"))
             if question := self.switch_questions.get(message.case_id):
                 return RequestClarification(question, CheckpointState(next_node="find_evidence"))
             return AnswerResult(explanation="This synthetic case is open.", verification_status="insufficient_evidence")
@@ -286,8 +298,9 @@ class AgentReconnectFixture:
         if message.clarification_reply.question_id == self.replaced_question_id:
             return RequestClarification(self.followup_question, state)
         with_source = message.clarification_reply.question_id == self.municipality_question_id
+        receipt = "Ricevuto" if message.language == "it" else "Received"
         return AnswerResult(
-            explanation=f"Received {message.clarification_reply.text}.",
+            explanation=f"{receipt} {message.clarification_reply.text}.",
             verification_status="insufficient_evidence",
             citations=[self.citation] if with_source else [],
             claims=[self.claim] if with_source else [],

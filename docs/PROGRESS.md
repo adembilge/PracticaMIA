@@ -215,4 +215,6 @@ The [public-source comparison](../planning/practicamia-2/phase-04-claim-review-h
 
 The [Task 40 pilot session guide](../planning/practicamia-2/phase-04-pilot-session-guide.md) prepares bilingual fictional briefs for the three authorities, one staff rehearsal variant per case, and the observation fields for unassisted next action, reviewed citations, resumption and performance. Participant sessions have yet to run. Confirm the scope, reviewed sources and isolated build before counting participant outcomes.
 
+The [single-chatbot decision](DECISIONS.md#d-007--use-one-chatbot-for-the-italian-bureaucracy-experience-20-november-2026) makes a free-text message the common entry for the three pilot journeys. The [isolated conversation transport](../planning/practicamia-2/phase-04-phase-05-handoff.md#send-a-message) accepts a first message without a saved case, keeps retries on the same owned run, and exposes that run on reconnect. The composer is available in the local browser acceptance harness. The hosted integration, reviewed Torino and Questura guidance, and participant sessions remain pending.
+
 For implementation details see [the documentation index](README.md).
