@@ -21,7 +21,7 @@ from app.agent.contract import (
     ActiveRunCursor, ActiveRunPage, ActiveRunSummary, AnswerCompleted, AnswerResult, ApprovalApplied,
     ApprovalDecided, ApprovalRequested, ClarifyingQuestion, ClarificationDisposition, ClarificationText,
     ContractModel, FieldValue, Identifier, Language, PositiveInt, QuestionAnswered, QuestionRequested,
-    RunStatus, SendMessage, ShortText,
+    RunFailed, RunStatus, RunStopped, SendMessage, ShortText,
 )
 from app.agent.destination_correction import DestinationCorrection, destination_correction_name
 from app.agent.threads import AgentThread, AgentThreadCase
@@ -128,6 +128,7 @@ class ConversationTurn(ContractModel):
     approvals: list[ConversationApproval] = Field(default_factory=list)
     clarification_history_truncated: bool = False
     approval_history_truncated: bool = False
+    terminal_event: RunFailed | RunStopped | None = None
 
 
 class ConversationHistoryPage(ContractModel):
@@ -365,11 +366,11 @@ def list_thread_history(
     db: Session, *, thread_id: UUID, principal: Principal, key: bytes,
     limit: int = 20, before_revision: int | None = None,
 ) -> ConversationHistoryPage | None:
-    """Project saved chat questions, approvals and committed case receipts.
+    """Project saved chat questions, approvals and terminal outcomes.
 
-    The full encrypted per-run journal remains authoritative. A user's
-    acceptance is not reported as a saved case update without an actual
-    approval.applied event, which itself requires a committed operation.
+    An accepted proposal is not a saved case write without approval.applied.
+    Failures and stops come from the exact terminal event, not a guessed
+    status or a truncated scan. The encrypted journal remains authoritative.
     """
     if not 1 <= limit <= 30:
         raise ValueError("Invalid conversation history page size")
@@ -392,12 +393,18 @@ def list_thread_history(
     for run in rows[:limit]:
         message = _decode(run, principal, key)
         answer = None
-        if run.status == "completed":
+        terminal_event = None
+        if run.status in ("completed", "failed", "stopped"):
             final = _latest_event(db, run)
             event = _decode_event(final, run, principal, key) if final is not None else None
-            if not isinstance(event, AnswerCompleted):
-                raise ValueError("Completed run is missing its terminal answer")
-            answer = event.result
+            if run.status == "completed" and isinstance(event, AnswerCompleted):
+                answer = event.result
+            elif run.status == "failed" and isinstance(event, RunFailed):
+                terminal_event = event
+            elif run.status == "stopped" and isinstance(event, RunStopped):
+                terminal_event = event
+            else:
+                raise ValueError("Terminal run is missing its matching final event")
 
         stored_events = db.scalars(
             select(AgentRunEvent)
@@ -454,6 +461,7 @@ def list_thread_history(
             user_message=message.text, language=message.language, answer=answer,
             clarifications=clarifications, approvals=approvals,
             clarification_history_truncated=truncated, approval_history_truncated=truncated,
+            terminal_event=terminal_event,
         ))
     next_cursor = turns[-1].accepted_revision if len(rows) > limit else None
     return ConversationHistoryPage(
