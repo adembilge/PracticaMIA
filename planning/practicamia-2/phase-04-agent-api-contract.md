@@ -55,6 +55,8 @@ The worker persists the question with its encrypted checkpoint. If it cannot int
 
 For a question comparing an old ANPR guide's upload limit with the current form, the result can carry the `check_current_form` next action. The contract restricts this action to an insufficient-evidence result without citations or an official channel.
 
+The resolver asks about missing permit categories and marriage-banns municipality roles when the reviewed catalogue cannot resolve a route. It can return `verify_filing_channel` for conflicting user-reported filing instructions or after gathering context for an unresolved route. That action requires an insufficient-evidence result without citations or an official channel.
+
 ## Bilingual matching evaluation
 
 The [Task 34.6 regression matrix](../../backend/tests/test_agent_matching_matrix.py) checks intent and saved procedure candidates independently from authority applicability and clarification outcomes. It uses paired English and Italian messages with complete wording, fragments, misspelled procedures or places, and multiple authority names. Compact, dotted and letter-spaced acronyms preserve the same identity candidate and confirmation requirement. The fixtures exercise a confirmed service area, overlapping assignments and withdrawn evidence.
@@ -345,6 +347,8 @@ Task 39.2 checks for an explicit starting preference by a numbered goal or an ex
 The existing owner-scoped reply endpoint binds a choice to the pending question and run revision. The encrypted journal records the selected number and its original option text. Exact retries preserve the choice. Invalid options, stale replies, uncertainty and skipping cannot select an active task. The snapshot and resumed result display the same selected task.
 
 Synthetic tests cover clear and ambiguous preferences, an unauthorized or invalid reply, exact retry, selection display and skip. The mobile Chromium scenario reopens the question, selects a task, and sees the active choice after the worker resumes.
+
+If the selected marriage-banns task has no compatible saved case, the worker asks a free-text follow-up for the two municipality roles. The question records the existing selection as `procedure_goal`. The snapshot presents it while waiting for the reply and after it is accepted. The reply stays with that task and grants no evidence or new case binding.
 
 ### Verifying the selected case
 

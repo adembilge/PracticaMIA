@@ -250,18 +250,18 @@ def read_run_snapshot(
         if isinstance(current, ApprovalDecided) and run.status == "waiting_for_approval":
             approval_recorded = current.decision.decision == "accept"
         if isinstance(current, QuestionRequested):
-            goal_selection = current.question.case_goal
-        if isinstance(current, QuestionAnswered) and (
-            current.selected_goal is not None or current.selected_case_id is not None
-        ):
+            goal_selection = current.question.case_goal or current.question.procedure_goal
+        if isinstance(current, QuestionAnswered):
             asked = _read_event_at(db, run, current.event_seq - 1, principal, key)
-            if isinstance(asked, QuestionRequested) and asked.question.goal_selection_language is not None:
+            if isinstance(asked, QuestionRequested) and current.selected_goal is not None:
                 goal_selection = GoalSelection(
                     language=asked.question.goal_selection_language, options=asked.question.options,
                     active_goal=current.selected_goal,
                 )
             elif isinstance(asked, QuestionRequested):
-                goal_selection = asked.question.case_goal
+                goal_selection = asked.question.procedure_goal
+                if current.selected_case_id is not None:
+                    goal_selection = asked.question.case_goal
 
     last_seq = latest.event_seq if latest else 0
     return RunSnapshot(
