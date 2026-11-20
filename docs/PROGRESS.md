@@ -197,4 +197,6 @@ The Phase 4 signed API also returns the intake confirmation action when the owne
 
 The [Phase 4 pilot scope and source review](../planning/practicamia-2/phase-04-three-authority-pilot.md) proposes one case each for the Milan registry, Torino banns office and Milano Questura immigration office. The desk check recorded claim-level public locators and identified the source versions and human decisions still needed. Pilot scope confirmation, source approvals for the added claims, catalogue integration and participant sessions remain pending.
 
+The [Phase 4 acquisition record](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md) pins four official HTML captures and nine `html-v1` passages for five candidate claims. The local Questura page returned an access-denied document. Durable catalogue versions require an isolated registration path for these procedures, and the candidate claims still require human review.
+
 For implementation details see [the documentation index](README.md).
