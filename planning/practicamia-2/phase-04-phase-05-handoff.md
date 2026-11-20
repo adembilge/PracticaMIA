@@ -11,6 +11,8 @@ Use `/api/v1/agent` as the FastAPI prefix. In the paths below, `T` is a thread U
 | Method and path | Read or write boundary |
 | --- | --- |
 | `GET /runs/active` | Owned active runs. Pass both `before_accepted_at` and `before_run_id` from `next_cursor` when paging. |
+| `GET /runs/recent` | Owned active and completed/failed/stopped runs, newest first, paginated with the same timestamp/run-ID cursor. Metadata only; no message text. |
+| `GET /threads/T/history` | Owner-only, up to 30 accepted turns per page, ordered oldest to newest within each page. Includes decrypted user message and terminal answer (when completed), not intermediate clarification events. Older pages use `before_revision` from `next_before_revision`. |
 | `POST /conversations` | Start a thread and queue the first message in one transaction. The first interaction needs only `client_message_id`, `text` and `language`. |
 | `GET /threads/T/cases` | Linked active cases, their active run IDs and any unbound run. Use `after_case_id` with `next_case_id` to page cases. |
 | `POST /threads/T/messages` | Continue the same conversation after a completed run, with an optional owned `case_id`; return an idempotent 202 receipt. |
@@ -21,7 +23,7 @@ Use `/api/v1/agent` as the FastAPI prefix. In the paths below, `T` is a thread U
 | `GET /threads/T/runs/R/sources/C` | Recheck the exact citation `C` in the owned run's saved answer. |
 | `POST /threads/T/runs/R/stop` | Stop the run at the supplied revision and return the resulting snapshot. |
 
-The routes require an authenticated owner and return `Cache-Control: private, no-store`. Read current status from the server after account changes. Clear the previous account's displayed conversations, pending operations and source views.
+The routes require an authenticated owner and return `Cache-Control: private, no-store`. Read current status from the server after account changes. Clear the previous account's displayed conversations, pending operations and source views. Recent-run discovery never returns decrypted text; the history endpoint decrypts only inside an owned thread and includes only still-authorised linked cases. Full question/answer events for a particular run remain behind its existing run event journal endpoint.
 
 ## Send a message
 
@@ -49,6 +51,12 @@ HTTP 202 returns the accepted run and thread revision. The worker commits the re
   "accepted_revision": 2
 }
 ```
+
+## Restore a completed chat and its earlier turns
+
+When opening the chatbot after a browser restart, retrieve `GET /runs/recent`. Unlike `/runs/active`, it also includes finished runs, so the user can reopen a past conversation without remembering a run ID. Keep this in the **same chat UI**, not a separate page. The list contains metadata only. Once an owner selects a run, fetch its current snapshot and `GET /threads/T/history` to display the thread's previous user messages and completed answers in chronological order. Use `before_revision` to load older turns. Terminal answers may be revalidated by opening their run snapshot and cited source cards. A previous clarification or approval is reconstructed from that run's persisted events, not invented from this summary endpoint.
+
+The history view does not create a new chat or silently restore an old case. A new free-text question to `/threads/T/messages` uses the same thread ID; case-scoped operations still require the relevant owned case. Deleted case links and different-account threads are unavailable. This API is mounted only in the isolated acceptance harness until the hosted agent and session wiring are approved.
 
 ## Restore a run and read a question
 
@@ -305,6 +313,6 @@ An outdated case or evidence can require a fresh proposal review. Read the curre
 | `422 invalid_reply`, `invalid_proposal_value` or `invalid_cursor` | Preserve the editable draft and show the validation guidance. Resume an invalid cursor from a known server sequence. |
 | Persisted `run.failed` | Show the safe recovery value from the event. For `retry_later`, a fresh request uses a new message ID after the service recovers. For `review_proposal`, reload the current case and request a fresh review. |
 
-The browser fixture demonstrates a free-text first turn and a second free-text turn in the **same** thread, saved-case switching, cursor replay, lost acknowledgements, source display and restoring approval after a browser close. It uses temporary signed identities, an isolated worker and a disposable database. Hosted scheduling, streaming, account-session acceptance, production case writes, and broader catalogue and pilot verification remain gated. The development replay and latency samples describe the isolated system. See the [acceptance scenarios](../../docs/ACCEPTANCE_TESTING.md#acceptance-scenarios) and [Phase 4 evaluation results](phase-04-agent-and-conversation-engine.md#40-evaluate-the-agent-and-close-phase-4).
+The browser fixture demonstrates a free-text first turn and a second free-text turn in the **same** thread, saved-case switching, cursor replay, lost acknowledgements, source display and restoring approval after a browser close. It uses temporary signed identities, an isolated worker and a disposable database. Hosted scheduling, streaming, account-session acceptance, production case writes, full per-run message-event transcript rendering, and broader catalogue and pilot verification remain gated. The development replay and latency samples describe the isolated system. See the [acceptance scenarios](../../docs/ACCEPTANCE_TESTING.md#acceptance-scenarios) and [Phase 4 evaluation results](phase-04-agent-and-conversation-engine.md#40-evaluate-the-agent-and-close-phase-4).
 
 From `backend/`, verify the examples against the wire models with `python -m pytest -q tests/test_agent_contract.py -k phase5_handoff`. For runtime behaviour, run `python -m pytest -q tests/test_agent_reconnect_http.py tests/test_agent_recovery_http.py tests/test_agent_source_cards.py tests/test_agent_approval_resume.py`. The browser reference is the existing [acceptance client](../../frontend/tests/acceptance/agent-reconnect.tsx).

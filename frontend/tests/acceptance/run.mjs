@@ -1099,9 +1099,31 @@ try{
     const followupSnapshot=(await readJson(owner,secondUrl)).body;
     assert.equal(followupSnapshot.thread_id,thread_id);
     assert.equal((await readJson(owner,url)).body.status,'completed');
+    const storedHistory=(await readJson(owner,
+      `/api/agent/threads/${thread_id}/history`)).body;
+    assert.deepEqual(storedHistory.items.map(turn=>turn.user_message),[
+      'How do I change my registered address?','And what about my residence permit?',
+    ]);
+    assert.equal(storedHistory.items[0].answer.explanation,'Received Milan.');
+    assert.equal(storedHistory.items[1].answer,null);
+    await owner.getByRole('region',{name:'Conversation history'})
+      .getByText('Received Milan.',{exact:true}).waitFor();
     const followupActive=(await readJson(owner,'/api/agent/runs/active')).body.items;
     assert.equal(followupActive.filter(run=>run.thread_id===thread_id).length,1);
     assert.equal(followupActive.find(run=>run.run_id===secondRun.run_id).case_id,null);
+
+    await owner.reload();
+    const recent=(await readJson(owner,'/api/agent/runs/recent')).body.items
+      .filter(run=>!['queued','running','waiting_for_information','waiting_for_approval','stopping']
+        .includes(run.status));
+    const previousIndex=recent.findIndex(run=>run.run_id===run_id);
+    assert.ok(previousIndex>=0,'Completed first turn must be discoverable after reload');
+    await owner.getByRole('button',{name:'Open completed conversation'})
+      .nth(previousIndex).click();
+    await owner.getByRole('region',{name:'Conversation history'})
+      .getByText('How do I change my registered address?',{exact:false}).waitFor();
+    const pastSnapshot=(await readJson(owner,url)).body;
+    assert.equal(pastSnapshot.status,'completed');
   });
 
   await scenario('A8: browser runs without uncaught runtime errors',async()=>{
