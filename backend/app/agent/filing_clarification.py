@@ -12,6 +12,13 @@ from app.knowledge.service_areas import CaseLocation
 MARRIAGE_BANNS = "marriage_banns"
 PERMIT_RENEWAL = "residence_permit_renewal"
 
+SAVED_CASE_FILING = re.compile(
+    r"(?:(?:open|show(?: me)?) (?:the )?(?:filing|submission) (?:step|instructions) for my "
+    r"(?:saved )?(?:(?P<en_place>.+) )?case|"
+    r"(?:apri|mostrami) (?:il passaggio|le istruzioni) (?:di|per l) (?:invio|presentazione) "
+    r"della mia pratica(?: salvat[ao])?(?: di (?P<it_place>.+))?)"
+)
+
 _BANNS = re.compile(r"\b(?:banns|pubblicazioni)\b")
 _WEDDING = re.compile(r"\b(?:marry|marrying|marriage|wedding|ceremony|matrimonio|sposiamo|sposarci|cerimonia)\b")
 _PLACE_END = r" (.+?)(?=\s+(?:but|and|ma|e)\b|$)"
@@ -106,6 +113,22 @@ def permit_category_question(language: Language) -> ClarifyingQuestion:
     return ClarifyingQuestion(
         question_id=uuid4(), text=_PERMIT_CATEGORY[0 if language == "en" else 1],
         answer_shape="free_text", missing_fields=["permit_category"],
+    )
+
+
+def confirm_saved_intake(language: Language) -> AnswerResult:
+    en = language == "en"
+    return AnswerResult(
+        explanation=(
+            "Complete and confirm your saved case details. Then return here and ask for the filing step."
+            if en else "Completa e conferma i dati della pratica salvata. Poi torna qui e chiedi come presentarla."
+        ),
+        verification_status="insufficient_evidence",
+        missing_information=["intake_confirmation"],
+        next_action=NextAction(
+            label="Confirm saved case details" if en else "Conferma i dati della pratica",
+            operation="confirm_saved_intake",
+        ),
     )
 
 

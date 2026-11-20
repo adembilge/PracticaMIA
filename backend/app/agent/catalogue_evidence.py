@@ -14,6 +14,7 @@ from app.agent.checkpoints import CheckpointState, RoutingCorrections
 from app.agent.contract import AnswerResult, Citation, Language, NextAction
 from app.agent.destination_correction import reassess_destination
 from app.agent.diagnostics import AgentFailureDiagnostic, EvidenceQueryKind
+from app.agent.filing_clarification import confirm_saved_intake
 from app.agent.threads import AgentThread, AgentThreadCase
 from app.agent.tool_contract import (
     CatalogueEvidence, CataloguePassage, CatalogueScope, FindEvidence, OpenSourceDetails,
@@ -264,19 +265,7 @@ def refresh_corrected_evidence(
         query_kind=query_kind, tool=call.tool,
     ).emit()
     if "intake_confirmation" in evidence.missing_fields:
-        return AnswerResult(
-            explanation=(
-                "Complete and confirm your saved case details. Then return here and ask for the filing step."
-                if language == "en"
-                else "Completa e conferma i dati della pratica salvata. Poi torna qui e chiedi come presentarla."
-            ),
-            verification_status="insufficient_evidence",
-            missing_information=["intake_confirmation"],
-            next_action=NextAction(
-                label="Confirm saved case details" if language == "en" else "Conferma i dati della pratica",
-                operation="confirm_saved_intake",
-            ),
-        )
+        return confirm_saved_intake(language)
     return _unverified_evidence(language, list(evidence.missing_fields) or state.missing_fields)
 
 

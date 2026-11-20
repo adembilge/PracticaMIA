@@ -193,4 +193,6 @@ The [Phase 4 unresolved filing follow-up](../planning/practicamia-2/phase-04-age
 
 The [Phase 4 explicit confirmation journey](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#completing-the-reopened-case-after-intake-confirmation) links the owner to the saved intake before offering filing guidance. Its versioned synthetic replay passed 26/26 runs and 40/40 checkpoints after including the owner confirmation and a new filing request. The original development benchmark still passes 24/26 and 34/36.
 
+The Phase 4 signed API also returns the intake confirmation action when the owner asks for filing instructions again on the same linked case while intake is still a draft. English and Italian coverage checks both an incomplete draft and a complete but unconfirmed draft, then verifies the reviewed handoff after explicit confirmation and a fresh filing request.
+
 For implementation details see [the documentation index](README.md).
