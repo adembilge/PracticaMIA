@@ -12,12 +12,21 @@ type HistoryClarification = {
   question_id: string; question_text: string;
   disposition: ReplyDisposition; reply_text: string | null;
 };
+type HistoryApproval = {
+  proposal_id: string; field_id: string; proposed_value: string | number | boolean;
+  decision: 'accept' | 'correct' | 'reject' | 'cancel' | null;
+  corrected_value: string | number | boolean | null;
+  applied_operation_id: string | null;
+  applied_case_revision: number | null;
+};
 type HistoryTurn = {
   run_id: string; case_id: string | null; status: string;
   accepted_revision: number; user_message: string; language: 'en' | 'it';
   answer: { explanation: string } | null;
   clarifications: HistoryClarification[];
+  approvals: HistoryApproval[];
   clarification_history_truncated: boolean;
+  approval_history_truncated: boolean;
 };
 type HistoryPage = { thread_id: string; items: HistoryTurn[]; next_before_revision: number | null };
 type CaseTask = { case_id: string; label: string; run_id: string | null };
@@ -498,7 +507,37 @@ export function AgentReconnectFixture() {
                 }</span></p>
               )}
             </div>)}
-            {turn.clarification_history_truncated && <p role="status">
+            {turn.approvals.map(approval => <section key={approval.proposal_id}
+              aria-label={`Review history for ${approval.field_id}`}>
+              <p><strong>{turn.language === 'it' ? 'Modifica proposta:' : 'Proposed change:'}</strong>{' '}
+                {approval.field_id}: <span>{String(approval.proposed_value)}</span></p>
+              {approval.decision === 'correct' && <p>
+                {turn.language === 'it' ? 'Correzione richiesta:' : 'Correction requested:'}{' '}
+                <span>{String(approval.corrected_value)}</span>.{' '}
+                {turn.language === 'it' ? 'Non salvata.' : 'Not saved.'}
+              </p>}
+              {approval.decision === 'reject' && <p>
+                {turn.language === 'it' ? 'Rifiutata; nessuna modifica salvata.' : 'Rejected; no change saved.'}
+              </p>}
+              {approval.decision === 'cancel' && <p>
+                {turn.language === 'it' ? 'Annullata; nessuna modifica salvata.' : 'Cancelled; no change saved.'}
+              </p>}
+              {approval.decision === null && <p>
+                {turn.language === 'it' ? 'In attesa di una decisione.' : 'Awaiting a decision.'}
+              </p>}
+              {approval.decision === 'accept' && (
+                approval.applied_operation_id && approval.applied_case_revision ? <p role="status">
+                  {turn.language === 'it' ? 'Salvata nel caso' : 'Saved to case'}{' '}
+                  ({turn.language === 'it' ? 'revisione' : 'revision'}{' '}
+                  <span>{approval.applied_case_revision}</span>).
+                </p> : <p role="status">
+                  {turn.language === 'it'
+                    ? 'Accettata; nessun salvataggio confermato.'
+                    : 'Accepted; no saved update confirmed.'}
+                </p>
+              )}
+            </section>)}
+            {(turn.clarification_history_truncated || turn.approval_history_truncated) && <p role="status">
               Earlier steps in this turn are available in the run event history.
             </p>}
             {turn.answer && turn.run_id !== view.snapshot.run_id && <p>
