@@ -39,6 +39,14 @@ The product owner wants all Italian administrative questions to start in the sam
 
 Use this approach for all three Phase 4 pilot scenarios. A vetted official handoff appears in the conversation at the applicable step. Existing release and claim review requirements still apply.
 
+## D-008 — Only one user-facing chat UI; no standalone Preview or feature screens (20 November 2026)
+
+The product owner clarified D-007: **all customer interactions take place in one chatbot interface**. New procedure requests, clarifying questions, source inspection, document upload and OCR review, field corrections, requirements and checklists, form/application preparation, approvals, saved-case switching, status tracking and resumption must be composed as in-chat messages and inline interactive cards. A compact chat-history and case switcher is allowed within the same shell. No separate customer-facing dashboard, case detail page, document workspace, form editor, official-source browsing page, or Preview product UI is part of the target experience. The 2.0 Phase 5–8 roadmap and subsequent acceptance tests must enforce this constraint.
+
+Development/CI/test/staging/Preview **deployments** may still exist as isolated engineering infrastructure; they are not user-facing destinations, separate products, or a required step in the customer journey. Human source approval remains a protected operator function, not a customer workflow. Genuine government portal login, payment, signature or submission can still require a verified external official service; their preparation and handoff happen in chat. No automatic government submission is authorised by this decision.
+
+This newer explicit product decision supersedes the multi-screen customer UX proposed in the historical `PracticaMIA_Complete_Project_Specification.md` §16 without renumbering its legacy 94-task plan. The active PracticaMIA 2.0 roadmap retains its own Phase 4–10 task IDs and human approval gates.
+
 ## Decisions still unresolved
 
 - Currency and applicability reviews for the approved first Milan scenario, especially the officially required attachments and exceptions.
