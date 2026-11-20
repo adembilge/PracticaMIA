@@ -201,11 +201,14 @@ class ScenarioReplay:
             verified=result.verification_status == "verified" and channel is not None,
         )
 
+    def worker_step(self):
+        return run_worker_step(
+            self.sessions, **self.context, execute=self.execute, read_evidence_scope=self.read_scope,
+        )
+
     def advance(self):
         for _ in range(6):
-            self.snapshot = run_worker_step(
-                self.sessions, **self.context, execute=self.execute, read_evidence_scope=self.read_scope,
-            )
+            self.snapshot = self.worker_step()
             if self.snapshot is None:
                 return Observation(blocked="run_unavailable")
             if self.snapshot.status not in {"queued", "running"}:
@@ -330,7 +333,7 @@ def score_case(replay, case, references):
     }
 
 
-def run():
+def run(*, replay_factory=ScenarioReplay):
     raw = DATASET.read_bytes()
     data = json.loads(raw)
     catalog = load_catalog(CATALOG.read_text(encoding="utf-8"))
@@ -343,7 +346,7 @@ def run():
             engine = create_engine("sqlite+pysqlite:///:memory:")
             try:
                 Base.metadata.create_all(engine)
-                replay = ScenarioReplay(sessionmaker(bind=engine), data, case, language, catalog)
+                replay = replay_factory(sessionmaker(bind=engine), data, case, language, catalog)
                 cases.append(score_case(replay, case, data["references"]))
             finally:
                 engine.dispose()

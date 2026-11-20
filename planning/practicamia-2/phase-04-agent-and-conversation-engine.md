@@ -131,7 +131,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 - **40.2** [Measure the agent components separately](#agent-component-measurement) for intent, procedure retrieval, evidence, question quality, and authorised tool calls.
 - **40.3** [Use unassisted arrival at the correct next action](#unassisted-next-action-evaluation) as the primary outcome. Track correct authorities, supported citations, unnecessary questions, and uncorrected misrouting.
 - **40.4** [Simulate interrupted runs and client recovery](#interruption-and-recovery-scenarios) for catalogue outages, model timeouts, duplicate messages, and closing the application during approval.
-- **40.5** Measure time to first user-visible event, verified response latency, call counts, and cost per case. Set targets from pilot measurements.
+- **40.5** [Measure response time, calls and cost per case](#agent-performance-measurement). Set targets from pilot measurements.
 - **40.6** Record how failures relate to intent, query, tool, and source version. Verify that monitoring excludes unnecessary conversation and document contents.
 - **40.7** Hand off the message API, events, citations, questions, approvals, and reconnection examples to Phase 5.
 
@@ -192,6 +192,25 @@ The replay executes the owned worker, saved clarification and event services ove
 | App closed during approval | A new mobile Chromium context discovers the same pending proposal and journal. The saved case remains at the original value until the owner reviews and accepts the replacement proposal. The journal then shows a single applied operation and the original run resumes. |
 
 From `backend/`, run `python -m pytest -q tests/test_agent_catalogue_recovery.py tests/test_agent_recovery_http.py tests/test_agent_approval_resume.py`. These tests use signed synthetic JWTs and disposable database state. The model case injects a timeout at the execution boundary. The Chromium checks exercise general retry guidance with stubbed failure events and app closure with the actual isolated FastAPI approval flow and disposable PostgreSQL. Hosted agent scheduling, live model response deadlines and live identity sessions still require separate evidence.
+
+### Agent performance measurement
+
+From the repository root, run `PYTHONPATH=backend python evals/measure_phase04_agent.py --repeat 3` with the backend dependencies installed. It replays the same dataset as Task 40.3 with a monotonic clock. Each measured request starts before the message or clarification reply is sent to the internal service. The first observable state is the returned question, approval, answer or terminal status. A verified sample requires a verified published answer with a revalidated channel. Reopen and source-withdrawal housekeeping are outside the request timings. The baseline uses nearest-rank percentiles and a fresh in-memory database per scenario.
+
+| Metric | Local synthetic baseline |
+| --- | ---: |
+| First client-readable state, 96 requests | p50 35.9 ms, p95 54.4 ms |
+| Verified response, 12 of 96 requests | p50 43.2 ms, p95 54.4 ms |
+| Worker steps, 78 case runs | 264 |
+| Typed server tool checks, 78 case runs | 132 `read_case_context` checks |
+| Paid model calls and spend | 0 calls and USD 0 per case |
+| Cases reaching all expected next actions | 9/78, three repeats of the same 26 scenarios |
+
+The offline timing includes worker execution, persisted state and read-side projection. It excludes setup, hosted queue delay, the browser and the network. The invocation counts include worker steps and typed server tool authorisation checks. The deterministic adapter incurs zero paid provider spend. Hosting and database costs require separate measurements.
+
+The Chromium acceptance report also captures two click-to-display times under `agentPerformanceMs`. The first measures a new task until its question appears. The other measures a clarification reply until the reviewed handoff link is visible, including a forced lost acknowledgement and a repeat submission. These single-run observations include polling and browser interaction on the isolated test stack.
+
+Numeric pilot targets remain open. The [pilot guide](../../docs/MILAN_PILOT.md#agent-performance-observations) specifies how to collect participant timing, verified coverage, calls and billed cost on a reviewed build. The synthetic baseline documents the current worker and supports repeat measurements during development.
 
 ## End-to-end closure scenario
 

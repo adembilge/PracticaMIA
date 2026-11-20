@@ -173,4 +173,6 @@ The [Task 40.3 next-action replay](../planning/practicamia-2/phase-04-agent-and-
 
 The [Task 40.4 interruption scenarios](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#interruption-and-recovery-scenarios) exercise catalogue retry and recovery, an injected model timeout, duplicate message delivery and closing a mobile browser context during approval. The isolated worker records a safe retryable terminal event for a model timeout. The signed API and Chromium suites check that message retries and restored approvals preserve one run and a single authorized write.
 
+The [Task 40.5 performance measurement](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#agent-performance-measurement) records request latency, successful verified responses, worker steps, tool checks and paid model spend on the existing synthetic replay. Chromium records the time until a question or reviewed handoff is visible. The baseline uses a deterministic adapter, and numeric targets await participant measurements and billed pilot usage.
+
 For implementation details see [the documentation index](README.md).

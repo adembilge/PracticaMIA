@@ -26,3 +26,11 @@ Participants use fictional case inputs, skip document upload and stop at the ANP
 | Critical issue follow-up | Owner, fix reference, and retest evidence |
 
 Pilot completion requires real participant observations and retests of critical issues. No participant sessions are recorded in this guide.
+
+## Agent performance observations
+
+When the reviewed pilot build includes the conversational agent, capture timings from the participant's browser. Use message or clarification submission as the start. Record the elapsed time to the first visible question, proposal, answer or failure, then to verified guidance when it appears. User reading time between submissions belongs to the task completion record. Keep initial submissions and retries distinguishable.
+
+Use anonymous case IDs to link separate service measurements for model calls, tool calls and billed model cost in the billing currency. Include retries and cases without verified guidance in call and cost totals. Record missing usage or unavailable costs explicitly. Use one build and provider configuration per cohort and record language, device and warm or cold start. Retain elapsed times, counters and outcomes with the pilot notes.
+
+Report p50 and p95 with sample counts, verified response coverage and per-case costs. Agree latency and call targets using the measured distribution for successful cases and keep the unsuccessful cases visible alongside it. Set the cost target using the measured spend across attempted cases and the approved pilot budget. Keep targets provisional until the reviewed pilot reproduces them.

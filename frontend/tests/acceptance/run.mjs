@@ -25,6 +25,7 @@ const report={
   realDocumentsTested:false,
   syntheticVaultTested:health.private_documents===true,
   liveDeploymentTested:false,
+  agentPerformanceMs:{},
   scenarios:[],
 };
 const errors=[];
@@ -599,6 +600,7 @@ try{
       else await intercepted.fulfill({response});
     });
     const reply=owner.getByRole('button',{name:'Send reply',exact:true});
+    const initialReplyStarted=performance.now();
     await reply.click();
     await owner.getByRole('alert').filter({hasText:'Could not confirm the reply. Try again.'}).waitFor();
     await reply.click();
@@ -607,28 +609,30 @@ try{
     assert.equal(sent[0].status,200);
     assert.deepEqual(sent[1],sent[0]);
 
-    const other=await contextFor('bob');
-    await other.goto(origin+route);
-    await other.getByText('No active conversations.',{exact:true}).waitFor();
     const run=sent[0].body;
     const url=`/api/agent/threads/${run.thread_id}/runs/${run.run_id}`;
-    assert.equal((await readJson(other,url)).status,404);
-    assert.equal((await readJson(other,url+'/events')).status,404);
-
     await awaitAgentStatus(owner,url);
     const completed=owner.getByRole('heading',{name:'Conversation complete'});
     if(!await completed.isVisible()) await owner.getByRole('button',{name:'Check status'}).click();
     await completed.waitFor();
     await owner.getByText('Received Fixture B.',{exact:true}).waitFor();
+    const handoff=owner.getByRole('region',{name:'Official handoff',exact:true});
+    const officialLink=handoff.getByRole('link',{name:'Open the official channel · Synthetic residence service'});
+    await officialLink.waitFor();
+    report.agentPerformanceMs.reviewedHandoffAfterReplyRetry=Math.round(performance.now()-initialReplyStarted);
+
+    const other=await contextFor('bob');
+    await other.goto(origin+route);
+    await other.getByText('No active conversations.',{exact:true}).waitFor();
+    assert.equal((await readJson(other,url)).status,404);
+    assert.equal((await readJson(other,url+'/events')).status,404);
     const replay=await readJson(owner,url+'/events');
     assert.equal(replay.status,200);
     assert.deepEqual(replay.body.events.map(event=>event.type),[
       'run.started','question.requested','question.answered','answer.completed',
     ]);
     const [citation]=replay.body.events.at(-1).result.citations;
-    const handoff=owner.getByRole('region',{name:'Official handoff',exact:true});
     await handoff.getByText('Unconfirmed',{exact:true}).waitFor();
-    const officialLink=handoff.getByRole('link',{name:'Open the official channel · Synthetic residence service'});
     assert.equal(await officialLink.getAttribute('href'),citation.official_url);
     await handoff.getByText('Complete any required sign-in, signing, payment and submission yourself through the official service.').waitFor();
     const current=(await readJson(owner,url)).body.handoff;
@@ -1017,6 +1021,7 @@ try{
     await owner.getByRole('button',{name:/Start task for Saved case/}).click();
     await owner.getByRole('textbox',{name:/Message for Saved case/}).fill('Continue the second saved case.');
     const accepted=owner.waitForResponse(response=>response.url()===origin+path+'/messages' && response.status()===202);
+    const messageStarted=performance.now();
     await owner.getByRole('button',{name:'Start task',exact:true}).click();
     const {run_id:secondId}=await (await accepted).json();
     const secondUrl=path+'/runs/'+secondId;
@@ -1025,6 +1030,7 @@ try{
     await check.or(owner.getByRole('group',{name:secondPrompt})).first().waitFor();
     if(await check.isVisible()) await check.click();
     await owner.getByRole('group',{name:secondPrompt}).waitFor();
+    report.agentPerformanceMs.firstQuestionAfterStartTask=Math.round(performance.now()-messageStarted);
     await owner.getByRole('button',{name:new RegExp('Open task for Saved case '+first.case_id.slice(0,8))}).click();
     await owner.getByRole('group',{name:firstPrompt}).waitFor();
     assert.equal(await owner.getByRole('group',{name:secondPrompt}).isVisible(),false);
@@ -1061,6 +1067,6 @@ try{
   writeFileSync(join(output,'acceptance-report.json'),
     JSON.stringify(report,null,2)+'\n');
   console.log(JSON.stringify({passed:report.passed,failed:report.failed,
-    accepted:report.accepted,output:join(output,'acceptance-report.json')}));
+    accepted:report.accepted,agentPerformanceMs:report.agentPerformanceMs,output:join(output,'acceptance-report.json')}));
   if(!report.accepted) process.exitCode=1;
 }
