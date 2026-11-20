@@ -2,7 +2,7 @@
 
 **Roadmap tasks 51–60.** Let a user attach an administrative document to an authorised case, locate the passages on which the agent relies, correct extracted values, and act on a verified request. The first end-to-end workflow is a notice requesting an attachment or clarification. A receipt can supply tracking evidence. Neither workflow changes an official status without evidence.
 
-**Dependencies.** Phase 2 supplies pilot cases and expected outcomes. Phase 3 supplies the catalogue, official evidence, and applicable requirement IDs. Phase 4 supplies typed tools, approval events, and idempotent case updates. Phase 5 supplies the attachment composer, document panel, and next-action cards. Phase 7 receives confirmed field values and provenance for form preparation.
+**Dependencies.** Phase 2 supplies pilot cases and expected outcomes. Phase 3 supplies the catalogue, official evidence, and applicable requirement IDs. Phase 4 supplies typed tools, approval events, and idempotent case updates. Phase 5 supplies the single chat composer and inline document/next-action cards; no separate document workspace or preview page is permitted. Phase 7 receives confirmed field values and provenance for form preparation.
 
 **Implementation choices to validate.** Start with PDF, JPEG, and PNG candidates. Validate format and document-type support against the pilot before publishing the support matrix. Use native text extraction for suitable PDF pages and a separately versioned OCR adapter for image pages. Benchmark a local engine such as Tesseract on the pilot material. Decide on any hosted processor only after measuring accuracy, latency, cost, and reviewing its data handling. Run parsing and OCR as bounded background work.
 
@@ -52,7 +52,7 @@
 | Ready for review | Preview and structured findings are available |
 | Failed, cancelled, or replaced | Outcome is visible and stale output cannot alter the case |
 
-- **54.1** Define allowed state transitions and display states for the Phase 5 composer and document panel. Represent partial extraction and user review explicitly.
+- **54.1** Define allowed state transitions and inline display states in the Phase 5 chat composer and document cards. Represent partial extraction and user review explicitly.
 - **54.2** Create jobs using document version, pipeline version, and stage as the idempotency scope. Repeated events or worker retries must not duplicate document records or publish the same result twice.
 - **54.3** Set worker concurrency and resource budgets. Bound retry attempts for transient errors. Return a stable actionable error for permanent failures. Keep a failed-job record for controlled diagnosis and replay.
 - **54.4** Isolate parsing and OCR workers from broad network and storage access. Use time, memory, page and decode limits. Remove temporary artefacts once work completes or is abandoned.
@@ -108,17 +108,17 @@
 
 **Acceptance.** The product shows a justified missing attachment and a traceable conflict in the appropriate pilot cases. Ambiguity remains reviewable and no conflict is resolved silently.
 
-## 59. Complete review, correction, and approval in the single workspace
+## 59. Complete review, correction, and approval in the conversation
 
-- **59.1** Open the Phase 5 document panel from chat or the case. Render an authorised preview with page navigation. Selecting an extracted field highlights the original passage when coordinates exist.
-- **59.2** Show raw and normalised values, confidence or quality flags where useful, whether review is required, and the effect of confirming a value. On mobile, switch between the field list and preview without losing selection.
+- **59.1** Expand an authorised document evidence card inside the chat transcript, with page navigation embedded in the card. Selecting an extracted field highlights the original passage when coordinates exist. Do not redirect to a document or Preview screen.
+- **59.2** Show raw and normalised values, quality flags, review status and confirmation effects inside the message card. On mobile, expand the field and page evidence sequentially within the transcript without losing selection.
 - **59.3** Support accept, correct, mark unreadable, upload a replacement page or document where supported, and retry extraction. Maintain original evidence and user corrections in the audit history.
 - **59.4** Apply user-approved facts through Phase 4's typed proposal contract. Bind approval to document, extraction, field, and case revisions. Require fresh review if the underlying evidence changes.
 - **59.5** Preview downstream impact when a user changes a previously confirmed field. Mark related form suggestions or pending actions for revalidation. Do not silently overwrite prior confirmations.
-- **59.6** Keep chat context, scroll, focus, and case when switching panels. Provide a text alternative when a page highlight is unavailable. Show whether a correction was saved using backend acknowledgement.
+- **59.6** Preserve chat context, scroll, focus and case while expanding or collapsing document cards. Provide a text alternative for unavailable page highlights. Show saved corrections only after backend acknowledgement.
 - **59.7** Verify keyboard, desktop, mobile, session expiry, concurrent edits, and save failures.
 
-**Acceptance.** A user can locate, correct, and confirm a critical field, close the panel, and find the confirmed value and updated next step after reopening. Phase 7 can distinguish confirmed and unresolved field values.
+**Acceptance.** A user can locate, correct and confirm a critical document field in chat, collapse and reopen its card, and find the confirmed value and updated next step in the same transcript. Phase 7 distinguishes confirmed and unresolved field values.
 
 ## 60. Evaluate document workflows and close Phase 6
 
@@ -127,7 +127,7 @@
 - **60.3** Measure upload-to-review time, failure recovery, queue wait, worker cost, and the impact of OCR preprocessing. Report partial results instead of treating all incomplete documents as failures or successes.
 - **60.4** Run the negative path suite. Cover wrong-case attachments, interrupted upload, scanner failure, unauthorised access, cancelled jobs, stale approvals, and document text trying to trigger tools.
 - **60.5** Run a user test with a redacted or synthetic notice. Ask the participant to identify the requested item and correct a field using page evidence. Record time, need for assistance, and whether they reached the correct next action.
-- **60.6** Verify the end-to-end slice in a controlled environment. Upload, scan, extract, review, correct, confirm, show the next action, close the page, and resume. Include a poor-quality document needing a replacement.
+- **60.6** Verify the end-to-end slice in a controlled test environment, using only one customer chat route: upload, scan, extract, review, correct, confirm, show the next action, close the browser, and resume the same conversation. Include a poor-quality document needing a replacement.
 - **60.7** Hand off the supported document matrix, approved field and provenance contract, unresolved fields, benchmark findings, and review events to Phase 7. Enable personal document types only where the agreed privacy, security, and quality checks are complete.
 
 **Acceptance.** The notice workflow succeeds with positive and recovery examples, including after reopening the case. Each enabled document type has measurable evidence, and outputs cannot mark an unreadable field as confirmed or a receipt as approval.

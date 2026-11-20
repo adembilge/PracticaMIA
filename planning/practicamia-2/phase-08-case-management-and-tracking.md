@@ -2,7 +2,7 @@
 
 **Roadmap tasks 71–80.** Help a user resume an existing case, see the next action they can take, track what happened outside PracticaMIA, and manage related procedures across authorities through the same chat workspace and specialist agent.
 
-**Dependencies.** Phase 3 supplies reviewed procedures, authorities, jurisdictions, and official channels. Phase 4 supplies authorised tools and persistent conversation state. Phase 5 supplies the shared chat, action cards, and workspace panels. Phase 6 supplies reviewed document evidence and access controls. Phase 7 supplies the versioned checklist, approved fields, and handoff event. Tracking must reference that event so submission evidence can be tied to the right case and preparation version.
+**Dependencies.** Phase 3 supplies reviewed procedures, authorities, jurisdictions, and official channels. Phase 4 supplies authorised tools and persistent conversation state. Phase 5 supplies a single chat transcript, inline action/history cards, and an in-chat conversation/case switcher. Phase 6 supplies reviewed document evidence and access controls. Phase 7 supplies the versioned checklist, approved fields, and handoff event. Tracking must reference that event so submission evidence can be tied to the right case and preparation version.
 
 **First vertical slice.** Select two independently verified pilot procedures with a realistic relationship. Start with manual receipt capture, a timeline, and a next action the user can resume from chat. Add deadlines, reminders, and cross-authority dependencies in subsequent slices. The automated acceptance scenario uses synthetic case data and receipts. The competent office, route, document reuse, and any procedural prerequisite must be verified before exposing a live procedure.
 
@@ -87,7 +87,7 @@
 
 - **78.1** Define archive, restore, close, reopen, export, and deletion as distinct actions. Show pending tasks and reminders before closure and require the appropriate confirmation for irreversible actions.
 - **78.2** Keep archived cases available to authorised users. Stop active reminders and applicable processing while archived. On restore or reopen, revalidate official links, current rules, deadlines, and dependencies before suggesting actions.
-- **78.3** Provide a permission-filtered export of the case summary, task statuses, provenance, approved values, and eligible documents. Let the user preview included data. Generate downloads with short expiry and authenticated access.
+- **78.3** Provide a permission-filtered export of the case summary, task statuses, provenance, approved values and eligible documents. Show an inline summary of included data and provide a time-limited authorised download in chat, without a separate Preview page.
 - **78.4** Publish the deletion impact for the case, linked cases, and shared documents before confirmation. Revoke access promptly, cancel scheduled work, and queue idempotent cleanup across application data, blobs, OCR derivatives, exports, caches, case indexes, and agent checkpoints.
 - **78.5** Preserve another authorised case's independently retained evidence where appropriate. Invalidate deleted or revoked references and create a replacement action for any dependent work. Document the treatment of deletion metadata and backups for Phase 9 review.
 - **78.6** Verify cleanup with a completion record that avoids sensitive content. Cover partial failure, safe retries, restore-versus-delete races, in-flight uploads, stale signed links, and removal from search and agent retrieval.
@@ -111,7 +111,7 @@
 - **80.2** Create synthetic fixtures for a reusable reviewed attachment, one unavailable prerequisite, a conditional task, an unmatched receipt, a later matched receipt, and a source change. Keep the E2E suite independent of live submissions, payments, and bookings.
 - **80.3** Start the case in chat, prepare one action, share a permitted evidence revision across the two cases, and resume after reload. Verify that verified urgency and real prerequisites determine priority and that separate actionable work remains reachable.
 - **80.4** Record a user submission report, resolve the receipt mismatch, record the official observation it actually supports, and open the authority tracker. Add or update a reminder using an evidenced date, then exercise a revised or cancelled date and check for stale delivery.
-- **80.5** Complete and close the workspace case with one task still awaiting an authority update. Show the pending item at closure, reopen it with a later notice, and verify corrections affect only the dependent task. Test cross-account isolation of timeline, exports, and evidence.
+- **80.5** Close the case from an in-chat action card with one task still awaiting an authority update. Show the pending item in chat, reopen it when a later notice arrives, and verify corrections affect only the dependent task. Test cross-account isolation of timeline, exports and evidence.
 - **80.6** Score incorrect status promotions, incorrect authorities, unsupported deadline dates, missed dependency invalidations, duplicate reminders, and users identifying the correct next action without assistance. Require zero unsupported status promotions and zero cross-account disclosures in the Phase 8 acceptance suite. Set the other pilot targets before running it.
 - **80.7** Hand cases, events, deadline and reminder contracts, integration inventory, deletion coverage, and the cross-authority regression suite to Phase 9. Record the scope of tested procedures and any feature flags or manual fallbacks.
 
@@ -126,7 +126,7 @@
 | Official follow-up and case lifecycle | 77–79 | Booking and payment preparation, lifecycle actions, and reviewed integration registry |
 | Cross-authority validation | 80 | Reproducible end-to-end case and handoff package for Phase 9 |
 
-**Closure demonstration.** The user returns to a life event with two authority-specific cases. They report completing a submission, attach its receipt, and resolve a reference mismatch. The first case shows receipt recorded, with the authority's decision still pending. The second case shows a blocker and the next available action. A corrected notice updates the relevant due date and cancels the superseded reminder. The user closes the workspace case and later reopens it when the authority sends an update, with the earlier evidence and corrections still visible.
+**Closure demonstration.** From the same chat interface, the user returns to a life event with two authority-specific cases. They report completing a submission, attach its receipt, and resolve a reference mismatch. The first case shows receipt recorded, with the authority's decision still pending. The second case shows a blocker and the next available action. A corrected notice updates the relevant due date and cancels the superseded reminder. The user closes the workspace case and later reopens it when the authority sends an update, with the earlier evidence and corrections still visible.
 
 ## Official channel references
 

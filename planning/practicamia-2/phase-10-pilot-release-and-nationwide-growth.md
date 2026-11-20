@@ -1,6 +1,6 @@
 # PracticaMIA 2.0 — Phase 10 · Pilot, release, and nationwide growth
 
-**Roadmap tasks 91–100.** Measure whether people using PracticaMIA reach the correct official next step, release the supported workflows in controlled stages, and extend coverage across Italy as each new procedure and jurisdiction is verified. Keep the single specialist agent and chat workspace as the user experience throughout rollout.
+**Roadmap tasks 91–100.** Measure whether people using PracticaMIA reach the correct official next step, release the supported workflows in controlled stages, and extend coverage across Italy as each new procedure and jurisdiction is verified. Keep the single specialist agent and **one user-facing chatbot interface** throughout rollout; document and form review, checklists, case tracking and recovery remain inline. Do not introduce a separate customer-facing Preview application or specialist feature screens as coverage grows.
 
 **Dependencies.** Phase 2 supplies the participant and case matrix, capability contracts, comparison method, and primary outcome. Phase 3 supplies the official source catalog, jurisdiction rules, and review and withdrawal workflow. Phases 4–8 supply the supported end-to-end case paths. Phase 9 supplies the verified candidate scope, privacy assessments, test evidence, operational safeguards, and go, limited go, or hold decision. Changes to those inputs require the affected checks to be rerun.
 
@@ -90,7 +90,7 @@
 - **98.3** Verify applicability rules, form revisions, channel outcomes, dates, and fallback before enabling the procedure. For unavailable capabilities, provide the reviewed official route or the next useful sourced step.
 - **98.4** Validate fixture completeness and run focused tests for the new authority and near-neighbor authorities. Include missing location, changed location, stale sources, conflicting information, and any previously supported related workflow.
 - **98.5** Assign a source reviewer and support owner. Record review cadence, trigger conditions for rechecking, withdrawal process, and how relevant updates reach existing cases.
-- **98.6** Produce a coverage manifest that powers release flags, the Official Sources view, user-facing support indicators, and expansion reporting. Keep the registry keyed by procedure, jurisdiction, channel, and capability revision.
+- **98.6** Produce a coverage manifest that powers release flags, reviewed-source details opened within chat, user-facing support indicators, and expansion reporting. Keep the registry keyed by procedure, jurisdiction, channel, and capability revision.
 
 **Acceptance.** A new locality can be added using reviewed sources, rules, and tests while retaining one agent and one chat. Evidence from nearby jurisdictions stays correctly scoped.
 

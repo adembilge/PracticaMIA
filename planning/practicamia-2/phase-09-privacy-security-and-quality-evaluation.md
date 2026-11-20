@@ -1,6 +1,6 @@
 # PracticaMIA 2.0 — Phase 9 · Privacy, security, and quality evaluation
 
-**Roadmap tasks 81–90.** Establish the privacy controls, security boundaries, and evaluation evidence needed to decide whether a specific procedure is ready for a limited pilot. Verify the whole journey through the shared chat workspace, from asking a question through document review, official handoff, and later case tracking.
+**Roadmap tasks 81–90.** Establish the privacy controls, security boundaries, and evaluation evidence needed to decide whether a specific procedure is ready for a limited pilot. Verify the whole journey through **one customer-facing chat route**, from free-text questions and inline document review through official handoff and later case tracking. No separate feature or Preview UI may be necessary to complete the in-app steps.
 
 **Dependencies.** Phase 2 supplies pilot scope, completion outcomes, and the comparison baseline. Phase 3 supplies reviewed authority and source versions. Phases 4–5 supply the specialist agent, tool contracts, and UI. Phases 6–7 supply upload trust states, evidence review, approved fields, and handoff events. Phase 8 supplies status, dependencies, deadlines, reminders, integrations, and the case lifecycle. Tie acceptance evidence to exact versions of these inputs.
 
@@ -57,7 +57,7 @@
 - **85.3** Test Phase 8 deletion end to end. Revoke access, stop pending work, and remove applicable data from objects, OCR derivatives, exports, agent state, caches, search indexes, notifications, and service providers. Verify retry behavior and record completion without retaining contents unnecessarily.
 - **85.4** Define how authorised shared evidence and legal retention exceptions affect deletion. Document what remains, why it remains, who can access it, and when to review it. Recompute affected dependencies and invalidate stale links after a reference is withdrawn.
 - **85.5** Document backup retention, restricted restoration, and how restorations reapply deletion records before user or agent access resumes. Test a restore using synthetic data and record the checks performed on derivatives and stale references.
-- **85.6** Exercise user-visible status through a partially failed deletion and a recovered retry. Verify dashboard, workspace, agent retrieval, and downloads agree. Escalate overdue or incomplete deletion to the named owner.
+- **85.6** Exercise user-visible status through a partially failed deletion and a recovered retry. Verify in-chat case history, agent retrieval, cards and downloads agree. Escalate overdue or incomplete deletion to the named owner.
 
 **Acceptance.** An authorised user can request export or deletion, see progress, and receive the appropriate result. The restored environment respects recorded deletions, and remaining copies or exceptions are bounded by the documented policy.
 
@@ -88,7 +88,7 @@
 - **88.1** Score OCR and extraction by field and document quality, including Italian names, dates, identifiers, and multi-page notices. Measure exact match for critical fields, how often missing or conflicting data is flagged, and whether the user can reach the supporting page for review.
 - **88.2** Verify tasks from reviewed evidence to form mapping, corrections, regenerated output, and Phase 7 handoff. Exercise a replaced form, a pending critical field, an invalidated approval, and one portal-only workflow.
 - **88.3** Exercise progress after handoff. Check receipt matching, preservation of earlier attempts, accurate status labels, deadline provenance, reminder rescheduling, and two linked procedures that can progress independently.
-- **88.4** Test interruptions, provider timeouts, retries, concurrent case edits, and paused sessions. Evaluate whether progress is preserved and the user can recover in the same UI. Check correctness on supported language, mobile, and keyboard paths.
+- **88.4** Test interruptions, provider timeouts, retries, concurrent case edits, and paused sessions. Verify the user can complete all available in-app steps and recover on the **same chatbot route** with inline controls only. Check supported languages, mobile and keyboard paths; reject cross-screen dependencies.
 - **88.5** Measure workflow success, next-action identification, correction effort, time to complete, median and tail latency, and cost per completed eligible workflow. Report failures and timeouts alongside performance and note any sample sizes too small for a reliable comparison.
 - **88.6** Confirm reviewers can reproduce every critical discrepancy from the collected run evidence. Keep download preview test data synthetic. Retest every fix across case state, access control, and approval behavior.
 

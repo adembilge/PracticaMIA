@@ -2,7 +2,7 @@
 
 **Roadmap tasks 61–70.** Help a user turn a verified requirement list and reviewed case evidence into an application they can prepare for the correct official channel. The user should be able to answer four questions from the chat workspace: what is required, what is missing, what goes in each field, and where to continue officially.
 
-**Dependencies.** Phase 2 supplies the pilot procedures and their expected user outcomes. Phase 3 supplies competent authorities, applicable requirements, versioned forms, and official passages. Phase 4 supplies case state, authorised tools, and user approval. Phase 5 supplies the checklist, chat actions, and form panel within the shared workspace. Phase 6 supplies confirmed fields, unresolved values, documents, and provenance. Phase 8 will use the handoff record for receipt-based tracking.
+**Dependencies.** Phase 2 supplies the pilot procedures and their expected user outcomes. Phase 3 supplies competent authorities, applicable requirements, versioned forms, and official passages. Phase 4 supplies case state, authorised tools, and user approval. Phase 5 supplies inline checklist, action, and form cards in the single chat UI; no separate form editor or application review page exists. Phase 6 supplies confirmed fields, unresolved values, documents, and provenance. Phase 8 will use the handoff record for receipt-based tracking.
 
 **First vertical slice.** Choose one procedure for which the authority, requirements, and current form or portal channel have been verified. Use the portal preparation path as the initial output wherever that is how the service operates. Enable a filled PDF draft for a separately verified compatible official template. Test one conditional requirement, one unresolved field, and one intentional form-version change.
 
@@ -39,7 +39,7 @@
 - **63.3** Record whether preparation uses portal field guidance, a supported fillable PDF, or assisted manual completion. Classify online-only, static, fillable, and unsupported dynamic templates using verified examples.
 - **63.4** Record what the reviewer checked, including template alignment, field labels, channel, and eligibility of the selected version for the supported procedure and jurisdiction.
 - **63.5** Resolve form selection by procedure, authority, jurisdiction, channel, and applicable date. When more than one version appears plausible, ask the distinguishing question or show manual verification.
-- **63.6** Expose the catalogue record in the shared workspace. The agent and form panel resolve the same version, link, and explanation of where it applies.
+- **63.6** Expose the catalogue record inside chat. The agent and inline form card resolve the same reviewed version, link and applicability explanation.
 - **63.7** Prepare fixtures for identical form titles, replacement at an existing URL, portal-only forms, and an unsupported form format.
 
 **Acceptance.** Each enabled pilot form has a traceable official version and a reasoned preparation method. The user can open the original official channel from the selected asset.
@@ -59,7 +59,7 @@
 ## 65. Propose values and collect user approval
 
 - **65.1** Generate field proposals from the approved mapping and the current case. Each proposal carries the field ID, value, provenance, case revision, and form or mapping version.
-- **65.2** In the shared form panel, display the official label, proposed value, explanation, and source. Let users accept, edit, reject, or defer without losing other changes.
+- **65.2** In an inline chat form-field card, show the official label, proposed value, explanation and source. Let users accept, edit, reject or defer inside the same transcript without losing other changes.
 - **65.3** Show competing values when evidence disagrees. A user cannot confirm one silently inferred from another case. Open the relevant document page or case fact for verification.
 - **65.4** Leave absent values unresolved. Ask targeted questions for genuinely necessary fields, including conditional fields that become required after another answer changes.
 - **65.5** Bind user approval to the exact proposal and input versions. Make retries idempotent. If facts, evidence, or mappings change before approval is applied, expose the newer proposal and require the affected values to be reviewed again.
@@ -85,8 +85,8 @@
 - **67.2** For a verified compatible PDF, use the pinned official template and the approved field mapping. Preserve the original source asset and generate a separate private draft. Production use depends on format and rendering tests.
 - **67.3** Verify generated values in the PDF and render the result. Check text visibility, accents, multi-page widgets, boxes, radio and choice states, field overflow, and pagination in the supported preview and a representative reader.
 - **67.4** Provide a manual guide for unsupported templates or fields. Show the official file and verified values where available. Identify unresolved fields and signature steps for the user.
-- **67.5** Preview the artefact and explain what was filled. Keep draft status in the workspace and artefact metadata or filename where appropriate. Retain template, mapping, and case revision lineage. Keep signature or authority-reserved fields for the official process.
-- **67.6** Enforce access controls for preview, copy, and download. Keep personal values out of analytics and public links. Audit preparation actions without copying document contents into logs.
+- **67.5** Show a compact, inline summary of the prepared artefact and what was filled, with an authorised download action in chat. Keep draft status in the card and artefact metadata; retain template, mapping and case revision lineage. Do not open a separate PracticaMIA Preview screen. Keep signature and authority-reserved fields for the official process.
+- **67.6** Enforce access controls for in-chat artefact inspection, copy and download. Keep personal values out of analytics and public links. Audit preparation actions without copying document contents into logs.
 - **67.7** Test a portal workflow and a verified fillable fixture independently. Record the unverified output paths and recovery behaviour.
 
 **Acceptance.** The user can enter verified portal values with the correct Italian field names. If a compatible official template is enabled, the draft renders correctly with the approved values and carries exact source lineage.
@@ -104,7 +104,7 @@
 
 ## 69. Build the official handoff card and evidence contract
 
-- **69.1** Show the authority, service or channel name, verified official link or office route, and one concrete next action. Show prepared attachments, values, and any remaining checks.
+- **69.1** Show an inline chat handoff card with the authority, service or channel name, verified official link or office route, and one concrete next action, alongside prepared attachments, values and remaining checks. No new PracticaMIA page is required.
 - **69.2** Check that the destination still matches the selected authority, procedure, location, and submission channel. If a previously verified destination is no longer usable, show the verified route available or identify the missing verification.
 - **69.3** Explain the user’s part of the handoff, including any applicable official sign-in, signing, payment, attachment, or send step. Keep these actions under user control in the official channel.
 - **69.4** Save a structured handoff record with case ID, form and checklist versions, channel, and the date of the preparation action. Keep official confirmation separate from the fact that a draft was exported or a link was opened.
@@ -134,4 +134,4 @@
 | Prepared output and handoff | 67–69 | Portal-ready guidance or compatible draft, response preparation, and the verified channel |
 | Change recovery and pilot | 70 | Version-change regression and handoff contract verified for Phase 8 |
 
-**Closure demonstration.** A user opens a reviewed notice from Phase 6. PracticaMIA explains one conditional requirement and identifies an unresolved field. The user corrects it and reviews the prepared values in the same workspace. When the form version changes, the affected field returns to review. After confirming it again, the user opens the verified official channel and can later return to the same prepared case.
+**Closure demonstration.** A user opens a reviewed notice from Phase 6. PracticaMIA explains one conditional requirement and identifies an unresolved field. The user corrects it and reviews the prepared values in inline chat cards. When the form version changes, the affected field returns to review. After confirming it again, the user opens the verified official channel and can later return to the same prepared case.
