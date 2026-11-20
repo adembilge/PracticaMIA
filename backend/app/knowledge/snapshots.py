@@ -17,6 +17,7 @@ from app.knowledge.browser_capture import validate_browser_metadata
 from app.knowledge.provenance_digest import metadata_sha256
 from app.knowledge.document_extraction import extract_document, EXTRACTION_VERSIONS
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
+from app.knowledge.pilot_sources import PILOT_SOURCES
 from app.knowledge.review_model import KnowledgeReviewEvent
 from app.knowledge.snapshot_model import KnowledgePassage, KnowledgeSnapshot
 
@@ -182,15 +183,22 @@ def verify_snapshot(db: Session, version: KnowledgeSourceVersion) -> bool:
             return False
     else:
         return False
+    expected_extraction = EXTRACTION_VERSIONS.get(snapshot.media_type)
+    pilot = PILOT_SOURCES.get(source.id)
+    if (
+        pilot is not None and snapshot.media_type == "text/html"
+        and pilot.official_url == source.official_url and pilot.content_sha256 == version.content_sha256
+    ):
+        expected_extraction = pilot.extraction_version
     if (sha256(snapshot.raw_body).hexdigest() != version.content_sha256
             or snapshot.size_bytes != len(snapshot.raw_body)
-            or snapshot.extraction_version != EXTRACTION_VERSIONS.get(snapshot.media_type)):
+            or snapshot.extraction_version != expected_extraction):
         return False
     # Provenance includes the extracted text, not just raw HTML bytes.
     # Re-extraction prevents a modified normalized_text/passage pair from
     # passing a superficial offset-only integrity check.
     try:
-        extracted, _ = extract_document(snapshot.raw_body, snapshot.media_type)
+        extracted, _ = extract_document(snapshot.raw_body, snapshot.media_type, version=expected_extraction)
     except ValueError:
         return False
     if snapshot.normalized_text != extracted.normalized_text:
