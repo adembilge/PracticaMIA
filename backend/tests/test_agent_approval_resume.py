@@ -1,5 +1,6 @@
 """Exercise actual LangGraph resumption through the isolated signed decision route."""
 
+import json
 from uuid import uuid4
 
 import pytest
@@ -16,10 +17,12 @@ from app.agent.reconnect_router import build_reconnect_router
 from app.agent.worker import RequestApproval, run_worker_step
 from app.cases.intake_model import CaseIntake
 from app.cases.model import CaseRecord
+from app.knowledge.review_service import revoke_version
 from test_agent_proposal_decisions import _decision
 from test_agent_proposal_freshness import worker_change  # noqa: F401 - shared synthetic case
 from test_agent_tool_access import tool_run  # noqa: F401 - dependency of worker_change
 from test_agent_tool_writes import _write_intake
+from test_knowledge_search import _approve, _create, _search
 
 
 @pytest.fixture
@@ -146,3 +149,41 @@ def test_declined_or_stale_approval_cannot_write_through_resume(client, approval
     with factory() as db:
         assert db.get(CaseIntake, str(proposal.case_id)) is None
         assert db.scalars(select(AgentCaseOperation)).all() == []
+
+
+def test_stale_approval_log_records_the_bound_source_version_without_proposal_details(
+    client, auth_headers, worker_change, caplog,
+):
+    factory, context, proposal = worker_change
+    owner = auth_headers("alice")
+    version, digest = _create(client)
+    _approve(client, version, digest)
+    [passage] = _search(client, owner, limit=1).json()["evidence"]
+    resume_state = CheckpointState(
+        next_node="verify_and_respond", intent="explain_form_field", evidence_ids=[passage["citation_id"]],
+    )
+    pending = run_worker_step(
+        factory, **context, execute=lambda *_: RequestApproval(proposal, resume_state),
+    )
+    with factory.begin() as db:
+        revoke_version(
+            db, version_id=version, expected_digest=digest,
+            actor_subject="synthetic-reviewer", reason="Withdrawn test fixture",
+        )
+    updates = ApprovedCaseUpdates(lambda *_: 3, lambda *_: pytest.fail("Unsafe write"))
+    client.app.include_router(build_reconnect_router(key=context["key"], case_updates=updates))
+    base = f"/api/v1/agent/threads/{pending.thread_id}/runs/{pending.run_id}"
+    decision = _decision(client.get(base, headers=owner).json(), "accept")
+    url = f"{base}/proposals/{proposal.proposal_id}/decision"
+    first = client.post(url, headers=owner, json=decision)
+    assert first.status_code == 200
+    assert client.post(url, headers=owner, json=decision).json() == first.json()
+    [record] = [row for row in caplog.records if row.name == "app.agent.diagnostics"]
+    assert json.loads(record.getMessage()) == {
+        "event": "agent_failure", "schema_version": 1, "code": "proposal_outdated",
+        "stage": "resume_approval", "intent": "explain_form_field", "query_kind": None,
+        "tool": "apply_approved_update", "source_version_ids": [version],
+    }
+    assert record.exc_info is None
+    for private_value in (proposal.proposed_value, proposal.rationale, str(proposal.case_id), str(proposal.proposal_id)):
+        assert private_value not in record.getMessage()

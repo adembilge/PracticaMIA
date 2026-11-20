@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.agent.checkpoints import CheckpointState
 from app.agent.contract import AnswerResult, Citation, Language, NextAction
+from app.agent.diagnostics import AgentFailureDiagnostic, corrected_query_kind
 from app.agent.threads import AgentThread, AgentThreadCase
 from app.agent.tool_contract import (
     CatalogueEvidence, CataloguePassage, CatalogueScope, FindEvidence, OpenSourceDetails,
@@ -218,12 +219,16 @@ def refresh_corrected_evidence(
     ):
         return _unverified_evidence(language, state.missing_fields)
 
+    query_kind = corrected_query_kind(procedure_changed=corrections.procedure is not None)
     try:
         call = FindEvidence(
             tool="find_evidence", case_id=case_id, scope=_MILAN_SCOPE,
-            query="cambio di residenza" if corrections.procedure else query,
+            query="cambio di residenza" if query_kind == "procedure_hint" else query,
         )
     except ValidationError:
+        AgentFailureDiagnostic(
+            code="catalogue_invalid_query", stage=state.next_node, intent=state.intent, query_kind=query_kind,
+        ).emit()
         return AnswerResult(
             explanation=(
                 "Enter a search with 1–12 words and at most 180 characters." if language == "en"
@@ -244,6 +249,10 @@ def refresh_corrected_evidence(
             "next_node": "verify_and_respond",
             "evidence_ids": [passage.citation.passage_id for passage in evidence.passages],
         })
+    AgentFailureDiagnostic(
+        code="catalogue_evidence_unavailable", stage=state.next_node, intent=state.intent,
+        query_kind=query_kind, tool=call.tool,
+    ).emit()
     return _unverified_evidence(language, list(evidence.missing_fields) or state.missing_fields)
 
 

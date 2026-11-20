@@ -14,7 +14,7 @@ from app.agent.reconnect_router import build_reconnect_router
 from app.agent.run_events import read_run_events
 from app.agent.run_requests import StoredMessage, accept_message
 from app.agent.threads import create_thread, link_case_to_thread
-from app.agent.worker import RequestClarification, run_worker_step
+from app.agent.worker import ModelProviderTimeout, RequestClarification, run_worker_step
 from app.cases.intake_schemas import IntakeFacts
 from app.knowledge.service_areas import CaseLocation, EffectivePeriod
 from app.private_documents.model import PrivateCaseDocument
@@ -210,3 +210,41 @@ def test_worker_checks_only_accessible_private_document_reviews(
 
     facts = client.get(case_path + "/intake", headers=headers).json()["facts"]
     assert facts.get("move_in_date") == saved_facts.get("move_in_date")
+
+
+def test_failure_log_excludes_document_and_conversation_content(document_client, auth_headers, caplog):
+    client = document_client
+    headers = auth_headers("alice")
+    case_id = UUID(prepare_case(client, headers))
+    date_canary = "2047-07-23"
+    document_text = f"Move-in date: {date_canary}"
+    document_id = upload(client, headers, str(case_id), sample_pdf(document_text))
+    extract = client.post(
+        f"/api/v1/cases/{case_id}/private-documents/{document_id}/intelligence/extract", headers=headers,
+    )
+    assert extract.status_code == 200
+    assert date_canary in extract.text
+
+    factory = client.app.state.session_factory
+    key = b"\x5a" * 32
+    message_text = "Private concern canary"
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=ALICE)
+        assert link_case_to_thread(db, thread_id=thread_id, case_id=case_id, principal=ALICE)
+        run = accept_message(db, thread_id=thread_id, principal=ALICE, key=key, message=SendMessage(
+            client_message_id=uuid4(), text=message_text, language="en", case_id=case_id,
+        ))
+    context = {"thread_id": thread_id, "run_id": run.run_id, "principal": ALICE, "key": key}
+    run_worker_step(factory, **context, execute=lambda *_: STATE)
+
+    def fail(message, _):
+        assert message.case_context.document_fields == {"move_in_date": "needs_review"}
+        raise ModelProviderTimeout(f"Provider debug: {message.text}, {document_text}, {document_id}")
+
+    snapshot = run_worker_step(factory, **context, execute=fail, document_settings=enabled_settings())
+    assert snapshot.status == "failed" and snapshot.result is None
+    [record] = [row for row in caplog.records if row.name == "app.agent.diagnostics"]
+    assert "provider_unavailable" in record.getMessage()
+    assert record.exc_info is None
+    for private_value in (message_text, date_canary, document_id, str(case_id), str(thread_id), str(run.run_id)):
+        assert private_value not in record.getMessage()
