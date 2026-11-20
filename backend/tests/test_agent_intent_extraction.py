@@ -15,8 +15,9 @@ from app.agent.reconnect_router import build_reconnect_router
 from app.agent.run_requests import StoredMessage, accept_message
 from app.agent.threads import create_thread
 from app.agent.worker import run_worker_step
-from app.cases.intake_schemas import IntakeFacts
+from app.cases.intake_schemas import IntakeFacts, SUPPORTED_FACTS
 from app.knowledge.entity_matching import CatalogueName
+from app.rules.engine import JURISDICTION, PROCEDURE
 from test_agent_run_requests import ALICE, KEY
 
 
@@ -87,6 +88,60 @@ def test_italian_registration_address_resolves_only_with_the_reviewed_alias():
         catalogue_names=(*CATALOGUE, alias),
     )
     assert generic.intent == "find_procedure" and generic.procedure_candidates == ()
+
+
+FIRST_ROUTE_NAMES = (
+    reviewed_name(JURISDICTION, "municipality", "Milano"),
+    reviewed_name(JURISDICTION, "municipality", "Milan"),
+    reviewed_name("municipality-como", "municipality", "Como"),
+    reviewed_name(PROCEDURE, "procedure", "cambio di residenza"),
+)
+
+
+@pytest.mark.parametrize(("language", "text", "intent"), [
+    ("en", "Show me the submission instructions for my saved case.", "resume_case"),
+    ("it", "Mostrami le istruzioni per l'invio della mia pratica salvata di Milano.", "resume_case"),
+    ("en", "I have moved and want to change my residential address to Milan. How should I file my declaration?",
+     "find_procedure"),
+    ("it", "Mi sono trasferita e voglio cambiare l'indirizzo a Milano. Dove presento la dichiarazione?",
+     "find_procedure"),
+])
+def test_filing_context_uses_only_the_confirmed_intake_of_the_bound_case(language, text, intent):
+    case_id = uuid4()
+    facts = IntakeFacts(**SUPPORTED_FACTS)
+    context = WorkerCaseContext(case_id, facts, "review_checklist", ())
+    message = StoredMessage(text, language, case_id, case_context=context)
+    for untrusted_case in (
+        None,
+        replace(context, case_id=uuid4()),
+        replace(context, user_confirmed_facts=None),
+        replace(context, user_confirmed_facts=facts.model_copy(update={"destination_municipality": "other"})),
+    ):
+        result = extract_intent(replace(message, case_context=untrusted_case), catalogue_names=FIRST_ROUTE_NAMES)
+        assert not result.uses_confirmed_case_scope
+        assert result.procedure_candidates == ()
+    result = identify_intent_step(message, CheckpointState(next_node="identify_intent"), catalogue_names=FIRST_ROUTE_NAMES)
+    assert result.intent == intent
+    assert result.next_node == "find_evidence"
+    assert result.procedure_candidates == [PROCEDURE]
+    assert result.uses_confirmed_case_scope
+
+
+@pytest.mark.parametrize(("language", "text"), [
+    ("en", "Open the filing step for my Como case."),
+    ("en", "Open the filing step for my Genoa case."),
+    ("en", "Open the filing step for my other case."),
+    ("en", f"Show me the filing step for my {'different ' * 25} case."),
+    ("it", "Ho cambiato casa e devo aggiornare il mio indirizzo a Como. Dove invio la dichiarazione?"),
+    ("it", "Ho cambiato casa e devo aggiornare il mio indirizzo a Milano. Dove invio la domanda per mio fratello?"),
+    ("it", "Dove invio la dichiarazione per aggiornare il mio indirizzo a Milano?"),
+])
+def test_confirmed_milan_case_does_not_supply_scope_for_another_or_ambiguous_request(language, text):
+    case_id = uuid4()
+    context = WorkerCaseContext(case_id, IntakeFacts(**SUPPORTED_FACTS), "review_checklist", ())
+    result = extract_intent(StoredMessage(text, language, case_id, case_context=context), catalogue_names=FIRST_ROUTE_NAMES)
+    assert not result.uses_confirmed_case_scope
+    assert result.procedure_candidates == ()
 
 
 def test_uses_reviewed_matches_preserves_authority_mentions_and_skips_nested_place():

@@ -2,6 +2,7 @@
 
 import argparse
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -24,7 +25,10 @@ from app.agent.run_requests import accept_message
 from app.agent.threads import create_thread, link_case_to_thread
 from app.agent.worker import run_worker_step
 from app.auth.tokens import Principal
+from app.cases.intake_model import CaseIntake
+from app.cases.intake_schemas import IntakeFacts, describe_intake
 from app.cases.model import CaseRecord
+from app.cases.scope import DEMO_ANSWERS
 from app.database import Base
 from app.knowledge.review_service import revoke_version
 from app.knowledge.search import resolve_approved_passage
@@ -68,8 +72,20 @@ class ScenarioReplay:
             self.evidence = _evidence_fixtures(db, data)
             thread = create_thread(db, principal=self.context["principal"])
             if self.case_id is not None:
-                db.add(CaseRecord(id=str(self.case_id), owner_subject=self.context["principal"].subject))
+                owner = self.context["principal"].subject
+                db.add(CaseRecord(
+                    id=str(self.case_id), owner_subject=owner, procedure=PROCEDURE,
+                    status="provisionally_in_scope", scope_answers=list(DEMO_ANSWERS),
+                ))
                 db.flush()
+                intake = IntakeFacts.model_validate({
+                    field: value for field, value in self.facts.items() if field in IntakeFacts.model_fields
+                }).model_dump(exclude_none=True)
+                complete = not describe_intake(intake, confirmed=False)["missing_fields"]
+                db.add(CaseIntake(
+                    case_id=str(self.case_id), owner_subject=owner, facts=intake,
+                    confirmed_at=datetime.now(timezone.utc) if complete else None,
+                ))
                 link_case_to_thread(db, thread_id=thread, case_id=self.case_id, principal=self.context["principal"])
         self.context["thread_id"] = thread
 

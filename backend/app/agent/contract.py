@@ -135,7 +135,7 @@ class Citation(ContractModel):
 
 class NextAction(ContractModel):
     label: ShortText
-    operation: Literal["open_official_channel", "provide_information", "start_new_topic"] | None = None
+    operation: Literal["open_official_channel", "provide_information", "start_new_topic", "check_current_form"] | None = None
     origin: Literal["agent_proposal"] = "agent_proposal"
 
 
@@ -223,6 +223,10 @@ class AnswerResult(ContractModel):
             raise ValueError("A verified answer must reference an evidence passage")
         if self.next_action and self.next_action.operation == "open_official_channel" and not self.official_channel:
             raise ValueError("Opening a channel requires a channel link")
+        if self.next_action and self.next_action.operation == "check_current_form" and (
+            self.verification_status != "insufficient_evidence" or self.official_channel is not None or self.citations
+        ):
+            raise ValueError("A current form check is an unverified next action without a channel or citations")
         if self.claims:
             citations = {citation.citation_id for citation in self.citations}
             if len(citations) != len(self.citations):

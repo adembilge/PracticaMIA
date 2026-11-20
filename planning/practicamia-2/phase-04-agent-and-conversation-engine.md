@@ -257,6 +257,16 @@ The unchanged synthetic development set now passes 9/26 scenario-language runs a
 
 Run `python -m pytest -q tests/test_agent_notice_clarification.py` from `backend/` for the signed question and reply checks. The two development benchmark commands are listed in the bilingual intent follow-up above.
 
+### Saved Milan filing and current form checks
+
+The worker recognises bilingual requests for the filing step of a linked saved case. It also recognises a move-and-address-update statement paired with a filing question when the named municipality resolves to Milan. A confirmed active case in the first reviewed scenario can proceed to evidence lookup. The worker checks the intake again before publication, and the channel still requires applicable reviewed evidence. An archived case or a withdrawn intake confirmation during retrieval keeps the result unverified. When a source is withdrawn after publication, the current handoff is withheld and the historical answer stays in the journal.
+
+A question that compares an old ANPR guide's upload limit with the current form produces `check_current_form`. The user can check the current form or ask the registry office for confirmation. The answer leaves the number unresolved and includes no citation or filing link.
+
+The replay now persists complete initial profiles as confirmed intake in its disposable database. The fixture leaves incomplete profiles as drafts. Running the updated replay with the previous worker still gives 9/26 scenario-language runs and 17/36 checkpoints. With the new worker, the same dataset and scoring rules give 14/26 and 24/36. The five newly passing runs are the Italian Milan filing request, both source-withdrawal runs and both old-guide upload-limit runs. The evaluator counted zero uncorrected misroutes. This comparison covers synthetic cases through the isolated worker. The resumed case that still needs a saved intake confirmation and routes without reviewed catalogue support remain open.
+
+Run `python -m pytest -q tests/test_agent_intent_extraction.py tests/test_agent_next_action_evaluation.py` from `backend/` for the bounded phrasing, stale case, withdrawal and old-guide regressions.
+
 ## End-to-end closure scenario
 
 The user describes a need without knowing the authority. The agent finds the task and source and asks a question when necessary. After a correction, the agent reassesses affected results, shows the action, competent channel, and supporting passage, then lets the user save the task and resume it after returning.

@@ -1,6 +1,7 @@
 """Exercise the offline next-action replay and its scoring boundary."""
 
 from copy import deepcopy
+from datetime import datetime, timezone
 from hashlib import sha256
 import importlib
 import json
@@ -9,8 +10,13 @@ from pathlib import Path
 import subprocess
 import sys
 
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+from app.agent.contract import AnswerResult
+from app.cases.intake_model import CaseIntake
+from app.cases.model import CaseRecord
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -41,9 +47,14 @@ def test_documented_next_action_command_reports_cases_and_turns():
     assert diagnostics["supported_citations"] <= diagnostics["emitted_citations"]
     assert diagnostics["unnecessary_questions"] <= diagnostics["emitted_questions"]
     assert diagnostics["uncorrected_misrouting"] == sum(case["uncorrected_misrouting"] for case in cases)
+    passing = {case["id"] for case in cases if case["passed"]}
+    assert {
+        "milan-confirmed-route:it", "milan-source-withdrawn:en", "milan-source-withdrawn:it",
+        "current-attachment-limit:en", "current-attachment-limit:it",
+    }.issubset(passing)
 
 
-def _replay(monkeypatch, case_id, *, opening):
+def _replay(monkeypatch, case_id, *, opening, invalidate_case=None):
     monkeypatch.syspath_prepend(str(ROOT / "evals"))
     evaluator = importlib.import_module("score_phase04_next_action")
     data = json.loads(DATASET.read_bytes())
@@ -54,6 +65,18 @@ def _replay(monkeypatch, case_id, *, opening):
     try:
         evaluator.Base.metadata.create_all(engine)
         replay = evaluator.ScenarioReplay(sessionmaker(bind=engine), data, case, "en", catalog)
+        if invalidate_case is not None:
+            execute = replay.execute
+
+            def invalidate_before_publication(message, state):
+                result = execute(message, state)
+                if state.uses_confirmed_case_scope and isinstance(result, AnswerResult):
+                    assert result.verification_status == "verified"
+                    with replay.sessions.begin() as db:
+                        invalidate_case(db, str(replay.case_id))
+                return result
+
+            replay.execute = invalidate_before_publication
         scored = evaluator.score_case(replay, case, data["references"])
         return scored, replay.snapshot
     finally:
@@ -77,3 +100,33 @@ def test_replay_withholds_scripted_reply_after_a_different_question(monkeypatch)
     assert opening["observed"]["fields"] == ("intent",) and opening["unnecessary_question"]
     assert restore["observed"]["blocked"] == reply["observed"]["blocked"] == "required_question_mismatch"
     assert not report["passed"] and saved.status == "waiting_for_information"
+
+
+@pytest.mark.parametrize("invalidate", ["archive", "unconfirm"])
+def test_saved_filing_rechecks_the_case_before_publishing_a_reviewed_channel(monkeypatch, invalidate):
+    def invalidate_case(db, case_id):
+        if invalidate == "archive":
+            db.get(CaseRecord, case_id).archived_at = datetime.now(timezone.utc)
+        else:
+            db.get(CaseIntake, case_id).confirmed_at = None
+
+    report, saved = _replay(
+        monkeypatch, "milan-source-withdrawn", opening="Show the filing step for my saved Milan case.",
+        invalidate_case=invalidate_case,
+    )
+    assert not report["passed"]
+    assert saved.result.verification_status == "insufficient_evidence"
+    assert saved.result.official_channel is None and saved.result.citations == []
+    assert saved.result.next_action.operation == "provide_information"
+
+
+def test_outdated_upload_limit_gives_a_form_check_without_reusing_the_number(monkeypatch):
+    report, saved = _replay(
+        monkeypatch, "current-attachment-limit",
+        opening="An older ANPR handbook says 7 MB. What maximum upload applies in the current ANPR form?",
+    )
+    assert report["passed"]
+    assert saved.result.verification_status == "insufficient_evidence"
+    assert saved.result.next_action.operation == "check_current_form"
+    assert saved.result.official_channel is None and saved.result.citations == []
+    assert "7 MB" not in saved.result.explanation
