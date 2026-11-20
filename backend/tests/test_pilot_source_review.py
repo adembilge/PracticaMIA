@@ -11,7 +11,8 @@ from sqlalchemy.orm import Session
 
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
 from app.knowledge.pilot_source_review import build_review_catalogue
-from app.knowledge.pilot_sources import PILOT_CLAIM_PASSAGES, PILOT_SOURCES
+from app.knowledge.pilot_sources import PILOT_CLAIM_PASSAGES, PILOT_SOURCES, POSTAL_APPOINTMENT_SOURCE_ID
+from app.knowledge.snapshot_model import KnowledgeSnapshot
 from app.knowledge.review_model import KnowledgeReviewEvent
 from app.knowledge.search import resolve_approved_passage
 from app.knowledge.snapshots import ingest_snapshot
@@ -22,6 +23,8 @@ def originals(tmp_path, monkeypatch) -> Path:
     directory = tmp_path / "originals"
     directory.mkdir()
     for source_id, source in PILOT_SOURCES.items():
+        if source_id == POSTAL_APPOINTMENT_SOURCE_ID:
+            continue
         body = f"<h1>Test</h1><p>Fictional passage for {source_id}.</p>".encode()
         (directory / f"{source_id}.html").write_bytes(body)
         monkeypatch.setitem(PILOT_SOURCES, source_id, replace(source, content_sha256=sha256(body).hexdigest()))
@@ -32,6 +35,38 @@ def originals(tmp_path, monkeypatch) -> Path:
             passages.append((source_id, 0, sha256(content).hexdigest()))
         monkeypatch.setitem(PILOT_CLAIM_PASSAGES, claim_id, tuple(passages))
     return directory
+
+
+def test_postal_original_adds_q3_without_revising_the_first_four(originals, tmp_path, monkeypatch):
+    target = tmp_path / "review.sqlite3"
+    baseline = build_review_catalogue(originals, target)
+    source_id = POSTAL_APPOINTMENT_SOURCE_ID
+    body = b"<nav><img src='logo.png'>Menu</nav><h2>Appointments</h2><p>Bring your letter.</p>"
+    (originals / f"{source_id}.html").write_bytes(body)
+    monkeypatch.setitem(PILOT_SOURCES, source_id, replace(
+        PILOT_SOURCES[source_id], content_sha256=sha256(body).hexdigest(),
+    ))
+    digest = sha256(b"Bring your letter.").hexdigest()
+    monkeypatch.setitem(PILOT_CLAIM_PASSAGES, "Q3", ((source_id, 0, digest),))
+
+    extended = build_review_catalogue(originals, target)
+    (originals / f"{source_id}.html").unlink()
+    repeated = build_review_catalogue(originals, target)
+    assert extended["claims_pending_acquisition"] == []
+    assert repeated["claims_pending_review"] == extended["claims_pending_review"]
+    assert all(extended["claims_pending_review"][key] == references
+               for key, references in baseline["claims_pending_review"].items())
+    [q3] = extended["claims_pending_review"]["Q3"]
+    engine = create_engine(f"sqlite:///{target}")
+    try:
+        with Session(engine) as db:
+            assert db.get(KnowledgeSnapshot, q3["source_version_id"]).extraction_version == "html-v2"
+            assert resolve_approved_passage(
+                db, citation_id=q3["passage_id"], jurisdiction="IT",
+                procedure_id="residence_permit_renewal", language="it",
+            ) is None
+    finally:
+        engine.dispose()
 
 
 def test_isolated_sources_retain_ids_on_repeat_and_stay_out_of_approved_retrieval(originals, tmp_path):

@@ -201,4 +201,6 @@ The [Phase 4 acquisition record](../planning/practicamia-2/phase-04-pilot-source
 
 The [isolated Phase 4 source catalogue](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md#isolated-source-catalogue) now contains four `pending_review` versions and 272 passages. A repeat import preserved all nine claim references. Approved retrieval returned none of them. Hosted registration, authorized review and Q3 acquisition remain pending.
 
+The extended [Phase 4 catalogue](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md#isolated-source-catalogue) adds the original Poste Italiane guidance for Q3. It preserves earlier version IDs and contains five pending versions, 364 passages and eleven references for six claims. The Q3 claim is limited to the appointment details supplied in the postal summons. Hosted registration, authorized review and independently verified Milano Questura office rules remain pending.
+
 For implementation details see [the documentation index](README.md).

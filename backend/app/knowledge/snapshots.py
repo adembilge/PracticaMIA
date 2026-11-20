@@ -46,6 +46,7 @@ def ingest_snapshot(
     # Lock the source before comparing revisions: approval and ingestion must
     # serialize on the same row in PostgreSQL.
     db.refresh(source, with_for_update=True)
+    expected_extraction = None
     if pilot_review:
         pilot = PILOT_SOURCES.get(source.id)
         if (
@@ -57,6 +58,7 @@ def ingest_snapshot(
             or retrieved_at != pilot.retrieved_at or sha256(body).hexdigest() != pilot.content_sha256
         ):
             raise ValueError("Pilot review requires a pinned original in the isolated SQLite catalogue")
+        expected_extraction = pilot.extraction_version
     else:
         validate_official_url(source.official_url)
     if capture_method == "browser_rendered_text":
@@ -82,7 +84,7 @@ def ingest_snapshot(
         raise ValueError("Retrieval time must be timezone aware")
 
     # Verify original bytes before saving anything; no inferred or generated text.
-    text, extraction_version = extract_document(body, media_type)
+    text, extraction_version = extract_document(body, media_type, version=expected_extraction)
     content_hash = sha256(body).hexdigest()
     last = db.scalar(
         select(KnowledgeSourceVersion)
@@ -92,6 +94,7 @@ def ingest_snapshot(
     last_snapshot = db.get(KnowledgeSnapshot, last.id) if last else None
     if (last and last.content_sha256 == content_hash
             and last_snapshot is not None
+            and last_snapshot.extraction_version == extraction_version
             and last_snapshot.capture_method == capture_method
             and last_snapshot.observed_url == observed_url
             and last_snapshot.observed_title == observed_title
@@ -196,15 +199,22 @@ def verify_snapshot(db: Session, version: KnowledgeSourceVersion) -> bool:
             return False
     else:
         return False
+    expected_extraction = EXTRACTION_VERSIONS.get(snapshot.media_type)
+    pilot = PILOT_SOURCES.get(source.id)
+    if (
+        pilot is not None and snapshot.media_type == "text/html"
+        and pilot.official_url == source.official_url and pilot.content_sha256 == version.content_sha256
+    ):
+        expected_extraction = pilot.extraction_version
     if (sha256(snapshot.raw_body).hexdigest() != version.content_sha256
             or snapshot.size_bytes != len(snapshot.raw_body)
-            or snapshot.extraction_version != EXTRACTION_VERSIONS.get(snapshot.media_type)):
+            or snapshot.extraction_version != expected_extraction):
         return False
     # Provenance includes the extracted text, not just raw HTML bytes.
     # Re-extraction prevents a modified normalized_text/passage pair from
     # passing a superficial offset-only integrity check.
     try:
-        extracted, _ = extract_document(snapshot.raw_body, snapshot.media_type)
+        extracted, _ = extract_document(snapshot.raw_body, snapshot.media_type, version=expected_extraction)
     except ValueError:
         return False
     if snapshot.normalized_text != extracted.normalized_text:

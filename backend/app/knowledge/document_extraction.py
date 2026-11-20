@@ -1,6 +1,6 @@
 """One reviewed extraction dispatch for HTML and PDF snapshots."""
 from app.knowledge.html_extraction import (
-    EXTRACTION_VERSION, MAX_HTML_BYTES, extract_html,
+    EXTRACTION_VERSION, MAX_HTML_BYTES, VOID_AWARE_EXTRACTION_VERSION, extract_html,
 )
 from app.knowledge.pdf_extraction import (
     PDF_EXTRACTION_VERSION, MAX_PDF_BYTES, extract_pdf,
@@ -25,12 +25,16 @@ EXTRACTION_VERSIONS = {
 }
 
 
-def extract_document(body: bytes, media_type: str):
+def extract_document(body: bytes, media_type: str, *, version: str | None = None):
     limit = MEDIA_LIMITS.get(media_type)
     if limit is None:
         raise ValueError("Unsupported document type")
     if not body or len(body) > limit:
         raise ValueError("Document is empty or exceeds the media type size limit")
+    if version == VOID_AWARE_EXTRACTION_VERSION and media_type == "text/html":
+        return extract_html(body, void_aware=True), VOID_AWARE_EXTRACTION_VERSION
+    if version is not None and version != EXTRACTION_VERSIONS[media_type]:
+        raise ValueError("Unsupported extraction version for this media type")
     if media_type == "text/plain":
         return extract_browser_text(body), BROWSER_TEXT_VERSION
     if media_type == "application/pdf":
