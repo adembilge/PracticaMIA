@@ -209,6 +209,6 @@ The [Phase 4 Preview import command](../planning/practicamia-2/phase-04-pilot-so
 
 The [Phase 4 Preview registration](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md#verified-preview-registration) added five candidates to the non-default Neon branch in one control-plane transaction. An independent read verified all five original hashes, 364 passage hashes and eleven pinned references. All affected versions were pending, with zero active pointers and zero review events.
 
-The [protected reviewer Preview](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md#protected-reviewer-preview) serves `a8e6121` on both branch aliases. The backported verifier passed a signed local read of all five exact originals, including the Q3 `html-v2` snapshot. The live API responded and denied an anonymous Q3 read. The authorized Auth0 session, live database binding and six human claim decisions remain pending.
+The [protected reviewer Preview](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md#protected-reviewer-preview) serves `a8e6121` on both branch aliases. An authorized Auth0 session read all five exact Preview versions through the web proxy. All returned `integrity_verified: true`; the original hashes, 364 passages in total and all eleven pinned passage IDs and hashes matched. The hosted IDs confirmed the Preview registry binding. All five versions were still pending, and the six human claim decisions remain open.
 
 For implementation details see [the documentation index](README.md).
