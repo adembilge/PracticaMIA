@@ -1073,7 +1073,7 @@ try{
     await awaitAgentStatus(owner,url,'waiting_for_information');
     const {body:{items}}=await readJson(owner,'/api/agent/runs/active');
     assert.equal(items.find(run=>run.run_id===run_id).case_id,null);
-    await composer.getByRole('textbox').waitFor();
+    await owner.getByRole('form',{name:'Continue conversation'}).waitFor();
     await owner.reload();
     await owner.getByRole('button',{name:'Open conversation',exact:true}).first().click();
     const question=owner.getByRole('group',{name:'Which municipality is this about?'});
@@ -1085,6 +1085,23 @@ try{
     await check.or(result).first().waitFor();
     if(await check.isVisible()) await check.click();
     await result.waitFor();
+
+    const continuation=owner.getByRole('form',{name:'Continue conversation'});
+    await continuation.getByRole('textbox',{name:'What would you like help with?'})
+      .fill('And what about my residence permit?');
+    const secondAccepted=owner.waitForResponse(response=>
+      response.url()===origin+`/api/agent/threads/${thread_id}/messages` && response.status()===202);
+    await continuation.getByRole('button',{name:'Send message',exact:true}).click();
+    const secondRun=await (await secondAccepted).json();
+    assert.notEqual(secondRun.run_id,run_id);
+    const secondUrl=`/api/agent/threads/${thread_id}/runs/${secondRun.run_id}`;
+    await awaitAgentStatus(owner,secondUrl,'waiting_for_information');
+    const followupSnapshot=(await readJson(owner,secondUrl)).body;
+    assert.equal(followupSnapshot.thread_id,thread_id);
+    assert.equal((await readJson(owner,url)).body.status,'completed');
+    const followupActive=(await readJson(owner,'/api/agent/runs/active')).body.items;
+    assert.equal(followupActive.filter(run=>run.thread_id===thread_id).length,1);
+    assert.equal(followupActive.find(run=>run.run_id===secondRun.run_id).case_id,null);
   });
 
   await scenario('A8: browser runs without uncaught runtime errors',async()=>{

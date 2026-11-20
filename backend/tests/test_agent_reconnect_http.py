@@ -86,6 +86,73 @@ def test_first_message_creates_one_private_conversation_without_a_case(client, a
     assert separate.status_code == 202 and separate.json()["thread_id"] != body["thread_id"]
 
 
+
+def test_followup_message_stays_in_same_private_chat_without_case(client, auth_headers):
+    client.app.include_router(build_reconnect_router(key=KEY))
+    owner, other = auth_headers(), auth_headers("bob")
+    first_text = "Come faccio a cambiare residenza?"
+    first = client.post("/api/v1/agent/conversations", headers=owner, json={
+        "client_message_id": str(uuid4()), "text": first_text, "language": "it",
+    })
+    assert first.status_code == 202
+    first_run = first.json()
+    first_context = {
+        "thread_id": UUID(first_run["thread_id"]), "run_id": UUID(first_run["run_id"]),
+        "principal": OWNER, "key": KEY,
+    }
+    factory = client.app.state.session_factory
+    assert run_worker_step(
+        factory, **first_context, execute=lambda *_: AnswerResult(
+            explanation="Synthetic first answer.", verification_status="insufficient_evidence",
+        ),
+    ).status == "completed"
+
+    endpoint = f"/api/v1/agent/threads/{first_run['thread_id']}/messages"
+    second_message = {
+        "client_message_id": str(uuid4()), "text": "E per il permesso di soggiorno?",
+        "language": "it", "expected_thread_revision": first_run["accepted_revision"],
+    }
+    assert_private_error(client.post(endpoint, headers=other, json=second_message), 404, "unavailable")
+    second = client.post(endpoint, headers=owner, json=second_message)
+    assert second.status_code == 202
+    assert second.headers["Cache-Control"] == "private, no-store"
+    second_run = second.json()
+    assert second_run["run_id"] != first_run["run_id"]
+    assert second_run["accepted_revision"] == first_run["accepted_revision"] + 1
+    assert client.post(endpoint, headers=owner, json=second_message).json() == second_run
+    assert_private_error(client.post(
+        endpoint, headers=owner, json={**second_message, "text": "Changed meaning"},
+    ), 409, "message_conflict")
+    assert_private_error(client.post(
+        endpoint, headers=owner, json={**second_message, "client_message_id": str(uuid4())},
+    ), 409, "stale_thread")
+    assert_private_error(client.post(
+        endpoint, headers=owner, json={
+            "client_message_id": str(uuid4()), "text": "Third turn", "language": "en",
+        },
+    ), 409, "conversation_busy")
+
+    context = {
+        "thread_id": first_context["thread_id"], "run_id": UUID(second_run["run_id"]),
+        "principal": OWNER, "key": KEY,
+    }
+
+    def finish_second(message, state):
+        assert message.case_id is None
+        assert [(item.text, item.language) for item in message.recent_user_messages] == [
+            (first_text, "it"),
+        ]
+        return AnswerResult(
+            explanation="Synthetic follow-up answer.", verification_status="insufficient_evidence",
+        )
+
+    assert run_worker_step(factory, **context, execute=finish_second).status == "completed"
+    assert client.get(run_url(context), headers=owner).json()["result"]["explanation"] == (
+        "Synthetic follow-up answer."
+    )
+    assert_private_error(client.get(run_url(context), headers=other), 404, "unavailable")
+
+
 def test_switch_between_owned_cases_and_reopen_the_original_question(client, auth_headers, paused_run):
     first, question, first_case = paused_run
     owner = auth_headers()
