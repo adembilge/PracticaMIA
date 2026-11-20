@@ -4,6 +4,8 @@
 
 **Proposed foundation.** Use one LangGraph agent on the existing Python backend and PostgreSQL. The initial slice supports procedure discovery, sourced explanations, and next actions. Attach document reading, form preparation, and receipt-based tracking as tools in later phases. Verified procedure coverage controls capability availability.
 
+**Customer UI contract.** Phase 4 API/events must support one chat-only product surface through Phases 5–8. A free-text first message needs no separate case creation screen. Every clarification, approval, evidence passage, document review, field correction, checklist, form, handoff, case switch, status update and resumption is presented in the same conversation as an inline event/card. No separate product Preview or feature workspace is an acceptance target. Isolated Preview deployments remain internal test infrastructure and do not establish a second customer UI. Keep verified external government link-outs and explicit user approval for consequential operations.
+
 ## 31. Define the agent API and interface contract
 
 The [Task 31 contract proposal](phase-04-agent-api-contract.md) includes offline wire models and synthetic fixtures for requests, events, results, citations and reconnect cursors. The agent endpoint remains gated on the Phase 3 catalogue and review.
@@ -135,7 +137,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 - **40.6** [Record failure metadata](#failure-monitoring-metadata) by intent, query type, tool, and source version. Verify that monitoring excludes conversation and document contents.
 - **40.7** [Hand off the message API, events, citations, questions, approvals and reconnection examples](phase-04-phase-05-handoff.md) to Phase 5.
 
-**Acceptance.** In a pilot set spanning at least three authorities, the agent finds a competent authority, applicable evidence, and a concrete next step. It clarifies missing or conflicting facts. Users can close and reopen the same task.
+**Acceptance.** In a pilot set spanning at least three authorities, the agent finds a competent authority, applicable evidence, and a concrete next step. It clarifies missing or conflicting facts. Users can start without choosing a case, complete all supported in-app steps through one chat transcript, and close and reopen the same task without navigating to another PracticaMIA product page. A source or rule pending human review remains unavailable for verified guidance.
 
 The [three-authority pilot scope](phase-04-three-authority-pilot.md) proposes the Milan registry, Torino banns office and Milano Questura appointment journeys. It records the scoped claims, public source locators, review gaps and participant evaluation steps.
 
