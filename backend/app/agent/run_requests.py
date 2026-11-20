@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 from sqlalchemy import (
     CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index,
     Integer, LargeBinary, String, UniqueConstraint, and_, or_, select, text,
@@ -19,7 +19,8 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 from app.agent.case_context import WorkerCaseContext
 from app.agent.contract import (
     ActiveRunCursor, ActiveRunPage, ActiveRunSummary, AnswerCompleted, AnswerResult, ApprovalApplied, ClarifyingQuestion,
-    ContractModel, Language, PositiveInt, QuestionAnswered, RunStatus, SendMessage,
+    ClarificationDisposition, ClarificationText, ContractModel, Language, PositiveInt,
+    QuestionAnswered, QuestionRequested, RunStatus, SendMessage, ShortText,
 )
 from app.agent.destination_correction import DestinationCorrection, destination_correction_name
 from app.agent.threads import AgentThread, AgentThreadCase
@@ -34,6 +35,7 @@ ACTIVE_STATUSES = (*FOREGROUND_STATUSES, "waiting_for_information")
 ALL_STATUSES = (*ACTIVE_STATUSES, "completed", "failed", "stopped")
 RECENT_USER_MESSAGE_LIMIT = 3
 RECENT_RUN_SCAN_LIMIT = 24
+MAX_HISTORY_EVENT_SCAN = 256
 
 
 class AgentRunRequest(Base):
@@ -84,6 +86,13 @@ class RunAcceptance:
     accepted_revision: int | None = None
 
 
+class ConversationClarification(ContractModel):
+    question_id: UUID
+    question_text: ShortText
+    disposition: ClarificationDisposition
+    reply_text: ClarificationText | None
+
+
 class ConversationTurn(ContractModel):
     run_id: UUID
     case_id: UUID | None
@@ -92,6 +101,8 @@ class ConversationTurn(ContractModel):
     user_message: str
     language: Language
     answer: AnswerResult | None = None
+    clarifications: list[ConversationClarification] = Field(default_factory=list)
+    clarification_history_truncated: bool = False
 
 
 class ConversationHistoryPage(ContractModel):
@@ -329,10 +340,11 @@ def list_thread_history(
     db: Session, *, thread_id: UUID, principal: Principal, key: bytes,
     limit: int = 20, before_revision: int | None = None,
 ) -> ConversationHistoryPage | None:
-    """Read bounded, decrypted user turns and completed answers in an owned chat.
+    """Read bounded, owned chat turns with answered clarification exchanges.
 
-    Clarification events and their full evidence remain available via the
-    existing per-run event endpoint; this view does not reinterpret them.
+    Reconstruct question/response pairs only from authoritative saved events;
+    never infer an answer from a pending question or from LLM text. The full
+    event journal remains available via the per-run replay endpoint.
     """
     if not 1 <= limit <= 30:
         raise ValueError("Invalid conversation history page size")
@@ -349,7 +361,7 @@ def list_thread_history(
     rows = db.scalars(query.order_by(
         AgentRunRequest.accepted_revision.desc(),
     ).limit(limit + 1)).all()
-    from app.agent.run_events import _decode_event, _latest_event
+    from app.agent.run_events import AgentRunEvent, _decode_event, _latest_event
 
     turns = []
     for run in rows[:limit]:
@@ -361,10 +373,34 @@ def list_thread_history(
             if not isinstance(event, AnswerCompleted):
                 raise ValueError("Completed run is missing its terminal answer")
             answer = event.result
+
+        stored_events = db.scalars(
+            select(AgentRunEvent)
+            .where(AgentRunEvent.run_id == run.id)
+            .order_by(AgentRunEvent.event_seq)
+            .limit(MAX_HISTORY_EVENT_SCAN + 1)
+        ).all()
+        truncated = len(stored_events) > MAX_HISTORY_EVENT_SCAN
+        questions: dict[UUID, str] = {}
+        clarifications = []
+        for saved_event in stored_events[:MAX_HISTORY_EVENT_SCAN]:
+            parsed_event = _decode_event(saved_event, run, principal, key)
+            if isinstance(parsed_event, QuestionRequested):
+                questions[parsed_event.question.question_id] = parsed_event.question.text
+            elif isinstance(parsed_event, QuestionAnswered):
+                question_text = questions.pop(parsed_event.question_id, None)
+                if question_text is not None:
+                    clarifications.append(ConversationClarification(
+                        question_id=parsed_event.question_id,
+                        question_text=question_text,
+                        disposition=parsed_event.disposition,
+                        reply_text=parsed_event.text,
+                    ))
         turns.append(ConversationTurn(
             run_id=UUID(run.id), case_id=UUID(run.case_id) if run.case_id else None,
             status=run.status, accepted_revision=run.accepted_revision,
             user_message=message.text, language=message.language, answer=answer,
+            clarifications=clarifications, clarification_history_truncated=truncated,
         ))
     next_cursor = turns[-1].accepted_revision if len(rows) > limit else None
     return ConversationHistoryPage(
