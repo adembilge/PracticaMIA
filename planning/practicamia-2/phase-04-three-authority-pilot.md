@@ -29,6 +29,8 @@ For each candidate claim, obtain the original or an authorized browser capture t
 
 ## Rehearsal and participant evaluation
 
+Use the [pilot session guide](phase-04-pilot-session-guide.md) for the English and Italian briefs, moderator steps, scoring and the observation record.
+
 Use the existing [English and Italian development fixtures](../../evals/fixtures/phase04_agent_development.json) and [confirmation journey](../../evals/fixtures/phase04_agent_confirmation_journey.json) as regression anchors. The expanded pilot expectations above are review targets. The development expectations for unanswered or unsupported cases reflect the current isolated catalogue.
 
 | Case | Rehearsal checks before participant evaluation |
