@@ -1,10 +1,10 @@
 # Phase 4 pilot source acquisition · 20 November 2026
 
-This record supports human review of claims T1–T3 and Q1–Q3 in the [three-authority pilot](phase-04-three-authority-pilot.md#evidence-for-source-review). Four pages yielded original HTML and nine selected passages, now pinned to version IDs in a local review catalogue. The Milano Questura local page returned an access-denied document and remains an acquisition gap. Human claim decisions are pending.
+This record supports human review of claims T1–T3 and Q1–Q3 in the [three-authority pilot](phase-04-three-authority-pilot.md#evidence-for-source-review). Five pages yielded original HTML and eleven selected passages pinned to version IDs in a local review catalogue. Human claim decisions are pending.
 
 ## Captured sources
 
-The acquisition requested each exact HTTPS URL without following redirects. The four originals below returned HTTP 200 and `text/html` and contained the expected publisher content. The SHA-256 covers the exact response body. Displayed dates come from the publisher page. All captures took place on 20 November 2026 UTC.
+The acquisition requested each exact HTTPS URL without following redirects. The originals below returned HTTP 200 and `text/html` and contained the expected publisher content. The SHA-256 covers the exact response body. Displayed dates come from the publisher page. All captures took place on 20 November 2026 UTC.
 
 | Capture label | Publisher page and displayed update date | UTC time and byte count | Original SHA-256 |
 | --- | --- | --- | --- |
@@ -12,12 +12,13 @@ The acquisition requested each exact HTTPS URL without following redirects. The 
 | `torino-banns-service` | [Città di Torino service page](https://www.comune.torino.it/servizi/richiedere-pubblicazioni-matrimonio), 13 October 2026 | 14:27:37 · 74456 bytes | `c57e3b219288b77fb5f7af63c74b005cb471b1538423af1dea04f179282537d4` |
 | `portale-immigrazione-code-16` | [Portale Immigrazione code 16](https://www.portaleimmigrazione.it/ITA/lavoroSubordinato.html), 22 July 2024 | 14:27:33 · 8109 bytes | `02bb7a627c0e3836d87b65c9f76b798bac5c8cd813a88659c3208ea381c1975e` |
 | `portale-immigrazione-procedure` | [Portale Immigrazione procedure](https://www.portaleimmigrazione.it/ITA/nuovaProcedura.html), no explicit page update date identified | 14:27:33 · 21463 bytes | `6c4715686b3d89f641c91fa302308a2f374f87a611ebd1b8c2f3e2fbe97be6f1` |
+| `poste-residence-permit-appointments` | [Poste Italiane permit guide](https://www.poste.it/guida-rilascio-e-rinnovo-permesso-di-soggiorno/), no explicit page update date identified | 15:32:03 · 221961 bytes | `73f54fe10c5b18f207b3da0271f83216a92b8591e5e2e9540688d39929080a5f` |
 
-The [Milano Questura office listing](https://questure.poliziadistato.it/it/servizio/orari/5730dc9d4a8fc591672053) returned HTTP 200 at 14:27:27 UTC with the title *Accesso negato | Polizia di Stato*. HTTP status alone is insufficient to establish a successful capture. Q3 retains its local source locator. Keep local venue and access guidance pending until the substantive office content can be inspected.
+The [Milano Questura office listing](https://questure.poliziadistato.it/it/servizio/orari/5730dc9d4a8fc591672053) returned the *Accesso negato* page again at 15:32:02 UTC. The captured Poste guidance applies to what the postal appointment letter states. Local office venue and entry rules remain pending.
 
 ## Passage references for reviewer comparison
 
-The [repository's `html-v1` extractor](../../backend/app/knowledge/html_extraction.py) accepted all four originals. Each row identifies an exact extracted passage by the capture label, zero-based ordinal and start-inclusive, end-exclusive character offsets in the normalized text. SHA-256 covers the entire UTF-8 passage. The short Italian locator helps find the text on the publisher page. The local version IDs below anchor these ordinals in the review catalogue.
+The [repository extractor](../../backend/app/knowledge/html_extraction.py) uses `html-v1` for the four baseline originals and `html-v2` for the pinned Poste page. The latter skips void elements inside ignored containers when tracking exclusion depth. Each row identifies an exact extracted passage by the capture label, zero-based ordinal and start-inclusive, end-exclusive character offsets in the normalized text. SHA-256 covers the entire UTF-8 passage.
 
 | Claim | Capture, section and locator | Ordinal and character offsets | Passage SHA-256 |
 | --- | --- | --- | --- |
@@ -30,6 +31,8 @@ The [repository's `html-v1` extractor](../../backend/app/knowledge/html_extracti
 | Q1 | `portale-immigrazione-code-16` · *Codice 16* · “Rete Sportello Amico” | 3 · 189–269 | `d4f618deccae2e9a8e86cd6a7c79ec3e5cfbd38a3b604320c62ca3a53dfecd01` |
 | Q1 | `portale-immigrazione-code-16` · *Codice 16* · “Rinnovo” | 5 · 281–288 | `b9be6dc48a32161f6f7a26fb19a1385e76fcd9991a9fa01e99b3296899438c23` |
 | Q2 | `portale-immigrazione-procedure` · *Informazioni generali* · “data e ora di convocazione” | 35 · 5624–6045 | `1fef9aa6247abf32b2d36dadf3087ab988c56a4e46f2824b9a535cd4c90af9c3` |
+| Q3 | `poste-residence-permit-appointments` · *Conserva la ricevuta e la lettera di convocazione* · “il luogo in cui presentarsi” | 80 · 7532–7789 | `76c14f96a6bee582a67585cbbca1eac595b892479d6dfd321d401f83394b15f9` |
+| Q3 | `poste-residence-permit-appointments` · *Conserva la ricevuta e la lettera di convocazione* · “verrà inviata una raccomandata” | 81 · 7791–8043 | `8afcbde4d26364599ac5a36f1b0ab9d88232c1ec86ca59c27af930e7bfec5950` |
 
 ## Claim decisions to record
 
@@ -40,11 +43,11 @@ The [repository's `html-v1` extractor](../../backend/app/knowledge/html_extracti
 | T3 | Verify that the delegation is sent after publication, by the civil registrar, to the ceremony municipality. Check the adjacent guidance for people who marry in Torino but reside elsewhere. | Pending |
 | Q1 | Review the code 16 heading, enabled postal network and renewal row together. Limit the claim to postal intake for the scoped renewal. | Pending |
 | Q2 | Check the post-filing summons paragraph and its exception when an appointment is unavailable at filing. Date and time remain unresolved when the applicant has only a receipt. | Pending |
-| Q3 | Acquire the substantive Milano Questura office listing for local access guidance and review it alongside the case's supplied summons. Q2 supports the general appointment step. | Acquisition pending |
+| Q3 | Verify the stated date, time and place against the applicant's supplied summons. If the first letter says a later summons will follow, leave the appointment details pending. Review local office access separately. | Pending |
 
 ## Isolated source catalogue
 
-From `backend/`, use the [pilot import command](../../backend/app/knowledge/pilot_source_review.py) with a directory containing just the four exact HTML originals, named after their capture labels. Keep the originals and database outside Git.
+From `backend/`, use the [pilot import command](../../backend/app/knowledge/pilot_source_review.py) with the four baseline HTML originals and the additional Poste original for Q3, named after their capture labels. Keep the originals and database outside Git.
 
 ```sh
 python -m app.knowledge.pilot_source_review \
@@ -52,7 +55,7 @@ python -m app.knowledge.pilot_source_review \
   --catalogue /path/to/PracticaMIA-Phase4-Source-Review.sqlite3
 ```
 
-The command stores original bytes and extracted passages through the existing snapshot service. It requires the four pinned capture hashes and verifies each selected passage before committing. The target is a standalone SQLite file marked for pilot review. The command outputs each claim's source ID, version ID and full passage IDs for review. Reopening the same catalogue preserves its IDs. Creating another catalogue generates new IDs.
+The command stores original bytes and extracted passages through the existing snapshot service. It requires the pinned capture hashes and verifies each selected passage before committing. The target is a standalone SQLite file marked for pilot review. Reopening the same catalogue preserves its IDs. Creating another catalogue generates new IDs.
 
 | Source ID | Local version ID, revision 1 | Extracted passages | Claim ordinals |
 | --- | --- | --- | --- |
@@ -60,7 +63,8 @@ The command stores original bytes and extracted passages through the existing sn
 | `torino-banns-service` | `5267e0b4-da08-442d-be06-14404a24e177` | 119 | T1 `0011`, `0012` · T2 `0017` · T3 `0014`, `0015` |
 | `portale-immigrazione-code-16` | `c3541590-d130-47b9-ba8b-01213fa7a37e` | 19 | Q1 `0003`, `0005` |
 | `portale-immigrazione-procedure` | `c98ec604-a0d9-438b-99e8-1ecb1dc4d418` | 80 | Q2 `0035` |
+| `poste-residence-permit-appointments` | `9ef316bb-a2ae-4a9b-9fea-8dd8ced7655e` | 92 | Q3 `0080`, `0081` |
 
-The 20 November import and repeat produced four `pending_review` versions, 272 passages and nine claim references. The integrity and foreign-key checks passed. The approved citation resolver withheld all nine references, and the review audit contained zero approval events. The SQLite file's SHA-256 is `e04624db23e5002ba224211c78bf19894d8f83899d931e1d1f1238c37eabcf99`.
+The extended 20 November import and repeat preserved the four baseline version IDs and produced five `pending_review` versions, 364 passages and eleven claim references. The integrity and foreign-key checks passed. The review audit contained zero approval events. The extended SQLite file's SHA-256 is `a539ddb3c1b1a34deb7c1001b095a0532342c517bd00f60e862d5056568d6b9a`.
 
-These IDs refer to the offline review copy. A hosted import will have its own version and passage IDs, to be bound by the original and extracted hashes. The authorized reviewer can inspect the five pending claims against the published sources and record the scoped rationale using the [claim-specific process](phase-03-claim-evidence.md#claim-and-evidence-contract). Hosted candidate registration and [authenticated approval](../../docs/OFFICIAL_SOURCE_INTAKE.md#5-human-evidence-review) remain pending. Q3 still requires the local page's substantive content.
+These IDs refer to the offline review copy. A hosted import will have its own version and passage IDs, to be bound by the original and extracted hashes. The authorized reviewer can inspect the six pending claims against the published sources and record the scoped rationale using the [claim-specific process](phase-03-claim-evidence.md#claim-and-evidence-contract). Hosted candidate registration and [authenticated approval](../../docs/OFFICIAL_SOURCE_INTAKE.md#5-human-evidence-review) remain pending.

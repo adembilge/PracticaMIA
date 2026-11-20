@@ -11,6 +11,7 @@ it cannot approve anything. Never treat search excerpts, reconstructed HTML,
 screenshots or converted PDF text as genuine source originals.
 """
 import argparse
+from collections.abc import Mapping
 from dataclasses import dataclass
 from hashlib import sha256
 import json
@@ -41,6 +42,7 @@ class PreparedOriginal:
 
 def prepare_directory(
     directory: Path, candidates: list[dict[str, str]] | None = None,
+    *, extraction_versions: Mapping[str, str] | None = None,
 ) -> tuple[PreparedOriginal, ...]:
     """Validate every original before opening a DB transaction.
 
@@ -71,7 +73,8 @@ def prepare_directory(
         if expected_pdf != (suffix == ".pdf"):
             raise ValueError(f"Original file type differs from registry: {source_id}")
         body, media_type = _read_original_file(file)
-        extracted, _ = extract_document(body, media_type)
+        version = extraction_versions.get(source_id) if extraction_versions is not None else None
+        extracted, _ = extract_document(body, media_type, version=version)
         originals.append(PreparedOriginal(
             source_id=source_id, url=source["official_url"], body=body,
             media_type=media_type, sha256=sha256(body).hexdigest(),

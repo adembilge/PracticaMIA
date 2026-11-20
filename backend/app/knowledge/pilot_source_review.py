@@ -6,13 +6,15 @@ from datetime import timezone
 import json
 from pathlib import Path
 
-from sqlalchemy import URL, create_engine, inspect
+from sqlalchemy import URL, create_engine, inspect, select
 from sqlalchemy.orm import Session
 
 from app.database import Base
 from app.knowledge.batch_import import prepare_directory
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
-from app.knowledge.pilot_sources import PILOT_CLAIM_PASSAGES, PILOT_REVIEW_APPLICATION_ID, PILOT_SOURCES
+from app.knowledge.pilot_sources import (
+    PILOT_CLAIM_PASSAGES, PILOT_REVIEW_APPLICATION_ID, PILOT_SOURCES, POSTAL_APPOINTMENT_SOURCE_ID,
+)
 from app.knowledge.review_model import KnowledgeReviewEvent
 from app.knowledge.snapshot_model import KnowledgePassage, KnowledgeSnapshot
 from app.knowledge.snapshots import ingest_snapshot, verify_snapshot
@@ -34,11 +36,16 @@ def _check_database(connection) -> None:
 
 
 def build_review_catalogue(originals_dir: Path, catalogue: Path) -> dict:
-    """Store all four originals and bind the candidate claims in one transaction."""
+    """Store the four baseline originals and optional Poste evidence in one transaction."""
     records = {key: source.registry_fields(key) for key, source in PILOT_SOURCES.items()}
-    originals = prepare_directory(originals_dir, list(records.values()))
-    if {item.source_id for item in originals} != records.keys():
-        raise ValueError("Provide the complete set of four pilot originals")
+    originals = prepare_directory(
+        originals_dir, list(records.values()),
+        extraction_versions={key: source.extraction_version for key, source in PILOT_SOURCES.items()},
+    )
+    if {item.source_id for item in originals}.difference({POSTAL_APPOINTMENT_SOURCE_ID}) != (
+        records.keys() - {POSTAL_APPOINTMENT_SOURCE_ID}
+    ):
+        raise ValueError("Provide the complete set of four baseline pilot originals")
     for item in originals:
         if item.sha256 != PILOT_SOURCES[item.source_id].content_sha256:
             raise ValueError(f"Original differs from the recorded capture: {item.source_id}")
@@ -52,16 +59,27 @@ def build_review_catalogue(originals_dir: Path, catalogue: Path) -> dict:
             connection.exec_driver_sql("BEGIN IMMEDIATE")
             _check_database(connection)
             with Session(bind=connection, join_transaction_mode="create_savepoint") as db, db.begin():
+                bodies = {item.source_id: (item.body, item.media_type) for item in originals}
+                if POSTAL_APPOINTMENT_SOURCE_ID not in bodies:
+                    postal_version_id = db.scalar(select(KnowledgeSourceVersion.id).where(
+                        KnowledgeSourceVersion.source_id == POSTAL_APPOINTMENT_SOURCE_ID,
+                        KnowledgeSourceVersion.revision == 1,
+                    ))
+                    if postal_version_id is not None:
+                        snapshot = db.get(KnowledgeSnapshot, postal_version_id)
+                        if snapshot is None:
+                            raise ValueError("Stored Poste version has no original snapshot")
+                        bodies[POSTAL_APPOINTMENT_SOURCE_ID] = (snapshot.raw_body, snapshot.media_type)
                 results = {}
-                for item in originals:
-                    expected = PILOT_SOURCES[item.source_id]
-                    source = db.get(KnowledgeSource, item.source_id)
+                for source_id, (body, media_type) in bodies.items():
+                    expected = PILOT_SOURCES[source_id]
+                    source = db.get(KnowledgeSource, source_id)
                     if source is None:
-                        source = KnowledgeSource(**records[item.source_id])
+                        source = KnowledgeSource(**records[source_id])
                         db.add(source)
                         db.flush()
                     result = ingest_snapshot(
-                        db, source, item.body, media_type=item.media_type,
+                        db, source, body, media_type=media_type,
                         retrieved_at=expected.retrieved_at, pilot_review=True,
                     )
                     version = db.get(KnowledgeSourceVersion, result.version_id)
@@ -76,6 +94,8 @@ def build_review_catalogue(originals_dir: Path, catalogue: Path) -> dict:
 
                 claims = {}
                 for claim_id, references in PILOT_CLAIM_PASSAGES.items():
+                    if claim_id == "Q3" and POSTAL_APPOINTMENT_SOURCE_ID not in results:
+                        continue
                     passages = []
                     for source_id, ordinal, digest in references:
                         version_id = results[source_id].version_id
@@ -92,7 +112,7 @@ def build_review_catalogue(originals_dir: Path, catalogue: Path) -> dict:
                     "catalogue": str(catalogue.resolve()),
                     "sources": [asdict(result) for result in results.values()],
                     "claims_pending_review": claims,
-                    "claims_pending_acquisition": ["Q3"],
+                    "claims_pending_acquisition": [] if "Q3" in claims else ["Q3"],
                 }
     finally:
         engine.dispose()

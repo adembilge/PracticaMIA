@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime
+from app.knowledge.html_extraction import EXTRACTION_VERSION, VOID_AWARE_EXTRACTION_VERSION
 
 
 # SQLite file discriminator for this standalone catalogue.
@@ -17,6 +18,7 @@ class PilotSource:
     official_url: str
     content_sha256: str
     retrieved_at: datetime
+    extraction_version: str = EXTRACTION_VERSION
 
     def registry_fields(self, source_id: str) -> dict[str, str]:
         return {
@@ -29,6 +31,9 @@ class PilotSource:
             "official_url": self.official_url,
             "document_type": "service_page",
         }
+
+
+POSTAL_APPOINTMENT_SOURCE_ID = "poste-residence-permit-appointments"
 
 
 PILOT_SOURCES = {
@@ -57,6 +62,13 @@ PILOT_SOURCES = {
         "6c4715686b3d89f641c91fa302308a2f374f87a611ebd1b8c2f3e2fbe97be6f1",
         datetime.fromisoformat("2026-11-20T14:27:33+00:00"),
     ),
+    POSTAL_APPOINTMENT_SOURCE_ID: PilotSource(
+        "Poste Italiane", "IT", "residence_permit_renewal", "Permessi di soggiorno",
+        "https://www.poste.it/guida-rilascio-e-rinnovo-permesso-di-soggiorno/",
+        "73f54fe10c5b18f207b3da0271f83216a92b8591e5e2e9540688d39929080a5f",
+        datetime.fromisoformat("2026-11-20T15:32:03+00:00"),
+        extraction_version=VOID_AWARE_EXTRACTION_VERSION,
+    ),
 }
 
 # Every claim points to the exact original passages from the acquisition record.
@@ -79,5 +91,9 @@ PILOT_CLAIM_PASSAGES = {
     ),
     "Q2": (
         ("portale-immigrazione-procedure", 35, "1fef9aa6247abf32b2d36dadf3087ab988c56a4e46f2824b9a535cd4c90af9c3"),
+    ),
+    "Q3": (
+        (POSTAL_APPOINTMENT_SOURCE_ID, 80, "76c14f96a6bee582a67585cbbca1eac595b892479d6dfd321d401f83394b15f9"),
+        (POSTAL_APPOINTMENT_SOURCE_ID, 81, "8afcbde4d26364599ac5a36f1b0ab9d88232c1ec86ca59c27af930e7bfec5950"),
     ),
 }

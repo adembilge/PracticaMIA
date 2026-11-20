@@ -10,6 +10,7 @@ from hashlib import sha256
 import re
 
 EXTRACTION_VERSION = "html-v1"
+VOID_AWARE_EXTRACTION_VERSION = "html-v2"
 MAX_HTML_BYTES = 524288
 MAX_PASSAGES = 300
 MAX_PASSAGE_CHARS = 1200
@@ -18,6 +19,10 @@ IGNORED = frozenset({"script", "style", "noscript", "svg", "nav",
 BLOCKS = frozenset({"p", "li", "div", "section", "article", "tr",
                     "blockquote", "h1", "h2", "h3", "h4", "h5", "h6"})
 HEADINGS = frozenset({"h1", "h2", "h3", "h4", "h5", "h6"})
+VOID_ELEMENTS = frozenset({
+    "area", "base", "br", "col", "embed", "hr", "img", "input", "link",
+    "meta", "param", "source", "track", "wbr",
+})
 
 
 @dataclass(frozen=True)
@@ -37,9 +42,10 @@ class ExtractedHTML:
 
 
 class _DocumentParser(HTMLParser):
-    def __init__(self):
+    def __init__(self, *, void_aware=False):
         super().__init__(convert_charrefs=True)
         self._ignored_depth = 0
+        self._void_aware = void_aware
         self._heading = "Document"
         self._heading_tag = None
         self._buffer = []
@@ -57,7 +63,8 @@ class _DocumentParser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         if self._ignored_depth:
-            self._ignored_depth += 1
+            if not self._void_aware or tag not in VOID_ELEMENTS:
+                self._ignored_depth += 1
             return
         if tag in IGNORED:
             self._flush()
@@ -72,7 +79,8 @@ class _DocumentParser(HTMLParser):
 
     def handle_endtag(self, tag):
         if self._ignored_depth:
-            self._ignored_depth -= 1
+            if not self._void_aware or tag not in VOID_ELEMENTS:
+                self._ignored_depth -= 1
             return
         if tag in BLOCKS:
             self._flush()
@@ -105,7 +113,7 @@ def _split_text(value: str):
         yield remaining
 
 
-def extract_html(raw: bytes) -> ExtractedHTML:
+def extract_html(raw: bytes, *, void_aware=False) -> ExtractedHTML:
     if not raw or len(raw) > MAX_HTML_BYTES:
         raise ValueError("HTML snapshot is empty or exceeds size limit")
     # UTF-8 decoding is deliberate; silent replacement could corrupt citations.
@@ -114,7 +122,7 @@ def extract_html(raw: bytes) -> ExtractedHTML:
     except UnicodeDecodeError as exc:
         raise ValueError("HTML must be UTF-8; other encodings require review") from exc
 
-    parser = _DocumentParser()
+    parser = _DocumentParser(void_aware=void_aware)
     parser.feed(content)
     paragraphs = parser.result()
     if not paragraphs:
