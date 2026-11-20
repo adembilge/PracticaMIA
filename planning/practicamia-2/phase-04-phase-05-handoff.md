@@ -1,6 +1,6 @@
 # Phase 4 agent API handoff for Phase 5
 
-The isolated FastAPI transport supports case-bound messages, persisted events, clarifications, saved proposals and current source cards. It is mounted in the signed synthetic API and Chromium acceptance harnesses. The default application leaves the routes unmounted. Phase 5 still needs a decision on thread creation and unbound first messages, a hosted transport and worker, and verified account-session handling.
+The isolated FastAPI transport supports first and subsequent case-free chat messages, optional case-bound messages, persisted events, clarifications, saved proposals and current source cards. It is mounted in signed synthetic API and Chromium acceptance harnesses. The default application leaves the routes unmounted. Hosted transport and worker, complete terminal conversation history, and verified account-session handling remain open.
 
 The examples use synthetic IDs, times and URLs. They omit optional fields with default values where those fields do not affect the example. The [agent contract](phase-04-agent-api-contract.md) describes the broader design and security checks.
 
@@ -13,7 +13,7 @@ Use `/api/v1/agent` as the FastAPI prefix. In the paths below, `T` is a thread U
 | `GET /runs/active` | Owned active runs. Pass both `before_accepted_at` and `before_run_id` from `next_cursor` when paging. |
 | `POST /conversations` | Start a thread and queue the first message in one transaction. The first interaction needs only `client_message_id`, `text` and `language`. |
 | `GET /threads/T/cases` | Linked active cases, their active run IDs and any unbound run. Use `after_case_id` with `next_case_id` to page cases. |
-| `POST /threads/T/messages` | Commit an idempotent case-bound request and return a 202 receipt. |
+| `POST /threads/T/messages` | Continue the same conversation after a completed run, with an optional owned `case_id`; return an idempotent 202 receipt. |
 | `GET /threads/T/runs/R` | Read the latest status, revision and any pending proposal, result or current handoff. |
 | `GET /threads/T/runs/R/events` | Read persisted events after `after_seq`, with up to 100 events per page. |
 | `POST /threads/T/runs/R/questions/Q/reply` | Record a reply to the displayed question at its run revision. |
@@ -27,7 +27,7 @@ The routes require an authenticated owner and return `Cache-Control: private, no
 
 Use `POST /conversations` from the initial composer. The 202 receipt includes `thread_id`, `run_id` and `accepted_revision`. Use the returned thread and run to open the conversation and recover it after reload. No case ID or thread revision is required at this step.
 
-Use `POST /threads/T/messages` for a task in an already linked case. Generate a `client_message_id` once for each new submission. If the client loses the receipt, resend the same ID with the same text, language and, where applicable, case. An identical replay returns the original receipt even after the run advances. An edited submission needs a new ID. Use `expected_thread_revision` only when the client has a confirmed revision for the thread.
+Use `POST /threads/T/messages` for every subsequent free-text message in the **same** chat. The `case_id` is optional: omit it for a general follow-up or a new topic; supply only a case already linked to and owned by this conversation for a case-specific action. The request is rejected while a conflicting run is active; finish, reply to, or stop the active run before sending an unbound follow-up. Generate a `client_message_id` once for each submission. If the client loses the receipt, resend the same ID with the same text, language and case scope. An identical replay returns the original receipt even after the run advances. An edited submission needs a new ID. Use `expected_thread_revision` only when the client has a confirmed revision for the thread.
 
 <!-- wire: message -->
 ```json
@@ -305,6 +305,6 @@ An outdated case or evidence can require a fresh proposal review. Read the curre
 | `422 invalid_reply`, `invalid_proposal_value` or `invalid_cursor` | Preserve the editable draft and show the validation guidance. Resume an invalid cursor from a known server sequence. |
 | Persisted `run.failed` | Show the safe recovery value from the event. For `retry_later`, a fresh request uses a new message ID after the service recovers. For `review_proposal`, reload the current case and request a fresh review. |
 
-The browser fixture demonstrates saved-case switching, cursor replay, lost acknowledgements, source display and restoring approval after a browser close. It uses temporary signed identities, an isolated worker and a disposable database. Hosted scheduling, streaming, account-session acceptance, production case writes, and broader catalogue and pilot verification remain gated. The development replay and latency samples describe the isolated system. See the [acceptance scenarios](../../docs/ACCEPTANCE_TESTING.md#acceptance-scenarios) and [Phase 4 evaluation results](phase-04-agent-and-conversation-engine.md#40-evaluate-the-agent-and-close-phase-4).
+The browser fixture demonstrates a free-text first turn and a second free-text turn in the **same** thread, saved-case switching, cursor replay, lost acknowledgements, source display and restoring approval after a browser close. It uses temporary signed identities, an isolated worker and a disposable database. Hosted scheduling, streaming, account-session acceptance, production case writes, and broader catalogue and pilot verification remain gated. The development replay and latency samples describe the isolated system. See the [acceptance scenarios](../../docs/ACCEPTANCE_TESTING.md#acceptance-scenarios) and [Phase 4 evaluation results](phase-04-agent-and-conversation-engine.md#40-evaluate-the-agent-and-close-phase-4).
 
 From `backend/`, verify the examples against the wire models with `python -m pytest -q tests/test_agent_contract.py -k phase5_handoff`. For runtime behaviour, run `python -m pytest -q tests/test_agent_reconnect_http.py tests/test_agent_recovery_http.py tests/test_agent_source_cards.py tests/test_agent_approval_resume.py`. The browser reference is the existing [acceptance client](../../frontend/tests/acceptance/agent-reconnect.tsx).
