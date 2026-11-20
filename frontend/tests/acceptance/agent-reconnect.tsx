@@ -19,6 +19,14 @@ type HistoryApproval = {
   applied_operation_id: string | null;
   applied_case_revision: number | null;
 };
+type HistoryTerminal = {
+  type: 'run.failed' | 'run.stopped';
+  code?: 'catalogue_unavailable' | 'provider_unavailable' | 'capacity_exceeded'
+    | 'internal_error' | 'proposal_outdated';
+  retryable?: boolean;
+  recovery?: 'retry_later' | 'resume_run' | 'contact_support' | 'review_proposal';
+  committed_operation_ids?: string[];
+};
 type HistoryTurn = {
   run_id: string; case_id: string | null; status: string;
   accepted_revision: number; user_message: string; language: 'en' | 'it';
@@ -27,6 +35,7 @@ type HistoryTurn = {
   approvals: HistoryApproval[];
   clarification_history_truncated: boolean;
   approval_history_truncated: boolean;
+  terminal_event: HistoryTerminal | null;
 };
 type HistoryPage = { thread_id: string; items: HistoryTurn[]; next_before_revision: number | null };
 type CaseTask = { case_id: string; label: string; run_id: string | null };
@@ -540,6 +549,26 @@ export function AgentReconnectFixture() {
             </section>)}
             {(turn.clarification_history_truncated || turn.approval_history_truncated) && <p role="status">
               Earlier steps in this turn are available in the run event history.
+            </p>}
+            {turn.terminal_event?.type === 'run.failed' && <p role="status">
+              {turn.language === 'it' ? 'Tentativo non riuscito.' : 'This attempt failed.'}{' '}
+              {turn.terminal_event.recovery === 'review_proposal'
+                ? (turn.language === 'it' ? 'Controlla la proposta prima di riprovare.'
+                  : 'Review the proposal before trying again.')
+                : turn.terminal_event.retryable
+                  ? (turn.language === 'it' ? 'Puoi inviare di nuovo la richiesta nella chat.'
+                    : 'You can send a new message in this chat to retry.')
+                  : (turn.language === 'it' ? 'Controlla lo stato prima di riprovare.'
+                    : 'Review the current state before trying again.')}
+            </p>}
+            {turn.terminal_event?.type === 'run.stopped' && <p role="status">
+              {turn.terminal_event.committed_operation_ids?.length
+                ? (turn.language === 'it'
+                  ? `Conversazione interrotta; ${turn.terminal_event.committed_operation_ids.length} modifica già salvata.`
+                  : `Conversation stopped; ${turn.terminal_event.committed_operation_ids.length} earlier change already saved.`)
+                : (turn.language === 'it'
+                  ? 'Conversazione interrotta; nessuna modifica salvata confermata.'
+                  : 'Conversation stopped; no confirmed case updates.')}
             </p>}
             {turn.answer && turn.run_id !== view.snapshot.run_id && <p>
               <strong>PracticaMIA:</strong> <span>{turn.answer.explanation}</span>
