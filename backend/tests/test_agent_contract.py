@@ -1,15 +1,20 @@
 """Synthetic Phase 4 wire fixtures; no runtime, approval, or live source access."""
 
 from copy import deepcopy
+from pathlib import Path
+import re
 from uuid import UUID
 
 import pytest
 from pydantic import ValidationError
 
 from app.agent.contract import (
-    AnswerResult, ClarificationReply, EventPage, ProposalDecision, RunSnapshot, SendMessage, StopRun,
+    ActiveRunPage, AnswerResult, ApprovalApplied, ApprovalDecided, ClarificationReply, EventPage,
+    ProposalDecision, RunSnapshot, SendMessage, StopRun, SubmitProposalDecision,
     agent_event_adapter,
 )
+from app.agent.reconnect_router import CaseTaskAccepted, CaseTaskMessage
+from app.agent.source_cards import RunSourceCard
 
 
 THREAD = "50000000-0000-4000-8000-000000000001"
@@ -56,6 +61,55 @@ def test_message_fixture_preserves_retry_identifier_and_body():
     assert first.client_message_id == reused.client_message_id == UUID(MESSAGE)
     assert first.text != reused.text
     # Persisted deduplication and changed-body conflict require the runtime.
+
+
+def test_phase5_handoff_examples_join_at_the_wire_boundaries():
+    root = Path(__file__).resolve().parents[2]
+    guide = (root / "planning/practicamia-2/phase-04-phase-05-handoff.md").read_text(encoding="utf-8")
+    snippets = re.findall(r"<!-- wire: ([a-z-]+) -->\n```json\n(.*?)\n```", guide, re.DOTALL)
+    models = {
+        "message": CaseTaskMessage, "receipt": CaseTaskAccepted, "active-runs": ActiveRunPage,
+        "pending-events": EventPage, "reply": ClarificationReply, "answer-events": EventPage,
+        "source-card": RunSourceCard, "approval-snapshot": RunSnapshot, "approval": SubmitProposalDecision,
+        "approval-decided": ApprovalDecided, "approval-applied": ApprovalApplied,
+    }
+    assert len(snippets) == len(models) and {name for name, _ in snippets} == set(models)
+    checked = {name: models[name].model_validate_json(snippet) for name, snippet in snippets}
+
+    message, receipt = checked["message"], checked["receipt"]
+    assert receipt.accepted_revision == message.expected_thread_revision + 1
+    [active] = checked["active-runs"].items
+    pending = checked["pending-events"]
+    started, question = pending.events
+    assert active.case_id == message.case_id
+    assert active.run_id == receipt.run_id == pending.run_id
+    assert active.thread_id == pending.thread_id
+    assert started.client_message_id == message.client_message_id
+
+    reply, finished = checked["reply"], checked["answer-events"]
+    responded, answer = finished.events
+    assert (finished.thread_id, finished.run_id) == (pending.thread_id, pending.run_id)
+    assert finished.after_seq == pending.last_event_seq
+    assert responded.event_seq == reply.expected_run_revision == question.event_seq + 1
+    assert responded.question_id == question.question.question_id
+    assert responded.client_reply_id == reply.client_reply_id
+    assert responded.text == reply.text and reply.text in question.question.options
+    [citation] = answer.result.citations
+    [claim] = answer.result.claims
+    assert claim.evidence_ids == [citation.passage_id]
+    assert checked["source-card"].passage.citation == citation
+
+    snapshot, submitted = checked["approval-snapshot"], checked["approval"]
+    decided, applied = checked["approval-decided"], checked["approval-applied"]
+    proposal = snapshot.pending_proposal
+    assert decided.thread_id == applied.thread_id == snapshot.thread_id
+    assert decided.run_id == applied.run_id == snapshot.run_id
+    assert decided.proposal_event_seq == snapshot.last_event_seq
+    assert decided.event_seq == submitted.expected_run_revision == snapshot.run_revision
+    assert decided.proposal_id == applied.proposal_id == proposal.proposal_id
+    assert decided.decision == ProposalDecision.model_validate(submitted.model_dump(exclude={"expected_run_revision"}))
+    assert applied.event_seq == decided.event_seq + 1
+    assert applied.case_revision == submitted.expected_case_revision + 1 == proposal.expected_case_revision + 1
 
 
 @pytest.mark.parametrize("changes", [

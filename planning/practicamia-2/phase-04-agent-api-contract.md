@@ -169,19 +169,21 @@ The current server verifies the owner and running state before returning a `capa
 | `thread_id` | Server-issued conversation ID | Owner-scoped; a thread may reference multiple cases. |
 | `run_id` | Server-issued attempt to process one message | One active run per case in a thread. Each stopped run retains its actual outcome. |
 | `client_message_id` | Client-issued retry key | Unique within a thread; identical retries return the existing run, while a changed body conflicts. |
-| `case_id` | Optional case context | Checked against the principal on every read and tool call. |
+| `case_id` | Linked case context | Required by the isolated message endpoint. The internal message contract also permits an unbound run. |
 | `event_seq` | Server-issued integer, increasing per run | Stable across reconnect; never inferred from arrival order. |
 | `proposal_id` | Pending write proposal, once task 38 exists | Bound to owner, case, exact change, expected case revision, and expiry. |
 
-Store the authoritative result and ordered events before acknowledging a run. A reconnect reads persisted events after `after_seq`; it does not replay model or tool calls. A retry uses the same `client_message_id` to retrieve the prior run and cannot create a second write. The exact retention and deletion policy needs task 33 and security review.
+Commit the queued request before acknowledging a message. The worker commits results and ordered events before making them visible. Reconnect reads persisted events after `after_seq`. An exact retry with the same `client_message_id` retrieves the prior run. The exact retention and deletion policy needs task 33 and security review.
 
 ## Proposed versioned HTTP surface
+
+The [Phase 5 handoff](phase-04-phase-05-handoff.md) documents the implemented isolated transport and validated wire examples.
 
 All routes are authenticated and private, with `Cache-Control: private, no-store`. IDs are opaque; an inaccessible thread, case, run, or proposal returns the same unavailable result as an unknown ID. Request bodies reject unknown fields and have bounded lengths. The API returns typed errors with a safe `code`, `message`, and `request_id`, without raw tool output or personal data.
 
 | Operation | Proposed route | Request | Response |
 | --- | --- | --- | --- |
-| Start or continue | `POST /api/v1/agent/threads/{thread_id}/messages` | `client_message_id`, `text`, `language`, optional `case_id` and expected thread revision | `thread_id`, `run_id`, `status`, `last_event_seq` |
+| Start or continue a linked case | `POST /api/v1/agent/threads/{thread_id}/messages` | `client_message_id`, `text`, `language`, linked `case_id` and optional expected thread revision | HTTP 202 with `run_id` and `accepted_revision` |
 | Reply to a clarification | `POST /api/v1/agent/threads/{thread_id}/runs/{run_id}/questions/{question_id}/reply` | `client_reply_id`, expected run revision and text | The stored `question.answered` event. The existing run becomes runnable. |
 | Discover active runs | `GET /api/v1/agent/runs/active` | Optional `limit` (1–50) and the previous page’s `before_accepted_at` and `before_run_id` | Owned active runs with thread ID, run ID, optional case ID, status and acceptance time, plus any next cursor |
 | Read run | `GET /api/v1/agent/threads/{thread_id}/runs/{run_id}` | None | Current run status, last sequence, and the pending proposal or final result at that boundary |

@@ -177,4 +177,6 @@ The [Task 40.5 performance measurement](../planning/practicamia-2/phase-04-agent
 
 The [Task 40.6 failure diagnostics](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#failure-monitoring-metadata) emit a bounded JSON record from the isolated worker and approval service. The record links typed failures with intent, query category, tool and reviewed source versions when known. Synthetic regression tests capture the log and check that private conversation, document, exception and proposal data stay out.
 
+The [Task 40.7 Phase 5 handoff](../planning/practicamia-2/phase-04-phase-05-handoff.md) records the implemented isolated message API, event replay, citations, questions and approvals. Tests validate the examples against the runtime wire models and link the client transitions across reconnects. Phase 4 still needs the reviewed multi-authority participant pilot. Hosted transport, scheduling and account-session verification remain open.
+
 For implementation details see [the documentation index](README.md).
