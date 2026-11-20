@@ -11,7 +11,7 @@ from app.agent.answer_evidence import AnswerEvidenceScopeReader, revalidate_answ
 from app.agent.approval_graph import pause_for_approval
 from app.agent.case_context import read_shared_citizenship, read_worker_case_context
 from app.agent.case_selection import resolve_saved_case
-from app.agent.catalogue_evidence import CatalogueUnavailable, refresh_corrected_evidence
+from app.agent.catalogue_evidence import CatalogueUnavailable, corrected_query_kind, refresh_corrected_evidence
 from app.agent.checkpoints import (
     CheckpointConflict, CheckpointState, finish_checkpoint, load_checkpoint, save_checkpoint,
 )
@@ -20,7 +20,7 @@ from app.agent.contract import (
     ClarifyingQuestion, DocumentObservation,
     NextAction, ProgressUpdated, QuestionAnswered, QuestionRequested, RunFailed, RunSnapshot, RunStarted,
 )
-from app.agent.diagnostics import AgentFailureDiagnostic, corrected_query_kind
+from app.agent.diagnostics import AgentFailureDiagnostic
 from app.agent.proposal_freshness import ProposalFreshness, proposal_evidence_fingerprint
 from app.agent.run_events import EventConflict, _read_event_at, read_run_snapshot
 from app.agent.run_requests import (
@@ -232,7 +232,7 @@ def run_worker_step(
             except ToolAccessDenied:
                 AgentFailureDiagnostic(
                     code="tool_denied", stage=checkpoint.state.next_node, intent=checkpoint.state.intent,
-                    query_kind=corrected_query_kind(procedure_changed=corrections.procedure is not None),
+                    query_kind=corrected_query_kind(corrections),
                     tool="find_evidence",
                 ).emit()
                 return None
@@ -360,7 +360,7 @@ def run_worker_step(
             if isinstance(result, CatalogueUnavailable):
                 diagnostic = AgentFailureDiagnostic(
                     code="catalogue_unavailable", stage=checkpoint.state.next_node, intent=checkpoint.state.intent,
-                    query_kind=corrected_query_kind(procedure_changed=bool(corrections and corrections.procedure)),
+                    query_kind=corrected_query_kind(corrections),
                     tool="find_evidence",
                 )
             else:

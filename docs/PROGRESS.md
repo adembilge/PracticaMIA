@@ -181,4 +181,6 @@ The [Task 40.7 Phase 5 handoff](../planning/practicamia-2/phase-04-phase-05-hand
 
 The [Phase 4 bilingual intent follow-up](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#bilingual-intent-follow-up) improved intent from 9/26 to 15/26 with the original aliases. With the explicit synthetic Italian registration alias the scores were 16/26 for intent, 17/26 for procedure candidates and 5/26 for successful unassisted runs. The next-action replay still shows gaps on notices and saved-case continuation.
 
+The [Phase 4 reopened destination correction](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#pending-destination-on-a-reopened-case) accepts explicit English and Italian sentences at the saved question boundary. A confirmed active case resumes at evidence verification. Draft and archived cases keep an unverified result and preserve saved intake. The development benchmark's confirmation gap remains visible.
+
 For implementation details see [the documentation index](README.md).

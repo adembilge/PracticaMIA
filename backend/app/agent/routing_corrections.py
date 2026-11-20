@@ -2,6 +2,7 @@
 
 from collections.abc import Sequence
 from datetime import date
+import re
 
 from app.agent.checkpoints import CheckpointState, RoutingCorrections
 from app.agent.contract import Language
@@ -33,6 +34,10 @@ ROUTING_FIELD_LABELS = {
     "citizenship_class": ("the citizenship category", "la categoria di cittadinanza"),
 }
 _NAME_FIELDS = {"procedure", "destination", "activity_location"}
+_DESTINATION_REPLY = {
+    "en": re.compile(r"(?:the )?destination(?: municipality)? is (?:the municipality of )?([^.!?\r\n]+)\.?", re.I),
+    "it": re.compile(r"(?:il )?comune di destinazione (?:è|e) ([^.!?\r\n]+)\.?", re.I),
+}
 
 
 def housing_options(language: Language) -> list[str]:
@@ -68,7 +73,11 @@ def apply_routing_reply(
                 if citizenship in (label.casefold().replace("-", " "), category.replace("_", " ")):
                     updates[field] = category
                     break
-        elif field in _NAME_FIELDS and len(value) <= MAX_NAME_QUERY_LENGTH and normalize_name(value):
+        elif field in _NAME_FIELDS:
+            if field == "destination" and (sentence := _DESTINATION_REPLY[message.language].fullmatch(value)):
+                value = sentence[1].strip()
+            if len(value) > MAX_NAME_QUERY_LENGTH or not normalize_name(value):
+                continue
             match = match_catalogue_names(
                 value, list(catalogue_names), entity_type="procedure" if field == "procedure" else "municipality",
             )

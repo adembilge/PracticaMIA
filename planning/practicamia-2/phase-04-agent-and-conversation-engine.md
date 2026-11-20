@@ -241,6 +241,14 @@ With the updated synthetic aliases, the unassisted replay passed 5/26 case-langu
 
 Run `PYTHONPATH=backend python evals/score_phase04_agent.py` and `PYTHONPATH=backend python evals/score_phase04_next_action.py` from the repository root. These comparisons use the development set. The test verifies that a pending or absent alias cannot identify the procedure and that a generic domicile phrase leaves it unresolved. Broader catalogue review and participant evaluation remain open.
 
+### Pending destination on a reopened case
+
+The English and Italian flows now accept an explicit destination sentence as an answer to the recorded destination question. The worker resolves the municipality against the supplied reviewed catalogue, drops previous evidence, and binds the new routing value to the reply event. Ambiguous names and questions stay unresolved.
+
+The isolated worker searches the currently approved Milan procedure only when the active saved intake independently satisfies the case gate. A draft intake gets a specific confirmation action. An archived case stops at an unverified result. Neither path changes saved intake. The confirmed variant resumes the same run at the evidence verification step.
+
+From `backend/`, run `python -m pytest -q tests/test_agent_routing_corrections.py`. The signed HTTP examples restore the question from the journal and submit the original bilingual sentences. They exercise draft, confirmed and archived intake. The development benchmark still passes 5/26 cases and 13/36 checkpoints. Its reopened-destination scenario expects verified guidance after the reply without a saved intake confirmation, so it remains a miss under the case gate.
+
 ## End-to-end closure scenario
 
 The user describes a need without knowing the authority. The agent finds the task and source and asks a question when necessary. After a correction, the agent reassesses affected results, shows the action, competent channel, and supporting passage, then lets the user save the task and resume it after returning.
