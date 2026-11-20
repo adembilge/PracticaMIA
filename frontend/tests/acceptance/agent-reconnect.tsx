@@ -479,7 +479,7 @@ export function AgentReconnectFixture() {
           {history.items.map(turn => <article key={turn.run_id}>
             <p><strong>You:</strong> {turn.user_message}</p>
             {turn.answer && turn.run_id !== view.snapshot.run_id && <p>
-              <strong>PracticaMIA:</strong> {turn.answer.explanation}
+              <strong>PracticaMIA:</strong> <span>{turn.answer.explanation}</span>
             </p>}
           </article>)}
         </section>}
