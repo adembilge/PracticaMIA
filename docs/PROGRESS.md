@@ -205,6 +205,8 @@ The extended [Phase 4 catalogue](../planning/practicamia-2/phase-04-pilot-source
 
 The [Phase 4 claim review worksheet](../planning/practicamia-2/phase-04-claim-review-handoff.md) specifies the proposed wording and review boundaries for all six claims. Its read-only query was checked against the offline catalogue and resolves eleven pending references. Human decisions, hosted registration and claim activation remain pending.
 
-The [Phase 4 Preview import command](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md#import-into-the-isolated-preview-registry) validates the five originals, the direct Preview database identity and all eleven passage references before committing candidates. The non-default review branch was inspected at revision `20261116_0017` with no pilot rows. Direct DNS resolution and the reviewer deployment lookup remain outstanding for a hosted run.
+The [Phase 4 Preview import command](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md#import-into-the-isolated-preview-registry) validates the five originals, the direct Preview database identity and all eleven passage references before committing candidates. The initial check found no pilot rows at revision `20261116_0017`. The work environment could not resolve the direct database host for the CLI run.
+
+The [Phase 4 Preview registration](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md#verified-preview-registration) added five candidates to the non-default Neon branch in one control-plane transaction. An independent read verified all five original hashes, 364 passage hashes and eleven pinned references. All affected versions remain pending, with zero active pointers and zero review events. The protected reviewer build, its live database binding and an authenticated review remain pending.
 
 For implementation details see [the documentation index](README.md).
