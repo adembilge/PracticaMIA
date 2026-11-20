@@ -199,4 +199,6 @@ The [Phase 4 pilot scope and source review](../planning/practicamia-2/phase-04-t
 
 The [Phase 4 acquisition record](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md) pins four official HTML captures and nine `html-v1` passages for five candidate claims. The local Questura page returned an access-denied document. Durable catalogue versions require an isolated registration path for these procedures, and the candidate claims still require human review.
 
+The [isolated Phase 4 source catalogue](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md#isolated-source-catalogue) now contains four `pending_review` versions and 272 passages. A repeat import preserved all nine claim references. Approved retrieval returned none of them. Hosted registration, authorized review and Q3 acquisition remain pending.
+
 For implementation details see [the documentation index](README.md).

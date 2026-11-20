@@ -17,6 +17,7 @@ from app.knowledge.browser_capture import validate_browser_metadata
 from app.knowledge.provenance_digest import metadata_sha256
 from app.knowledge.document_extraction import extract_document, EXTRACTION_VERSIONS
 from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
+from app.knowledge.pilot_sources import PILOT_REVIEW_APPLICATION_ID, PILOT_SOURCES
 from app.knowledge.review_model import KnowledgeReviewEvent
 from app.knowledge.snapshot_model import KnowledgePassage, KnowledgeSnapshot
 
@@ -39,12 +40,25 @@ def ingest_snapshot(
     observed_url: str | None = None,
     observed_title: str | None = None,
     observed_last_updated: str | None = None,
+    pilot_review: bool = False,
 ) -> IngestionResult:
     """Call inside an explicit DB transaction. Raises rather than saving partial data."""
     # Lock the source before comparing revisions: approval and ingestion must
     # serialize on the same row in PostgreSQL.
     db.refresh(source, with_for_update=True)
-    validate_official_url(source.official_url)
+    if pilot_review:
+        pilot = PILOT_SOURCES.get(source.id)
+        if (
+            db.get_bind().dialect.name != "sqlite" or pilot is None
+            or db.connection().exec_driver_sql("PRAGMA application_id").scalar_one() != PILOT_REVIEW_APPLICATION_ID
+            or source.status != "candidate" or source.active_version_id is not None
+            or any(getattr(source, key) != value for key, value in pilot.registry_fields(source.id).items())
+            or media_type != "text/html" or capture_method != "original_http"
+            or retrieved_at != pilot.retrieved_at or sha256(body).hexdigest() != pilot.content_sha256
+        ):
+            raise ValueError("Pilot review requires a pinned original in the isolated SQLite catalogue")
+    else:
+        validate_official_url(source.official_url)
     if capture_method == "browser_rendered_text":
         if media_type != "text/plain":
             raise ValueError("Browser captures require explicit text/plain media type")

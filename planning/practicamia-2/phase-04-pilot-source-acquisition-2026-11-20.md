@@ -1,6 +1,6 @@
 # Phase 4 pilot source acquisition · 20 November 2026
 
-This record supports human review of claims T1–T3 and Q1–Q3 in the [three-authority pilot](phase-04-three-authority-pilot.md#evidence-for-source-review). Four pages yielded original HTML and nine selected passages. The Milano Questura local page returned an access-denied document and remains an acquisition gap. Human claim decisions and registry version IDs are pending.
+This record supports human review of claims T1–T3 and Q1–Q3 in the [three-authority pilot](phase-04-three-authority-pilot.md#evidence-for-source-review). Four pages yielded original HTML and nine selected passages, now pinned to version IDs in a local review catalogue. The Milano Questura local page returned an access-denied document and remains an acquisition gap. Human claim decisions are pending.
 
 ## Captured sources
 
@@ -17,7 +17,7 @@ The [Milano Questura office listing](https://questure.poliziadistato.it/it/servi
 
 ## Passage references for reviewer comparison
 
-The [repository's `html-v1` extractor](../../backend/app/knowledge/html_extraction.py) accepted all four originals. Each row identifies an exact extracted passage by the capture label, zero-based ordinal and start-inclusive, end-exclusive character offsets in the normalized text. SHA-256 covers the entire UTF-8 passage. The short Italian locator helps find the text on the publisher page. Capture labels and ordinals are local to this record. Registry IDs are assigned by the existing ingestion workflow after registration and acceptance of the source bytes.
+The [repository's `html-v1` extractor](../../backend/app/knowledge/html_extraction.py) accepted all four originals. Each row identifies an exact extracted passage by the capture label, zero-based ordinal and start-inclusive, end-exclusive character offsets in the normalized text. SHA-256 covers the entire UTF-8 passage. The short Italian locator helps find the text on the publisher page. The local version IDs below anchor these ordinals in the review catalogue.
 
 | Claim | Capture, section and locator | Ordinal and character offsets | Passage SHA-256 |
 | --- | --- | --- | --- |
@@ -42,4 +42,25 @@ The [repository's `html-v1` extractor](../../backend/app/knowledge/html_extracti
 | Q2 | Check the post-filing summons paragraph and its exception when an appointment is unavailable at filing. Date and time remain unresolved when the applicant has only a receipt. | Pending |
 | Q3 | Acquire the substantive Milano Questura office listing for local access guidance and review it alongside the case's supplied summons. Q2 supports the general appointment step. | Acquisition pending |
 
-The source intake catalogue currently admits only the reviewed Milan residence-change procedure. The four originals were validated offline and kept outside Git. To assign durable registry versions, use isolated candidate registration and the existing [source intake](../../docs/OFFICIAL_SOURCE_INTAKE.md#5-human-evidence-review) and [claim-specific review](phase-03-claim-evidence.md#claim-and-evidence-contract) workflows when the pilot scope and registration path are confirmed. Compare the hash of any fresh acquisition with the recorded capture before reusing its passage ordinals. Attach the source-version and passage IDs, reviewer, date and applicability decision to each claim. Keep current agent guidance gated on approved evidence.
+## Isolated source catalogue
+
+From `backend/`, use the [pilot import command](../../backend/app/knowledge/pilot_source_review.py) with a directory containing just the four exact HTML originals, named after their capture labels. Keep the originals and database outside Git.
+
+```sh
+python -m app.knowledge.pilot_source_review \
+  --originals /path/to/pilot-originals \
+  --catalogue /path/to/PracticaMIA-Phase4-Source-Review.sqlite3
+```
+
+The command stores original bytes and extracted passages through the existing snapshot service. It requires the four pinned capture hashes and verifies each selected passage before committing. The target is a standalone SQLite file marked for pilot review. The command outputs each claim's source ID, version ID and full passage IDs for review. Reopening the same catalogue preserves its IDs. Creating another catalogue generates new IDs.
+
+| Source ID | Local version ID, revision 1 | Extracted passages | Claim ordinals |
+| --- | --- | --- | --- |
+| `torino-banns-office` | `62a13693-281e-46ac-8d4e-e962dd9f7add` | 54 | T1 `0009` |
+| `torino-banns-service` | `5267e0b4-da08-442d-be06-14404a24e177` | 119 | T1 `0011`, `0012` · T2 `0017` · T3 `0014`, `0015` |
+| `portale-immigrazione-code-16` | `c3541590-d130-47b9-ba8b-01213fa7a37e` | 19 | Q1 `0003`, `0005` |
+| `portale-immigrazione-procedure` | `c98ec604-a0d9-438b-99e8-1ecb1dc4d418` | 80 | Q2 `0035` |
+
+The 20 November import and repeat produced four `pending_review` versions, 272 passages and nine claim references. The integrity and foreign-key checks passed. The approved citation resolver withheld all nine references, and the review audit contained zero approval events. The SQLite file's SHA-256 is `e04624db23e5002ba224211c78bf19894d8f83899d931e1d1f1238c37eabcf99`.
+
+These IDs refer to the offline review copy. A hosted import will have its own version and passage IDs, to be bound by the original and extracted hashes. The authorized reviewer can inspect the five pending claims against the published sources and record the scoped rationale using the [claim-specific process](phase-03-claim-evidence.md#claim-and-evidence-contract). Hosted candidate registration and [authenticated approval](../../docs/OFFICIAL_SOURCE_INTAKE.md#5-human-evidence-review) remain pending. Q3 still requires the local page's substantive content.
