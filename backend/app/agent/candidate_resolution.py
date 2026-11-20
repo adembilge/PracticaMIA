@@ -13,6 +13,7 @@ from app.agent.contract import (
     MAX_PROCEDURE_CANDIDATES, AnswerResult, Citation, ClarifyingQuestion, EvidenceLinkedClaim, GoalSelection,
     NextAction, OfficialChannel,
 )
+from app.agent.notice_clarification import NoticeField, unreadable_notice_field
 from app.agent.routing_corrections import (
     ROUTING_FIELD_LABELS as _FIELD_LABELS, apply_routing_reply, citizenship_options, housing_options,
 )
@@ -57,6 +58,20 @@ _QUESTIONS = {
     ),
 }
 _IDENTITY_FIELDS = ("intent", "case_reference", "procedure")
+_NOTICE_PROMPTS = {
+    "appointment_date": (
+        "Can you share just the line with the appointment date, if you can read it?",
+        "Puoi riportare solo la riga con la data dell’appuntamento, se riesci a leggerla?",
+    ),
+    "attachment_name": (
+        "Can you share just the line that names the requested attachment, if you can read it?",
+        "Puoi riportare solo la riga con il nome dell’allegato richiesto, se riesci a leggerla?",
+    ),
+}
+_NOTICE_HINTS = (
+    "Remove names, identifiers and other personal details. If the line is still unreadable, check with the issuing office.",
+    "Oscura nomi, identificativi e altri dati personali. Se la riga resta illeggibile, chiedi conferma all’ufficio che ha emesso l’avviso.",
+)
 _ROUTING_FIELDS = tuple(field for field in _QUESTIONS if isinstance(field, tuple))
 _CONTEXT_PROMPTS = {
     "message": (
@@ -126,6 +141,8 @@ def choose_candidate_step(
         raise ValueError("Candidate resolution requires the choose_next_step node")
     if state.goals:
         return _choose_message_goal(message, state, reviewed_labels)
+    if state.intent == "explain_notice" and (field := unreadable_notice_field(message.text)):
+        return _clarify_notice(message, state, field)
 
     revised = apply_routing_reply(message, state, catalogue_names)
     applied_correction = revised is not state
@@ -286,6 +303,32 @@ def choose_candidate_step(
         verification_status="conflicting_evidence" if conflict else "insufficient_evidence",
         missing_information=missing_information,
         official_channel=channel, next_action=action, citations=contacts if channel else [], claims=claims,
+    )
+
+
+def _clarify_notice(
+    message: StoredMessage, state: CheckpointState, field: NoticeField,
+) -> RequestClarification | AnswerResult:
+    language = 0 if message.language == "en" else 1
+    question = message.clarification_question
+    if message.clarification_reply is None or question is None or question.answer_format != "redacted_excerpt":
+        return RequestClarification(
+            question=ClarifyingQuestion(
+                question_id=uuid4(), text=_NOTICE_PROMPTS[field][language], answer_shape="free_text",
+                missing_fields=[field], answer_format="redacted_excerpt", reply_hint=_NOTICE_HINTS[language],
+            ),
+            resume_state=state,
+        )
+    return AnswerResult(
+        explanation=(
+            "Check the readable original or ask the issuing office to confirm the detail."
+            if language == 0
+            else "Controlla l’originale leggibile o chiedi conferma all’ufficio che ha emesso l’avviso."
+        ),
+        verification_status="insufficient_evidence", missing_information=[field],
+        next_action=NextAction(
+            label="Check the notice" if language == 0 else "Controlla l’avviso", operation="provide_information",
+        ),
     )
 
 

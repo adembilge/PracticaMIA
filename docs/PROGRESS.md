@@ -183,4 +183,6 @@ The [Phase 4 bilingual intent follow-up](../planning/practicamia-2/phase-04-agen
 
 The [Phase 4 reopened destination correction](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#pending-destination-on-a-reopened-case) accepts explicit English and Italian sentences at the saved question boundary. A confirmed active case resumes at evidence verification. Draft and archived cases keep an unverified result and preserve saved intake. The development benchmark's confirmation gap remains visible.
 
+The [Phase 4 unreadable notice follow-up](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#unreadable-notice-details) asks for one line with personal details removed when an appointment date or attachment name is unreadable. The development replay passed 9/26 scenario-language runs and 17/36 checkpoints. The isolated signed HTTP tests verify that the saved question survives reconnection and the result keeps the notice detail unverified.
+
 For implementation details see [the documentation index](README.md).

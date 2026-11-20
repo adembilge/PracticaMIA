@@ -326,7 +326,7 @@ class ClarifyingQuestion(ContractModel):
     answer_shape: Literal["free_text", "single_choice"]
     options: list[ShortText] = Field(default_factory=list, max_length=10)
     missing_fields: list[Identifier] = Field(min_length=1, max_length=12)
-    answer_format: Literal["calendar_date"] | None = None
+    answer_format: Literal["calendar_date", "redacted_excerpt"] | None = None
     reply_hint: ShortText | None = None
     goal_selection_language: Language | None = None
     case_choices: list[SavedCaseChoice] = Field(default_factory=list, max_length=10)

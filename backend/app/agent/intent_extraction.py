@@ -9,6 +9,7 @@ import unicodedata
 from app.agent.checkpoints import CheckpointState
 from app.agent.case_selection import OTHER_CASE_CUE
 from app.agent.contract import MAX_MESSAGE_GOALS, MAX_PROCEDURE_CANDIDATES, AgentIntent, MessageGoal
+from app.agent.notice_clarification import unreadable_notice_field
 from app.agent.run_requests import StoredMessage
 from app.knowledge.entity_matching import (
     CatalogueName, MAX_NAME_QUERY_LENGTH, NameMatchResult, match_catalogue_names, normalize_name,
@@ -263,6 +264,8 @@ def extract_intent(
     intent = next((label for label, cue in _INTENT_CUES if cue.search(normalized_text)), None)
     if intent in (None, "find_procedure", "request_information") and OTHER_CASE_CUE.search(normalized_text):
         intent = "resume_case"
+    if intent in (None, "find_procedure", "request_information") and unreadable_notice_field(text):
+        intent = "explain_notice"
     if intent is None and procedures:
         intent = "find_procedure"
 

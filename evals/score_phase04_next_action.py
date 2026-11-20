@@ -163,7 +163,11 @@ class ScenarioReplay:
             fields = tuple(sorted(
                 "destination_municipality" if field == "destination" else field for field in question.missing_fields
             ))
-            action = "choose_active_goal" if question.goal_selection_language else "provide_information"
+            action = "provide_information"
+            if question.goal_selection_language:
+                action = "choose_active_goal"
+            elif question.answer_format == "redacted_excerpt":
+                action = "provide_redacted_excerpt"
             return Observation(action=action, fields=fields, question=not restored and not current_only)
         if self.snapshot is None or self.snapshot.result is None:
             return Observation()

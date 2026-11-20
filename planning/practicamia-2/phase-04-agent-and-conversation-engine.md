@@ -249,6 +249,14 @@ The isolated worker searches the currently approved Milan procedure only when th
 
 From `backend/`, run `python -m pytest -q tests/test_agent_routing_corrections.py`. The signed HTTP examples restore the question from the journal and submit the original bilingual sentences. They exercise draft, confirmed and archived intake. The development benchmark still passes 5/26 cases and 13/36 checkpoints. Its reopened-destination scenario expects verified guidance after the reply without a saved intake confirmation, so it remains a miss under the case gate.
 
+### Unreadable notice details
+
+When a user describes an unreadable appointment date or attachment name in a notice, the worker asks for the one relevant line in English or Italian. It asks the user to remove personal details and to check with the issuing office if the line stays unreadable. The signed HTTP replay restores the question after reconnection. Text and deferred replies lead to an insufficient-evidence result with the field still open. The result gives a next step without echoing the reply.
+
+The unchanged synthetic development set now passes 9/26 scenario-language runs and 17/36 checkpoints, up from 5/26 and 13/36. The four gains come from the two unreadable-notice scenarios in both languages. Exact opening intent increased from 16/26 to 20/26 and exact question fields increased from 14/22 to 18/22. Procedure candidates scored 17/26, approved evidence scored 20/20 and tool authorisation scored 9/9. The appointment scenario still requires a reviewed procedure for any verified routing.
+
+Run `python -m pytest -q tests/test_agent_notice_clarification.py` from `backend/` for the signed question and reply checks. The two development benchmark commands are listed in the bilingual intent follow-up above.
+
 ## End-to-end closure scenario
 
 The user describes a need without knowing the authority. The agent finds the task and source and asks a question when necessary. After a correction, the agent reassesses affected results, shows the action, competent channel, and supporting passage, then lets the user save the task and resume it after returning.

@@ -81,6 +81,8 @@ The server checks the submitted text against the owned, current question before 
 
 The [isolated HTTP tests](../../backend/tests/test_agent_reconnect_http.py) cover invalid dates, invalid options, private guidance, correction and retry. The isolated Chromium harness renders both input shapes and checks that a user can correct a rejected date and resume the run.
 
+An unreadable notice question uses the optional `redacted_excerpt` format with bounded free text and one affected field, either `appointment_date` or `attachment_name`. The question and its localized guidance request one relevant line with personal details removed. The worker can advise checking the original or the issuing office after a reply. The requested detail remains unverified and the completed result omits the excerpt.
+
 ## Deferring a question or changing topics
 
 Task 35.4 accepts `unknown`, `skip` and `change_topic` dispositions without a case value. The isolated client exposes all three controls. The server also recognizes exact short English and Italian phrases such as “I don’t know” and “Non lo so” when the text is not one of the saved options. Each accepted choice uses the same owned question, revision and retry boundary. Previous answer events without a disposition default to `answer`.
