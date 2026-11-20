@@ -8,10 +8,16 @@ import {AgentGoalSelection, type GoalSelection} from '../../src/components/Agent
 
 type ActiveRun = { thread_id: string; run_id: string; case_id: string | null; status?: string };
 type SavedRun = ActiveRun & { status: string };
+type HistoryClarification = {
+  question_id: string; question_text: string;
+  disposition: ReplyDisposition; reply_text: string | null;
+};
 type HistoryTurn = {
   run_id: string; case_id: string | null; status: string;
   accepted_revision: number; user_message: string; language: 'en' | 'it';
   answer: { explanation: string } | null;
+  clarifications: HistoryClarification[];
+  clarification_history_truncated: boolean;
 };
 type HistoryPage = { thread_id: string; items: HistoryTurn[]; next_before_revision: number | null };
 type CaseTask = { case_id: string; label: string; run_id: string | null };
@@ -478,6 +484,23 @@ export function AgentReconnectFixture() {
             onClick={() => void loadEarlierHistory()}>Earlier messages</button>}
           {history.items.map(turn => <article key={turn.run_id}>
             <p><strong>You:</strong> {turn.user_message}</p>
+            {turn.clarifications.map(exchange => <div key={exchange.question_id}>
+              <p><strong>PracticaMIA:</strong> <span>{exchange.question_text}</span></p>
+              {exchange.disposition === 'answer' ? (
+                <p><strong>You:</strong> <span>{exchange.reply_text}</span></p>
+              ) : (
+                <p><strong>{turn.language === 'it' ? 'Azione:' : 'Action:'}</strong> <span>{
+                  exchange.disposition === 'unknown'
+                    ? (turn.language === 'it' ? 'Non lo so' : "I don't know")
+                    : exchange.disposition === 'skip'
+                      ? (turn.language === 'it' ? 'Saltato' : 'Skipped')
+                      : (turn.language === 'it' ? 'Argomento cambiato' : 'Changed topic')
+                }</span></p>
+              )}
+            </div>)}
+            {turn.clarification_history_truncated && <p role="status">
+              Earlier steps in this turn are available in the run event history.
+            </p>}
             {turn.answer && turn.run_id !== view.snapshot.run_id && <p>
               <strong>PracticaMIA:</strong> <span>{turn.answer.explanation}</span>
             </p>}
