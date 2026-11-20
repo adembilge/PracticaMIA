@@ -228,6 +228,19 @@ Source version IDs describe the evidence considered at the failure boundary. Ter
 
 The schema has no free-text or private identifier fields. Prompt, query, reply, OCR, document, proposal and exception details stay out of this logger. Tests capture and inspect the exact JSON, including a synthetic uploaded PDF and its extracted date, a model exception with private test values, failed source revalidation with a forged reference, and a revoked approval dependency. These tests exercise the isolated worker and signed routes. Collector configuration, retention and verification of hosted log pipelines remain release work.
 
+### Bilingual intent follow-up
+
+The unchanged Task 40.1 messages and expected answers were replayed after extending the extractor's English and Italian filing and limit questions. The evaluation also added `indirizzo all’anagrafe` as a synthetic procedure alias using the civil-registration example in [Phase 2](phase-02-administrative-domains.md).
+
+| Measurement | Phase 4 baseline | New cues and original aliases | New cues and updated synthetic aliases |
+| --- | ---: | ---: | ---: |
+| Exact opening intent | 9/26 | 15/26 | 16/26 |
+| Exact procedure candidate set | 15/26 | 15/26 | 17/26 |
+
+With the updated synthetic aliases, the unassisted replay passed 5/26 case-language runs and 13/36 checkpoints. The Italian wrong-authority scenario reached the verified Milan route, and the Italian missing-destination scenario asked for the municipality. The former results were 3/26 and 11/36. There were five official-channel turns and no observed misrouting in these development examples. The Italian opening that merely names an address in Milan still needs a procedure candidate, and the notice and saved-case continuation gaps remain.
+
+Run `PYTHONPATH=backend python evals/score_phase04_agent.py` and `PYTHONPATH=backend python evals/score_phase04_next_action.py` from the repository root. These comparisons use the development set. The test verifies that a pending or absent alias cannot identify the procedure and that a generic domicile phrase leaves it unresolved. Broader catalogue review and participant evaluation remain open.
+
 ## End-to-end closure scenario
 
 The user describes a need without knowing the authority. The agent finds the task and source and asks a question when necessary. After a correction, the agent reassesses affected results, shows the action, competent channel, and supporting passage, then lets the user save the task and resume it after returning.

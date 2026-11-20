@@ -44,7 +44,12 @@ from app.rules.engine import JURISDICTION, PROCEDURE
 
 DATASET = Path(__file__).with_name("fixtures") / "phase04_agent_development.json"
 ALIASES = {
-    PROCEDURE: ("cambio di residenza", "registered address", "address change", "change of registered residence"),
+    # The Phase 2 synthetic example pairs the explicit registration phrase with
+    # the residence-change task. A generic address remains outside this alias.
+    PROCEDURE: (
+        "cambio di residenza", "registered address", "address change", "change of registered residence",
+        "indirizzo all’anagrafe",
+    ),
     "marriage_banns": ("pubblicazioni di matrimonio", "marriage banns"),
     "residence_permit_renewal": ("permesso di soggiorno", "residence permit"),
 }

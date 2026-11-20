@@ -53,11 +53,17 @@ _INTENT_CUES: tuple[tuple[AgentIntent, re.Pattern[str]], ...] = (
     )),
     ("request_information", re.compile(
         r"\b(?:what (?:is|are|does)|which documents|how much|"
-        r"cosa (?:e|sono|significa)|che cosa (?:e|sono|significa)|quali documenti|quanto costa)\b"
+        r"(?:what|which) (?:exact )?(?:limit|maximum)|"
+        r"cosa (?:e|sono|significa)|che cosa (?:e|sono|significa)|quali documenti|quanto costa|"
+        r"quale (?:limite|massimo))\b"
     )),
     ("find_procedure", re.compile(
-        r"\b(?:how (?:do|can) i|where (?:do|can) i|find (?:the|a) procedure|"
-        r"come (?:faccio|posso|comunico|presento|richiedo)|dove (?:posso|presento)|da dove inizio)\b"
+        r"\b(?:(?:how|where) (?:do|can|should) (?:i|we)|find (?:the|a) procedure|"
+        r"(?:can|should|do) (?:i|we) (?:file|submit|deliver)|"
+        r"(?:come|dove) (?:invio|presento|consegno|deposito)|"
+        r"come (?:faccio|posso|comunico|richiedo)|dove posso|da dove inizio|"
+        r"(?:posso|devo) (?:inviare|presentare|consegnare|depositare)|"
+        r"a quale (?:comune|ufficio) (?:mi rivolgo|ci rivolgiamo))\b"
     )),
 )
 

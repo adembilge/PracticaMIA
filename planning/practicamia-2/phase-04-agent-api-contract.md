@@ -31,6 +31,8 @@ The step keeps matched expressions and catalogue candidates in memory. It commit
 
 Task 34.3 recognises compact, dotted and letter-spaced forms of reviewed acronyms in messages. The existing Phase 3 resolver preserves any confirmation requirement on the matching identity. The [Milan evidence adapter](../../docs/APPROVED_PASSAGE_SEARCH.md#phase-4-evidence-handoff) also recognises a narrow set of English and Italian address-change phrases as lexical search hints.
 
+The Phase 4 follow-up recognises additional filing questions and requests for limits in English and Italian. A filing cue without a reviewed procedure match keeps the procedure open for clarification. The offline catalogue includes the explicit Italian phrase `indirizzo all’anagrafe` from the [synthetic Phase 2 examples](phase-02-administrative-domains.md). [Replay results](phase-04-agent-and-conversation-engine.md#bilingual-intent-follow-up) show the effect of the cue change and the fixture alias separately.
+
 Run `python -m pytest -q tests/test_agent_intent_extraction.py tests/test_knowledge_search.py` from `backend/` for synthetic bilingual extraction, saved-worker-boundary coverage and search parity.
 
 ## Procedure candidate applicability
