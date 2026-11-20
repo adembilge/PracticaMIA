@@ -137,6 +137,8 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 
 **Acceptance.** In a pilot set spanning at least three authorities, the agent finds a competent authority, applicable evidence, and a concrete next step. It clarifies missing or conflicting facts. Users can close and reopen the same task.
 
+The [three-authority pilot scope](phase-04-three-authority-pilot.md) proposes the Milan registry, Torino banns office and Milano Questura appointment journeys. It records the scoped claims, public source locators, review gaps and participant evaluation steps.
+
 ### Agent development evaluation set
 
 The [versioned development set](../../evals/fixtures/phase04_agent_development.json) has 13 synthetic scenario families, each with English and Italian inputs. Every family links to the corresponding Phase 2 scenario or rehearsal. The reference map names four bodies across the three procedures and links each assignment to its Phase 3 role or channel locator. The cases cover wrong authorities, missing locations, withdrawn evidence, an obsolete form, a destination correction, multiple goals, unreadable notices, and resumption.
