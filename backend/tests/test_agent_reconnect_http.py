@@ -221,12 +221,14 @@ def test_owned_completed_chat_history_paginates_without_cross_account_access(cli
     assert [turn["answer"]["explanation"] for turn in history["items"]] == [
         "Synthetic response one.", "Synthetic response two.",
     ]
-    assert [turn["accepted_revision"] for turn in history["items"]] == [1, 2]
+    assert [turn["accepted_revision"] for turn in history["items"]] == [
+        first["accepted_revision"], second["accepted_revision"],
+    ]
     assert all(turn["case_id"] is None for turn in history["items"])
 
     latest = client.get(history_url, headers=owner, params={"limit": 1}).json()
     assert [turn["run_id"] for turn in latest["items"]] == [second["run_id"]]
-    assert latest["next_before_revision"] == 2
+    assert latest["next_before_revision"] == second["accepted_revision"]
     earlier = client.get(history_url, headers=owner, params={
         "limit": 1, "before_revision": latest["next_before_revision"],
     }).json()
