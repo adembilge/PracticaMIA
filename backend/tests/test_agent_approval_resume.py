@@ -153,6 +153,13 @@ def test_journal_failure_rolls_back_the_write_and_exact_decision_retry_recovers(
     stopped = client.post(base + "/stop", headers=owner, json={"expected_run_revision": resumed["run_revision"]})
     assert stopped.json()["status"] == "stopped"
     assert client.get(base + "/events", headers=owner).json()["events"][-1]["committed_operation_ids"] == [receipt]
+    completed_history = client.get(history_url, headers=owner)
+    assert completed_history.status_code == 200
+    [turn] = completed_history.json()["items"]
+    assert turn["status"] == "stopped"
+    assert turn["terminal_event"]["type"] == "run.stopped"
+    assert turn["terminal_event"]["committed_operation_ids"] == [receipt]
+    assert turn["approvals"][0]["applied_operation_id"] == receipt
     assert client.post(url, headers=owner, json=decision).json() == response.json()
 
 
