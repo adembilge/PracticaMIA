@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 from uuid import uuid4
 
+from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -26,7 +27,8 @@ from app.agent.threads import create_thread, link_case_to_thread
 from app.agent.worker import run_worker_step
 from app.auth.tokens import Principal
 from app.cases.intake_model import CaseIntake
-from app.cases.intake_schemas import IntakeFacts, describe_intake
+from app.cases.intake_router import read_intake, write_intake
+from app.cases.intake_schemas import IntakeFacts, IntakeUpdate, describe_intake
 from app.cases.model import CaseRecord
 from app.cases.scope import DEMO_ANSWERS
 from app.database import Base
@@ -41,6 +43,7 @@ from score_phase04_agent import ALIASES, DATASET, NAMES, SYNTHETIC_REVIEWER, _ev
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = ROOT / "backend/app/rules/catalog.json"
 REVIEW_KEY = ROOT / "requirements/milan-residence-change/review_public_key_v1.b64"
+CONFIRMATION_JOURNEY = DATASET.with_name("phase04_agent_confirmation_journey.json")
 LABELS = {name.catalogue_id: name.display_name for name in NAMES}
 
 
@@ -228,7 +231,8 @@ class ScenarioReplay:
         active = result.goal_selection.active_goal if result.goal_selection else None
         procedures = result.goals[active - 1].procedure_candidates if active else []
         return Observation(
-            action=action, authorities=tuple(sorted(authorities)), citations=citations,
+            action=action, fields=tuple(sorted(result.missing_information)),
+            authorities=tuple(sorted(authorities)), citations=citations,
             selected_procedure=procedures[0] if len(procedures) == 1 else None, channel=channel is not None,
             verified=result.verification_status == "verified" and channel is not None,
         )
@@ -249,6 +253,8 @@ class ScenarioReplay:
 
     def step(self, step, *, question_was_aligned):
         event = step["event"]
+        if event == "confirm_intake":
+            return self.confirm_intake(step["facts"])
         if event == "source_change":
             with self.sessions.begin() as db:
                 for item in self.evidence:
@@ -310,6 +316,30 @@ class ScenarioReplay:
         return self.advance()
 
 
+    def confirm_intake(self, values):
+        """Replay an explicit owner action through the saved-case intake boundary."""
+        with self.sessions() as db:
+            snapshot = read_run_snapshot(db, **self.context)
+            if (
+                self.case_id is None or snapshot is None or snapshot.selected_case is None
+                or snapshot.selected_case.case_id != self.case_id or snapshot.result is None
+                or snapshot.result.next_action is None
+                or snapshot.result.next_action.operation != "confirm_saved_intake"
+            ):
+                return Observation(blocked="saved_intake_link_unavailable")
+            principal = self.context["principal"]
+            try:
+                draft = read_intake(self.case_id, db, principal)
+                payload = IntakeUpdate(facts=IntakeFacts.model_validate(draft["facts"] | values), confirm=True)
+                confirmed = write_intake(self.case_id, payload, db, principal)
+            except HTTPException:
+                return Observation(blocked="saved_intake_confirmation_rejected")
+        if not confirmed["confirmed"]:
+            return Observation(blocked="saved_intake_confirmation_missing")
+        self.facts.update(confirmed["facts"])
+        return Observation(action="saved_intake_confirmed")
+
+
 def score_case(replay, case, references):
     rows = {}
     uncorrected_misrouting = False
@@ -322,7 +352,11 @@ def score_case(replay, case, references):
             for passage in references[ref]["signed_evidence"]["passage_ids"]
         ))
         question_step = step.get("question_step")
-        observed = replay.step(step, question_was_aligned=question_step is None or rows[question_step]["passed"])
+        after = step.get("after_step")
+        observed = (
+            Observation(blocked="required_step_mismatch") if after and not rows[after]["passed"]
+            else replay.step(step, question_was_aligned=question_step is None or rows[question_step]["passed"])
+        )
         authority_correct = None
         if authorities:
             authority_correct = observed.verified and observed.authorities == authorities
@@ -365,9 +399,24 @@ def score_case(replay, case, references):
     }
 
 
-def run(*, replay_factory=ScenarioReplay):
+def load_development_set(*, confirmation_journey=False):
     raw = DATASET.read_bytes()
     data = json.loads(raw)
+    if not confirmation_journey:
+        return data, sha256(raw).hexdigest()
+    extension = json.loads(CONFIRMATION_JOURNEY.read_bytes())
+    if extension["base_dataset_sha256"] != sha256(raw).hexdigest():
+        raise ValueError("The confirmation journey requires its pinned baseline dataset")
+    [case] = [case for case in data["cases"] if case["id"] == extension["case_id"]]
+    [index] = [i for i, step in enumerate(case["steps"]) if step["id"] == extension["replace_from"]]
+    case["steps"][index:] = extension["steps"]
+    data["dataset_id"] = extension["dataset_id"]
+    resolved = json.dumps(data, sort_keys=True, separators=(",", ":")).encode()
+    return data, sha256(resolved).hexdigest()
+
+
+def run(*, replay_factory=ScenarioReplay, confirmation_journey=False):
+    data, dataset_digest = load_development_set(confirmation_journey=confirmation_journey)
     catalog = load_catalog(CATALOG.read_text(encoding="utf-8"))
     if not has_valid_human_review_signature(catalog, REVIEW_KEY.read_text(encoding="utf-8").strip()):
         raise ValueError("The replay requires the signed Milan catalogue")
@@ -386,7 +435,7 @@ def run(*, replay_factory=ScenarioReplay):
     turns = [turn for case in cases for turn in case["turns"]]
     passed = sum(case["passed"] for case in cases)
     return {
-        "dataset_id": data["dataset_id"], "dataset_sha256": sha256(raw).hexdigest(),
+        "dataset_id": data["dataset_id"], "dataset_sha256": dataset_digest,
         "mode": "offline_synthetic_conversation_replay",
         "unassisted_next_action": {"passed": passed, "total": len(cases), "pass_rate": round(passed / len(cases), 4)},
         "diagnostics": {
@@ -408,8 +457,9 @@ def run(*, replay_factory=ScenarioReplay):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.parse_args()
-    print(json.dumps(run(), ensure_ascii=False, indent=2))
+    parser.add_argument("--confirmation-journey", action="store_true", help="include explicit saved intake confirmation")
+    args = parser.parse_args()
+    print(json.dumps(run(confirmation_journey=args.confirmation_journey), ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

@@ -137,7 +137,7 @@ class NextAction(ContractModel):
     label: ShortText
     operation: Literal[
         "open_official_channel", "provide_information", "start_new_topic", "check_current_form", "reassess_destination",
-        "verify_filing_channel",
+        "verify_filing_channel", "confirm_saved_intake",
     ] | None = None
     origin: Literal["agent_proposal"] = "agent_proposal"
 
@@ -238,6 +238,11 @@ class AnswerResult(ContractModel):
             self.verification_status != "insufficient_evidence" or self.official_channel is not None or self.citations
         ):
             raise ValueError("A filing channel check requires an unverified result without a channel or citations")
+        if self.next_action and self.next_action.operation == "confirm_saved_intake" and (
+            self.verification_status != "insufficient_evidence" or self.official_channel is not None
+            or self.citations or self.missing_information != ["intake_confirmation"]
+        ):
+            raise ValueError("Intake confirmation requires an unverified result with the saved intake still pending")
         if self.claims:
             citations = {citation.citation_id for citation in self.citations}
             if len(citations) != len(self.citations):

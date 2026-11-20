@@ -191,4 +191,6 @@ The [Phase 4 destination correction follow-up](../planning/practicamia-2/phase-0
 
 The [Phase 4 unresolved filing follow-up](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#clarifying-unresolved-filing-context) asks targeted permit and marriage-banns questions and withholds filing links on conflicting reported instructions. The same synthetic cases and scoring criteria passed 24/26 runs and 34/36 checkpoints. The remaining two runs depend on a separate saved intake confirmation before the verified handoff.
 
+The [Phase 4 explicit confirmation journey](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#completing-the-reopened-case-after-intake-confirmation) links the owner to the saved intake before offering filing guidance. Its versioned synthetic replay passed 26/26 runs and 40/40 checkpoints after including the owner confirmation and a new filing request. The original development benchmark still passes 24/26 and 34/36.
+
 For implementation details see [the documentation index](README.md).

@@ -9,12 +9,14 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.agent.contract import AnswerResult
+from app.agent.reconnect_router import build_reconnect_router
 from app.cases.intake_model import CaseIntake
 from app.cases.model import CaseRecord
 
@@ -37,6 +39,7 @@ def test_documented_next_action_command_reports_cases_and_turns():
     cases = report["cases"]
     turns = [turn for case in cases for turn in case["turns"]]
     assert report["unassisted_next_action"]["total"] == len({case["id"] for case in cases}) == 26
+    assert report["unassisted_next_action"]["passed"] == 24
     assert report["unassisted_next_action"]["passed"] == sum(
         all(turn["passed"] for turn in case["turns"]) for case in cases
     )
@@ -57,6 +60,109 @@ def test_documented_next_action_command_reports_cases_and_turns():
         "permit-postal-intake:en", "permit-postal-intake:it",
         "two-goals-different-authorities:en", "two-goals-different-authorities:it",
     }.issubset(passing)
+
+
+def test_confirmation_journey_scores_the_explicit_intake_action_and_keeps_exact_reviewed_handoff():
+    result = subprocess.run(
+        [sys.executable, "evals/score_phase04_next_action.py", "--confirmation-journey"],
+        env=os.environ | {"PYTHONPATH": str(ROOT / "backend")},
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    )
+    report = json.loads(result.stdout)
+    assert report["dataset_id"] == "phase04_agent_confirmation_journey_v2"
+    assert report["dataset_sha256"] != sha256(DATASET.read_bytes()).hexdigest()
+    assert report["unassisted_next_action"] == {"passed": 26, "total": 26, "pass_rate": 1.0}
+    diagnostics = report["diagnostics"]
+    assert diagnostics["correct_turns"] == diagnostics["total_turns"] == 40
+    assert diagnostics["correct_authorities"] == diagnostics["required_authorities"] == 10
+    assert diagnostics["supported_citations"] == diagnostics["required_citations"] == 30
+    assert diagnostics["uncorrected_misrouting"] == 0
+    baseline_data = json.loads(DATASET.read_bytes())
+    baseline = next(case for case in baseline_data["cases"] if case["id"] == "resume-pending-destination")
+    baseline_handoff = baseline["steps"][-1]["expect"]
+    baseline_citations = sorted(
+        passage for reference in baseline_handoff["citation_refs"]
+        for passage in baseline_data["references"][reference]["signed_evidence"]["passage_ids"]
+    )
+    for case in report["cases"]:
+        if case["id"].startswith("resume-pending-destination:"):
+            _, _, pending, confirmed, final = case["turns"]
+            assert pending["observed"]["fields"] == ["intake_confirmation"]
+            assert not pending["observed"]["official_channel"]
+            assert confirmed["observed"]["action"] == "saved_intake_confirmed"
+            assert final["expected"]["action"] == baseline_handoff["next_action"]
+            assert final["expected"]["authorities"] == baseline_handoff["authority_ids"]
+            assert final["expected"]["citations"] == baseline_citations
+            assert final["observed"]["official_channel"]
+
+
+@pytest.mark.parametrize("language", ["en", "it"])
+def test_reopened_case_confirms_through_owned_intake_before_fresh_verified_handoff(
+    client, auth_headers, monkeypatch, language,
+):
+    monkeypatch.syspath_prepend(str(ROOT / "evals"))
+    evaluator = importlib.import_module("score_phase04_next_action")
+    data, _ = evaluator.load_development_set(confirmation_journey=True)
+    case = next(case for case in data["cases"] if case["id"] == "resume-pending-destination")
+    opening, _, reply, confirmation, followup = case["steps"]
+    catalog = evaluator.load_catalog(evaluator.CATALOG.read_text(encoding="utf-8"))
+    replay = evaluator.ScenarioReplay(client.app.state.session_factory, data, case, language, catalog)
+    principal = replay.context["principal"]
+    owner = auth_headers(principal.subject)
+    outsider = auth_headers("bob")
+    client.app.include_router(build_reconnect_router(
+        key=replay.context["key"], read_evidence_scope=replay.read_scope,
+    ))
+    thread_url = f"/api/v1/agent/threads/{replay.context['thread_id']}"
+    intake_url = f"/api/v1/cases/{replay.case_id}/intake"
+
+    def send(step):
+        response = client.post(thread_url + "/messages", headers=owner, json={
+            "client_message_id": str(uuid4()), "language": language,
+            "case_id": str(replay.case_id), "text": step["text"][language],
+        })
+        assert response.status_code == 202
+        replay.context["run_id"] = UUID(response.json()["run_id"])
+        replay.advance()
+        return f"{thread_url}/runs/{response.json()['run_id']}"
+
+    run_url = send(opening)
+    reopened = client.get(run_url, headers=owner).json()
+    assert reopened["status"] == "waiting_for_information"
+    events = client.get(run_url + "/events", headers=owner).json()["events"]
+    question = events[-1]["question"]
+    assert question["missing_fields"] == ["destination"]
+    saved = client.post(f"{run_url}/questions/{question['question_id']}/reply", headers=owner, json={
+        "client_reply_id": str(uuid4()), "expected_run_revision": reopened["run_revision"],
+        "text": reply["text"][language],
+    })
+    assert saved.status_code == 200
+    replay.advance()
+    waiting = client.get(run_url, headers=owner).json()
+    assert waiting["selected_case"]["case_id"] == str(replay.case_id)
+    assert waiting["result"]["next_action"]["operation"] == "confirm_saved_intake"
+    assert waiting["result"]["citations"] == [] and waiting["handoff"] is None
+    assert client.get(run_url, headers=outsider).status_code == 404
+
+    draft = client.get(intake_url, headers=owner).json()
+    assert not draft["confirmed"] and "destination_municipality" not in draft["facts"]
+    early = client.get(send(followup), headers=owner).json()
+    assert early["handoff"] is None and early["result"]["verification_status"] == "insufficient_evidence"
+
+    payload = {"facts": draft["facts"] | confirmation["facts"], "confirm": True}
+    assert client.put(intake_url, headers=outsider, json=payload).status_code == 404
+    response = client.put(intake_url, headers=owner, json=payload)
+    assert response.status_code == 200 and response.json()["confirmed"]
+    replay.facts.update(response.json()["facts"])
+
+    verified = client.get(send(followup), headers=owner).json()
+    assert verified["result"]["verification_status"] == "verified"
+    assert verified["handoff"]["next_action"]["operation"] == "open_official_channel"
+    assert set(verified["handoff"]["evidence_ids"]) == {item.citation.passage_id for item in replay.channel_passages}
+    assert client.get(run_url, headers=owner).json()["handoff"] is None
+    archived = client.patch(f"/api/v1/cases/{replay.case_id}/archive", headers=owner, json={"archived": True})
+    assert archived.status_code == 200
+    assert client.get(run_url, headers=owner).json()["selected_case"] is None
 
 
 def _replay(monkeypatch, case_id, *, opening, invalidate_case=None):

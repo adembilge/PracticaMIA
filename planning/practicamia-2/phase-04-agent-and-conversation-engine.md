@@ -287,6 +287,14 @@ The unchanged synthetic dataset and scoring criteria passed 24/26 scenario-langu
 
 Run `python -m pytest -q tests/test_agent_filing_clarification.py tests/test_agent_case_selection.py tests/test_agent_next_action_evaluation.py` from `backend/` to reproduce the clarification, signed reconnect and replay checks.
 
+### Completing the reopened case after intake confirmation
+
+The destination reply resumes the saved question. When the intake still needs the owner's confirmation, the worker returns `confirm_saved_intake` without citations or an official channel. The current snapshot offers a link to the intake section of the owned, active case. The user confirms through the existing intake form, then requests the filing step in the same conversation. The new run rechecks the saved intake and reviewed evidence before it can provide the official handoff.
+
+Run `PYTHONPATH=backend python evals/score_phase04_next_action.py --confirmation-journey` from the repository root. The versioned journey retains all 26 case-language runs and passes **26/26 runs and 40/40 checkpoints**. Only the reopened destination journey gains an explicit intake confirmation and a new filing request. The final handoff requires the same exact authority and passages as before. The replay also verifies that the destination reply returns a confirmation step without an official channel.
+
+The default v1 run preserves the original fixture and scores **24/26 and 34/36**. Signed HTTP tests exercise both languages, the case link, blocked handoff before confirmation, cross-owner checks and the verified response after a fresh request. The results apply to the synthetic development set.
+
 ## End-to-end closure scenario
 
 The user describes a need without knowing the authority. The agent finds the task and source and asks a question when necessary. After a correction, the agent reassesses affected results, shows the action, competent channel, and supporting passage, then lets the user save the task and resume it after returning.

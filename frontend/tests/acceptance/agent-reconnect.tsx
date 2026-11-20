@@ -428,7 +428,9 @@ export function AgentReconnectFixture() {
           <h2>{view.snapshot.result.next_action?.operation === 'start_new_topic' ? 'Topic changed' : 'Conversation complete'}</h2>
           <p>{view.snapshot.result.explanation}</p>
           {view.snapshot.selected_case && (
-            <a href={`/cases/${view.snapshot.selected_case.case_id}`}>{view.snapshot.selected_case.label}</a>
+            <a href={`/cases/${view.snapshot.selected_case.case_id}${
+              view.snapshot.result.next_action?.operation === 'confirm_saved_intake' ? '#case-intake' : ''
+            }`}>{view.snapshot.selected_case.label}</a>
           )}
           {view.snapshot.handoff && <AgentOfficialHandoff handoff={view.snapshot.handoff} />}
           <AgentSourceCards runUrl={view.url} citations={view.snapshot.result.citations ?? []} language="en" />

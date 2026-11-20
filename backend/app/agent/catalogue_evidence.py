@@ -266,15 +266,15 @@ def refresh_corrected_evidence(
     if "intake_confirmation" in evidence.missing_fields:
         return AnswerResult(
             explanation=(
-                "Complete and confirm your saved case details before I check the official sources."
+                "Complete and confirm your saved case details. Then return here and ask for the filing step."
                 if language == "en"
-                else "Completa e conferma i dati della pratica salvata prima della verifica delle fonti ufficiali."
+                else "Completa e conferma i dati della pratica salvata. Poi torna qui e chiedi come presentarla."
             ),
             verification_status="insufficient_evidence",
             missing_information=["intake_confirmation"],
             next_action=NextAction(
                 label="Confirm saved case details" if language == "en" else "Conferma i dati della pratica",
-                operation="provide_information",
+                operation="confirm_saved_intake",
             ),
         )
     return _unverified_evidence(language, list(evidence.missing_fields) or state.missing_fields)
