@@ -417,6 +417,12 @@ def test_owner_reconnects_replies_and_resumes_the_same_run(client, auth_headers,
         assert page.json()["events"][0] == first.json()["events"][0]
         assert page.json()["events"][-1]["question"] == question.model_dump(mode="json")
         assert page.json()["last_event_seq"] == snapshot.json()["last_event_seq"]
+        history_url = f"/api/v1/agent/threads/{context['thread_id']}/history"
+        pending = reconnected.get(history_url, headers=owner)
+        assert pending.status_code == 200
+        assert pending.json()["items"][0]["clarifications"] == []
+        assert pending.json()["items"][0]["clarification_history_truncated"] is False
+        assert_private_error(reconnected.get(history_url, headers=auth_headers("bob")), 404, "unavailable")
 
         reply_url = f"{url}/questions/{question.question_id}/reply"
         reply = {
@@ -442,6 +448,15 @@ def test_owner_reconnects_replies_and_resumes_the_same_run(client, auth_headers,
         assert finished.status_code == 200
         assert finished.json()["status"] == "completed"
         assert finished.json()["result"]["explanation"] == "Synthetic answer"
+        complete_history = reconnected.get(history_url, headers=owner)
+        assert complete_history.headers["Cache-Control"] == "private, no-store"
+        assert complete_history.json()["items"][0]["clarifications"] == [{
+            "question_id": str(question.question_id),
+            "question_text": question.text,
+            "disposition": "answer",
+            "reply_text": "Fixture B",
+        }]
+        assert complete_history.json()["items"][0]["answer"]["explanation"] == "Synthetic answer"
         late_stop = reconnected.post(
             url + "/stop", headers=owner, json={"expected_run_revision": snapshot.json()["run_revision"]},
         )
@@ -452,6 +467,41 @@ def test_owner_reconnects_replies_and_resumes_the_same_run(client, auth_headers,
         assert replay.status_code == 200
         assert replay.json()["events"][0] == saved.json()
         assert replay.json()["events"][1]["type"] == "answer.completed"
+
+
+
+def test_unknown_clarification_is_replayed_as_action_not_invented_text(client, auth_headers, paused_run):
+    context, question, _ = paused_run
+    client.app.include_router(build_reconnect_router(key=KEY))
+    owner = auth_headers()
+    url = run_url(context)
+    revision = client.get(url, headers=owner).json()["run_revision"]
+    accepted = client.post(
+        f"{url}/questions/{question.question_id}/reply", headers=owner, json={
+            "client_reply_id": str(uuid4()), "expected_run_revision": revision,
+            "disposition": "unknown",
+        },
+    )
+    assert accepted.status_code == 200
+    assert accepted.json()["text"] is None
+    assert run_worker_step(
+        client.app.state.session_factory, **context,
+        execute=lambda *_: AnswerResult(
+            explanation="The municipality is still unknown.",
+            verification_status="insufficient_evidence",
+        ),
+    ).status == "completed"
+
+    history = client.get(
+        f"/api/v1/agent/threads/{context['thread_id']}/history", headers=owner,
+    )
+    assert history.json()["items"][0]["clarifications"] == [{
+        "question_id": str(question.question_id),
+        "question_text": question.text,
+        "disposition": "unknown",
+        "reply_text": None,
+    }]
+    assert "Fixture A" not in history.text and "Fixture B" not in history.text
 
 
 def test_private_errors_hide_payloads_and_foreign_or_deleted_runs(client, auth_headers, paused_run):
