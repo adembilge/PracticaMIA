@@ -5,15 +5,19 @@ from uuid import UUID, uuid4
 
 import pytest
 
+from app.agent.checkpoints import CheckpointState, load_checkpoint
 from app.agent.contract import SendMessage
+from app.agent.intent_extraction import identify_intent_step
 from app.agent.reconnect_router import build_reconnect_router
 from app.agent.run_requests import accept_message
 from app.agent.threads import create_thread, link_case_to_thread
 from app.agent.worker import run_worker_step
+from app.knowledge.entity_matching import CatalogueName
 from app.knowledge.review_service import revoke_version
 from app.knowledge.search import resolve_approved_passage
 from test_agent_answer_evidence import _citation_for, approved_citation, proposal  # noqa: F401
 from test_agent_run_requests import ALICE, KEY
+from test_case_intake import FACTS, create_scoped_case
 from test_knowledge_search import OTHER_HTML, SCOPE, _approve, _create
 
 
@@ -160,3 +164,81 @@ def test_handoff_uses_the_owned_linked_case_and_withholds_action_after_archiving
     assert after["status"] == "verification_required"
     assert after["official_channel"] is None
     assert current_reads == [owned_case_id]
+
+
+@pytest.mark.parametrize(("language", "message", "destination"), [
+    ("en", "Correction: my destination is Turin. Milan is my previous municipality.", "turin"),
+    ("it", "Correzione: il comune di destinazione è Torino. Milano è il comune precedente.", "turin"),
+    ("it", "Correzione: il comune di destinazione è Torino o Como.", None),
+])
+def test_new_destination_message_invalidates_only_the_same_case_current_handoff(
+    client, auth_headers, proposal, monkeypatch, language, message, destination,
+):
+    answer, scope = proposal
+    scope = replace(scope, claim_reviews=tuple(replace(review, language=language) for review in scope.claim_reviews))
+    owner = auth_headers("alice")
+    case_id = UUID(create_scoped_case(client, owner))
+    other_id = UUID(create_scoped_case(client, owner))
+    intake_url = f"/api/v1/cases/{case_id}/intake"
+    assert client.put(intake_url, headers=owner, json={"facts": FACTS, "confirm": True}).status_code == 200
+    saved_intake = client.get(intake_url, headers=owner).json()
+    old_url = _publish(client, answer, scope, language, case_id=case_id, read_evidence_scope=lambda *_: scope)
+    thread_url = old_url.split("/runs/")[0]
+    thread_id = UUID(thread_url.rsplit("/", 1)[1])
+    sessions = client.app.state.session_factory
+    with sessions.begin() as db:
+        assert link_case_to_thread(db, thread_id=thread_id, case_id=other_id, principal=ALICE)
+
+    def send(text, case=case_id):
+        payload = {"client_message_id": str(uuid4()), "language": language, "case_id": str(case), "text": text}
+        response = client.post(f"{thread_url}/messages", headers=owner, json=payload)
+        assert response.status_code == 202
+        return payload, response.json()
+
+    def run(accepted, execute):
+        return run_worker_step(
+            sessions, thread_id=thread_id, run_id=UUID(accepted["run_id"]), principal=ALICE, key=KEY,
+            execute=execute, read_evidence_scope=lambda *_: scope,
+        )
+
+    def saved_run(accepted):
+        return client.get(f"{thread_url}/runs/{accepted['run_id']}", headers=owner).json()
+
+    _, other = send("Another case", case=other_id)
+    assert run(other, lambda *_: answer).status == "completed"
+    assert saved_run(other)["handoff"]["status"] == "verified_channel"
+    before = client.get(old_url, headers=owner).json()
+    assert before["handoff"]["status"] == "verified_channel"
+
+    payload, correction = send(message)
+    assert client.post(f"{thread_url}/messages", headers=owner, json=payload).json() == correction
+    assert client.get(old_url, headers=auth_headers("bob")).status_code == 404
+    after = client.get(old_url, headers=owner).json()
+    assert after["result"] == before["result"] and after["run_revision"] == before["run_revision"]
+    assert after["handoff"]["status"] == "verification_required"
+    assert after["handoff"]["official_channel"] is None and after["handoff"]["evidence_ids"] == []
+    assert saved_run(other)["handoff"]["status"] == "verified_channel"
+
+    monkeypatch.setattr("app.agent.catalogue_evidence.find_catalogue_evidence",
+                        lambda *_args, **_kwargs: pytest.fail("Do not look up the old municipality"))
+    names = tuple(CatalogueName(
+        "turin", "municipality", "Torino", name, "reviewed_alias", "fixture-review", approved_for_search=True,
+    ) for name in ("Torino", "Turin"))
+    run(correction, lambda *_: CheckpointState(next_node="identify_intent"))
+    run(correction, lambda stored, state: identify_intent_step(stored, state, catalogue_names=names))
+    with sessions() as db:
+        checkpoint = load_checkpoint(db, thread_id=thread_id, run_id=UUID(correction["run_id"]), principal=ALICE, key=KEY)
+        resolved = checkpoint.state.routing_corrections
+    assert (resolved.destination if resolved else None) == destination
+    result = run(correction, lambda *_: pytest.fail("The worker resolves the guarded next step")).result
+    assert result.next_action.operation == "reassess_destination" and result.verification_status == "insufficient_evidence"
+    assert result.official_channel is None and result.citations == []
+
+    _, followup = send("Show the filing instructions again.")
+    assert run(followup, lambda *_: answer).result.next_action.operation == "reassess_destination"
+    assert client.get(intake_url, headers=owner).json() == saved_intake
+    assert client.put(intake_url, headers=owner, json={"facts": FACTS, "confirm": True}).status_code == 200
+    _, confirmed = send("Show the filing instructions for the confirmed case.")
+    assert run(confirmed, lambda *_: answer).result.verification_status == "verified"
+    assert saved_run(confirmed)["handoff"]["status"] == "verified_channel"
+    assert client.get(old_url, headers=owner).json()["handoff"]["status"] == "verification_required"

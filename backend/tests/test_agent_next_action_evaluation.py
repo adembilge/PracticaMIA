@@ -51,6 +51,7 @@ def test_documented_next_action_command_reports_cases_and_turns():
     assert {
         "milan-confirmed-route:it", "milan-source-withdrawn:en", "milan-source-withdrawn:it",
         "current-attachment-limit:en", "current-attachment-limit:it",
+        "destination-corrected:en", "destination-corrected:it",
     }.issubset(passing)
 
 

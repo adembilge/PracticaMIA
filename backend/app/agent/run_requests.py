@@ -21,10 +21,12 @@ from app.agent.contract import (
     ActiveRunCursor, ActiveRunPage, ActiveRunSummary, AnswerCompleted, ApprovalApplied, ClarifyingQuestion,
     Language, QuestionAnswered, SendMessage,
 )
+from app.agent.destination_correction import DestinationCorrection, destination_correction_name
 from app.agent.threads import AgentThread, AgentThreadCase
 from app.auth.tokens import Principal
 from app.cases.model import CaseRecord
 from app.database import Base
+from app.rules.engine import PROCEDURE
 
 WORKER_RUN_STATUSES = ("queued", "running")
 FOREGROUND_STATUSES = (*WORKER_RUN_STATUSES, "waiting_for_approval", "stopping")
@@ -99,7 +101,13 @@ class StoredMessage:
     case_context: WorkerCaseContext | None = None
     clarification_question: ClarifyingQuestion | None = None
     approval_applied: ApprovalApplied | None = None
+    destination_correction: DestinationCorrection | None = field(default=None, compare=False)
+    accepted_revision: int | None = field(default=None, compare=False)
     origin: Literal["user_entered"] = field(default="user_entered", init=False)
+
+    @property
+    def corrects_destination(self) -> bool:
+        return self.destination_correction is not None and self.destination_correction.revision == self.accepted_revision
 
 
 def _associated_data(run: AgentRunRequest, subject: str) -> bytes:
@@ -117,10 +125,17 @@ def _payload_cipher(key: bytes) -> AESGCM:
 
 def _decode(run: AgentRunRequest, principal: Principal, key: bytes) -> StoredMessage:
     nonce, payload = run.message_ciphertext[:12], run.message_ciphertext[12:]
-    message, language = json.loads(_payload_cipher(key).decrypt(
+    message, language, *metadata = json.loads(_payload_cipher(key).decrypt(
         nonce, payload, _associated_data(run, principal.subject),
     ))
-    return StoredMessage(message, language, UUID(run.case_id) if run.case_id else None)
+    correction = None
+    if metadata:
+        revision, timestamp = metadata[0]
+        correction = DestinationCorrection(revision, datetime.fromisoformat(timestamp))
+    return StoredMessage(
+        message, language, UUID(run.case_id) if run.case_id else None,
+        destination_correction=correction, accepted_revision=run.accepted_revision,
+    )
 
 
 def _owned_link(thread: str, case: str, principal: Principal):
@@ -156,7 +171,7 @@ def accept_message(
     case_link = None
     if case_id:
         case_link = db.execute(
-            _owned_link(thread.id, case_id, principal).add_columns(CaseRecord.archived_at)
+            _owned_link(thread.id, case_id, principal).add_columns(CaseRecord.archived_at, CaseRecord.procedure)
             .with_for_update(read=True, of=(CaseRecord, AgentThreadCase))
         ).one_or_none()
         if case_link is None:
@@ -190,8 +205,16 @@ def accept_message(
         client_message_id=str(message.client_message_id), status="queued",
         accepted_revision=thread.revision + 1, accepted_at=datetime.now(timezone.utc),
     )
+    payload_fields = [message.text, message.language]
+    if case_link is not None and case_link.procedure == PROCEDURE:
+        if destination_correction_name(message.text, message.language):
+            correction = DestinationCorrection(run.accepted_revision, run.accepted_at)
+        else:
+            correction = latest_destination_correction(db, thread_id=thread.id, case_id=case_id, principal=principal, key=key)
+        if correction is not None:
+            payload_fields.append([correction.revision, correction.accepted_at.isoformat()])
     nonce = urandom(12)
-    payload = json.dumps([message.text, message.language], ensure_ascii=False).encode()
+    payload = json.dumps(payload_fields, ensure_ascii=False).encode()
     run.message_ciphertext = nonce + _payload_cipher(key).encrypt(
         nonce, payload, _associated_data(run, principal.subject),
     )
@@ -224,6 +247,16 @@ def _owned_run(thread_id: UUID, run_id: UUID, principal: Principal):
     return _owned_runs(principal).where(
         AgentRunRequest.id == str(run_id), AgentRunRequest.thread_id == str(thread_id),
     )
+
+
+def latest_destination_correction(
+    db: Session, *, thread_id: str, case_id: str, principal: Principal, key: bytes,
+) -> DestinationCorrection | None:
+    """Read the propagated correction from the newest owned request for this linked case."""
+    run = db.scalar(_owned_runs(principal).where(
+        AgentRunRequest.thread_id == thread_id, AgentRunRequest.case_id == case_id,
+    ).order_by(AgentRunRequest.accepted_revision.desc()).limit(1))
+    return _decode(run, principal, key).destination_correction if run is not None else None
 
 
 def list_active_runs(

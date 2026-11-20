@@ -6,9 +6,10 @@ import re
 from typing import Literal
 import unicodedata
 
-from app.agent.checkpoints import CheckpointState
+from app.agent.checkpoints import CheckpointState, RoutingCorrections
 from app.agent.case_selection import OTHER_CASE_CUE
 from app.agent.contract import MAX_MESSAGE_GOALS, MAX_PROCEDURE_CANDIDATES, AgentIntent, MessageGoal
+from app.agent.destination_correction import destination_correction_name
 from app.agent.notice_clarification import unreadable_notice_field
 from app.agent.run_requests import StoredMessage
 from app.knowledge.entity_matching import (
@@ -346,6 +347,18 @@ def identify_intent_step(
     """Project the result onto the worker checkpoint without keeping message spans."""
     if state.next_node != "identify_intent":
         raise ValueError("Intent extraction requires the identify_intent node")
+    if message.corrects_destination:
+        name = destination_correction_name(message.text, message.language)
+        municipality = None
+        if name and len(name) <= MAX_NAME_QUERY_LENGTH and normalize_name(name):
+            match = match_catalogue_names(name, list(catalogue_names), entity_type="municipality")
+            if match.status == "resolved":
+                municipality = match.selected_id
+        return CheckpointState(
+            intent="find_procedure", procedure_candidates=[PROCEDURE],
+            next_node="find_evidence" if municipality else "choose_next_step",
+            routing_corrections=RoutingCorrections(destination=municipality) if municipality else None,
+        )
     result = extract_intent(message, catalogue_names=catalogue_names)
     procedures = list(result.procedure_candidates)
     missing = list(result.missing_context)
