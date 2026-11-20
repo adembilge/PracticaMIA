@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from pydantic import Field, ValidationError
+from pydantic import Field, ValidationError, model_validator
 from sqlalchemy import (
     CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index,
     Integer, LargeBinary, String, UniqueConstraint, and_, or_, select, text,
@@ -18,9 +18,10 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.agent.case_context import WorkerCaseContext
 from app.agent.contract import (
-    ActiveRunCursor, ActiveRunPage, ActiveRunSummary, AnswerCompleted, AnswerResult, ApprovalApplied, ClarifyingQuestion,
-    ClarificationDisposition, ClarificationText, ContractModel, Language, PositiveInt,
-    QuestionAnswered, QuestionRequested, RunStatus, SendMessage, ShortText,
+    ActiveRunCursor, ActiveRunPage, ActiveRunSummary, AnswerCompleted, AnswerResult, ApprovalApplied,
+    ApprovalDecided, ApprovalRequested, ClarifyingQuestion, ClarificationDisposition, ClarificationText,
+    ContractModel, FieldValue, Identifier, Language, PositiveInt, QuestionAnswered, QuestionRequested,
+    RunStatus, SendMessage, ShortText,
 )
 from app.agent.destination_correction import DestinationCorrection, destination_correction_name
 from app.agent.threads import AgentThread, AgentThreadCase
@@ -93,6 +94,28 @@ class ConversationClarification(ContractModel):
     reply_text: ClarificationText | None
 
 
+class ConversationApproval(ContractModel):
+    """A proposal and its recorded decision; only an applied event proves a case write."""
+
+    proposal_id: UUID
+    field_id: Identifier
+    proposed_value: FieldValue
+    decision: Literal["accept", "correct", "reject", "cancel"] | None = None
+    corrected_value: FieldValue | None = None
+    applied_operation_id: UUID | None = None
+    applied_case_revision: PositiveInt | None = None
+
+    @model_validator(mode="after")
+    def validate_receipt(self):
+        if (self.applied_operation_id is None) != (self.applied_case_revision is None):
+            raise ValueError("An applied operation requires its committed case revision")
+        if self.applied_operation_id is not None and self.decision != "accept":
+            raise ValueError("Only an accepted proposal may have a committed receipt")
+        if self.corrected_value is not None and self.decision != "correct":
+            raise ValueError("Only a correction decision carries the requested replacement value")
+        return self
+
+
 class ConversationTurn(ContractModel):
     run_id: UUID
     case_id: UUID | None
@@ -102,7 +125,9 @@ class ConversationTurn(ContractModel):
     language: Language
     answer: AnswerResult | None = None
     clarifications: list[ConversationClarification] = Field(default_factory=list)
+    approvals: list[ConversationApproval] = Field(default_factory=list)
     clarification_history_truncated: bool = False
+    approval_history_truncated: bool = False
 
 
 class ConversationHistoryPage(ContractModel):
@@ -340,11 +365,11 @@ def list_thread_history(
     db: Session, *, thread_id: UUID, principal: Principal, key: bytes,
     limit: int = 20, before_revision: int | None = None,
 ) -> ConversationHistoryPage | None:
-    """Read bounded, owned chat turns with answered clarification exchanges.
+    """Project saved chat questions, approvals and committed case receipts.
 
-    Reconstruct question/response pairs only from authoritative saved events;
-    never infer an answer from a pending question or from LLM text. The full
-    event journal remains available via the per-run replay endpoint.
+    The full encrypted per-run journal remains authoritative. A user's
+    acceptance is not reported as a saved case update without an actual
+    approval.applied event, which itself requires a committed operation.
     """
     if not 1 <= limit <= 30:
         raise ValueError("Invalid conversation history page size")
@@ -382,7 +407,9 @@ def list_thread_history(
         ).all()
         truncated = len(stored_events) > MAX_HISTORY_EVENT_SCAN
         questions: dict[UUID, str] = {}
-        clarifications = []
+        clarifications: list[ConversationClarification] = []
+        approvals: list[ConversationApproval] = []
+        approval_indexes: dict[UUID, int] = {}
         for saved_event in stored_events[:MAX_HISTORY_EVENT_SCAN]:
             parsed_event = _decode_event(saved_event, run, principal, key)
             if isinstance(parsed_event, QuestionRequested):
@@ -396,11 +423,37 @@ def list_thread_history(
                         disposition=parsed_event.disposition,
                         reply_text=parsed_event.text,
                     ))
+            elif isinstance(parsed_event, ApprovalRequested):
+                proposal = parsed_event.proposal
+                approval_indexes[proposal.proposal_id] = len(approvals)
+                approvals.append(ConversationApproval(
+                    proposal_id=proposal.proposal_id, field_id=proposal.field_id,
+                    proposed_value=proposal.proposed_value,
+                ))
+            elif isinstance(parsed_event, ApprovalDecided):
+                index = approval_indexes.get(parsed_event.proposal_id)
+                if index is not None:
+                    previous = approvals[index]
+                    approvals[index] = ConversationApproval.model_validate({
+                        **previous.model_dump(),
+                        "decision": parsed_event.decision.decision,
+                        "corrected_value": parsed_event.decision.corrected_value,
+                    })
+            elif isinstance(parsed_event, ApprovalApplied):
+                index = approval_indexes.get(parsed_event.proposal_id)
+                if index is not None:
+                    previous = approvals[index]
+                    approvals[index] = ConversationApproval.model_validate({
+                        **previous.model_dump(),
+                        "applied_operation_id": parsed_event.operation_id,
+                        "applied_case_revision": parsed_event.case_revision,
+                    })
         turns.append(ConversationTurn(
             run_id=UUID(run.id), case_id=UUID(run.case_id) if run.case_id else None,
             status=run.status, accepted_revision=run.accepted_revision,
             user_message=message.text, language=message.language, answer=answer,
-            clarifications=clarifications, clarification_history_truncated=truncated,
+            clarifications=clarifications, approvals=approvals,
+            clarification_history_truncated=truncated, approval_history_truncated=truncated,
         ))
     next_cursor = turns[-1].accepted_revision if len(rows) > limit else None
     return ConversationHistoryPage(
