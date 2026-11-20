@@ -140,7 +140,7 @@ Changing topic or case changes the active conversation context, not the interfac
 | --- | --- | --- |
 | First working journey | 41–42 and the core of 43–44 | Send a real agent message and receive a verified answer |
 | Advance a task | 45–47 | Answer a question, inspect the source, and find the next action |
-| Return to the same task | 48–49 and reconnection in 44 | Resume after leaving a panel, closing the tab, or signing in again |
+| Return to the same task | 48–49 and reconnection in 44 | Resume after collapsing a card, closing the tab, or signing in again |
 | Verify the journey | 50 | Mobile, keyboard, and network interruption tests pass |
 
 **End-to-end demonstration.** The user starts with free text and completes clarification, cited-source expansion, case saving and resumption **without leaving the chatbot route**. Phase 6 adds in-chat document upload, extraction review and confirmation; Phase 7 adds inline checklist/form preparation and official handoff; Phase 8 adds case history and tracking through the same composer. Any external government interaction is a clearly labelled link-out, not another PracticaMIA UI.
