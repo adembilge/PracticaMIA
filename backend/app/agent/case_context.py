@@ -1,6 +1,7 @@
 """Read the confirmed intake and current review actions for a linked case."""
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Literal, get_args
 from uuid import UUID
 
@@ -36,6 +37,7 @@ class WorkerCaseContext:
     proposal_case_fingerprint: str | None = None
     checklist_evidence_ids: dict[str, tuple[str, ...]] = field(default_factory=dict)
     shared_citizenship_class: KnownCitizenship | None = None
+    intake_confirmed_at: datetime | None = None
 
     @property
     def matches_first_milan_route(self) -> bool:
@@ -136,6 +138,7 @@ def read_worker_case_context(
     return WorkerCaseContext(
         case_id=case_id,
         user_confirmed_facts=facts,
+        intake_confirmed_at=intake.confirmed_at if facts is not None and intake is not None else None,
         next_action=workflow["next_action"] if workflow["next_action"] in get_args(CaseNextAction) else None,
         open_review_action_ids=tuple(
             item["id"] for item in checklist["items"] if item["id"] not in checklist["reviewed_items"]

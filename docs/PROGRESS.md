@@ -187,4 +187,6 @@ The [Phase 4 unreadable notice follow-up](../planning/practicamia-2/phase-04-age
 
 The [Phase 4 saved filing and current form follow-up](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#saved-milan-filing-and-current-form-checks) retrieves reviewed guidance for a confirmed Milan case and gives a form-check step for obsolete ANPR upload limits. The unchanged synthetic development set passed 14/26 scenario-language runs and 24/36 checkpoints. Intake invalidation during retrieval and source withdrawal after publication both withhold the channel at the relevant boundary.
 
+The [Phase 4 destination correction follow-up](../planning/practicamia-2/phase-04-agent-and-conversation-engine.md#destination-correction-in-a-new-message) withholds the old live handoff when the owner sends an explicit destination correction for the same linked case. The unchanged synthetic replay passed 16/26 scenario-language runs and 26/36 checkpoints. The signed tests cover retries, separate linked cases and the confirmation required before offering a fresh verified handoff.
+
 For implementation details see [the documentation index](README.md).

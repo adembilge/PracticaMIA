@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.agent.checkpoints import CheckpointState, RoutingCorrections
 from app.agent.contract import AnswerResult, Citation, Language, NextAction
+from app.agent.destination_correction import reassess_destination
 from app.agent.diagnostics import AgentFailureDiagnostic, EvidenceQueryKind
 from app.agent.threads import AgentThread, AgentThreadCase
 from app.agent.tool_contract import (
@@ -216,9 +217,12 @@ def refresh_corrected_evidence(
     corrections = state.routing_corrections
     if state.next_node != "find_evidence" or corrections is None:
         raise ValueError("Evidence refresh requires a corrected routing decision")
+    if case_id is not None and state.procedure_candidates == [PROCEDURE] and (
+        corrections.destination not in (None, JURISDICTION)
+    ):
+        return reassess_destination(language)
     if (
         case_id is None or state.procedure_candidates != [PROCEDURE]
-        or corrections.destination not in (None, JURISDICTION)
         or corrections.activity_location is not None
         or corrections.housing_basis not in (None, "registered_private_rental")
         or corrections.citizenship_class not in (None, "italian")

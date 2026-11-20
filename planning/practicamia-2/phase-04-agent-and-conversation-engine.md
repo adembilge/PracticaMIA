@@ -267,6 +267,16 @@ The replay now persists complete initial profiles as confirmed intake in its dis
 
 Run `python -m pytest -q tests/test_agent_intent_extraction.py tests/test_agent_next_action_evaluation.py` from `backend/` for the bounded phrasing, stale case, withdrawal and old-guide regressions.
 
+### Destination correction in a new message
+
+A linked Milan case accepts explicit destination corrections in English and Italian. The worker resolves the named destination using the supplied reviewed municipality names. A second sentence identifying the previous municipality provides no destination candidate. An unresolved or unsupported destination produces `reassess_destination`. The result has no official channel or citations.
+
+The accepted correction supersedes earlier live handoffs for the same case in that conversation immediately. Earlier answers and their citations remain in the historical journal. Subsequent requests in the same conversation carry the correction's revision and timestamp in their encrypted payload. The saved intake can support a fresh reviewed handoff after the owner confirms the case details again. The message itself does not write saved intake.
+
+The unchanged synthetic development set passed 16/26 scenario-language runs and 26/36 checkpoints, up from 14/26 and 24/36. Both gains come from the Milan-to-Torino destination correction. Torino remains outside the reviewed route. The run confirms that the old Milan channel was withheld and that the newer result explicitly directs the user to reassess the destination.
+
+Run `python -m pytest -q tests/test_agent_source_cards.py tests/test_agent_next_action_evaluation.py` from `backend/` to reproduce the signed handoff and offline replay checks.
+
 ## End-to-end closure scenario
 
 The user describes a need without knowing the authority. The agent finds the task and source and asks a question when necessary. After a correction, the agent reassesses affected results, shows the action, competent channel, and supporting passage, then lets the user save the task and resume it after returning.

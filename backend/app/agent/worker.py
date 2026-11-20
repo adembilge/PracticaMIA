@@ -21,6 +21,7 @@ from app.agent.contract import (
     NextAction, ProgressUpdated, QuestionAnswered, QuestionRequested, RunFailed, RunSnapshot, RunStarted,
 )
 from app.agent.diagnostics import AgentFailureDiagnostic
+from app.agent.destination_correction import reassess_destination
 from app.agent.proposal_freshness import ProposalFreshness, proposal_evidence_fingerprint
 from app.agent.run_events import EventConflict, _read_event_at, read_run_snapshot
 from app.agent.run_requests import (
@@ -33,7 +34,7 @@ from app.agent.worker_leases import WorkerLease, WorkerLeaseConflict, claim_next
 from app.auth.tokens import Principal
 from app.cases.intake_schemas import IntakeFacts
 from app.config import Settings
-from app.rules.engine import PROCEDURE
+from app.rules.engine import JURISDICTION, PROCEDURE
 
 
 @dataclass(frozen=True)
@@ -194,6 +195,10 @@ def run_worker_step(
     # Only completed boundaries survive a crash. Uncommitted computation can
     # run again, so this callback must not perform external writes.
     corrections = checkpoint.state.routing_corrections
+    destination_correction = message.destination_correction
+    destination_pending = destination_correction is not None and destination_correction.needs_confirmation(
+        case_context.intake_confirmed_at if case_context is not None else None,
+    )
     if topic_changed and question is not None:
         explanation, label = (
             ("The previous question is still open. Send a new message to change topics.", "Start a new topic")
@@ -217,6 +222,12 @@ def run_worker_step(
             goals=checkpoint.state.goals,
             goal_selection=goal_selection,
         )
+    elif message.corrects_destination and checkpoint.state.next_node == "choose_next_step":
+        result = reassess_destination(message.language)
+    elif destination_pending and checkpoint.state.next_node in ("find_evidence", "verify_and_respond") and (
+        corrections is None or corrections.destination in (None, JURISDICTION)
+    ):
+        result = reassess_destination(message.language)
     elif checkpoint.state.next_node == "find_evidence" and corrections:
         for attempt in range(2):
             try:
@@ -304,11 +315,19 @@ def run_worker_step(
                     ),
                 })
         if isinstance(result, AnswerResult):
-            if checkpoint.state.uses_confirmed_case_scope and (result.citations or result.official_channel):
+            if (checkpoint.state.uses_confirmed_case_scope or destination_correction is not None) and (
+                result.citations or result.official_channel
+            ):
                 current_case = read_worker_case_context(
                     db, thread_id=thread_id, case_id=message.case_id, principal=principal, lock_case=True,
                 ) if message.case_id is not None else None
-                if not result.citations or current_case is None or not current_case.matches_first_milan_route:
+                if destination_correction is not None and destination_correction.needs_confirmation(
+                    current_case.intake_confirmed_at if current_case is not None else None,
+                ):
+                    result = reassess_destination(message.language)
+                elif checkpoint.state.uses_confirmed_case_scope and (
+                    not result.citations or current_case is None or not current_case.matches_first_milan_route
+                ):
                     explanation, label = (
                         ("Review and confirm the saved case details before checking the filing step.", "Review case details")
                         if message.language == "en" else
