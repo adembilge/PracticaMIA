@@ -376,6 +376,17 @@ def test_pending_proposal_replays_the_exact_read_only_preview(client, auth_heade
         assert stopped.status_code == 200
         assert stopped.json()["pending_proposal"] is None
         assert stopped.json()["status"] == "stopped"
+        history_url = f"/api/v1/agent/threads/{thread_id}/history"
+        saved_history = reopened.get(history_url, headers=owner)
+        assert saved_history.status_code == 200
+        assert saved_history.headers["Cache-Control"] == "private, no-store"
+        [turn] = saved_history.json()["items"]
+        assert turn["status"] == "stopped"
+        assert turn["answer"] is None
+        assert turn["terminal_event"]["type"] == "run.stopped"
+        assert turn["terminal_event"]["committed_operation_ids"] == []
+        assert turn["approvals"][0]["applied_operation_id"] is None
+        assert_private_error(reopened.get(history_url, headers=auth_headers("bob")), 404, "unavailable")
     assert client.get(intake, headers=owner).json() == before
 
 
