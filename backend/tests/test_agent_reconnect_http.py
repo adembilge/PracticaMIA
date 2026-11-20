@@ -153,6 +153,92 @@ def test_followup_message_stays_in_same_private_chat_without_case(client, auth_h
     assert_private_error(client.get(run_url(context), headers=other), 404, "unavailable")
 
 
+
+def test_owned_completed_chat_history_paginates_without_cross_account_access(client, auth_headers):
+    client.app.include_router(build_reconnect_router(key=KEY))
+    owner, other = auth_headers(), auth_headers("bob")
+    initial = client.post("/api/v1/agent/conversations", headers=owner, json={
+        "client_message_id": str(uuid4()), "language": "en", "text": "How do I register my address?",
+    })
+    assert initial.status_code == 202
+    first = initial.json()
+    factory = client.app.state.session_factory
+    first_context = {
+        "thread_id": UUID(first["thread_id"]), "run_id": UUID(first["run_id"]),
+        "principal": OWNER, "key": KEY,
+    }
+    assert run_worker_step(factory, **first_context, execute=lambda *_: AnswerResult(
+        explanation="Synthetic response one.", verification_status="insufficient_evidence",
+    )).status == "completed"
+
+    send_url = f"/api/v1/agent/threads/{first['thread_id']}/messages"
+    followup = client.post(send_url, headers=owner, json={
+        "client_message_id": str(uuid4()), "language": "en", "text": "And for my residence permit?",
+    })
+    assert followup.status_code == 202
+    second = followup.json()
+    second_context = {**first_context, "run_id": UUID(second["run_id"])}
+    assert run_worker_step(factory, **second_context, execute=lambda *_: AnswerResult(
+        explanation="Synthetic response two.", verification_status="insufficient_evidence",
+    )).status == "completed"
+
+    active = client.get(ACTIVE_RUNS_URL, headers=owner)
+    assert active.json()["items"] == []
+    recent_url = "/api/v1/agent/runs/recent"
+    assert_private_error(client.get(recent_url), 401, "unauthenticated")
+    recent = client.get(recent_url, headers=owner)
+    assert recent.status_code == 200
+    assert recent.headers["Cache-Control"] == "private, no-store"
+    assert [item["run_id"] for item in recent.json()["items"]][:2] == [
+        second["run_id"], first["run_id"],
+    ]
+    assert all(item["status"] == "completed" for item in recent.json()["items"][:2])
+    assert "How do I" not in recent.text
+    assert client.get(recent_url, headers=other).json()["items"] == []
+    page1 = client.get(recent_url, headers=owner, params={"limit": 1}).json()
+    assert page1["items"][0]["run_id"] == second["run_id"]
+    page2 = client.get(recent_url, headers=owner, params={
+        "limit": 1, "before_accepted_at": page1["next_cursor"]["accepted_at"],
+        "before_run_id": page1["next_cursor"]["run_id"],
+    }).json()
+    assert page2["items"][0]["run_id"] == first["run_id"]
+
+    history_url = f"/api/v1/agent/threads/{first['thread_id']}/history"
+    assert_private_error(client.get(history_url), 401, "unauthenticated")
+    assert_private_error(client.get(history_url, headers=other), 404, "unavailable")
+    assert_private_error(client.get(
+        f"/api/v1/agent/threads/{uuid4()}/history", headers=owner,
+    ), 404, "unavailable")
+    page = client.get(history_url, headers=owner)
+    assert page.status_code == 200
+    assert page.headers["Cache-Control"] == "private, no-store"
+    history = page.json()
+    assert history["thread_id"] == first["thread_id"]
+    assert history["next_before_revision"] is None
+    assert [turn["user_message"] for turn in history["items"]] == [
+        "How do I register my address?", "And for my residence permit?",
+    ]
+    assert [turn["answer"]["explanation"] for turn in history["items"]] == [
+        "Synthetic response one.", "Synthetic response two.",
+    ]
+    assert [turn["accepted_revision"] for turn in history["items"]] == [1, 2]
+    assert all(turn["case_id"] is None for turn in history["items"])
+
+    latest = client.get(history_url, headers=owner, params={"limit": 1}).json()
+    assert [turn["run_id"] for turn in latest["items"]] == [second["run_id"]]
+    assert latest["next_before_revision"] == 2
+    earlier = client.get(history_url, headers=owner, params={
+        "limit": 1, "before_revision": latest["next_before_revision"],
+    }).json()
+    assert [turn["run_id"] for turn in earlier["items"]] == [first["run_id"]]
+    assert earlier["next_before_revision"] is None
+
+    with TestClient(client.app) as reopened:
+        saved = reopened.get(history_url, headers=owner)
+        assert saved.json() == history
+        assert reopened.get(recent_url, headers=other).json()["items"] == []
+
+
 def test_switch_between_owned_cases_and_reopen_the_original_question(client, auth_headers, paused_run):
     first, question, first_case = paused_run
     owner = auth_headers()
