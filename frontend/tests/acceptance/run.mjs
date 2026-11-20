@@ -903,6 +903,15 @@ try{
     assert.notEqual(next.pending_proposal.proposal_id,proposal.proposal_id);
     assert.equal(next.pending_proposal.expected_case_revision,proposal.expected_case_revision);
     assert.deepEqual((await readJson(owner,intakeUrl)).body,before.body);
+    const historyUrl=`/api/agent/threads/${run.thread_id}/history`;
+    const correctedHistory=(await readJson(owner,historyUrl)).body.items[0].approvals;
+    assert.deepEqual(correctedHistory.map(approval=>approval.decision),['correct',null]);
+    assert.equal(correctedHistory[0].corrected_value,'2026-11-07');
+    assert.equal(correctedHistory[0].applied_operation_id,null);
+    assert.equal(correctedHistory[1].proposed_value,'2026-11-07');
+    assert.equal(correctedHistory[1].applied_case_revision,null);
+    await owner.getByRole('region',{name:'Conversation history'})
+      .getByText('Correction requested:',{exact:false}).waitFor();
     await preview.getByRole('button',{name:'Accept proposal',exact:true}).click();
     await preview.waitFor({state:'hidden'});
     await awaitAgentStatus(owner,url);
@@ -922,6 +931,16 @@ try{
     assert.equal(accepted[5].case_revision,8);
     assert.equal(accepted[6].run_id,run.run_id);
     assert.equal((await readJson(owner,intakeUrl)).body.facts.move_in_date,'2026-11-07');
+    const appliedHistory=(await readJson(owner,historyUrl)).body.items[0].approvals;
+    assert.deepEqual(appliedHistory.map(approval=>approval.decision),['correct','accept']);
+    assert.equal(appliedHistory[0].applied_operation_id,null);
+    assert.equal(appliedHistory[1].applied_operation_id,accepted[5].operation_id);
+    assert.equal(appliedHistory[1].applied_case_revision,8);
+    await owner.getByRole('region',{name:'Conversation history'})
+      .getByText('Saved to case',{exact:false}).waitFor();
+    await owner.reload();
+    const restoredHistory=(await readJson(owner,historyUrl)).body.items[0].approvals;
+    assert.deepEqual(restoredHistory,appliedHistory);
   });
 
   await scenario('Agent task choice: reopen, select a goal and show the active task',async()=>{
