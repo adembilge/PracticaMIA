@@ -11,7 +11,7 @@ from app.agent.case_operations import AgentCaseOperation
 from app.agent.contract import (
     AgentEvent, AnswerCompleted, ApprovalApplied, ApprovalDecided, ApprovalRequested, EventPage, GoalSelection,
     QuestionAnswered, QuestionRequested,
-    RunSnapshot, RunStarted, agent_event_adapter, valid_event_position,
+    RunSnapshot, RunStarted, SavedCaseChoice, agent_event_adapter, valid_event_position,
 )
 from app.agent.run_requests import (
     ACTIVE_STATUSES, FOREGROUND_STATUSES, AgentRunRequest, _owned_run, _payload_cipher,
@@ -240,6 +240,8 @@ def read_run_snapshot(
             result = current.result
             goal_selection = result.goal_selection
             selected_case = result.selected_case
+            if run.case_id is not None and result.next_action and result.next_action.operation == "confirm_saved_intake":
+                selected_case = SavedCaseChoice(case_id=UUID(run.case_id), label=result.next_action.label)
             if selected_case is not None and db.scalar(active_case_links(thread_id, principal).where(
                 CaseRecord.id == str(selected_case.case_id),
             )) is None:
