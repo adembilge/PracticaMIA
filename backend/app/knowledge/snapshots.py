@@ -20,6 +20,7 @@ from app.knowledge.model import KnowledgeSource, KnowledgeSourceVersion
 from app.knowledge.pilot_sources import PILOT_REVIEW_APPLICATION_ID, PILOT_SOURCES
 from app.knowledge.review_model import KnowledgeReviewEvent
 from app.knowledge.snapshot_model import KnowledgePassage, KnowledgeSnapshot
+from app.knowledge.staging_guard import require_pilot_preview_database
 
 
 @dataclass(frozen=True)
@@ -49,15 +50,19 @@ def ingest_snapshot(
     expected_extraction = None
     if pilot_review:
         pilot = PILOT_SOURCES.get(source.id)
+        if db.get_bind().dialect.name == "sqlite":
+            if db.connection().exec_driver_sql("PRAGMA application_id").scalar_one() != PILOT_REVIEW_APPLICATION_ID:
+                raise ValueError("Pilot review requires the isolated SQLite catalogue")
+        else:
+            require_pilot_preview_database(db)
         if (
-            db.get_bind().dialect.name != "sqlite" or pilot is None
-            or db.connection().exec_driver_sql("PRAGMA application_id").scalar_one() != PILOT_REVIEW_APPLICATION_ID
+            pilot is None
             or source.status != "candidate" or source.active_version_id is not None
             or any(getattr(source, key) != value for key, value in pilot.registry_fields(source.id).items())
             or media_type != "text/html" or capture_method != "original_http"
             or retrieved_at != pilot.retrieved_at or sha256(body).hexdigest() != pilot.content_sha256
         ):
-            raise ValueError("Pilot review requires a pinned original in the isolated SQLite catalogue")
+            raise ValueError("Pilot review requires an exact pinned original and pending source")
         expected_extraction = pilot.extraction_version
     else:
         validate_official_url(source.official_url)

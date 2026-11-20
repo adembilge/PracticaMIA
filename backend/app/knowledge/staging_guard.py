@@ -2,7 +2,7 @@
 from collections.abc import Mapping
 from os import environ
 
-from sqlalchemy import text
+from sqlalchemy import URL, text
 from sqlalchemy.orm import Session
 
 
@@ -35,3 +35,25 @@ def require_staging_database(db: Session) -> None:
             "Official-source imports require a reviewed staging schema " +
             ", ".join(sorted(SUPPORTED_STAGING_REVISIONS))
         )
+
+
+def require_pilot_preview_target(url: URL, environment: Mapping[str, str] | None = None) -> None:
+    """Match the direct connection to the independently verified preview endpoint."""
+    values = environ if environment is None else environment
+    require_staging_intent(values)
+    host = values.get("PRACTICAMIA_PILOT_PREVIEW_HOST")
+    database = values.get("PRACTICAMIA_PILOT_PREVIEW_DATABASE")
+    if (
+        not host or not database or url.get_backend_name() != "postgresql"
+        or url.host != host or url.database != database
+        or url.port not in (None, 5432) or "-pooler." in host
+        or set(url.query) - {"sslmode", "channel_binding", "connect_timeout"}
+    ):
+        raise ValueError("Pilot import requires the verified direct preview endpoint and database")
+
+
+def require_pilot_preview_database(db: Session) -> None:
+    require_pilot_preview_target(db.get_bind().engine.url)
+    require_staging_database(db)
+    if db.execute(text("SELECT current_database()")).scalar_one() != environ["PRACTICAMIA_PILOT_PREVIEW_DATABASE"]:
+        raise ValueError("Pilot database identity does not match the verified preview target")

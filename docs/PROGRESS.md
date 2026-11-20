@@ -205,4 +205,6 @@ The extended [Phase 4 catalogue](../planning/practicamia-2/phase-04-pilot-source
 
 The [Phase 4 claim review worksheet](../planning/practicamia-2/phase-04-claim-review-handoff.md) specifies the proposed wording and review boundaries for all six claims. Its read-only query was checked against the offline catalogue and resolves eleven pending references. Human decisions, hosted registration and claim activation remain pending.
 
+The [Phase 4 Preview import command](../planning/practicamia-2/phase-04-pilot-source-acquisition-2026-11-20.md#import-into-the-isolated-preview-registry) validates the five originals, the direct Preview database identity and all eleven passage references before committing candidates. The non-default review branch was inspected at revision `20261116_0017` with no pilot rows. Direct DNS resolution and the reviewer deployment lookup remain outstanding for a hosted run.
+
 For implementation details see [the documentation index](README.md).

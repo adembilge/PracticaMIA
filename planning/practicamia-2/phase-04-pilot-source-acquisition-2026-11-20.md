@@ -70,3 +70,20 @@ The extended 20 November import and repeat preserved the four baseline version I
 These IDs refer to the offline review copy. A hosted import will have its own version and passage IDs, to be bound by the original and extracted hashes. The authorized reviewer can inspect the six pending claims against the published sources and record the scoped rationale using the [claim-specific process](phase-03-claim-evidence.md#claim-and-evidence-contract). Hosted candidate registration and [authenticated approval](../../docs/OFFICIAL_SOURCE_INTAKE.md#5-human-evidence-review) remain pending.
 
 The [claim review worksheet](phase-04-claim-review-handoff.md) lists the exact claims, case boundaries and eleven pinned references in a read-only query. It also provides the fields for recording a human decision.
+
+## Import into the isolated Preview registry
+
+Verify the protected reviewer deployment's Git revision and its database binding. Use the non-default `preview-preparation-mvp-20261107` branch from the [deployment record](../../docs/VERCEL_NEON_DEPLOYMENT.md#isolated-preview). The database engine must be PostgreSQL with an existing schema accepted by the [staging guard](../../backend/app/knowledge/staging_guard.py). The reviewer deployment needs the current snapshot verifier, including support for the pinned Poste capture's `html-v2` extraction.
+
+Set the following values in the operator's local environment. Obtain the hostname and database name from the confirmed branch and direct compute, separately from the connection string. Supply `DATABASE_URL` securely using the direct matching connection.
+
+```sh
+export PRACTICAMIA_KNOWLEDGE_TARGET=staging
+export PRACTICAMIA_PILOT_PREVIEW_HOST='verified-direct-preview-host'
+export PRACTICAMIA_PILOT_PREVIEW_DATABASE='verified-preview-database'
+python -m app.knowledge.pilot_source_review --preview --originals /path/to/all-five-originals
+```
+
+The command accepts the five pinned original files in one transaction. It checks their hashes, scopes, the database identity and schema, and all eleven passage fingerprints. A failed check rolls back the transaction. A successful run prints the hosted source-version and passage IDs for the review worksheet. Repeating the same pending import preserves those IDs. The separate reviewer workflow owns the approval decisions.
+
+The isolated Neon branch was reachable through the control plane on 20 November 2026 at Alembic revision `20261116_0017` with zero pilot source IDs present. The direct database connection from the work environment failed at DNS resolution. The documented API Preview alias could not be resolved in the deployment lookup. The hosted write and authenticated review remain pending. The disposable PostgreSQL exercise runs on the repository's backend CI.
