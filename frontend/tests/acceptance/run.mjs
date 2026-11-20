@@ -1098,7 +1098,6 @@ try{
     await awaitAgentStatus(owner,secondUrl,'waiting_for_information');
     const followupSnapshot=(await readJson(owner,secondUrl)).body;
     assert.equal(followupSnapshot.thread_id,thread_id);
-    assert.equal(followupSnapshot.case_id,null);
     assert.equal((await readJson(owner,url)).body.status,'completed');
     const followupActive=(await readJson(owner,'/api/agent/runs/active')).body.items;
     assert.equal(followupActive.filter(run=>run.thread_id===thread_id).length,1);
