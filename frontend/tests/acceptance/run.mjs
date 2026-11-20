@@ -1106,8 +1106,15 @@ try{
     ]);
     assert.equal(storedHistory.items[0].answer.explanation,'Received Milan.');
     assert.equal(storedHistory.items[1].answer,null);
-    await owner.getByRole('region',{name:'Conversation history'})
-      .getByText('Received Milan.',{exact:true}).waitFor();
+    assert.deepEqual(storedHistory.items[0].clarifications.map(x=>({
+      question_text:x.question_text,disposition:x.disposition,reply_text:x.reply_text,
+    })),[{
+      question_text:'Which municipality is this about?',disposition:'answer',reply_text:'Milan',
+    }]);
+    const transcript=owner.getByRole('region',{name:'Conversation history'});
+    await transcript.getByText('Which municipality is this about?',{exact:true}).waitFor();
+    await transcript.getByText('Milan',{exact:true}).waitFor();
+    await transcript.getByText('Received Milan.',{exact:true}).waitFor();
     const followupActive=(await readJson(owner,'/api/agent/runs/active')).body.items;
     assert.equal(followupActive.filter(run=>run.thread_id===thread_id).length,1);
     assert.equal(followupActive.find(run=>run.run_id===secondRun.run_id).case_id,null);
