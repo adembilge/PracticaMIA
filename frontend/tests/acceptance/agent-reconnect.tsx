@@ -85,7 +85,7 @@ export function AgentReconnectFixture() {
   const [message, setMessage] = useState('');
   const [firstMessage, setFirstMessage] = useState('');
   const [firstLanguage, setFirstLanguage] = useState<'en' | 'it'>('en');
-  const lastFirstMessage = useRef<{ text: string; language: 'en' | 'it'; id: string } | null>(null);
+  const lastFirstMessage = useRef<{ threadId: string | null; text: string; language: 'en' | 'it'; id: string } | null>(null);
   const lastMessage = useRef<{ threadId: string; caseId: string; text: string; id: string } | null>(null);
   const lastReply = useRef<{
     questionId: string;
@@ -144,19 +144,27 @@ export function AgentReconnectFixture() {
   async function startConversation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = firstMessage.trim();
-    if (!text || busy) return;
+    const threadId = view?.snapshot.thread_id ?? null;
+    if (!text || busy || (view && activeStatuses.has(view.snapshot.status))) return;
     const prior = lastFirstMessage.current;
-    const id = prior?.text === text && prior.language === firstLanguage ? prior.id : crypto.randomUUID();
-    lastFirstMessage.current = { text, language: firstLanguage, id };
+    const id = prior?.threadId === threadId && prior.text === text && prior.language === firstLanguage
+      ? prior.id : crypto.randomUUID();
+    lastFirstMessage.current = { threadId, text, language: firstLanguage, id };
     setBusy(true);
     setError('');
     try {
-      const run = await request<Omit<ActiveRun, 'case_id'>>('/api/agent/conversations', {
+      const endpoint = threadId ? `/api/agent/threads/${threadId}/messages` : '/api/agent/conversations';
+      const run = await request<{ thread_id?: string; run_id: string }>(endpoint, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ client_message_id: id, language: firstLanguage, text }),
       });
-      setRuns(current => [{ ...run, case_id: null }, ...(current ?? []).filter(item => item.run_id !== run.run_id)]);
-      displayRun(await loadRun(`/api/agent/threads/${run.thread_id}/runs/${run.run_id}`));
+      const acceptedThreadId = threadId ?? run.thread_id;
+      if (!acceptedThreadId) throw new Error('Missing conversation ID');
+      setRuns(current => [
+        { thread_id: acceptedThreadId, run_id: run.run_id, case_id: null },
+        ...(current ?? []).filter(item => item.run_id !== run.run_id),
+      ]);
+      displayRun(await loadRun(`/api/agent/threads/${acceptedThreadId}/runs/${run.run_id}`));
       setFirstMessage('');
       lastFirstMessage.current = null;
     } catch {
@@ -362,7 +370,8 @@ export function AgentReconnectFixture() {
     <div className="container account-shell">
       <h1>Active conversations</h1>
       {error && <p role="alert">{error}</p>}
-      <form aria-label={firstLanguage === 'it' ? 'Nuova conversazione' : 'New conversation'}
+      <form aria-label={view ? (firstLanguage === 'it' ? 'Continua conversazione' : 'Continue conversation')
+        : (firstLanguage === 'it' ? 'Nuova conversazione' : 'New conversation')}
         onSubmit={startConversation}>
         <label htmlFor="agent-first-language">Language / Lingua</label>
         <select id="agent-first-language" value={firstLanguage} disabled={busy}
@@ -374,7 +383,8 @@ export function AgentReconnectFixture() {
         </label>
         <textarea id="agent-first-message" className="input input-textarea" maxLength={2000}
           value={firstMessage} disabled={busy} onChange={event => setFirstMessage(event.target.value)} />
-        <button type="submit" disabled={busy || !firstMessage.trim()}>
+        <button type="submit" disabled={busy || !firstMessage.trim() ||
+          !!(view && activeStatuses.has(view.snapshot.status))}>
           {firstLanguage === 'it' ? 'Invia messaggio' : 'Send message'}
         </button>
       </form>
