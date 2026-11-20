@@ -174,8 +174,8 @@ def build_reconnect_router(
         return tasks
 
     @router.post(THREAD_PATH + "/messages", status_code=202, responses={409: {"model": AgentHttpError}})
-    def start_case_task(
-        thread_id: UUID, message: CaseTaskMessage, principal: AuthenticatedOwner, db: DatabaseSession,
+    def continue_thread(
+        thread_id: UUID, message: SendMessage, principal: AuthenticatedOwner, db: DatabaseSession,
     ) -> CaseTaskAccepted:
         with db.begin():
             accepted = accept_message(db, thread_id=thread_id, message=message, principal=principal, key=key)
