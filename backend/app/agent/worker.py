@@ -186,6 +186,7 @@ def run_worker_step(
 
         message = replace(
             message,
+            owner_subject=principal.subject,
             clarification_reply=reply,
             clarification_question=question,
             approval_applied=boundary_event if isinstance(boundary_event, ApprovalApplied) else None,
