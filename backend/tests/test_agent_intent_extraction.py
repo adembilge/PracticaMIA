@@ -369,7 +369,12 @@ def test_only_unambiguous_explicit_preferences_select_a_goal(language, message, 
     )
     if preferred is not None:
         assert outcome.goal_selection.active_goal == preferred
-        assert outcome.missing_information == state.goals[preferred - 1].missing_fields
+        if state.goals[preferred - 1].missing_fields == ["procedure_location"]:
+            assert isinstance(outcome, RequestClarification)
+            assert outcome.question.missing_fields == ["destination"]
+            assert outcome.question.procedure_goal.active_goal == preferred
+        else:
+            assert outcome.missing_information == state.goals[preferred - 1].missing_fields
     else:
         assert outcome.question.missing_fields == ["active_goal"]
         assert len(outcome.question.options) == 2
