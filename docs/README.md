@@ -34,6 +34,7 @@ Start with the [project overview](../README.md). **The binding customer-product 
 - [Vercel and Neon deployment](VERCEL_NEON_DEPLOYMENT.md)
 - [Browser acceptance and hosted observations](ACCEPTANCE_TESTING.md)
 - [Opt-in authenticated Preview runbook](AUTHENTICATED_PREVIEW_E2E_RUNBOOK.md)
+- [Isolated Phase 4 agent API mount and worker prerequisites](AGENT_PREVIEW_API_RUNBOOK.md)
 - [Milan pilot guide](MILAN_PILOT.md)
 
 ## Planning and decisions
