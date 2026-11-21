@@ -191,7 +191,7 @@ def test_a_goal_with_a_different_destination_does_not_use_the_bound_milan_case(c
 
 @pytest.mark.parametrize("language", ["en", "it"])
 def test_banns_task_asks_for_both_roles_and_preserves_selection_across_reconnect(client, auth_headers, language):
-    factory, context, url, bound, _, _ = _run(client, "Synthetic two-task request", language=language)
+    factory, context, url, _, _, _ = _run(client, "Synthetic two-task request", language=language)
     state = CheckpointState(
         next_node="choose_next_step", intent="plan_multiple_tasks",
         goals=[
