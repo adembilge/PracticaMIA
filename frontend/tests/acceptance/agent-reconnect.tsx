@@ -88,6 +88,16 @@ type RunView = {
 type ReplyDisposition = 'answer' | 'unknown' | 'skip' | 'change_topic';
 const activeStatuses = new Set(['queued', 'running', 'waiting_for_information', 'waiting_for_approval', 'stopping']);
 
+/** Keep one list entry per conversation, never one per finished message. */
+function latestConversationRuns(recent: SavedRun[]): SavedRun[] {
+  const seen = new Set<string>();
+  return recent.filter(run => {
+    if (seen.has(run.thread_id)) return false;
+    seen.add(run.thread_id);
+    return !activeStatuses.has(run.status);
+  });
+}
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, cache: 'no-store' });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -156,9 +166,7 @@ export function AgentReconnectFixture() {
       .catch(() => { if (!controller.signal.aborted) setError('Could not load conversations.'); });
     void request<{ items: SavedRun[] }>('/api/agent/runs/recent', { signal: controller.signal })
       .then(page => {
-        if (!controller.signal.aborted) setSavedRuns(
-          page.items.filter(run => !activeStatuses.has(run.status)),
-        );
+        if (!controller.signal.aborted) setSavedRuns(latestConversationRuns(page.items));
       })
       .catch(() => { if (!controller.signal.aborted) setSavedRuns([]); });
     return () => controller.abort();
@@ -223,7 +231,7 @@ export function AgentReconnectFixture() {
       setSavedRuns(items => [
         { thread_id: next.snapshot.thread_id, run_id: next.snapshot.run_id,
           case_id: null, status: next.snapshot.status },
-        ...(items ?? []).filter(run => run.run_id !== next.snapshot.run_id),
+        ...(items ?? []).filter(run => run.thread_id !== next.snapshot.thread_id),
       ]);
     }
   }
@@ -263,6 +271,7 @@ export function AgentReconnectFixture() {
         { thread_id: acceptedThreadId, run_id: run.run_id, case_id: null },
         ...(current ?? []).filter(item => item.run_id !== run.run_id),
       ]);
+      setSavedRuns(current => current?.filter(item => item.thread_id !== acceptedThreadId) ?? null);
       displayRun(await loadRun(`/api/agent/threads/${acceptedThreadId}/runs/${run.run_id}`));
       setFirstMessage('');
       lastFirstMessage.current = null;
@@ -324,6 +333,7 @@ export function AgentReconnectFixture() {
         { thread_id: threadId, run_id, case_id: caseId },
         ...(current ?? []).filter(run => run.run_id !== run_id),
       ]);
+      setSavedRuns(current => current?.filter(item => item.thread_id !== threadId) ?? null);
       setCaseTasks(current => current && {
         ...current, items: current.items.map(task => task.case_id === caseId ? { ...task, run_id } : task),
       });
@@ -502,9 +512,11 @@ export function AgentReconnectFixture() {
           </li>;
         })}
       </ul>}
-      {savedRuns && savedRuns.length > 0 && <section aria-label="Past conversations">
+      {savedRuns && savedRuns.some(run => !runs?.some(active => active.thread_id === run.thread_id))
+        && <section aria-label="Past conversations">
         <h2>Past conversations</h2>
-        <ul>{savedRuns.map(run => <li key={run.run_id}>
+        <ul>{savedRuns.filter(run => !runs?.some(active => active.thread_id === run.thread_id))
+          .map(run => <li key={run.thread_id}>
           <button type="button" disabled={busy} onClick={() => void open(
             `/api/agent/threads/${run.thread_id}/runs/${run.run_id}`,
           )}>Open completed conversation</button>
