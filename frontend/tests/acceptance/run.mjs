@@ -1174,17 +1174,14 @@ try{
     assert.equal(followupActive.find(run=>run.run_id===secondRun.run_id).case_id,null);
 
     await owner.reload();
-    const recent=(await readJson(owner,'/api/agent/runs/recent')).body.items
-      .filter(run=>!['queued','running','waiting_for_information','waiting_for_approval','stopping']
-        .includes(run.status));
-    const previousIndex=recent.findIndex(run=>run.run_id===run_id);
-    assert.ok(previousIndex>=0,'Completed first turn must be discoverable after reload');
-    await owner.getByRole('button',{name:'Open completed conversation'})
-      .nth(previousIndex).click();
+    await owner.getByRole('region',{name:'Past conversations'}).waitFor();
+    assert.equal(await owner.locator(`li[data-conversation-thread="${thread_id}"]`).count(),0,
+      'An active conversation must not also appear as an older completed conversation');
+    await owner.locator(`li[data-active-run-id="${secondRun.run_id}"] button`).click();
     await owner.getByRole('region',{name:'Conversation history'})
       .getByText('How do I change my registered address?',{exact:false}).waitFor();
-    const pastSnapshot=(await readJson(owner,url)).body;
-    assert.equal(pastSnapshot.status,'completed');
+    assert.equal((await readJson(owner,url)).body.status,'completed');
+    assert.equal((await readJson(owner,secondUrl)).body.status,'waiting_for_information');
   });
 
   await scenario('Agent past conversations: newest run per thread, no duplicate or active chat',async()=>{
