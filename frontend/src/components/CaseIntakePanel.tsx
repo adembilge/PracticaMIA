@@ -15,9 +15,9 @@ type ApiIntake = {facts:Facts;confirmed:boolean;confirmed_at:string|null;
 
 const labels = {
   en: {
-    eyebrow:'STEP 2 · SAVED CASE INTAKE',
-    heading:'Confirm the details of this example case',
-    intro:'Your five initial answers identify the product scenario. Confirm these separate facts before we can assess which reviewed workflow applies.',
+    eyebrow:'DETAILS TO REVIEW',
+    heading:'Review the information for this request',
+    intro:'Review these details before we can determine which reviewed workflow applies. You can correct them here.',
     privacy:'Keep personal addresses, names, ID numbers and documents out of this form.',
     fields:{
       citizenship_class:'Citizenship category for this example',
@@ -41,13 +41,13 @@ const labels = {
     saving:'Saving…',
     reset:'Erase saved intake',
     resetConfirm:'Erase all saved intake answers for this case?',
-    saved:'Draft saved. You can leave and return later.',
-    confirmed:'Facts confirmed for this example case.',
+    saved:'Your information was saved. You can return to this conversation later.',
+    confirmed:'Information confirmed for this request.',
     outside:'These answers do not match the narrow supported example. This is not an eligibility decision. Check the official instructions.',
     incomplete:'Some categorical questions remain unanswered or uncertain. Save a draft and return later.',
     status:'Intake status',
     updated:'Last saved',
-    error:'Could not save or load your case intake. Try again.',
+    error:'Could not save or load these details. Try again.',
     retry:'Reload intake',
     confirmedState:'User confirmed',
     draftState:'Draft',
@@ -55,9 +55,9 @@ const labels = {
     noLaw:'No legal eligibility, document requirements or government records have been checked.',
   },
   it: {
-    eyebrow:'FASE 2 · RACCOLTA DATI SALVATA',
-    heading:'Conferma i dati di questa pratica dimostrativa',
-    intro:'Le cinque risposte iniziali definiscono lo scenario del prodotto. Conferma separatamente questi dati per individuare il percorso revisionato applicabile.',
+    eyebrow:'DATI DA CONTROLLARE',
+    heading:'Controlla i dati di questa richiesta',
+    intro:'Controlla questi dati per individuare il percorso revisionato applicabile. Puoi correggerli qui.',
     privacy:'Non inserire indirizzi, nomi, numeri identificativi o documenti personali.',
     fields:{
       citizenship_class:'Categoria di cittadinanza dell’esempio',
@@ -81,8 +81,8 @@ const labels = {
     saving:'Salvataggio…',
     reset:'Cancella dati salvati',
     resetConfirm:'Eliminare tutti i dati della raccolta per questa pratica?',
-    saved:'Bozza salvata. Puoi riprendere la pratica più tardi.',
-    confirmed:'Dati confermati per questa pratica dimostrativa.',
+    saved:'Dati salvati. Puoi riprendere questa conversazione più tardi.',
+    confirmed:'Dati confermati per questa richiesta.',
     outside:'Queste risposte sono fuori dall’unico scenario supportato. Non è una decisione sull’ammissibilità. Consulta le fonti ufficiali.',
     incomplete:'Alcune risposte mancano o sono incerte. Salva una bozza e riprendi più tardi.',
     status:'Stato dei dati',
