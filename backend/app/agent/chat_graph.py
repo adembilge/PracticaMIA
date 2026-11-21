@@ -165,10 +165,12 @@ def build_chat_graph(
 
     def choose_next_step(state: ChatGraphState) -> dict:
         message, checkpoint = state["message"], state["checkpoint"]
-        available_names = tuple(state.get("catalogue_names", ()))
+        available_names = tuple(state.get("catalogue_names") or names())
         checkpoint = apply_routing_reply(message, checkpoint, available_names)
 
-        if "procedure_location" in checkpoint.missing_fields:
+        if "procedure_location" in checkpoint.missing_fields and not any(
+            field in checkpoint.missing_fields for field in ("intent", "procedure")
+        ):
             reply = message.clarification_reply
             if reply is not None and reply.disposition == "answer":
                 return {"result": _answer_without_evidence(message.language, unsupported=True)}
@@ -244,7 +246,7 @@ def build_chat_graph(
                     db, query=_search_query(message), jurisdiction=JURISDICTION,
                     procedure_id=PROCEDURE, language="it", limit=5,
                 )
-        except PoolTimeout as exc:
+        except PoolTimeout:
             return {"result": CatalogueUnavailable("Catalogue temporarily unavailable")}
         except DBAPIError as exc:
             sqlstate = getattr(exc.orig, "sqlstate", None)
