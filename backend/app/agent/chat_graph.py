@@ -277,6 +277,8 @@ def build_chat_graph(
             return {"result": decision}
         if isinstance(decision, AnswerResult):
             return {"result": decision}
+        if decision.next_node == "choose_next_step":
+            return {"result": _answer_without_evidence(message.language)}
         return {"checkpoint": decision}
 
     def find_evidence(state: ChatGraphState) -> dict:
