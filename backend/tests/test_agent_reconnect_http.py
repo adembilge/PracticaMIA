@@ -176,6 +176,64 @@ def test_recent_conversations_pages_threads_not_message_runs(client, auth_header
     }).json()["items"][0]["thread_id"] != str(foreign_thread)
 
 
+def test_long_conversation_history_reads_every_page_in_order(client, auth_headers):
+    client.app.include_router(build_reconnect_router(key=KEY))
+    factory = client.app.state.session_factory
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=OWNER)
+
+    expected_run_ids = []
+    for index in range(23):
+        with factory.begin() as db:
+            accepted = accept_message(
+                db, thread_id=thread_id, principal=OWNER, key=KEY,
+                message=SendMessage(
+                    client_message_id=uuid4(), text=f"Historical private turn {index:02d}",
+                    language="en",
+                ),
+            )
+            assert accepted.outcome == "accepted"
+        assert run_worker_step(
+            factory, thread_id=thread_id, run_id=accepted.run_id,
+            principal=OWNER, key=KEY,
+            execute=lambda *_: AnswerResult(
+                explanation=f"Synthetic answer {index:02d}",
+                verification_status="insufficient_evidence",
+            ),
+        ).status == "completed"
+        expected_run_ids.append(str(accepted.run_id))
+
+    endpoint = f"/api/v1/agent/threads/{thread_id}/history"
+    assert_private_error(client.get(endpoint, headers=auth_headers("bob")), 404, "unavailable")
+    cursor = None
+    pages = []
+    while True:
+        params = {"limit": 6}
+        if cursor is not None:
+            params["before_revision"] = cursor
+        response = client.get(endpoint, headers=auth_headers(), params=params)
+        assert response.status_code == 200
+        assert response.headers["Cache-Control"] == "private, no-store"
+        page = response.json()
+        pages.append(page)
+        assert len(page["items"]) <= 6
+        cursor = page["next_before_revision"]
+        if cursor is None:
+            break
+        assert len(pages) <= 4
+
+    chronological = [turn for page in reversed(pages) for turn in page["items"]]
+    assert [turn["run_id"] for turn in chronological] == expected_run_ids
+    assert [turn["accepted_revision"] for turn in chronological] == list(range(1, 24))
+    assert [turn["user_message"] for turn in chronological] == [
+        f"Historical private turn {index:02d}" for index in range(23)
+    ]
+    assert [turn["answer"]["explanation"] for turn in chronological] == [
+        f"Synthetic answer {index:02d}" for index in range(23)
+    ]
+    assert len(set(turn["run_id"] for turn in chronological)) == 23
+
+
 def test_followup_message_stays_in_same_private_chat_without_case(client, auth_headers):
     client.app.include_router(build_reconnect_router(key=KEY))
     owner, other = auth_headers(), auth_headers("bob")
