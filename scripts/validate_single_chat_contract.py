@@ -42,6 +42,7 @@ LEGACY_CUSTOMER_ROUTES = (
     "frontend/src/app/cases/demo/page.tsx",
     "frontend/src/app/cases/demo/review/page.tsx",
     "frontend/src/app/demo/synthetic/page.tsx",
+    "frontend/src/app/account/page.tsx",
 )
 CHAT_FIXTURE = "frontend/tests/acceptance/agent-reconnect.tsx"
 FORBIDDEN_VISIBLE_CHAT = (
@@ -50,6 +51,20 @@ FORBIDDEN_VISIBLE_CHAT = (
     "<strong>Saved case:</strong>",
     "No linked cases.",
 )
+
+
+def unregistered_customer_pages(root: Path) -> list[str]:
+    """Reject new separate case/demo customer routes before Phase 5 migration."""
+    app = root / "frontend/src/app"
+    registered = set(LEGACY_CUSTOMER_ROUTES)
+    found: list[str] = []
+    for folder in ("cases", "demo"):
+        if (app / folder).is_dir():
+            for page in (app / folder).rglob("page.tsx"):
+                path = page.relative_to(root).as_posix()
+                if path not in registered:
+                    found.append(path)
+    return sorted(found)
 
 
 def runtime_legacy_inventory(root: Path) -> list[str]:
@@ -130,6 +145,10 @@ def main(root: Path = ROOT) -> int:
         print(f"ERROR: Missing chat fixture: {CHAT_FIXTURE}", file=sys.stderr)
         return 1
     visible_errors = validate_visible_chat_fixture(fixture.read_text(encoding="utf-8"))
+    new_routes = unregistered_customer_pages(root)
+    visible_errors.extend(
+        f"Unapproved standalone customer page: {path}" for path in new_routes
+    )
     if visible_errors:
         for error in visible_errors:
             print("ERROR: " + error, file=sys.stderr)
