@@ -1001,7 +1001,7 @@ try{
     assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   });
 
-  await scenario('Agent case choice: confirm which linked application to open',async()=>{
+  await scenario('Agent request disambiguation: confirm which internal task to continue',async()=>{
     const owner=await contextFor('alice',{width:390,height:800});
     await owner.goto(origin+'/__acceptance/agent');
     const {body:{items}}=await readJson(owner,'/api/agent/runs/active');
@@ -1012,7 +1012,7 @@ try{
     const {case_choices:choices}=journals[index].body.events.at(-1).question;
     assert.ok(choices.every(choice=>choice.case_id!==items[index].case_id));
     await owner.getByRole('button',{name:'Open conversation',exact:true}).nth(index).click();
-    await owner.getByRole('group',{name:'Which saved case do you mean?',exact:true}).waitFor();
+    await owner.getByRole('group',{name:'Which previous request do you mean?',exact:true}).waitFor();
     await owner.getByRole('radio',{name:choices[1].label,exact:true}).check();
     await owner.getByRole('button',{name:'Send reply',exact:true}).click();
     await awaitAgentStatus(owner,urls[index]);
