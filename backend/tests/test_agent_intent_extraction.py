@@ -14,7 +14,7 @@ from app.agent.intent_extraction import extract_intent, identify_intent_step
 from app.agent.reconnect_router import build_reconnect_router
 from app.agent.run_requests import StoredMessage, accept_message
 from app.agent.threads import create_thread
-from app.agent.worker import run_worker_step
+from app.agent.worker import RequestClarification, run_worker_step
 from app.cases.intake_schemas import IntakeFacts, SUPPORTED_FACTS
 from app.knowledge.entity_matching import CatalogueName
 from app.rules.engine import JURISDICTION, PROCEDURE
@@ -368,12 +368,12 @@ def test_only_unambiguous_explicit_preferences_select_a_goal(language, message, 
         assignments=(), trusted_passage_ids=frozenset(), reviewed_labels={},
     )
     if preferred is not None:
-        assert outcome.goal_selection.active_goal == preferred
         if state.goals[preferred - 1].missing_fields == ["procedure_location"]:
             assert isinstance(outcome, RequestClarification)
             assert outcome.question.missing_fields == ["destination"]
             assert outcome.question.procedure_goal.active_goal == preferred
         else:
+            assert outcome.goal_selection.active_goal == preferred
             assert outcome.missing_information == state.goals[preferred - 1].missing_fields
     else:
         assert outcome.question.missing_fields == ["active_goal"]
