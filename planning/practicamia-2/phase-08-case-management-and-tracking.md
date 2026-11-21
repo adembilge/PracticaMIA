@@ -1,8 +1,10 @@
-# PracticaMIA 2.0 — Phase 8 · Case management, tracking, and cross-authority work
+# PracticaMIA 2.0 — Phase 8 · Internal task tracking and cross-authority conversation
 
-**Roadmap tasks 71–80.** Help a user resume an existing case, see the next action they can take, track what happened outside PracticaMIA, and manage related procedures across authorities through the same chat workspace and specialist agent.
+> **D-010 binding product contract:** The only customer application is **one ChatGPT-style chat at `/`** with a conversation-history sidebar. No user-facing cases, case selection, case dashboard, document/form workspace, source browser, or feature-specific product page. A message starts a task; the agent maintains owner-scoped internal task state and all supported questions, evidence, uploads, actions, approvals and tracking appear as **inline chat cards**. Legacy `case_id` storage/routes are temporary compatibility only. See [single-chat contract](../../docs/SINGLE_CHAT_PRODUCT_CONTRACT.md). **Planning alignment only: Phase 5 is not started.**
 
-**Dependencies.** Phase 3 supplies reviewed procedures, authorities, jurisdictions, and official channels. Phase 4 supplies authorised tools and persistent conversation state. Phase 5 supplies a single chat transcript, inline action/history cards, and an in-chat conversation/case switcher. Phase 6 supplies reviewed document evidence and access controls. Phase 7 supplies the versioned checklist, approved fields, and handoff event. Tracking must reference that event so submission evidence can be tied to the right case and preparation version.
+**Roadmap tasks 71–80.** Help a user resume a previous conversation, see the next action they can take, track what happened outside PracticaMIA, and manage related procedures across authorities through the same chat workspace and specialist agent.
+
+**Dependencies.** Phase 3 supplies reviewed procedures, authorities, jurisdictions, and official channels. Phase 4 supplies authorised tools and persistent conversation state. Phase 5 supplies a single chat transcript, inline action/history cards, and a conversation-history-only sidebar (no case/task switcher). Phase 6 supplies reviewed document evidence and access controls. Phase 7 supplies the versioned checklist, approved fields, and handoff event. Tracking must reference that event so submission evidence can be tied to the right case and preparation version.
 
 **First vertical slice.** Select two independently verified pilot procedures with a realistic relationship. Start with manual receipt capture, a timeline, and a next action the user can resume from chat. Add deadlines, reminders, and cross-authority dependencies in subsequent slices. The automated acceptance scenario uses synthetic case data and receipts. The competent office, route, document reuse, and any procedural prerequisite must be verified before exposing a live procedure.
 
@@ -15,7 +17,7 @@
 - **71.5** Define the allowed transitions with required evidence, actor, permission, and expected revision. Draft exports and official link opens record preparation activity. The agent can propose a case update through a typed tool. The backend checks permissions and evidence before writing.
 - **71.6** Persist state changes and their timeline events atomically. Use idempotency keys for retries and expected revisions for concurrent updates from chat and the UI. On conflict, show the latest state and offer a review of the proposed change.
 
-**Acceptance.** Preparing a draft, reporting a submission, recording a matched receipt, and confirming an authority decision produce four distinguishable results. Reloading the workspace restores them with the same evidence and dates.
+**Acceptance.** Preparing a draft, reporting a submission, recording a matched receipt, and confirming an authority decision produce four distinguishable results. Reloading the conversation restores them with the same evidence and dates.
 
 ## 72. Build the task and dependency model
 
@@ -24,7 +26,7 @@
 - **72.3** Use machine-readable reasons for blocked, actionable, waiting, completed, and cancelled tasks. A missing prerequisite names the task or evidence that would unblock it. Unresolved applicability stays visible as a review task.
 - **72.4** Reuse a reviewed document through an authorised reference to its exact version. Recheck access and acceptance for each destination. Keep a record of where that version was used after handoff. Invalidation or access removal reopens dependent preparation where appropriate.
 - **72.5** Recalculate affected tasks when evidence, deadlines, or rules change. Preserve unrelated completion and keep previously submitted attempts available. A failure to re-evaluate leaves the affected requirement in review.
-- **72.6** Rank next actions deterministically by verified urgency, prerequisites that unblock work, and stable tie-breaks. The same ranked actions feed chat and case cards. Keep actionable work visible when a different branch is blocked.
+- **72.6** Rank next actions deterministically by verified urgency, prerequisites that unblock work, and stable tie-breaks. The same ranked actions feed server-authorized inline chat cards only. Keep actionable work visible when a different branch is blocked.
 
 **Acceptance.** A task can wait on one specific document revision while an independent task remains actionable. Withdrawing sharing of that document removes future access in the dependent case and identifies the replacement action.
 
