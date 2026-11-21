@@ -9,7 +9,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
     api = FastAPI(
         title="PracticaMIA Backend",
-        description="Independent case preparation API; no government eligibility or submission.",
+        description="Independent conversational administrative assistance API; no government eligibility or submission.",
         version="0.2.0",
     )
     api.state.settings = settings
