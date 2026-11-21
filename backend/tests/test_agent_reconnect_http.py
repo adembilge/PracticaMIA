@@ -468,6 +468,10 @@ def test_owner_reconnects_replies_and_resumes_the_same_run(client, auth_headers,
             "reply_text": "Fixture B",
         }]
         assert complete_history.json()["items"][0]["answer"]["explanation"] == "Synthetic answer"
+        recorded_question = reconnected.get(url + "/events", headers=owner).json()["events"][1]
+        assert complete_history.json()["items"][0]["clarifications"][0]["event_seq"] == (
+            recorded_question["event_seq"]
+        )
         late_stop = reconnected.post(
             url + "/stop", headers=owner, json={"expected_run_revision": snapshot.json()["run_revision"]},
         )
