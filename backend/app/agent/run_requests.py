@@ -151,6 +151,7 @@ class StoredMessage:
     text: str
     language: Language
     case_id: UUID | None
+    owner_subject: str | None = field(default=None, compare=False, repr=False)
     clarification_reply: QuestionAnswered | None = None
     recent_user_messages: tuple[RecentUserMessage, ...] = ()
     case_context: WorkerCaseContext | None = None

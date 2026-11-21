@@ -38,6 +38,8 @@ class Settings:
     assistant_openrouter_api_key: str = ""
     assistant_usage_hash_key: str = ""
     assistant_daily_limit: int = 10
+    enable_case_free_agent_model: bool = False
+    assistant_model_privacy_approved: bool = False
     knowledge_reviewer_subjects: frozenset[str] = frozenset()
     auth_issuer: str = ""
     auth_audience: str = ""
@@ -89,6 +91,10 @@ class Settings:
             assistant_openrouter_api_key=environ.get("OPENROUTER_API_KEY", ""),
             assistant_usage_hash_key=environ.get("ASSISTANT_USAGE_HASH_KEY", ""),
             assistant_daily_limit=int(environ.get("ASSISTANT_DAILY_LIMIT", "10")),
+            enable_case_free_agent_model=environ.get("ENABLE_CASE_FREE_AGENT_MODEL", "").lower()
+            in {"1", "true", "yes"},
+            assistant_model_privacy_approved=environ.get("ASSISTANT_MODEL_PRIVACY_APPROVED", "").lower()
+            in {"1", "true", "yes"},
             knowledge_reviewer_subjects=frozenset(
                 value.strip()
                 for value in environ.get("KNOWLEDGE_REVIEWER_SUBJECTS", "").split(",")

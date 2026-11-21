@@ -22,9 +22,11 @@ from app.agent.candidate_resolution import choose_candidate_step
 from app.agent.checkpoints import CheckpointState
 from app.agent.contract import AnswerResult, ClarifyingQuestion, NextAction
 from app.agent.intent_extraction import identify_intent_step
+from app.agent.model_adapter import ModelReferenceSelector
 from app.agent.routing_corrections import apply_routing_reply
 from app.agent.run_requests import StoredMessage
 from app.agent.worker import RequestClarification
+from app.config import Settings
 from app.knowledge.entity_matching import CatalogueName, normalize_name
 from app.knowledge.search import EvidencePassage, resolve_approved_passage, search_approved_passages
 from app.knowledge.service_areas import CaseLocation
@@ -150,6 +152,7 @@ def _clarify_location(state: CheckpointState) -> RequestClarification:
 
 def build_chat_graph(
     sessions: sessionmaker, *, catalogue_names: Sequence[CatalogueName] | None = None,
+    reference_selector: ModelReferenceSelector | None = None,
 ):
     """Compile the actual one-chat execution graph; durable boundaries stay in worker.py."""
     def names() -> tuple[CatalogueName, ...] | CatalogueUnavailable:
@@ -323,6 +326,16 @@ def build_chat_graph(
                         procedure_id=PROCEDURE, language=None,
                     )) is not None
                 ]
+        if reference_selector is not None:
+            selected_ids = reference_selector.select(
+                owner_subject=message.owner_subject,
+                topic_category=_search_query(message),
+                passages=passages,
+            )
+            if selected_ids is not None:
+                if not selected_ids:
+                    return {"result": _answer_without_evidence(message.language)}
+                checkpoint = checkpoint.model_copy(update={"evidence_ids": list(selected_ids)})
         by_id = {item.passage_id: item for item in passages}
         citations = [
             catalogue_passage(by_id[passage_id]).citation
@@ -371,8 +384,15 @@ def build_chat_graph(
 
 def build_chat_executor(
     sessions: sessionmaker, *, catalogue_names: Sequence[CatalogueName] | None = None,
+    settings: Settings | None = None, model_factory: Callable[[], object] | None = None,
 ) -> Callable[[StoredMessage, CheckpointState], Any]:
-    graph = build_chat_graph(sessions, catalogue_names=catalogue_names)
+    selector = (
+        ModelReferenceSelector(sessions, settings, model_factory=model_factory)
+        if settings is not None else None
+    )
+    graph = build_chat_graph(
+        sessions, catalogue_names=catalogue_names, reference_selector=selector,
+    )
 
     def execute(message: StoredMessage, checkpoint: CheckpointState):
         if message.case_id is not None:
