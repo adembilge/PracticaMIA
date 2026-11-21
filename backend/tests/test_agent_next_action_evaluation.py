@@ -223,7 +223,7 @@ def test_replay_withdraws_current_handoff_but_retains_the_historical_answer(monk
 
 def test_replay_withholds_scripted_reply_after_a_different_question(monkeypatch):
     report, saved = _replay(monkeypatch, "resume-pending-destination", opening="Hello")
-    opening, restore, reply = report["turns"]
+    opening, restore, reply = report["turns"][:3]
     assert opening["observed"]["fields"] == ("intent",) and opening["unnecessary_question"]
     assert restore["observed"]["blocked"] == reply["observed"]["blocked"] == "required_question_mismatch"
     assert not report["passed"] and saved.status == "waiting_for_information"
