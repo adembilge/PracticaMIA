@@ -63,6 +63,16 @@ def test_model_timeout_replays_a_safe_failure_and_allows_an_explicit_retry(clien
     assert failure["code"] == "provider_unavailable"
     assert failure["retryable"] is True and failure["recovery"] == "retry_later"
     assert "private provider diagnostic" not in response.text
+    history_url = f"{thread}/history"
+    failed_history = client.get(history_url, headers=owner)
+    assert failed_history.status_code == 200
+    assert failed_history.headers["Cache-Control"] == "private, no-store"
+    [failed_turn] = failed_history.json()["items"]
+    assert failed_turn["status"] == "failed"
+    assert failed_turn["answer"] is None
+    assert failed_turn["terminal_event"] == failure
+    assert "private provider diagnostic" not in failed_history.text
+    assert_private_error(client.get(history_url, headers=auth_headers("bob")), 404, "unavailable")
     assert_private_error(client.get(run_url + "/events", headers=auth_headers("bob")), 404, "unavailable")
     [record] = [row for row in caplog.records if row.name == "app.agent.diagnostics"]
     assert json.loads(record.getMessage()) == {
@@ -85,6 +95,11 @@ def test_model_timeout_replays_a_safe_failure_and_allows_an_explicit_retry(clien
     answer = AnswerResult(explanation="Synthetic recovery", verification_status="insufficient_evidence")
     assert run_worker_batch(factory, **options, execute=lambda *_: answer, max_steps=2) == 1
     assert client.get(f"{thread}/runs/{retried.json()['run_id']}", headers=owner).json()["status"] == "completed"
+    after_retry = client.get(history_url, headers=owner).json()["items"]
+    assert [turn["run_id"] for turn in after_retry] == [str(run_id), retried.json()["run_id"]]
+    assert after_retry[0]["terminal_event"] == failure
+    assert after_retry[1]["terminal_event"] is None
+    assert after_retry[1]["answer"]["explanation"] == "Synthetic recovery"
     assert client.get(run_url, headers=owner).json() == snapshot
 
 

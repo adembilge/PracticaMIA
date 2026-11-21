@@ -835,6 +835,13 @@ try{
     assert.deepEqual(replay.body.events.map(event=>event.type),['run.started','question.requested','run.stopped']);
     assert.deepEqual(replay.body.events.at(-1).committed_operation_ids,[]);
     const stoppedRun=replay.body.run_id;
+    const historyUrl=url.replace(/\/runs\/[^/]+$/,'')+'/history';
+    const stoppedHistory=(await readJson(owner,historyUrl)).body.items
+      .find(turn=>turn.run_id===stoppedRun);
+    assert.equal(stoppedHistory.terminal_event.type,'run.stopped');
+    assert.deepEqual(stoppedHistory.terminal_event.committed_operation_ids,[]);
+    await owner.getByRole('region',{name:'Conversation history'})
+      .getByText('Conversation stopped; no confirmed case updates.',{exact:true}).waitFor();
     await owner.reload();
     await owner.getByRole('heading',{name:'Active conversations',exact:true}).waitFor();
     const active=await readJson(owner,'/api/agent/runs/active');
@@ -1012,10 +1019,25 @@ try{
       await page.route(request=>request.pathname===url+'/events',route=>route.fulfill({json:{events:[{
         type:'run.failed',event_seq:3,code,retryable:true,recovery:'retry_later',
       }]}}));
+      await page.route(origin+`/api/agent/threads/${threadId}/history`,route=>route.fulfill({json:{
+        thread_id:threadId,next_before_revision:null,items:[{
+          run_id:runId,case_id:null,status:'failed',accepted_revision:1,
+          user_message:'Synthetic error fixture',language:'en',answer:null,
+          clarifications:[],approvals:[],clarification_history_truncated:false,
+          approval_history_truncated:false,
+          terminal_event:{
+            type:'run.failed',schema_version:1,thread_id:threadId,run_id:runId,
+            event_seq:3,occurred_at:'2026-11-20T12:00:00Z',code,
+            retryable:true,recovery:'retry_later',
+          },
+        }],
+      }}));
       await page.goto(origin+'/__acceptance/agent');
       await page.getByRole('button',{name:'Open conversation',exact:true}).click({timeout:10000});
       await page.getByRole('heading',{name:'Conversation failed',exact:true}).waitFor({timeout:10000});
       await page.getByText('Send your request again later.',{exact:true}).waitFor({timeout:10000});
+      await page.getByRole('region',{name:'Conversation history'})
+        .getByText(/This attempt failed.*send a new message in this chat to retry/i).waitFor();
       assert.equal(await page.getByRole('button',{name:'Check status',exact:true}).isVisible(),false);
     });
   }
