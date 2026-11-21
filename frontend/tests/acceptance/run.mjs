@@ -861,7 +861,7 @@ try{
     assert.equal(stoppedHistory.terminal_event.type,'run.stopped');
     assert.deepEqual(stoppedHistory.terminal_event.committed_operation_ids,[]);
     await owner.getByRole('region',{name:'Conversation history'})
-      .getByText('Conversation stopped; no confirmed case updates.',{exact:true}).waitFor();
+      .getByText('Conversation stopped; no confirmed changes.',{exact:true}).waitFor();
     await owner.reload();
     await owner.getByRole('heading',{name:'Active conversations',exact:true}).waitFor();
     const active=await readJson(owner,'/api/agent/runs/active');
@@ -1365,11 +1365,11 @@ try{
     await panel.getByLabel('Destination municipality').selectOption('milano');
     assert.equal(await panel.getByRole('button',{name:'Confirm facts'}).isEnabled(),false);
     await panel.getByRole('button',{name:'Save draft'}).click();
-    await panel.getByText('Draft saved. You can leave and return later.').waitFor();
+    await panel.getByText('Your information was saved. You can return to this conversation later.').waitFor();
     assert.equal(confirmed,false);
     await panel.getByRole('checkbox',{name:'I have reviewed the information above.'}).check();
     await panel.getByRole('button',{name:'Confirm facts'}).click();
-    await panel.getByText('Facts confirmed for this example case.').waitFor();
+    await panel.getByText('Information confirmed for this request.').waitFor();
     assert.equal(confirmed,true);
     assert.deepEqual(updates.map(entry=>entry.confirm),[false,true]);
     assert.equal(updates[1].facts.destination_municipality,'milano');
