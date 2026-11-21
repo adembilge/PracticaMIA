@@ -13,11 +13,12 @@ from app.agent.checkpoints import (
 from app.agent.contract import AnswerResult, ClarificationReply, ClarifyingQuestion
 from app.agent.run_events import AgentRunEvent, InvalidClarificationReply, read_run_events, read_run_snapshot
 from app.agent.run_requests import AgentRunRequest, accept_message
-from app.agent.threads import create_thread, link_case_to_thread
+from app.agent.threads import AgentThreadCase, create_thread
 from app.agent.worker import RequestClarification, run_next_worker_step, run_worker_batch, run_worker_step
 from app.agent.worker_leases import WorkerLeaseConflict, claim_next_run
 from test_agent_run_requests import ALICE, KEY, request
 from app.auth.tokens import Principal
+from app.cases.model import CaseRecord
 from test_agent_run_events import queued_run  # noqa: F401 - shared run fixture
 
 
@@ -53,15 +54,16 @@ def test_worker_batches_stop_at_the_step_budget_and_when_idle(queued_run):
     assert nodes == ["load_context", "find_evidence"]
 
 
-def test_chat_worker_claims_only_unlinked_conversations(client, auth_headers, queued_run):
+def test_chat_worker_claims_only_unlinked_conversations(queued_run):
     factory, unlinked_context, _, _ = queued_run
-    case_response = client.post("/api/v1/cases", headers=auth_headers("alice"), json={})
-    assert case_response.status_code == 201
-    from uuid import UUID
-    case_id = UUID(case_response.json()["id"])
+    case_id = uuid4()
     with factory.begin() as db:
+        db.add(CaseRecord(
+            id=str(case_id), procedure="milan_residence_change", owner_subject=ALICE.subject,
+        ))
         thread_id = create_thread(db, principal=ALICE)
-        assert link_case_to_thread(db, principal=ALICE, thread_id=thread_id, case_id=case_id)
+        db.add(AgentThreadCase(thread_id=str(thread_id), case_id=str(case_id)))
+        db.flush()
         linked = accept_message(
             db, thread_id=thread_id, principal=ALICE, key=KEY, message=request(case_id=case_id),
         )
