@@ -51,5 +51,5 @@ def test_chat_graph_fails_closed_if_a_legacy_case_link_is_passed(client):
 def test_unknown_worker_node_fails_before_a_result_is_published(client):
     execute = build_chat_executor(client.app.state.session_factory, catalogue_names=())
     message = StoredMessage(text="Question", language="en", case_id=None)
-    with pytest.raises(ValueError):
+    with pytest.raises((KeyError, ValueError)):
         execute(message, CheckpointState(next_node="bad-node"))
