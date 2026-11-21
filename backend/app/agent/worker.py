@@ -61,11 +61,11 @@ ExecuteStep = Callable[
 def run_next_worker_step(
     sessions: sessionmaker[Session], *, key: bytes, lease_for: timedelta, execute: ExecuteStep,
     document_settings: Settings | None = None,
-    read_evidence_scope: AnswerEvidenceScopeReader | None = None,
+    read_evidence_scope: AnswerEvidenceScopeReader | None = None, unlinked_only: bool = False,
 ) -> RunSnapshot | None:
     """Claim and advance one eligible run, leaving crash recovery to its lease."""
     with sessions.begin() as db:
-        lease = claim_next_run(db, lease_for=lease_for)
+        lease = claim_next_run(db, lease_for=lease_for, unlinked_only=unlinked_only)
     if lease is None:
         return None
     return run_worker_step(
@@ -78,7 +78,7 @@ def run_next_worker_step(
 def run_worker_batch(
     sessions: sessionmaker[Session], *, key: bytes, lease_for: timedelta,
     execute: ExecuteStep, max_steps: int, document_settings: Settings | None = None,
-    read_evidence_scope: AnswerEvidenceScopeReader | None = None,
+    read_evidence_scope: AnswerEvidenceScopeReader | None = None, unlinked_only: bool = False,
 ) -> int:
     """Process up to the caller's attempt budget and return the recorded step count."""
     if max_steps < 1:
@@ -89,7 +89,7 @@ def run_worker_batch(
         try:
             snapshot = run_next_worker_step(
                 sessions, key=key, lease_for=lease_for, execute=execute, document_settings=document_settings,
-                read_evidence_scope=read_evidence_scope,
+                read_evidence_scope=read_evidence_scope, unlinked_only=unlinked_only,
             )
         except WorkerLeaseConflict:
             # A replacement worker may already own this run. A lost lease still
