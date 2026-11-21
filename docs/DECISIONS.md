@@ -47,6 +47,12 @@ Development/CI/test/staging/Preview **deployments** may still exist as isolated 
 
 This newer explicit product decision supersedes the multi-screen customer UX proposed in the historical `PracticaMIA_Complete_Project_Specification.md` §16 without renumbering its legacy 94-task plan. The active PracticaMIA 2.0 roadmap retains its own Phase 4–10 task IDs and human approval gates.
 
+## D-009 — Separate Phase 4 development merges from Vercel deployment checks (21 November 2026)
+
+The product owner explicitly approved continuing Phase 4 development without waiting for Vercel's Hobby deployment quota. For **non-release Phase 4 pull requests**, merge only after reviewing the diff, verifying the exact head SHA, satisfying repository branch rules and approvals, and obtaining successful **Backend CI**, **Frontend CI**, **Roadmap governance CI** and **Synthetic MVP Acceptance (Chromium + API)** checks. A Vercel status (including an automatic build-rate-limit error) is **not** an additional Phase 4 development-merge gate if GitHub permits the merge. Do not falsely report failing or absent Vercel deployments as successful.
+
+This decision does **not** disable the repository's existing Vercel Git integration; GitHub pushes may still trigger automatic deployment attempts. Do not change Vercel project settings, payment, rate limits, team permissions, or production aliases without separate authorisation. Deployment/staging acceptance, live identity and privacy checks, official source review, real-user pilots and explicit production release sign-off remain independent gates. This clarifies D-006; it does not authorize production release or proceeding to Phase 5.
+
 ## Decisions still unresolved
 
 - Currency and applicability reviews for the approved first Milan scenario, especially the officially required attachments and exceptions.
