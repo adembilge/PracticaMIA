@@ -153,20 +153,30 @@ def build_chat_graph(
         normalized = normalize_name(message.text)
         # TARI is a separate municipal declaration, but the approved FAQ has a
         # reference passage for it within the Milan residence-change topic.
-        if (
-            identified.intent == "request_information" and "tari" in normalized.split()
-            and JURISDICTION in identified.location_candidates
-        ):
-            identified = identified.model_copy(update={
-                "next_node": "find_evidence", "procedure_candidates": [PROCEDURE],
-                "location_candidates": [JURISDICTION], "missing_fields": [],
-            })
+        if identified.intent == "request_information" and "tari" in normalized.split():
+            if JURISDICTION in identified.location_candidates:
+                identified = identified.model_copy(update={
+                    "next_node": "find_evidence", "procedure_candidates": [PROCEDURE],
+                    "location_candidates": [JURISDICTION], "missing_fields": [],
+                })
+            else:
+                identified = identified.model_copy(update={
+                    "next_node": "choose_next_step", "procedure_candidates": [PROCEDURE],
+                    "missing_fields": ["procedure_location"],
+                })
         return {"checkpoint": identified, "catalogue_names": available_names}
 
     def choose_next_step(state: ChatGraphState) -> dict:
         message, checkpoint = state["message"], state["checkpoint"]
         available_names = tuple(state.get("catalogue_names") or names())
         checkpoint = apply_routing_reply(message, checkpoint, available_names)
+        if checkpoint.intent == "request_information" and not checkpoint.procedure_candidates:
+            missing = list(checkpoint.missing_fields)
+            if "procedure" not in missing:
+                missing.append("procedure")
+            if not checkpoint.location_candidates and "procedure_location" not in missing:
+                missing.append("procedure_location")
+            checkpoint = checkpoint.model_copy(update={"missing_fields": missing})
 
         if "procedure_location" in checkpoint.missing_fields and not any(
             field in checkpoint.missing_fields for field in ("intent", "procedure")
