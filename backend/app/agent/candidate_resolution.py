@@ -237,12 +237,6 @@ def choose_candidate_step(
             question = _QUESTIONS[fields[0]]
             question_field = fields[0][1]
             missing_information = [name for _, name in fields]
-        elif "procedure_location" in state.missing_fields:
-            # Goal extraction can identify that a municipality is missing even
-            # when applicability has no assignment from which to derive a prompt.
-            question = _QUESTIONS[("location", "destination")]
-            question_field = "destination"
-            missing_information = ["procedure_location"]
 
     candidate_ids = plausible if procedure_conflict else list(results)
     can_ask = message.clarification_reply is None or (applied_correction and question_field not in corrected_fields)
@@ -426,8 +420,18 @@ def _choose_message_goal(
             "missing_fields": selected.missing_fields, "preferred_goal": None,
             "intent": "find_procedure",
         })
+        if "procedure_location" in selected.missing_fields and not selected.location_candidates:
+            question = ClarifyingQuestion(
+                question_id=uuid4(),
+                text=_QUESTIONS[("location", "destination")][0 if en else 1],
+                missing_fields=["destination"],
+            )
+            selection = GoalSelection(language=language, options=options, active_goal=active_goal)
+            question = question.model_copy(update={"procedure_goal": selection})
+            return RequestClarification(question, state)
+        fresh_message = replace(message, clarification_reply=None, clarification_question=None)
         outcome = choose_candidate_step(
-            message, selected_state, case_locations=case_locations,
+            fresh_message, selected_state, case_locations=case_locations,
             confirmed_dates=confirmed_dates, confirmed_circumstances=confirmed_circumstances,
             assignments=assignments, trusted_passage_ids=trusted_passage_ids,
             reviewed_labels=reviewed_labels, assistance_contacts=assistance_contacts,
