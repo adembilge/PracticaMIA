@@ -1,8 +1,8 @@
 # Project documentation
 
-Start with the [project overview](../README.md). The [complete specification](../PracticaMIA_Complete_Project_Specification.md) defines product intent and acceptance criteria. [Progress and blockers](PROGRESS.md) records which claims have evidence, in which environment, and on which revision.
+Start with the [project overview](../README.md). **The binding customer-product architecture is the [single-chat product contract](SINGLE_CHAT_PRODUCT_CONTRACT.md) and [D-010](DECISIONS.md)**: one ChatGPT-like conversation UI, no user-facing cases or standalone workflows. The [complete original specification](../PracticaMIA_Complete_Project_Specification.md) preserves the historical 12-stage/94-task roadmap, but its earlier multi-screen descriptions are superseded. [Progress and blockers](PROGRESS.md) records which implementation claims have evidence, in which environment and revision.
 
-## Case and document workflows
+## Legacy case and document implementation (migration inventory)
 
 | Topic | Reference |
 | --- | --- |
