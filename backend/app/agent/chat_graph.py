@@ -41,6 +41,17 @@ class ChatGraphState(TypedDict, total=False):
     result: Any
 
 
+def _is_transient_database_error(exc: DBAPIError) -> bool:
+    sqlstate = getattr(exc.orig, "sqlstate", None)
+    return bool(
+        exc.connection_invalidated
+        or (sqlstate is not None and (
+            sqlstate.startswith("08") or sqlstate in _TRANSIENT_SQLSTATES
+        ))
+        or (sqlstate is None and isinstance(exc.orig, PostgresOperationalError))
+    )
+
+
 def load_pilot_catalogue_names(sessions: sessionmaker) -> tuple[CatalogueName, ...]:
     """Enable only narrow aliases while the exact approved Milan passage is active."""
     with sessions() as db:
@@ -138,8 +149,17 @@ def build_chat_graph(
     sessions: sessionmaker, *, catalogue_names: Sequence[CatalogueName] | None = None,
 ):
     """Compile the actual one-chat execution graph; durable boundaries stay in worker.py."""
-    def names() -> tuple[CatalogueName, ...]:
-        return tuple(catalogue_names) if catalogue_names is not None else load_pilot_catalogue_names(sessions)
+    def names() -> tuple[CatalogueName, ...] | CatalogueUnavailable:
+        if catalogue_names is not None:
+            return tuple(catalogue_names)
+        try:
+            return load_pilot_catalogue_names(sessions)
+        except PoolTimeout:
+            return CatalogueUnavailable("Catalogue temporarily unavailable")
+        except DBAPIError as exc:
+            if _is_transient_database_error(exc):
+                return CatalogueUnavailable("Catalogue temporarily unavailable")
+            raise
 
     def load_context(state: ChatGraphState) -> dict:
         if state["message"].case_id is not None:
@@ -149,6 +169,8 @@ def build_chat_graph(
     def identify_intent(state: ChatGraphState) -> dict:
         message, checkpoint = state["message"], state["checkpoint"]
         available_names = names()
+        if isinstance(available_names, CatalogueUnavailable):
+            return {"result": available_names}
         identified = identify_intent_step(message, checkpoint, catalogue_names=available_names)
         normalized = normalize_name(message.text)
         # TARI is a separate municipal declaration, but the approved FAQ has a
@@ -168,7 +190,10 @@ def build_chat_graph(
 
     def choose_next_step(state: ChatGraphState) -> dict:
         message, checkpoint = state["message"], state["checkpoint"]
-        available_names = tuple(state.get("catalogue_names") or names())
+        available_names = state.get("catalogue_names") or names()
+        if isinstance(available_names, CatalogueUnavailable):
+            return {"result": available_names}
+        available_names = tuple(available_names)
         checkpoint = apply_routing_reply(message, checkpoint, available_names)
         if checkpoint.intent == "request_information" and not checkpoint.procedure_candidates:
             missing = list(checkpoint.missing_fields)
@@ -259,10 +284,7 @@ def build_chat_graph(
         except PoolTimeout:
             return {"result": CatalogueUnavailable("Catalogue temporarily unavailable")}
         except DBAPIError as exc:
-            sqlstate = getattr(exc.orig, "sqlstate", None)
-            if exc.connection_invalidated or (
-                sqlstate is not None and (sqlstate.startswith("08") or sqlstate in _TRANSIENT_SQLSTATES)
-            ) or (sqlstate is None and isinstance(exc.orig, PostgresOperationalError)):
+            if _is_transient_database_error(exc):
                 return {"result": CatalogueUnavailable("Catalogue temporarily unavailable")}
             raise
         if not passages:
