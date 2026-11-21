@@ -516,7 +516,7 @@ export function AgentReconnectFixture() {
         && <section aria-label="Past conversations">
         <h2>Past conversations</h2>
         <ul>{savedRuns.filter(run => !runs?.some(active => active.thread_id === run.thread_id))
-          .map(run => <li key={run.thread_id}>
+          .map(run => <li key={run.thread_id} data-conversation-thread={run.thread_id}>
           <button type="button" disabled={busy} onClick={() => void open(
             `/api/agent/threads/${run.thread_id}/runs/${run.run_id}`,
           )}>Open completed conversation</button>
