@@ -1,6 +1,7 @@
 import 'server-only';
 import { Auth0Client } from '@auth0/nextjs-auth0/server';
 import { hasAuthConfiguration } from '@/lib/auth-configuration.js';
+import { singleChatPreviewEnabled } from '@/lib/single-chat-preview.js';
 
 /** Never initialize a partly configured provider or expose an API access token to JS. */
 export const auth0 = hasAuthConfiguration(process.env)
@@ -10,6 +11,6 @@ export const auth0 = hasAuthConfiguration(process.env)
         scope: 'openid profile email offline_access',
       },
       enableAccessTokenEndpoint: false,
-      signInReturnToPath: '/account',
+      signInReturnToPath: singleChatPreviewEnabled(process.env) ? '/' : '/account',
     })
   : null;

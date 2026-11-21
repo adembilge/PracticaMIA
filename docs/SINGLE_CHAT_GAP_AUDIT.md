@@ -6,6 +6,16 @@
 
 **The current hosted app is not yet the requested ChatGPT-style single-chat product.** The *architecture decision* and active future-phase requirements now require one app shell, one composer, conversation-only sidebar, and all features as inline conversation cards. The *existing frontend* still renders editorial marketing and independent case workflows. The Phase 4 isolated chat fixture demonstrates portions of the intended behavior, but its local test server and synthetic sessions are not the hosted application.
 
+## Phase 4 gated root-chat implementation (21 November 2026)
+
+A **feature-gated first functional frontend shell** now exists at `frontend/src/components/SingleChatWorkspace.tsx` with responsive styling and is mounted at `/` only when `ENABLE_SINGLE_CHAT_PREVIEW=1` and the environment is **Vercel Preview or local development**. Production can never enable it via that flag. Its customer navigation is conversations only; the built-in composer sends typed API messages, reopens owner-scoped history, renders clarifications, tracked approvals, reviewed sources, external official handoffs and legacy-approved fact review **inline**. It does not invent answers or expose a public case picker.
+
+`frontend/src/app/api/agent/[...path]/route.ts` is the same-origin authenticated backend-for-frontend bridge: it allows only explicitly enumerated conversation paths, restricts query keys, limits POST bodies, checks request origin and delegates Auth0 token handling to the existing **server-only** case proxy. The browser never receives an access token. The existing `/cases` routes are unchanged pending migration.
+
+**Not a deployed or fully working agent:** The main FastAPI application currently does not mount the Phase 4 `build_reconnect_router` automatically; the agent history transport is isolated to existing acceptance fixtures. Enabling this frontend alone can therefore show “service unavailable” rather than generating an answer. The backend requires separately verified staging integration, dedicated worker scheduling, history encryption key management, Auth0 issuer/audience checks, trusted sources and tenant tests. The attachment control is visibly disabled until document privacy and scanner approvals. Do **not** enable the feature flag for general users or describe it as a completed Phase 5 journey. This preparatory implementation remains within the existing Phase 4 hold.
+
+**Release checklist unchanged:** Actual hosted chat + owner-scoped history and task migration, documents, inline artifacts, end-to-end trials, old route retirement, and verified release controls remain open. The strict `--require-migrated` audit must continue to fail.
+
 ## Current-to-target matrix
 
 | Surface/capability | Verified repository location | Current status | D-010 target | Delivery gate |

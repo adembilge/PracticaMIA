@@ -14,3 +14,8 @@ export function useRouter(){
     prefetch:async(_href:string)=>{},
   };
 }
+
+/** Next.js pathname read for the CI-only client router shim. */
+export function usePathname():string {
+  return window.location.pathname;
+}

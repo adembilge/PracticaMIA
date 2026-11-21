@@ -3,8 +3,12 @@ import type { ReactNode } from 'react';
 import { DemoProvider } from '@/components/DemoProvider';
 import { SiteHeader } from '@/components/SiteHeader';
 import { auth0 } from '@/lib/auth0';
+import { singleChatPreviewEnabled } from '@/lib/single-chat-preview.js';
 import './globals.css';
 import './editorial.css';
+
+// Account and Preview chrome must reflect the authenticated request, not a cached build.
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'PracticaMIA — Italian paperwork, with a plan',
@@ -18,7 +22,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     .find(name => name && !name.includes('@'));
 
   return <html lang="en"><body><DemoProvider>
-    <SiteHeader signedIn={Boolean(session)} accountName={accountName}/>
+    <SiteHeader signedIn={Boolean(session)} accountName={accountName}
+      chatPreview={singleChatPreviewEnabled(process.env)}/>
     {children}
   </DemoProvider></body></html>;
 }
