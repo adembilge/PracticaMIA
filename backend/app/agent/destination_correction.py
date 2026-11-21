@@ -44,10 +44,10 @@ def reassess_destination(language: Language) -> AnswerResult:
     en = language == "en"
     return AnswerResult(
         explanation=(
-            "Review and confirm the destination municipality in your saved case. "
+            "Review and confirm the destination municipality here in the conversation. "
             "I could not verify filing instructions for the corrected destination."
             if en else
-            "Rivedi e conferma il comune di destinazione nella pratica salvata. "
+            "Rivedi e conferma il comune di destinazione qui nella conversazione. "
             "Non ho potuto verificare le istruzioni di invio per la destinazione corretta."
         ),
         verification_status="insufficient_evidence",
