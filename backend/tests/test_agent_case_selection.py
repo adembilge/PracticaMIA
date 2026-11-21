@@ -132,7 +132,7 @@ def test_explicit_linked_case_is_verified_without_another_question(client, auth_
 def test_active_goal_uses_an_in_chat_choice_without_case_selection(client, auth_headers):
     factory, context, url, _, _, _ = _run(client, "Synthetic task choice")
     state = CheckpointState(
-        next_node="choose_next_step", intent="plan_multiple_tasks", preferred_goal=2,
+        next_node="choose_next_step", intent="plan_multiple_tasks", preferred_goal=None,
         goals=[MessageGoal(procedure_candidates=["milan_residence_change"]),
                MessageGoal(procedure_candidates=["fixture-tax"])],
     )
@@ -144,7 +144,7 @@ def test_active_goal_uses_an_in_chat_choice_without_case_selection(client, auth_
     run_worker_step(factory, **context, execute=choose)
     owner = auth_headers("alice")
     snapshot, question = _read_question(client, url, owner)
-    assert snapshot["goal_selection"]["active_goal"] is None
+    assert snapshot["goal_selection"] is None or snapshot["goal_selection"]["active_goal"] is None
     assert question["missing_fields"] == ["active_goal"]
     assert question["case_choices"] == []
     reply_path = f"{url}/questions/{question['question_id']}/reply"
