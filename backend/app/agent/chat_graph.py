@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Sequence
 from typing import Any, TypedDict
+from uuid import uuid4
 
 from langgraph.graph import END, START, StateGraph
 from psycopg import OperationalError as PostgresOperationalError
@@ -132,6 +133,7 @@ def _search_query(message: StoredMessage) -> str:
 
 def _clarify_location(state: CheckpointState) -> RequestClarification:
     question = ClarifyingQuestion(
+        question_id=uuid4(),
         text=(
             "Which municipality is this about? This Preview can currently retrieve reviewed references only for Milano."
             if state.intent != "request_information" else
