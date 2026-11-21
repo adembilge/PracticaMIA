@@ -667,6 +667,7 @@
         {
           "id": "confirm",
           "event": "confirm_intake",
+          "after_step": "resume",
           "facts": {
             "destination_municipality": "milano"
           },
