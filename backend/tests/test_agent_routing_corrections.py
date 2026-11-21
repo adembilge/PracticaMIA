@@ -137,7 +137,7 @@ def test_destination_sentence_uses_only_the_requested_field_and_a_unique_reviewe
 @pytest.mark.parametrize("saved_state", ["draft", "confirmed", "archived"])
 @pytest.mark.parametrize(("language", "opening", "name", "reply", "confirm_label"), [
     ("en", "Can we finish the address change I saved?", "Milan", "The destination is the municipality of Milan.",
-     "Confirm saved case details"),
+     "Confirm request details"),
     ("it", "Possiamo finire il cambio di residenza che ho salvato?", "Milano", "Il Comune di destinazione è Milano.",
      "Conferma i dati della pratica"),
 ])
