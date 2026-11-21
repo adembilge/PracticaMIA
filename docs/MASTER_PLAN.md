@@ -1,4 +1,6 @@
 > Canonical roadmap excerpt from `PracticaMIA_Complete_Project_Specification.md`, §25. Do not renumber tasks. Edits to the roadmap must reconcile the canonical source and `docs/TASKS.yaml`.
+>
+> **Customer UX supersession (D-010):** This retained 12-stage/94-task ledger is the historical task-ID and evidence baseline, **not an instruction to ship its original multi-screen case UI**. Interpret all user-facing tasks through [SINGLE_CHAT_PRODUCT_CONTRACT.md](SINGLE_CHAT_PRODUCT_CONTRACT.md): one chat shell and composer, no customer cases/pages, legacy case APIs only during verified migration. The active PracticaMIA 2.0 Phase 4–10 plan uses separate task numbering. Do not renumber this historical ledger or alter its tracked acceptance strings without reconciliation. **Phase 5 is not authorised to begin.**
 
 # 25. Complete 12-stage, 94-task master roadmap
 
