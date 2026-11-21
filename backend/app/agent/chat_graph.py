@@ -68,6 +68,7 @@ def load_pilot_catalogue_names(sessions: sessionmaker) -> tuple[CatalogueName, .
     # and publication, so revocation disables both references and this route.
     records = (
         ("procedure", PROCEDURE, "Cambio di residenza", "cambio di residenza", "current_official"),
+        ("procedure", PROCEDURE, "Cambio di residenza", "cambiare la residenza", "search_variant"),
         ("procedure", PROCEDURE, "Cambio di residenza", "cambio residenza", "search_variant"),
         ("procedure", PROCEDURE, "Cambio di residenza", "residence change", "search_variant"),
         ("procedure", PROCEDURE, "Cambio di residenza", "change of residence", "search_variant"),
