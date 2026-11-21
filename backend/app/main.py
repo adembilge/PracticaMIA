@@ -9,10 +9,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
     api = FastAPI(
         title="PracticaMIA Backend",
-        description="Independent case preparation API; no government eligibility or submission.",
+        description="Independent conversational administrative assistance API; no government eligibility or submission.",
         version="0.2.0",
     )
     api.state.settings = settings
+    # Validate staging isolation and independent encryption before any route or
+    # database is made available. Disabled by default on all deployments.
+    from app.agent.preview_mount import validate_agent_preview_settings
+    agent_preview_key = validate_agent_preview_settings(settings)
 
     @api.middleware("http")
     async def basic_security_headers(request, call_next):
@@ -152,6 +156,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if settings.enable_knowledge_review_api:
                 from app.knowledge.review_router import router as review_router
                 api.include_router(review_router)
+
+        if agent_preview_key is not None:
+            # Real owner-scoped encrypted conversation API, not the test fixture.
+            # Worker execution remains an independently controlled deployment.
+            from app.agent.reconnect_router import build_reconnect_router
+            api.include_router(build_reconnect_router(key=agent_preview_key))
 
     return api
 

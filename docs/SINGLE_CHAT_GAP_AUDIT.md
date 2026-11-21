@@ -16,6 +16,8 @@ A **feature-gated first functional frontend shell** now exists at `frontend/src/
 
 **Release checklist unchanged:** Actual hosted chat + owner-scoped history and task migration, documents, inline artifacts, end-to-end trials, old route retirement, and verified release controls remain open. The strict `--require-migrated` audit must continue to fail.
 
+**New Phase 4 staging transport:** `backend/app/agent/preview_mount.py` and the FastAPI app factory now permit the owner-scoped `/api/v1/agent/*` routes **only behind a pinned, isolated Preview branch, staging fingerprint and separate encryption key**. See [agent mount runbook](AGENT_PREVIEW_API_RUNBOOK.md). The old matrix's assertion that `backend/app/main.py` never mounts the router now applies only to default/production deployments. A dedicated lease-based worker, real source review and hosted two-account acceptance are still unimplemented gates; queued is not completed.
+
 ## Current-to-target matrix
 
 | Surface/capability | Verified repository location | Current status | D-010 target | Delivery gate |
@@ -23,7 +25,7 @@ A **feature-gated first functional frontend shell** now exists at `frontend/src/
 | Main customer entry | `frontend/src/app/page.tsx`; `HomeView.tsx` | Editorial landing, directs user to a saved/new case | Root `/` is the actual chat shell and free-text composer | Phase 5; no go yet |
 | Main navigation | `frontend/src/components/SiteHeader.tsx`; `frontend/src/app/cases/**` | Distinct case/account and related feature pages | Conversation history only; no user-facing case entity | Phase 5 |
 | Isolated conversation prototype | `frontend/tests/acceptance/agent-reconnect.tsx` | Local-only chat with questions, approvals, history and inline saved intake | Integrate equivalent typed components into real authenticated hosted shell | Phase 4 contracts / Phase 5 integration |
-| Conversation service | `backend/app/agent/reconnect_router.py` | Isolated authenticated route builder, not blanket production/customer enablement | Production-ready owner-scoped conversation API with scheduler and reconnect | Phase 4/5 gated |
+| Conversation service | `backend/app/agent/reconnect_router.py` | Optional gated isolated Preview mount; worker and live verification pending | Production-ready owner-scoped conversation API with scheduler and reconnect | Phase 4/5 gated |
 | Legacy case storage | `backend/app/cases/**`; `/api/v1/cases/**` | Real owner-scoped persisted legacy data | Hidden internal task/workflow layer behind chat | Design/migrate in Phase 5/8; preserve data |
 | Requirement and intake UI | `CaseIntakePanel.tsx`, `CaseJourneyPanel.tsx`, `SavedCaseWorkspace.tsx` | Independent case panels | Inline questions, checklists, field approvals and typed receipts | Phase 5/7 |
 | Document review | Existing document UI/proxies and private-document checks | Gated legacy feature and CI fixtures | Attachment/OCR review inline within chat messages | Phase 6; privacy gates |

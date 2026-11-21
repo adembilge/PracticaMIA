@@ -13,6 +13,8 @@ class Settings:
     enable_assistant_api: bool = False
     enable_preparation_api: bool = False
     enable_agent_history_api: bool = False
+    enable_agent_preview_api: bool = False
+    agent_preview_journal_key: str = ""
     enable_private_document_api: bool = False
     private_document_fixture_mode: bool = False
     private_document_fixture_subject_hashes: str = ""
@@ -59,6 +61,9 @@ class Settings:
             in {"1", "true", "yes"},
             enable_agent_history_api=environ.get("ENABLE_AGENT_HISTORY_API", "").lower()
             in {"1", "true", "yes"},
+            enable_agent_preview_api=environ.get("ENABLE_AGENT_PREVIEW_API", "").lower()
+            in {"1", "true", "yes"},
+            agent_preview_journal_key=environ.get("AGENT_PREVIEW_JOURNAL_KEY", ""),
             enable_private_document_api=environ.get("ENABLE_PRIVATE_DOCUMENT_API", "").lower()
             in {"1", "true", "yes"},
             private_document_fixture_mode=environ.get("PRIVATE_DOCUMENT_FIXTURE_MODE") == "1",
