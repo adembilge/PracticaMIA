@@ -54,8 +54,6 @@ function historyActivities(turn: HistoryTurn): HistoryActivity[] {
     })),
   ].sort((a, b) => a.eventSeq - b.eventSeq);
 }
-type CaseTask = { case_id: string; label: string; run_id: string | null };
-type CaseTaskPage = { items: CaseTask[]; next_case_id: string | null; unbound_run_id: string | null };
 type Snapshot = {
   thread_id: string;
   run_id: string;
@@ -151,13 +149,9 @@ export function AgentReconnectFixture() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [staleReply, setStaleReply] = useState(false);
-  const [caseTasks, setCaseTasks] = useState<(CaseTaskPage & { threadId: string }) | null>(null);
-  const [newTask, setNewTask] = useState<CaseTask | null>(null);
-  const [message, setMessage] = useState('');
   const [firstMessage, setFirstMessage] = useState('');
   const [firstLanguage, setFirstLanguage] = useState<'en' | 'it'>('en');
   const lastFirstMessage = useRef<{ threadId: string | null; text: string; language: 'en' | 'it'; id: string } | null>(null);
-  const lastMessage = useRef<{ threadId: string; caseId: string; text: string; id: string } | null>(null);
   const lastReply = useRef<{
     questionId: string;
     revision: number;
@@ -263,16 +257,6 @@ export function AgentReconnectFixture() {
     setView(next);
     setReply('');
     setStaleReply(false);
-    setNewTask(null);
-    setMessage('');
-    setCaseTasks(current => {
-      if (!current || current.threadId !== next.snapshot.thread_id) return null;
-      return activeStatuses.has(next.snapshot.status) ? current : {
-        ...current, items: current.items.map(task => task.run_id === next.snapshot.run_id
-          ? { ...task, run_id: null } : task),
-        unbound_run_id: current.unbound_run_id === next.snapshot.run_id ? null : current.unbound_run_id,
-      };
-    });
     if (!activeStatuses.has(next.snapshot.status)) {
       setRuns(items => items?.filter(run => run.run_id !== next.snapshot.run_id) ?? null);
       setSavedRuns(items => [
@@ -325,69 +309,6 @@ export function AgentReconnectFixture() {
     } catch {
       setError(firstLanguage === 'it' ? 'Impossibile confermare il nuovo messaggio. Riprova.'
         : 'Could not confirm the new message. Try again.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function listCases(after?: string) {
-    if (!view || busy) return;
-    const threadId = view.snapshot.thread_id;
-    setBusy(true);
-    setError('');
-    try {
-      const url = `/api/agent/threads/${threadId}/cases`;
-      const page = await request<CaseTaskPage>(after ? `${url}?after_case_id=${after}` : url);
-      setCaseTasks(current => ({
-        ...page, threadId, items: after && current?.threadId === threadId
-          ? [...current.items, ...page.items] : page.items,
-      }));
-    } catch {
-      setError('Could not load cases in this conversation.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function startTask(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const text = message.trim();
-    if (!view || !newTask || !text || busy) return;
-    const threadId = view.snapshot.thread_id;
-    const caseId = newTask.case_id;
-    const prior = lastMessage.current;
-    const id = prior?.threadId === threadId && prior.caseId === caseId && prior.text === text
-      ? prior.id : crypto.randomUUID();
-    lastMessage.current = { threadId, caseId, text, id };
-    setBusy(true);
-    setError('');
-    try {
-      const path = `/api/agent/threads/${threadId}`;
-      const response = await fetch(`${path}/messages`, {
-        method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ client_message_id: id, case_id: caseId, language: 'en', text }),
-      });
-      if (!response.ok) {
-        const problem = await response.json();
-        if (response.status === 409 && typeof problem.message === 'string') {
-          setError(problem.message);
-          return;
-        }
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const { run_id }: { run_id: string } = await response.json();
-      setRuns(current => [
-        { thread_id: threadId, run_id, case_id: caseId },
-        ...(current ?? []).filter(run => run.run_id !== run_id),
-      ]);
-      setSavedRuns(current => current?.filter(item => item.thread_id !== threadId) ?? null);
-      setCaseTasks(current => current && {
-        ...current, items: current.items.map(task => task.case_id === caseId ? { ...task, run_id } : task),
-      });
-      displayRun(await loadRun(`${path}/runs/${run_id}`));
-      lastMessage.current = null;
-    } catch {
-      setError('Could not confirm the new task. Try again.');
     } finally {
       setBusy(false);
     }
@@ -548,10 +469,7 @@ export function AgentReconnectFixture() {
       {runs?.length === 0 && <p>No active conversations.</p>}
       {runs && runs.length > 0 && <ul>
         {runs.map(run => {
-          const hasOtherTasks = runs.some(other => other.thread_id === run.thread_id && other.run_id !== run.run_id);
-          const label = hasOtherTasks
-            ? (run.case_id ? `Open saved case task ${run.case_id.slice(0, 8)}` : 'Open unassigned conversation task')
-            : 'Open conversation';
+          const label = 'Open conversation';
           return <li key={run.run_id} data-active-run-id={run.run_id}>
             <button type="button" disabled={busy} onClick={() => void open(
               `/api/agent/threads/${run.thread_id}/runs/${run.run_id}`,
@@ -646,49 +564,12 @@ export function AgentReconnectFixture() {
                   : `Conversation stopped; ${turn.terminal_event.committed_operation_ids.length} earlier change already saved.`)
                 : (turn.language === 'it'
                   ? 'Conversazione interrotta; nessuna modifica salvata confermata.'
-                  : 'Conversation stopped; no confirmed case updates.')}
+                  : 'Conversation stopped; no confirmed changes.')}
             </p>}
             {turn.answer && turn.run_id !== view.snapshot.run_id && <p>
               <strong>PracticaMIA:</strong> <span>{turn.answer.explanation}</span>
             </p>}
           </article>)}
-        </section>}
-        {view.snapshot.thread_id && <button type="button" disabled={busy} aria-expanded={!!caseTasks}
-          onClick={() => {
-            if (caseTasks) {
-              setCaseTasks(null);
-              setNewTask(null);
-              setMessage('');
-            } else {
-              void listCases();
-            }
-          }}>
-          Cases in this conversation
-        </button>}
-        {caseTasks && <section aria-label="Saved case tasks">
-          {caseTasks.unbound_run_id && <button type="button"
-            disabled={busy || caseTasks.unbound_run_id === view.snapshot.run_id}
-            onClick={() => void open(`/api/agent/threads/${caseTasks.threadId}/runs/${caseTasks.unbound_run_id}`)}>
-            Open conversation task
-          </button>}
-          {caseTasks.items.length ? <ul>{caseTasks.items.map(task => <li key={task.case_id}>
-            {task.run_id ? <button type="button" disabled={busy || task.run_id === view.snapshot.run_id}
-              aria-current={task.run_id === view.snapshot.run_id ? 'true' : undefined}
-              onClick={() => void open(`/api/agent/threads/${caseTasks.threadId}/runs/${task.run_id}`)}>
-              Open task for {task.label}
-            </button> : <button type="button" disabled={busy}
-              onClick={() => { setNewTask(task); setMessage(''); }}>Start task for {task.label}</button>}
-          </li>)}</ul> : <p>No linked cases.</p>}
-          {caseTasks.next_case_id && <button type="button" disabled={busy}
-            onClick={() => void listCases(caseTasks.next_case_id ?? undefined)}>More cases</button>}
-          {newTask && <form onSubmit={startTask}>
-            <label>
-              Message for {newTask.label}
-              <textarea rows={3} disabled={busy} maxLength={2000} value={message}
-                onChange={event => setMessage(event.target.value)} />
-            </label>
-            <button type="submit" disabled={busy || !message.trim()}>Start task</button>
-          </form>}
         </section>}
         {view.snapshot.goal_selection && <AgentGoalSelection selection={view.snapshot.goal_selection} />}
         {staleReply ? (
@@ -723,7 +604,7 @@ export function AgentReconnectFixture() {
               proposal={view.snapshot.pending_proposal} language="en" busy={busy}
               onDecision={(decision, value) => void decideProposal(decision, value)} />
           ) : view.snapshot.approval_recorded ? (
-            <p role="status">Approval recorded. The case update is pending.</p>
+            <p role="status">Approval recorded. The change is pending.</p>
           ) : <>
             <p role="status">The pending proposal is unavailable.</p>
             <button type="button" disabled={busy} onClick={() => void open(view.url)}>Check status</button>
@@ -733,7 +614,7 @@ export function AgentReconnectFixture() {
           <p>{view.snapshot.result.explanation}</p>
           {view.snapshot.selected_case && (
             view.snapshot.result.next_action?.operation === 'confirm_saved_intake' ? (
-              <section aria-label="In-chat saved case confirmation">
+              <section aria-label="In-chat information confirmation">
                 <CaseIntakePanel key={view.snapshot.selected_case.case_id}
                   caseId={view.snapshot.selected_case.case_id} />
                 <p role="status">
@@ -741,7 +622,7 @@ export function AgentReconnectFixture() {
                   Confirmation alone does not approve eligibility or submit anything officially.
                 </p>
               </section>
-            ) : <p><strong>Saved case:</strong> {view.snapshot.selected_case.label}</p>
+            ) : <p><strong>Current topic:</strong> {view.snapshot.selected_case.label}</p>
           )}
           {view.snapshot.handoff && <AgentOfficialHandoff handoff={view.snapshot.handoff} />}
           <AgentSourceCards runUrl={view.url} citations={view.snapshot.result.citations ?? []} language="en" />
@@ -751,7 +632,7 @@ export function AgentReconnectFixture() {
           <div role="status">
             <h2>Conversation failed</h2>
             {view.failureRecovery === 'retry_later' && <p>Send your request again later.</p>}
-            {view.failureRecovery === 'review_proposal' && <p>Review the case and request a new proposal.</p>}
+            {view.failureRecovery === 'review_proposal' && <p>Review the pending change and request a new proposal.</p>}
           </div>
         ) : <>
           <p role="status">Answer in progress.</p>

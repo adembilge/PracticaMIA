@@ -25,8 +25,9 @@ OTHER_CASE_CUE = re.compile(
 
 
 def _label(case: CaseRecord, language: str) -> str:
-    title = "Saved case" if language == "en" else "Pratica salvata"
-    return f"{title} {case.id[:8]} · {case.created_at.date().isoformat()}"
+    title = "Previous request" if language == "en" else "Richiesta precedente"
+    # The private database case ID is never a user-facing identifier.
+    return f"{title} · {case.created_at.date().isoformat()}"
 
 
 class ThreadCaseTask(SavedCaseChoice):
@@ -96,8 +97,8 @@ def resolve_saved_case(
     if case_reply:
         if reply.selected_case_id is None:
             return answer.model_copy(update={
-                "explanation": "Choose a saved case in a new message when you are ready to continue." if en else
-                "Quando vuoi continuare, scegli una pratica salvata in un nuovo messaggio.",
+                "explanation": "Tell me which previous request you want to continue when you are ready." if en else
+                "Quando vuoi continuare, dimmi a quale richiesta precedente ti riferisci.",
                 "missing_information": ["case_reference"],
             })
         case = db.scalar(query.where(CaseRecord.id == str(reply.selected_case_id)))
@@ -126,8 +127,8 @@ def resolve_saved_case(
     if not cases or len(cases) > 10:
         return answer.model_copy(update={
             "explanation": (
-                "Open the relevant saved case and start a new message from it." if en else
-                "Apri la pratica salvata pertinente e avvia un nuovo messaggio da lì."
+                "Tell me which previous request you mean here in this conversation." if en else
+                "Indicami qui nella conversazione quale richiesta precedente intendi."
             ),
             "missing_information": ["case_reference"],
         })
@@ -138,7 +139,7 @@ def resolve_saved_case(
     ]
     return ClarifyingQuestion(
         question_id=uuid4(),
-        text="Which saved case do you mean?" if en else "A quale pratica salvata ti riferisci?",
+        text="Which previous request do you mean?" if en else "A quale richiesta precedente ti riferisci?",
         answer_shape="single_choice", options=[choice.label for choice in choices],
         missing_fields=["case_reference"], case_choices=choices, case_goal=answer.goal_selection,
     )
@@ -147,8 +148,8 @@ def resolve_saved_case(
 def _confirmed_case(answer: AnswerResult, case: CaseRecord, language: str) -> AnswerResult:
     return answer.model_copy(update={
         "explanation": (
-            "The saved case choice was recorded." if language == "en" else
-            "La scelta della pratica salvata è stata registrata."
+            "I have connected this conversation to the requested work." if language == "en" else
+            "Ho collegato questa conversazione alla richiesta indicata."
         ),
         "missing_information": [field for field in answer.missing_information if field != "case_reference"],
         "selected_case": SavedCaseChoice(case_id=case.id, label=_label(case, language)),

@@ -352,13 +352,13 @@ Synthetic tests cover clear and ambiguous preferences, an unauthorized or invali
 
 If the selected marriage-banns task has no compatible saved case, the worker asks a free-text follow-up for the two municipality roles. The question records the existing selection as `procedure_goal`. The snapshot presents it while waiting for the reply and after it is accepted. The reply stays with that task and grants no evidence or new case binding.
 
-### Verifying the selected case
+### Verifying the internal task resolved from conversation (legacy storage name: case)
 
 Task 39.3 verifies an explicitly selected case against the authenticated owner, active record and current conversation link. A relative reference such as “the other application” excludes the existing case binding when one is present and asks the user to choose. A selected goal narrows the case choices by its procedure candidates. A goal pointing exclusively to a different location does not inherit the saved Milan procedure. Options display numbered short references and creation dates. Oversized lists and missing matches direct the user to their saved cases.
 
 The reply endpoint binds the selected label to the case ID recorded on the pending question and current revision. It checks the link and active state again before writing the reply. The worker rechecks availability before completing, and the current snapshot removes a case link that is no longer active. Selecting a case leaves the original run's case binding intact. The user can open the independently verified case and continue from it.
 
-Signed tests cover both languages, separate active-goal procedure candidates, explicit selection, cross-account access, archive races and new-run binding. The mobile synthetic Chromium scenario chooses between linked cases and checks the destination exposed by the authenticated API.
+Signed tests cover both languages, separate active-goal procedure candidates, explicit selection, cross-account access, archive races and new-run binding. The mobile synthetic Chromium scenario answers an **in-chat clarification question** to disambiguate the target; the authenticated API validates the internal task reference without exposing a user-facing case.
 
 ### Reusing confirmed shared facts
 
@@ -370,11 +370,11 @@ The [signed API and worker tests](../../backend/tests/test_agent_shared_case_fac
 
 ### Switching between pending case tasks
 
-Task 39.5 lists active saved cases in the isolated conversation and starts a new message for an explicitly chosen linked case. The owner can move between tasks while a clarification is pending. The browser opens each saved run through its existing snapshot and event cursor. Reloading preserves the pending question ID, revision, options and checkpoint for the selected run.
+**Legacy API behavior (not permitted customer UX):** Task 39.5 currently lists active saved records through an internal conversation endpoint and accepts an explicitly bound case ID when starting a new run. These APIs remain owner-scoped during migration. Under D-010, the **customer must not be offered a cases/tasks selector**; a natural-language message or inline clarification resolves the relevant internal task without exposing the ID. This agent-driven routing and resumption remain hosted acceptance work, not an implemented claim. The browser opens each saved run through its existing snapshot and event cursor. Reloading preserves the pending question ID, revision, options and checkpoint for the selected run.
 
 Migration `20261119_0024` allows one active run per case and one processing slot per conversation. Queued work, running work and pending approvals occupy that slot. A reply or new message that would compete for it returns `conversation_busy`, and the original question remains available. Existing replies and message retries retain their idempotency. The downgrade requires one active run per conversation again. Finish or stop extra active runs before downgrading.
 
-Signed API tests exercise reopening two pending tasks, rejection of an unavailable case or mismatched question, and exact retries. Disposable PostgreSQL tests exercise competing replies. The isolated mobile Chromium scenario starts the other task while the first question is open, returns to it after reload, and answers it while the other question remains pending.
+Signed API tests exercise reopening two pending tasks, rejection of an unavailable case or mismatched question, and exact retries. Disposable PostgreSQL tests exercise competing replies. The synthetic browser scenario exercises two internally bound runs **without a visible case picker**, returns to it after reload, and answers it while the other question remains pending.
 
 ### Testing isolation between pending cases
 

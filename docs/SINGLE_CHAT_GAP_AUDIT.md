@@ -22,6 +22,26 @@
 | Multi-authority procedures | 3-authority Phase 4 source worksheet | Candidate claims pending human review | Ask freely, disclose unsupported scope, never invent instructions | Human review + pilot |
 | Live account isolation | Auth0 manual case read/PDF observations; opt-in two-account harness | Partial real identity evidence; new write matrix not confirmed live | Cross-user protection for every chat/task/doc/artifact and retained old deep link | Live staging/release gate |
 
+## Follow-up repository audit — actual code remaining (21 November 2026)
+
+The second audit inspected the repository tree, current Next.js route files, the root/header, the isolated agent UI, the Phase 4 API handoff and the browser acceptance test. **The old application was not deleted by PR #216.** Current customer-visible route/entry debt:
+
+| Existing path or component | Why it conflicts with D-010 | Safe next action |
+| --- | --- | --- |
+| `/` → `HomeView` | Hero content and "Prepare my case" instead of an actual composer | Replace with real authenticated chat shell |
+| `SiteHeader` | Navigation to `/cases/new` and `/account` | Convert to conversation-only sidebar and an inline account menu |
+| `/account`, `/cases/new`, `/cases/saved` | Separate account/case page navigation remains | Retire only after validated conversation migration |
+| `/cases/[id]`, `/cases/[id]/documents`, `/cases/[id]/preparation`, `/cases/[id]/assistant` | Dedicated case and document/preview screens | Move actions to inline cards; provide owner-scoped recovery for old links |
+| `/cases/demo`, `/cases/demo/review`, `/demo/synthetic` | Separate customer-style demo workflow | Keep synthetic CI testing separate from customer navigation; retire feature routes |
+| `frontend/src/components/CaseIntakePanel.tsx`, `CaseJourneyPanel.tsx`, `SavedCaseWorkspace.tsx` | Old standalone workflow composition | Replace with typed in-chat action cards |
+| `frontend/src/app/api/cases/**`, `backend/app/cases/**`, database `case_id` FKs | Internal legacy persistence and compatibility URLs | Preserve owner and records until audited migration; never delete for cosmetic cleanup |
+| `frontend/tests/acceptance/run.mjs` | Synthetic acceptance still exercises historical pages | Keep these security regressions until equivalent hosted chat E2E has passed |
+| `frontend/tests/acceptance/agent-reconnect.tsx` | Isolated chat prototype previously had visible case picker and IDs | **This Phase 4 cleanup removes the UI picker**, retains internal signed API test as a compatibility regression; not a deployed UI |
+
+The repeatable check is `python scripts/validate_single_chat_contract.py` (reports all 10 known standalone legacy customer routes plus `HomeView` and navigation, and rejects new unregistered standalone customer pages). The strict non-release command `python scripts/validate_single_chat_contract.py --require-migrated` must fail while these remain. Governance CI enforces that the isolated chat fixture has no case navigation; a green planning/fixture check **cannot** certify the hosted app. Runtime migration must not begin until user-authorized Phase 5 implementation and necessary identity/retention gates.
+
+**Non-destructive boundary:** User said no old product behavior should remain, which is the **release acceptance requirement**. Removing saved database rows, encryption keys, source snapshots or audit history to achieve a superficially clean repository would risk losing records and weakening protection. Existing operational and test compatibility may remain until their safe replacements are proved, but **none is acceptable as a final customer UX**.
+
 ## Immediate engineering guardrails (Phase 4)
 
 - Treat `docs/SINGLE_CHAT_PRODUCT_CONTRACT.md` as the authoritative UX requirement. Keep the earlier 94-task source record intact for provenance, but do not build its historical 12-page UI.

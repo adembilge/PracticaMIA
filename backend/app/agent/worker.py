@@ -213,7 +213,7 @@ def run_worker_step(
     elif resolve_case:
         goal_selection = question.case_goal if case_question else None
         result = AnswerResult(
-            explanation="Choose a saved case." if message.language == "en" else "Scegli una pratica salvata.",
+            explanation="Tell me which previous request you mean." if message.language == "en" else "Indicami quale richiesta precedente intendi.",
             verification_status="insufficient_evidence",
             missing_information=(
                 checkpoint.state.goals[goal_selection.active_goal - 1].missing_fields
@@ -329,7 +329,7 @@ def run_worker_step(
                     not result.citations or current_case is None or not current_case.matches_first_milan_route
                 ):
                     explanation, label = (
-                        ("Review and confirm the saved case details before checking the filing step.", "Review case details")
+                        ("Review and confirm the requested details here before checking the filing step.", "Review details")
                         if message.language == "en" else
                         ("Rivedi e conferma i dati della pratica prima di verificare l’invio.", "Rivedi i dati della pratica")
                     )

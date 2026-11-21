@@ -861,7 +861,7 @@ try{
     assert.equal(stoppedHistory.terminal_event.type,'run.stopped');
     assert.deepEqual(stoppedHistory.terminal_event.committed_operation_ids,[]);
     await owner.getByRole('region',{name:'Conversation history'})
-      .getByText('Conversation stopped; no confirmed case updates.',{exact:true}).waitFor();
+      .getByText('Conversation stopped; no confirmed changes.',{exact:true}).waitFor();
     await owner.reload();
     await owner.getByRole('heading',{name:'Active conversations',exact:true}).waitFor();
     const active=await readJson(owner,'/api/agent/runs/active');
@@ -1001,7 +1001,7 @@ try{
     assert.equal(await owner.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
   });
 
-  await scenario('Agent case choice: confirm which linked application to open',async()=>{
+  await scenario('Agent request disambiguation: confirm which internal task to continue',async()=>{
     const owner=await contextFor('alice',{width:390,height:800});
     await owner.goto(origin+'/__acceptance/agent');
     const {body:{items}}=await readJson(owner,'/api/agent/runs/active');
@@ -1012,14 +1012,14 @@ try{
     const {case_choices:choices}=journals[index].body.events.at(-1).question;
     assert.ok(choices.every(choice=>choice.case_id!==items[index].case_id));
     await owner.getByRole('button',{name:'Open conversation',exact:true}).nth(index).click();
-    await owner.getByRole('group',{name:'Which saved case do you mean?',exact:true}).waitFor();
+    await owner.getByRole('group',{name:'Which previous request do you mean?',exact:true}).waitFor();
     await owner.getByRole('radio',{name:choices[1].label,exact:true}).check();
     await owner.getByRole('button',{name:'Send reply',exact:true}).click();
     await awaitAgentStatus(owner,urls[index]);
     const {body:snapshot}=await readJson(owner,urls[index]);
     assert.equal(snapshot.selected_case.case_id,choices[1].case_id);
     const conversation=owner.getByRole('region',{name:'Conversation'});
-    const savedLabel=conversation.locator('p').filter({hasText:`Saved case: ${snapshot.selected_case.label}`});
+    const savedLabel=conversation.locator('p').filter({hasText:`Current topic: ${snapshot.selected_case.label}`});
     if(!await savedLabel.isVisible()) await owner.getByRole('button',{name:'Check status'}).click();
     await savedLabel.waitFor();
     assert.equal(await savedLabel.locator('a').count(),0,
@@ -1077,7 +1077,7 @@ try{
     });
   }
 
-  await scenario('Agent task switching: open another case and return to its original question after reload',async()=>{
+  await scenario('Agent internal task isolation: restore pending questions without a case picker',async()=>{
     const owner=await contextFor('alice',{width:390,height:800});
     const route='/__acceptance/agent';
     const firstPrompt='Which detail belongs to the first saved case?';
@@ -1091,23 +1091,36 @@ try{
     const first=items[index];
     const firstQuestion=journals[index].body.events.at(-1).question;
     const path=`/api/agent/threads/${first.thread_id}`;
-    await owner.getByRole('button',{name:'Open conversation',exact:true}).nth(index).click();
+    await owner.locator(`li[data-active-run-id="${first.run_id}"] button`).click();
     await owner.getByRole('group',{name:firstPrompt}).waitFor();
-    await owner.getByRole('button',{name:'Cases in this conversation'}).click();
-    await owner.getByRole('button',{name:/Start task for Saved case/}).click();
-    await owner.getByRole('textbox',{name:/Message for Saved case/}).fill('Continue the second saved case.');
-    const accepted=owner.waitForResponse(response=>response.url()===origin+path+'/messages' && response.status()===202);
-    const messageStarted=performance.now();
-    await owner.getByRole('button',{name:'Start task',exact:true}).click();
-    const {run_id:secondId}=await (await accepted).json();
+    assert.equal(await owner.getByRole('button',{name:'Cases in this conversation'}).count(),0,
+      'No visible case/task picker is permitted in the chat interface');
+
+    // Arrange a second internal task via the signed synthetic API, not by giving
+    // customers a case picker. This verifies the underlying isolation contract,
+    // while the future hosted chat must independently prove natural-language routing.
+    const {body:linked}=await readJson(owner,path+'/cases');
+    const second=linked.items.find(item=>item.case_id!==first.case_id && !item.run_id);
+    assert.ok(second,'Synthetic fixture must have a second internally linked task');
+    const accepted=await owner.request.post(origin+path+'/messages',{
+      headers:{Origin:origin},
+      data:{
+        client_message_id:'00000000-0000-4000-8000-00000000b501',
+        case_id:second.case_id,language:'en',
+        text:'Continue the second saved internal task.',
+      },
+    });
+    assert.equal(accepted.status(),202,await accepted.text());
+    const {run_id:secondId}=await accepted.json();
     const secondUrl=path+'/runs/'+secondId;
     await awaitAgentStatus(owner,secondUrl,'waiting_for_information');
-    const check=owner.getByRole('button',{name:'Check status',exact:true});
-    await check.or(owner.getByRole('group',{name:secondPrompt})).first().waitFor();
-    if(await check.isVisible()) await check.click();
+    await owner.reload();
+    await owner.locator(`li[data-active-run-id="${secondId}"] button`).click();
     await owner.getByRole('group',{name:secondPrompt}).waitFor();
-    report.agentPerformanceMs.firstQuestionAfterStartTask=Math.round(performance.now()-messageStarted);
-    await owner.getByRole('button',{name:new RegExp('Open task for Saved case '+first.case_id.slice(0,8))}).click();
+    assert.equal(await owner.getByRole('button',{name:'Cases in this conversation'}).count(),0);
+    assert.equal(await owner.getByText(/Open saved case task/).count(),0);
+
+    await owner.locator(`li[data-active-run-id="${first.run_id}"] button`).click();
     await owner.getByRole('group',{name:firstPrompt}).waitFor();
     assert.equal(await owner.getByRole('group',{name:secondPrompt}).isVisible(),false);
     assert.equal((await readJson(owner,urls[index]+'/events')).body.events.at(-1).question.question_id,
@@ -1116,7 +1129,7 @@ try{
     await owner.reload();
     const {body:{items:reopened}}=await readJson(owner,'/api/agent/runs/active');
     assert.equal(reopened.filter(run=>run.thread_id===first.thread_id).length,2);
-    await owner.getByRole('button',{name:'Open saved case task '+first.case_id.slice(0,8),exact:true}).click();
+    await owner.locator(`li[data-active-run-id="${first.run_id}"] button`).click();
     await owner.getByRole('group',{name:firstPrompt}).waitFor();
     await owner.getByRole('radio',{name:'Fixture A',exact:true}).check();
     await owner.getByRole('button',{name:'Send reply',exact:true}).click();
@@ -1343,8 +1356,8 @@ try{
     await owner.goto(origin+'/__acceptance/agent');
     await owner.getByRole('button',{name:'Open completed conversation'}).click();
     const conversation=owner.getByRole('region',{name:'Conversation'});
-    const inline=conversation.getByRole('region',{name:'In-chat saved case confirmation'});
-    const panel=inline.getByRole('region',{name:'Confirm the details of this example case'});
+    const inline=conversation.getByRole('region',{name:'In-chat information confirmation'});
+    const panel=inline.getByRole('region',{name:'Review the information for this request'});
     await panel.waitFor();
     assert.equal(await conversation.locator(`a[href^="/cases/${caseId}"]`).count(),0,
       'Confirming intake must stay in the same chatbot');
@@ -1352,11 +1365,11 @@ try{
     await panel.getByLabel('Destination municipality').selectOption('milano');
     assert.equal(await panel.getByRole('button',{name:'Confirm facts'}).isEnabled(),false);
     await panel.getByRole('button',{name:'Save draft'}).click();
-    await panel.getByText('Draft saved. You can leave and return later.').waitFor();
+    await panel.getByText('Your information was saved. You can return to this conversation later.').waitFor();
     assert.equal(confirmed,false);
     await panel.getByRole('checkbox',{name:'I have reviewed the information above.'}).check();
     await panel.getByRole('button',{name:'Confirm facts'}).click();
-    await panel.getByText('Facts confirmed for this example case.').waitFor();
+    await panel.getByText('Information confirmed for this request.').waitFor();
     assert.equal(confirmed,true);
     assert.deepEqual(updates.map(entry=>entry.confirm),[false,true]);
     assert.equal(updates[1].facts.destination_municipality,'milano');
@@ -1365,7 +1378,7 @@ try{
     assert.equal(await inline.getByText(/send another message in this chat/i).count(),1);
     await owner.reload();
     await owner.getByRole('button',{name:'Open completed conversation'}).click();
-    const restored=owner.getByRole('region',{name:'In-chat saved case confirmation'});
+    const restored=owner.getByRole('region',{name:'In-chat information confirmation'});
     await restored.getByText(/Intake status:\s*User confirmed/).waitFor();
     assert.equal(await owner.locator(`a[href^="/cases/${caseId}"]`).count(),0);
   });

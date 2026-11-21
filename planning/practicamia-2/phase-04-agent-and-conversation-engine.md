@@ -122,7 +122,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 
 - **39.1** [Identify separate goals in one message](phase-04-agent-api-contract.md#identifying-separate-goals), with individual procedure candidates and missing context.
 - **39.2** [Display task choices and the active task](phase-04-agent-api-contract.md#choosing-the-active-task). Ask where to start when the request has no clear preference.
-- **39.3** [Verify saved-case selection on the server](phase-04-agent-api-contract.md#verifying-the-selected-case). Clarify references such as “the other application” when several records match.
+- **39.3** [Resolve and authorise an internal task reference on the server](phase-04-agent-api-contract.md#verifying-the-internal-task-resolved-from-conversation-legacy-storage-name-case). Disambiguate references such as “the other application” **inside the conversation**. Never display a case picker or require the user to supply a case ID.
 - **39.4** [Reuse confirmed shared facts](phase-04-agent-api-contract.md#reusing-confirmed-shared-facts). Keep task-specific dates, documents, and fields with the relevant case.
 - **39.5** [Switch while a question is pending](phase-04-agent-api-contract.md#switching-between-pending-case-tasks). Show the relevant work and question when the user returns.
 - **39.6** [Test cross-case isolation](phase-04-agent-api-contract.md#testing-isolation-between-pending-cases) with similar document names, different municipalities, and two pending questions.
