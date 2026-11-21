@@ -3,11 +3,13 @@ from uuid import uuid4
 
 from app.agent.chat_graph import build_chat_executor
 from app.agent.checkpoints import CheckpointState
-from app.agent.contract import AnswerResult, QuestionAnswered, SendMessage
+from app.agent.contract import AnswerResult, ClarificationReply, QuestionAnswered, QuestionRequested, SendMessage
+from app.agent.run_events import read_run_events
 from app.agent.run_requests import StoredMessage, accept_message
 from app.agent.source_cards import read_run_source_card
 from app.agent.threads import create_thread
 from app.agent.worker import RequestClarification, run_worker_step
+from app.agent.checkpoints import submit_clarification_reply
 from app.knowledge.entity_matching import CatalogueName
 from app.rules.engine import JURISDICTION, PROCEDURE
 from test_agent_run_requests import ALICE, KEY
@@ -99,6 +101,45 @@ def test_chat_graph_clarifies_location_and_resumes_without_a_case(client):
     assert answer.verification_status == "insufficient_evidence"
     assert answer.citations and not answer.claims
     assert answer.official_channel is None
+
+
+def test_case_free_worker_resumes_a_real_clarification_reply(client):
+    version, digest = _create(client, html=HTML)
+    _approve(client, version, digest)
+    factory = client.app.state.session_factory
+    execute = build_chat_executor(factory, catalogue_names=_names())
+    message = SendMessage(
+        client_message_id=uuid4(), text="How can I change my address?", language="en",
+    )
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=ALICE)
+        accepted = accept_message(db, thread_id=thread_id, principal=ALICE, message=message, key=KEY)
+    context = {
+        "thread_id": thread_id, "run_id": accepted.run_id, "principal": ALICE, "key": KEY,
+    }
+
+    paused = run_worker_step(factory, **context, execute=execute)
+    assert paused.status == "waiting_for_information"
+    with factory() as db:
+        events = read_run_events(db, **context, after_seq=0).events
+    question = next(event.question for event in events if isinstance(event, QuestionRequested))
+    assert question.missing_fields == ["destination"]
+
+    reply = ClarificationReply(
+        client_reply_id=uuid4(), expected_run_revision=paused.run_revision, text="Milano",
+    )
+    with factory.begin() as db:
+        submitted = submit_clarification_reply(
+            db, **context, question_id=question.question_id, reply=reply,
+        )
+    assert submitted.text == "Milano"
+
+    completed = run_worker_step(factory, **context, execute=execute)
+    assert completed.status == "completed"
+    assert completed.result.verification_status == "insufficient_evidence"
+    assert completed.result.citations
+    assert completed.result.claims == []
+    assert completed.result.official_channel is None
 
 
 def test_chat_graph_does_not_publish_unapproved_or_missing_passages(client):
