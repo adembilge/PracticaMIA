@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from scripts.validate_single_chat_contract import (FILES, PHASE_FILES, REQUIRED,
-    runtime_legacy_inventory, validate_texts, validate_visible_chat_fixture)
+    runtime_legacy_inventory, unregistered_customer_pages, validate_texts, validate_visible_chat_fixture)
 
 
 def sample() -> dict[str, str]:
@@ -51,6 +51,20 @@ class SingleChatContractTests(unittest.TestCase):
             landing.write_text('export default function Chat() {}', encoding='utf-8')
             self.assertEqual(runtime_legacy_inventory(root), [])
 
+
+    def test_new_standalone_case_route_is_rejected(self):
+        with TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            legacy = root / 'frontend/src/app/cases/new/page.tsx'
+            legacy.parent.mkdir(parents=True)
+            legacy.write_text('legacy', encoding='utf-8')
+            self.assertEqual(unregistered_customer_pages(root), [])
+            unexpected = root / 'frontend/src/app/cases/surprise/page.tsx'
+            unexpected.parent.mkdir(parents=True)
+            unexpected.write_text('not allowed', encoding='utf-8')
+            self.assertEqual(unregistered_customer_pages(root), [
+                'frontend/src/app/cases/surprise/page.tsx',
+            ])
 
     def test_missing_gap_audit_is_rejected(self):
         data = sample()
