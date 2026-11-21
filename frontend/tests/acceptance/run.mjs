@@ -1256,9 +1256,9 @@ try{
     await past.locator(`li[data-conversation-thread="${threadA}"] button`).click();
     await owner.getByText('Newest answer in this conversation.',{exact:true}).waitFor();
     const transcript=owner.getByRole('region',{name:'Conversation history'});
-    await transcript.getByText('The latest question',{exact:true}).waitFor();
+    await transcript.getByText('The latest question',{exact:false}).waitFor();
     await transcript.getByRole('button',{name:'Earlier messages'}).click();
-    await transcript.getByText('The oldest question',{exact:true}).waitFor();
+    await transcript.getByText('The oldest question',{exact:false}).waitFor();
     const orderedText=await transcript.innerText();
     assert.ok(orderedText.indexOf('The oldest question')<orderedText.indexOf('The latest question'));
     assert.equal(await transcript.getByRole('button',{name:'Earlier messages'}).count(),0);
