@@ -105,7 +105,7 @@ def test_other_case_is_clarified_with_only_active_owned_links(client, auth_heade
 
 
 def test_case_archive_between_offer_and_reply_is_rejected_and_live_selection_is_rechecked(client, auth_headers):
-    factory, context, url, _, other, second_other = _run(client, "Resume my case", bind=True)
+    factory, context, url, _, other, second_other = _run(client, "Resume the other application", bind=True)
     owner = auth_headers("alice")
     _resume_case(factory, context)
     snapshot, question = _read_question(client, url, owner)
@@ -160,7 +160,7 @@ def test_active_goal_uses_an_in_chat_choice_without_case_selection(client, auth_
 
 
 def test_worker_reasks_when_a_case_is_archived_after_an_accepted_reply(client, auth_headers):
-    factory, context, url, _, other, _ = _run(client, "Resume my case", bind=True)
+    factory, context, url, _, other, _ = _run(client, "Resume the other application", bind=True)
     owner = auth_headers("alice")
     _resume_case(factory, context)
     snapshot, question = _read_question(client, url, owner)
