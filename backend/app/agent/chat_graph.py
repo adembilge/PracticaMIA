@@ -176,7 +176,7 @@ def build_chat_graph(
         # TARI is a separate municipal declaration, but the approved FAQ has a
         # reference passage for it within the Milan residence-change topic.
         if identified.intent == "request_information" and "tari" in normalized.split():
-            if JURISDICTION in identified.location_candidates:
+            if identified.location_candidates == [JURISDICTION]:
                 identified = identified.model_copy(update={
                     "next_node": "find_evidence", "procedure_candidates": [PROCEDURE],
                     "location_candidates": [JURISDICTION], "missing_fields": [],
@@ -190,6 +190,17 @@ def build_chat_graph(
 
     def choose_next_step(state: ChatGraphState) -> dict:
         message, checkpoint = state["message"], state["checkpoint"]
+        if message.case_id is None and checkpoint.intent == "resume_case":
+            return {"result": AnswerResult(
+                explanation=(
+                    "To resume a different topic, open its conversation from the history sidebar. "
+                    "You can also describe the topic here and continue in this chat."
+                    if message.language == "en" else
+                    "Per riprendere un altro argomento, apri la relativa conversazione dalla cronologia. "
+                    "Puoi anche descrivere qui l’argomento e continuare in questa chat."
+                ),
+                verification_status="insufficient_evidence",
+            )}
         available_names = state.get("catalogue_names") or names()
         if isinstance(available_names, CatalogueUnavailable):
             return {"result": available_names}
