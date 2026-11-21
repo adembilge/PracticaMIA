@@ -8,6 +8,8 @@ import {AgentGoalSelection, type GoalSelection} from '../../src/components/Agent
 
 type ActiveRun = { thread_id: string; run_id: string; case_id: string | null; status?: string };
 type SavedRun = ActiveRun & { status: string };
+type ConversationCursor = { accepted_at: string; run_id: string };
+type ConversationPage = { items: SavedRun[]; next_cursor: ConversationCursor | null };
 type HistoryClarification = {
   event_seq: number; question_id: string; question_text: string;
   disposition: ReplyDisposition; reply_text: string | null;
@@ -88,14 +90,23 @@ type RunView = {
 type ReplyDisposition = 'answer' | 'unknown' | 'skip' | 'change_topic';
 const activeStatuses = new Set(['queued', 'running', 'waiting_for_information', 'waiting_for_approval', 'stopping']);
 
-/** Keep one list entry per conversation, never one per finished message. */
-function latestConversationRuns(recent: SavedRun[]): SavedRun[] {
-  const seen = new Set<string>();
-  return recent.filter(run => {
-    if (seen.has(run.thread_id)) return false;
+/** Keep a single latest entry per thread across arbitrary cursor pages. */
+function appendDistinctConversations(existing: SavedRun[], page: SavedRun[]): SavedRun[] {
+  const seen = new Set(existing.map(run => run.thread_id));
+  return [...existing, ...page.filter(run => {
+    if (seen.has(run.thread_id) || activeStatuses.has(run.status)) return false;
     seen.add(run.thread_id);
-    return !activeStatuses.has(run.status);
-  });
+    return true;
+  })];
+}
+
+function appendActiveRuns(existing: ActiveRun[], page: SavedRun[]): ActiveRun[] {
+  const seen = new Set(existing.map(run => run.run_id));
+  return [...existing, ...page.filter(run => {
+    if (!activeStatuses.has(run.status) || seen.has(run.run_id)) return false;
+    seen.add(run.run_id);
+    return true;
+  })];
 }
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
@@ -130,6 +141,8 @@ async function loadRun(url: string): Promise<RunView> {
 export function AgentReconnectFixture() {
   const [runs, setRuns] = useState<ActiveRun[] | null>(null);
   const [savedRuns, setSavedRuns] = useState<SavedRun[] | null>(null);
+  const [savedCursor, setSavedCursor] = useState<ConversationCursor | null>(null);
+  const [savedPageBusy, setSavedPageBusy] = useState(false);
   const [history, setHistory] = useState<HistoryPage | null>(null);
   const [historyBusy, setHistoryBusy] = useState(false);
   const [view, setView] = useState<RunView | null>(null);
@@ -162,15 +175,48 @@ export function AgentReconnectFixture() {
   useEffect(() => {
     const controller = new AbortController();
     void request<{ items: ActiveRun[] }>('/api/agent/runs/active', { signal: controller.signal })
-      .then(page => { if (!controller.signal.aborted) setRuns(current => current ?? page.items); })
-      .catch(() => { if (!controller.signal.aborted) setError('Could not load conversations.'); });
-    void request<{ items: SavedRun[] }>('/api/agent/runs/recent', { signal: controller.signal })
       .then(page => {
-        if (!controller.signal.aborted) setSavedRuns(latestConversationRuns(page.items));
+        if (!controller.signal.aborted) setRuns(current => [
+          ...page.items, ...(current ?? []).filter(run => !page.items.some(item => item.run_id === run.run_id)),
+        ]);
       })
-      .catch(() => { if (!controller.signal.aborted) setSavedRuns([]); });
+      .catch(() => { if (!controller.signal.aborted) setError('Could not load conversations.'); });
+    void request<ConversationPage>('/api/agent/conversations/recent', { signal: controller.signal })
+      .then(page => {
+        if (!controller.signal.aborted) {
+          setSavedRuns(current => appendDistinctConversations(current ?? [], page.items));
+          setRuns(current => appendActiveRuns(current ?? [], page.items));
+          setSavedCursor(page.next_cursor);
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) { setSavedRuns([]); setSavedCursor(null); }
+      });
     return () => controller.abort();
   }, []);
+
+  async function loadOlderConversations() {
+    if (!savedCursor || savedPageBusy || busy) return;
+    const cursor = savedCursor;
+    setSavedPageBusy(true);
+    setError('');
+    try {
+      const params = new URLSearchParams({
+        before_accepted_at: cursor.accepted_at, before_run_id: cursor.run_id,
+      });
+      const page = await request<ConversationPage>(
+        `/api/agent/conversations/recent?${params.toString()}`,
+      );
+      setSavedRuns(current => appendDistinctConversations(current ?? [], page.items));
+      setRuns(current => appendActiveRuns(current ?? [], page.items));
+      setSavedCursor(current => current?.run_id === cursor.run_id
+        && current.accepted_at === cursor.accepted_at ? page.next_cursor : current);
+    } catch {
+      setError('Could not load older conversations. Try again.');
+    } finally {
+      setSavedPageBusy(false);
+    }
+  }
 
   const historyThreadId = view?.snapshot.thread_id;
   const historyRunId = view?.snapshot.run_id;
@@ -512,8 +558,9 @@ export function AgentReconnectFixture() {
           </li>;
         })}
       </ul>}
-      {savedRuns && savedRuns.some(run => !runs?.some(active => active.thread_id === run.thread_id))
-        && <section aria-label="Past conversations">
+      {savedRuns && (savedCursor || savedRuns.some(
+        run => !runs?.some(active => active.thread_id === run.thread_id),
+      )) && <section aria-label="Past conversations">
         <h2>Past conversations</h2>
         <ul>{savedRuns.filter(run => !runs?.some(active => active.thread_id === run.thread_id))
           .map(run => <li key={run.thread_id} data-conversation-thread={run.thread_id}>
@@ -521,6 +568,8 @@ export function AgentReconnectFixture() {
             `/api/agent/threads/${run.thread_id}/runs/${run.run_id}`,
           )}>Open completed conversation</button>
         </li>)}</ul>
+        {savedCursor && <button type="button" disabled={busy || savedPageBusy}
+          onClick={() => void loadOlderConversations()}>Older conversations</button>}
       </section>}
       {view && <section aria-label="Conversation" aria-busy={busy}>
         {history?.thread_id === view.snapshot.thread_id && <section aria-label="Conversation history">

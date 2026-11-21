@@ -1174,7 +1174,7 @@ try{
     assert.equal(followupActive.find(run=>run.run_id===secondRun.run_id).case_id,null);
 
     const recentReload=owner.waitForResponse(response=>
-      response.url()===origin+'/api/agent/runs/recent' && response.status()===200);
+      response.url()===origin+'/api/agent/conversations/recent' && response.status()===200);
     await owner.reload();
     await recentReload;
     const activeSecond=owner.locator(`li[data-active-run-id="${secondRun.run_id}"] button`);
@@ -1188,7 +1188,7 @@ try{
     assert.equal((await readJson(owner,secondUrl)).body.status,'waiting_for_information');
   });
 
-  await scenario('Agent past conversations: newest run per thread, no duplicate or active chat',async()=>{
+  await scenario('Agent past conversations: paginate distinct threads and older messages',async()=>{
     const owner=await contextFor('alice',{width:390,height:800});
     const threadA='10000000-0000-4000-8000-000000000001';
     const threadB='10000000-0000-4000-8000-000000000002';
@@ -1196,39 +1196,72 @@ try{
     const runA2='20000000-0000-4000-8000-000000000001';
     const runA1='20000000-0000-4000-8000-000000000002';
     const runB2='20000000-0000-4000-8000-000000000003';
-    const runB1='20000000-0000-4000-8000-000000000004';
     const runC1='20000000-0000-4000-8000-000000000005';
+    const firstCursor={accepted_at:'2026-11-20T11:00:00Z',run_id:runB2};
     const recent=[
       {thread_id:threadA,run_id:runA2,case_id:null,status:'completed'},
       {thread_id:threadB,run_id:runB2,case_id:null,status:'waiting_for_information'},
-      {thread_id:threadA,run_id:runA1,case_id:null,status:'completed'},
-      {thread_id:threadB,run_id:runB1,case_id:null,status:'completed'},
-      {thread_id:threadC,run_id:runC1,case_id:null,status:'failed'},
     ];
+    const oldest={thread_id:threadC,run_id:runC1,case_id:null,status:'failed'};
+    const pageRequests=[];
     await owner.route(origin+'/api/agent/runs/active',route=>route.fulfill({json:{
       items:[recent[1]],next_cursor:null,
     }}));
-    await owner.route(origin+'/api/agent/runs/recent',route=>route.fulfill({json:{
-      items:recent,next_cursor:null,
-    }}));
+    await owner.route('**/api/agent/conversations/recent**',route=>{
+      const req=new URL(route.request().url());
+      pageRequests.push(req.searchParams.get('before_run_id'));
+      if(req.searchParams.size===0){
+        return route.fulfill({json:{items:recent,next_cursor:firstCursor}});
+      }
+      assert.equal(req.searchParams.get('before_run_id'),firstCursor.run_id);
+      assert.equal(req.searchParams.get('before_accepted_at'),firstCursor.accepted_at);
+      return route.fulfill({json:{items:[oldest],next_cursor:null}});
+    });
     await owner.route(origin+`/api/agent/threads/${threadA}/runs/${runA2}`,route=>route.fulfill({json:{
       thread_id:threadA,run_id:runA2,status:'completed',
       last_event_seq:2,run_revision:2,
       result:{explanation:'Newest answer in this conversation.',verification_status:'insufficient_evidence'},
     }}));
     await owner.route(origin+`/api/agent/threads/${threadA}/history`,route=>route.fulfill({json:{
-      thread_id:threadA,items:[],next_before_revision:null,
+      thread_id:threadA,next_before_revision:2,items:[{
+        run_id:runA2,case_id:null,status:'completed',accepted_revision:2,
+        user_message:'The latest question',language:'en',
+        answer:{explanation:'Newest answer in this conversation.'},
+        clarifications:[],approvals:[],
+        clarification_history_truncated:false,approval_history_truncated:false,
+        terminal_event:null,
+      }],
+    }}));
+    await owner.route(origin+`/api/agent/threads/${threadA}/history?before_revision=2`,route=>route.fulfill({json:{
+      thread_id:threadA,next_before_revision:null,items:[{
+        run_id:runA1,case_id:null,status:'completed',accepted_revision:1,
+        user_message:'The oldest question',language:'en',
+        answer:{explanation:'The oldest answer.'},
+        clarifications:[],approvals:[],
+        clarification_history_truncated:false,approval_history_truncated:false,
+        terminal_event:null,
+      }],
     }}));
     await owner.goto(origin+'/__acceptance/agent');
     const past=owner.getByRole('region',{name:'Past conversations'});
-    await past.getByRole('button',{name:'Open completed conversation'}).first().waitFor();
-    assert.equal(await past.getByRole('button',{name:'Open completed conversation'}).count(),2);
+    await past.getByRole('button',{name:'Older conversations'}).waitFor();
+    assert.equal(await past.getByRole('button',{name:'Open completed conversation'}).count(),1);
     assert.equal(await past.locator(`li[data-conversation-thread="${threadA}"]`).count(),1);
     assert.equal(await past.locator(`li[data-conversation-thread="${threadB}"]`).count(),0);
-    assert.equal(await past.locator(`li[data-conversation-thread="${threadC}"]`).count(),1);
-    assert.equal(await past.locator('li').first().getAttribute('data-conversation-thread'),threadA);
+    await past.getByRole('button',{name:'Older conversations'}).click();
+    await past.locator(`li[data-conversation-thread="${threadC}"]`).waitFor();
+    assert.equal(await past.getByRole('button',{name:'Open completed conversation'}).count(),2);
+    assert.equal(await past.getByRole('button',{name:'Older conversations'}).count(),0);
+    assert.deepEqual(pageRequests,[null,runB2]);
     await past.locator(`li[data-conversation-thread="${threadA}"] button`).click();
     await owner.getByText('Newest answer in this conversation.',{exact:true}).waitFor();
+    const transcript=owner.getByRole('region',{name:'Conversation history'});
+    await transcript.getByText('The latest question',{exact:false}).waitFor();
+    await transcript.getByRole('button',{name:'Earlier messages'}).click();
+    await transcript.getByText('The oldest question',{exact:false}).waitFor();
+    const orderedText=await transcript.innerText();
+    assert.ok(orderedText.indexOf('The oldest question')<orderedText.indexOf('The latest question'));
+    assert.equal(await transcript.getByRole('button',{name:'Earlier messages'}).count(),0);
   });
 
   await scenario('A8: browser runs without uncaught runtime errors',async()=>{

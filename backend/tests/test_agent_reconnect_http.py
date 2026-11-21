@@ -87,6 +87,155 @@ def test_first_message_creates_one_private_conversation_without_a_case(client, a
 
 
 
+def test_recent_conversations_pages_threads_not_message_runs(client, auth_headers):
+    """Many messages in one chat must not hide older chats on later pages."""
+    client.app.include_router(build_reconnect_router(key=KEY))
+    owner, other = auth_headers(), auth_headers("bob")
+    factory = client.app.state.session_factory
+    expected_threads: set[str] = set()
+    with factory.begin() as db:
+        long_thread = create_thread(db, principal=OWNER)
+        expected_threads.add(str(long_thread))
+        long_run_ids = []
+        for index in range(26):
+            accepted = accept_message(
+                db, thread_id=long_thread, principal=OWNER, key=KEY,
+                message=SendMessage(
+                    client_message_id=uuid4(), text=f"PRIVATE LONG TURN {index}", language="en",
+                ),
+            )
+            assert accepted.outcome == "accepted"
+            long_run_ids.append(str(accepted.run_id))
+            db.get(AgentRunRequest, str(accepted.run_id)).status = "completed"
+            db.flush()
+
+        for index in range(25):
+            thread = create_thread(db, principal=OWNER)
+            expected_threads.add(str(thread))
+            accepted = accept_message(
+                db, thread_id=thread, principal=OWNER, key=KEY,
+                message=SendMessage(client_message_id=uuid4(), text=f"PRIVATE OTHER {index}", language="it"),
+            )
+            assert accepted.outcome == "accepted"
+            if index != 24:
+                db.get(AgentRunRequest, str(accepted.run_id)).status = "completed"
+
+        foreign_thread = create_thread(db, principal=Principal("bob"))
+        foreign = accept_message(
+            db, thread_id=foreign_thread, principal=Principal("bob"), key=KEY,
+            message=SendMessage(client_message_id=uuid4(), text="PRIVATE FOREIGN", language="en"),
+        )
+        assert foreign.outcome == "accepted"
+
+    endpoint = "/api/v1/agent/conversations/recent"
+    assert_private_error(client.get(endpoint), 401, "unauthenticated")
+    assert_private_error(client.get(endpoint, headers=owner, params={
+        "before_run_id": str(uuid4()),
+    }), 422, "invalid_request")
+    assert_private_error(client.get(endpoint, headers=owner, params={"limit": 51}), 422, "invalid_request")
+
+    page = client.get(endpoint, headers=owner, params={"limit": 4})
+    assert page.status_code == 200
+    assert page.headers["Cache-Control"] == "private, no-store"
+    assert "PRIVATE" not in page.text
+    all_items = []
+    cursors = set()
+    while True:
+        assert page.status_code == 200
+        result = page.json()
+        assert len(result["items"]) <= 4
+        all_items.extend(result["items"])
+        cursor = result["next_cursor"]
+        if cursor is None:
+            break
+        assert len(result["items"]) == 4
+        cursor_key = (cursor["accepted_at"], cursor["run_id"])
+        assert cursor_key not in cursors
+        cursors.add(cursor_key)
+        page = client.get(endpoint, headers=owner, params={
+            "limit": 4, "before_accepted_at": cursor["accepted_at"],
+            "before_run_id": cursor["run_id"],
+        })
+        assert len(cursors) < 10
+
+    assert {item["thread_id"] for item in all_items} == expected_threads
+    assert len(all_items) == len(expected_threads) == 26
+    assert len({item["thread_id"] for item in all_items}) == len(all_items)
+    assert [item["run_id"] for item in all_items if item["thread_id"] == str(long_thread)] == [
+        long_run_ids[-1],
+    ]
+    assert all(item["run_id"] not in long_run_ids[:-1] for item in all_items)
+    assert all(item["thread_id"] != str(foreign_thread) for item in all_items)
+    assert any(item["status"] == "queued" for item in all_items)
+
+    other_page = client.get(endpoint, headers=other)
+    assert other_page.status_code == 200
+    assert [item["thread_id"] for item in other_page.json()["items"]] == [str(foreign_thread)]
+    assert client.get("/api/v1/agent/runs/recent", headers=owner, params={
+        "limit": 50,
+    }).json()["items"][0]["thread_id"] != str(foreign_thread)
+
+
+def test_long_conversation_history_reads_every_page_in_order(client, auth_headers):
+    client.app.include_router(build_reconnect_router(key=KEY))
+    factory = client.app.state.session_factory
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=OWNER)
+
+    expected_run_ids = []
+    expected_revisions = []
+    for index in range(23):
+        with factory.begin() as db:
+            accepted = accept_message(
+                db, thread_id=thread_id, principal=OWNER, key=KEY,
+                message=SendMessage(
+                    client_message_id=uuid4(), text=f"Historical private turn {index:02d}",
+                    language="en",
+                ),
+            )
+            assert accepted.outcome == "accepted"
+        assert run_worker_step(
+            factory, thread_id=thread_id, run_id=accepted.run_id,
+            principal=OWNER, key=KEY,
+            execute=lambda *_: AnswerResult(
+                explanation=f"Synthetic answer {index:02d}",
+                verification_status="insufficient_evidence",
+            ),
+        ).status == "completed"
+        expected_run_ids.append(str(accepted.run_id))
+        expected_revisions.append(accepted.accepted_revision)
+
+    endpoint = f"/api/v1/agent/threads/{thread_id}/history"
+    assert_private_error(client.get(endpoint, headers=auth_headers("bob")), 404, "unavailable")
+    cursor = None
+    pages = []
+    while True:
+        params = {"limit": 6}
+        if cursor is not None:
+            params["before_revision"] = cursor
+        response = client.get(endpoint, headers=auth_headers(), params=params)
+        assert response.status_code == 200
+        assert response.headers["Cache-Control"] == "private, no-store"
+        page = response.json()
+        pages.append(page)
+        assert len(page["items"]) <= 6
+        cursor = page["next_before_revision"]
+        if cursor is None:
+            break
+        assert len(pages) <= 4
+
+    chronological = [turn for page in reversed(pages) for turn in page["items"]]
+    assert [turn["run_id"] for turn in chronological] == expected_run_ids
+    assert [turn["accepted_revision"] for turn in chronological] == expected_revisions
+    assert [turn["user_message"] for turn in chronological] == [
+        f"Historical private turn {index:02d}" for index in range(23)
+    ]
+    assert [turn["answer"]["explanation"] for turn in chronological] == [
+        f"Synthetic answer {index:02d}" for index in range(23)
+    ]
+    assert len(set(turn["run_id"] for turn in chronological)) == 23
+
+
 def test_followup_message_stays_in_same_private_chat_without_case(client, auth_headers):
     client.app.include_router(build_reconnect_router(key=KEY))
     owner, other = auth_headers(), auth_headers("bob")

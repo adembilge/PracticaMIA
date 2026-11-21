@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from pydantic import Field, ValidationError, model_validator
 from sqlalchemy import (
     CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index,
-    Integer, LargeBinary, String, UniqueConstraint, and_, or_, select, text,
+    Integer, LargeBinary, String, UniqueConstraint, and_, func, or_, select, text,
 )
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
@@ -362,6 +362,58 @@ def list_recent_runs(
 ) -> ActiveRunPage:
     """Discover owned active and terminal runs with the same safe metadata cursor."""
     return _list_run_summaries(db, principal=principal, limit=limit, before=before, active_only=False)
+
+
+def list_recent_conversations(
+    db: Session, *, principal: Principal, limit: int = 20, before: ActiveRunCursor | None = None,
+) -> ActiveRunPage:
+    """Page distinct owned threads using their latest *accessible* run.
+
+    Rank the owned run set before applying the cursor so old turns in a busy
+    thread never reappear on later pages as separate conversations. A single
+    database query returns at most limit + 1 metadata records, with no payload
+    decryption or unbounded scan of other users' turns.
+    """
+    if not 1 <= limit <= 50:
+        raise ValueError("Invalid conversation page size")
+    ranked = _owned_runs(principal).with_only_columns(
+        AgentRunRequest.id.label("run_id"),
+        AgentRunRequest.thread_id.label("thread_id"),
+        AgentRunRequest.case_id.label("case_id"),
+        AgentRunRequest.status.label("status"),
+        AgentRunRequest.accepted_at.label("accepted_at"),
+        func.row_number().over(
+            partition_by=AgentRunRequest.thread_id,
+            order_by=(AgentRunRequest.accepted_at.desc(), AgentRunRequest.id.desc()),
+        ).label("rank"),
+    ).subquery()
+    query = select(
+        ranked.c.run_id, ranked.c.thread_id, ranked.c.case_id,
+        ranked.c.status, ranked.c.accepted_at,
+    ).where(ranked.c.rank == 1)
+    if before is not None:
+        query = query.where(
+            (ranked.c.accepted_at < before.accepted_at) | and_(
+                ranked.c.accepted_at == before.accepted_at,
+                ranked.c.run_id < str(before.run_id),
+            ),
+        )
+    rows = db.execute(query.order_by(
+        ranked.c.accepted_at.desc(), ranked.c.run_id.desc(),
+    ).limit(limit + 1)).all()
+    items = [
+        ActiveRunSummary(
+            run_id=row.run_id, thread_id=row.thread_id, case_id=row.case_id, status=row.status,
+            accepted_at=row.accepted_at if row.accepted_at.tzinfo
+            else row.accepted_at.replace(tzinfo=timezone.utc),
+        )
+        for row in rows[:limit]
+    ]
+    cursor = None
+    if len(rows) > limit:
+        last = items[-1]
+        cursor = ActiveRunCursor(accepted_at=last.accepted_at, run_id=last.run_id)
+    return ActiveRunPage(items=items, next_cursor=cursor)
 
 
 def list_thread_history(

@@ -25,8 +25,8 @@ from app.agent.run_events import (
 )
 from app.agent.run_handoff import read_run_handoff
 from app.agent.run_requests import (
-    ConversationHistoryPage, _payload_cipher, accept_message, list_active_runs, list_recent_runs,
-    list_thread_history,
+    ConversationHistoryPage, _payload_cipher, accept_message, list_active_runs,
+    list_recent_conversations, list_recent_runs, list_thread_history,
 )
 from app.agent.source_cards import RunSourceCard, read_run_source_card
 from app.agent.threads import create_thread_for_message
@@ -157,6 +157,15 @@ def build_reconnect_router(
         if query.before_accepted_at is not None and query.before_run_id is not None:
             cursor = ActiveRunCursor(accepted_at=query.before_accepted_at, run_id=query.before_run_id)
         return list_recent_runs(db, principal=principal, limit=query.limit, before=cursor)
+
+    @router.get("/conversations/recent")
+    def recent_conversations(
+        query: Annotated[ActiveRunsQuery, Query()], principal: AuthenticatedOwner, db: DatabaseSession,
+    ) -> ActiveRunPage:
+        cursor = None
+        if query.before_accepted_at is not None and query.before_run_id is not None:
+            cursor = ActiveRunCursor(accepted_at=query.before_accepted_at, run_id=query.before_run_id)
+        return list_recent_conversations(db, principal=principal, limit=query.limit, before=cursor)
 
     @router.get(THREAD_PATH + "/history")
     def thread_history(
