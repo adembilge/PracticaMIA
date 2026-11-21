@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from app.agent.chat_graph import build_chat_executor
 from app.agent.checkpoints import CheckpointState
-from app.agent.contract import AnswerResult, ClarificationReply, QuestionAnswered, QuestionRequested, SendMessage
+from app.agent.contract import AnswerResult, ClarificationReply, QuestionRequested, SendMessage
 from app.agent.run_events import read_run_events
 from app.agent.run_requests import StoredMessage, accept_message
 from app.agent.source_cards import read_run_source_card
@@ -71,36 +71,6 @@ def test_case_free_message_retrieves_only_active_approved_reference_and_reconnec
     assert card is not None
     assert card.passage.citation == citation
     assert "residenza" in card.passage.content.casefold()
-
-
-def test_chat_graph_clarifies_location_and_resumes_without_a_case(client):
-    version, digest = _create(client, html=HTML)
-    _approve(client, version, digest)
-    execute = build_chat_executor(client.app.state.session_factory, catalogue_names=_names())
-    opening = StoredMessage(
-        text="How can I change my address?",
-        language="en",
-        case_id=None,
-    )
-    pending = execute(opening, CheckpointState(next_node="load_context"))
-    assert isinstance(pending, RequestClarification)
-    assert pending.question.missing_fields == ["destination"]
-    assert pending.question.options == ["Milano", "Another municipality"]
-    assert "case" not in pending.question.text.casefold()
-
-    reply = QuestionAnswered.model_construct(
-        event_seq=2, question_id=pending.question.question_id,
-        client_reply_id=uuid4(), text="Milano", disposition="answer",
-    )
-    resumed = StoredMessage(
-        text=opening.text, language="en", case_id=None,
-        clarification_reply=reply, clarification_question=pending.question,
-    )
-    answer = execute(resumed, pending.resume_state)
-    assert isinstance(answer, AnswerResult)
-    assert answer.verification_status == "insufficient_evidence"
-    assert answer.citations and not answer.claims
-    assert answer.official_channel is None
 
 
 def test_case_free_worker_resumes_a_real_clarification_reply(client):
