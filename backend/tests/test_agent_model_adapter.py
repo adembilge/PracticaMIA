@@ -120,6 +120,8 @@ def test_selector_is_disabled_without_both_privacy_gates_or_isolated_preview(cli
         _settings(enable_case_free_agent_model=False),
         _settings(deployment_git_branch="main"),
         _settings(deployment_environment="production"),
+        _settings(assistant_openai_api_key=""),
+        _settings(assistant_chat_model=""),
     ):
         factory_calls = []
         selector = ModelReferenceSelector(
