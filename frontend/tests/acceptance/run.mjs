@@ -1187,6 +1187,49 @@ try{
     assert.equal(pastSnapshot.status,'completed');
   });
 
+  await scenario('Agent past conversations: newest run per thread, no duplicate or active chat',async()=>{
+    const owner=await contextFor('alice',{width:390,height:800});
+    const threadA='10000000-0000-4000-8000-000000000001';
+    const threadB='10000000-0000-4000-8000-000000000002';
+    const threadC='10000000-0000-4000-8000-000000000003';
+    const runA2='20000000-0000-4000-8000-000000000001';
+    const runA1='20000000-0000-4000-8000-000000000002';
+    const runB2='20000000-0000-4000-8000-000000000003';
+    const runB1='20000000-0000-4000-8000-000000000004';
+    const runC1='20000000-0000-4000-8000-000000000005';
+    const recent=[
+      {thread_id:threadA,run_id:runA2,case_id:null,status:'completed'},
+      {thread_id:threadB,run_id:runB2,case_id:null,status:'waiting_for_information'},
+      {thread_id:threadA,run_id:runA1,case_id:null,status:'completed'},
+      {thread_id:threadB,run_id:runB1,case_id:null,status:'completed'},
+      {thread_id:threadC,run_id:runC1,case_id:null,status:'failed'},
+    ];
+    await owner.route(origin+'/api/agent/runs/active',route=>route.fulfill({json:{
+      items:[recent[1]],next_cursor:null,
+    }}));
+    await owner.route(origin+'/api/agent/runs/recent',route=>route.fulfill({json:{
+      items:recent,next_cursor:null,
+    }}));
+    await owner.route(origin+`/api/agent/threads/${threadA}/runs/${runA2}`,route=>route.fulfill({json:{
+      thread_id:threadA,run_id:runA2,status:'completed',
+      last_event_seq:2,run_revision:2,
+      result:{explanation:'Newest answer in this conversation.',verification_status:'insufficient_evidence'},
+    }}));
+    await owner.route(origin+`/api/agent/threads/${threadA}/history`,route=>route.fulfill({json:{
+      thread_id:threadA,items:[],next_before_revision:null,
+    }}));
+    await owner.goto(origin+'/__acceptance/agent');
+    const past=owner.getByRole('region',{name:'Past conversations'});
+    await past.getByRole('button',{name:'Open completed conversation'}).first().waitFor();
+    assert.equal(await past.getByRole('button',{name:'Open completed conversation'}).count(),2);
+    assert.equal(await past.locator(`li[data-conversation-thread="${threadA}"]`).count(),1);
+    assert.equal(await past.locator(`li[data-conversation-thread="${threadB}"]`).count(),0);
+    assert.equal(await past.locator(`li[data-conversation-thread="${threadC}"]`).count(),1);
+    assert.equal(await past.locator('li').first().getAttribute('data-conversation-thread'),threadA);
+    await past.locator(`li[data-conversation-thread="${threadA}"] button`).click();
+    await owner.getByText('Newest answer in this conversation.',{exact:true}).waitFor();
+  });
+
   await scenario('A8: browser runs without uncaught runtime errors',async()=>{
     assert.deepEqual(errors,[]);
   });
