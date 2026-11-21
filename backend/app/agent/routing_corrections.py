@@ -94,10 +94,23 @@ def apply_routing_reply(
         **previous.model_dump(), **updates,
         "reply_event_seqs": previous.reply_event_seqs | dict.fromkeys(updates, reply.event_seq),
     })
+    location_candidates = state.location_candidates
+    if procedure and procedure != (state.routing_corrections.procedure if state.routing_corrections else None):
+        location_candidates = []
+    if destination := updates.get("destination"):
+        location_candidates = [destination]
+    elif activity_location := updates.get("activity_location"):
+        location_candidates = [activity_location]
+    resolved_location = bool(updates.get("destination") or updates.get("activity_location"))
+    missing_fields = [
+        field for field in state.missing_fields
+        if field not in updates and not (field == "procedure_location" and resolved_location)
+    ]
     return state.model_copy(update={
         "routing_corrections": corrections,
         "procedure_candidates": [procedure] if procedure else state.procedure_candidates,
-        "missing_fields": [field for field in state.missing_fields if field not in updates],
+        "location_candidates": location_candidates,
+        "missing_fields": missing_fields,
         "evidence_ids": [],
     })
 
