@@ -183,6 +183,7 @@ def test_long_conversation_history_reads_every_page_in_order(client, auth_header
         thread_id = create_thread(db, principal=OWNER)
 
     expected_run_ids = []
+    expected_revisions = []
     for index in range(23):
         with factory.begin() as db:
             accepted = accept_message(
@@ -202,6 +203,7 @@ def test_long_conversation_history_reads_every_page_in_order(client, auth_header
             ),
         ).status == "completed"
         expected_run_ids.append(str(accepted.run_id))
+        expected_revisions.append(accepted.accepted_revision)
 
     endpoint = f"/api/v1/agent/threads/{thread_id}/history"
     assert_private_error(client.get(endpoint, headers=auth_headers("bob")), 404, "unavailable")
@@ -224,7 +226,7 @@ def test_long_conversation_history_reads_every_page_in_order(client, auth_header
 
     chronological = [turn for page in reversed(pages) for turn in page["items"]]
     assert [turn["run_id"] for turn in chronological] == expected_run_ids
-    assert [turn["accepted_revision"] for turn in chronological] == list(range(1, 24))
+    assert [turn["accepted_revision"] for turn in chronological] == expected_revisions
     assert [turn["user_message"] for turn in chronological] == [
         f"Historical private turn {index:02d}" for index in range(23)
     ]
