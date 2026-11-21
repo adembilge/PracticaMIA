@@ -273,3 +273,43 @@ def test_case_free_model_selects_only_approved_references_without_user_message(c
     assert "alice@example.test" not in model_inputs[0]
     assert "How can I change my address" not in model_inputs[0]
 
+def test_case_free_model_is_not_invoked_without_approved_evidence(client):
+    _create(client, html=HTML)  # deliberately not approved
+    factory = client.app.state.session_factory
+    factory_calls = []
+    settings = Settings(
+        deployment_environment="preview",
+        deployment_git_branch="preview/auth-review-isolated",
+        enable_case_free_agent_model=True,
+        assistant_model_privacy_approved=True,
+        assistant_chat_model="synthetic-model",
+        assistant_llm_provider="openai",
+        assistant_openai_api_key="test-key-not-used",
+        assistant_usage_hash_key="unit-test-only-case-free-usage-secret-32-bytes",
+        assistant_daily_limit=2,
+    )
+    execute = build_chat_executor(
+        factory, catalogue_names=_names(), settings=settings,
+        model_factory=lambda: factory_calls.append("constructed") or RunnableLambda(
+            lambda _prompt: AIMessage(content="[]")
+        ),
+    )
+    message = SendMessage(
+        client_message_id=uuid4(),
+        text="How can I change my address in Milan?",
+        language="en",
+    )
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=ALICE)
+        accepted = accept_message(db, thread_id=thread_id, principal=ALICE, message=message, key=KEY)
+    snapshot = run_worker_step(
+        factory, thread_id=thread_id, run_id=accepted.run_id, principal=ALICE,
+        key=KEY, execute=execute,
+    )
+
+    assert snapshot.status == "completed"
+    assert snapshot.result.citations == []
+    assert snapshot.result.claims == []
+    assert snapshot.result.official_channel is None
+    assert factory_calls == []
+
