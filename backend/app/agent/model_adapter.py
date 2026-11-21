@@ -35,6 +35,20 @@ or suggest an official action. If no candidate is relevant, return [].
 ])
 
 
+def _provider_is_configured(settings: Settings) -> bool:
+    if not settings.assistant_chat_model:
+        return False
+    if settings.assistant_llm_provider == "openai":
+        return bool(settings.assistant_openai_api_key)
+    if settings.assistant_llm_provider == "openrouter":
+        return bool(
+            settings.assistant_openrouter_api_key
+            and (settings.assistant_chat_model == "openrouter/free"
+                 or settings.assistant_chat_model.endswith(":free"))
+        )
+    return False
+
+
 def _preview_model(settings: Settings):
     """Construct a model only behind explicit isolated-Preview and privacy gates."""
     if not (
@@ -117,6 +131,7 @@ class ModelReferenceSelector:
             or not settings.assistant_model_privacy_approved
             or settings.deployment_environment != "preview"
             or settings.deployment_git_branch != "preview/auth-review-isolated"
+            or not _provider_is_configured(settings)
             or len(settings.assistant_usage_hash_key) < 32
             or not 1 <= settings.assistant_daily_limit <= 50
         ):
