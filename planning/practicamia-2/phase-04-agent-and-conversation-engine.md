@@ -1,5 +1,7 @@
 # PracticaMIA 2.0 — Phase 4 · Single specialist agent and conversation engine
 
+> **D-010 binding product contract:** The only customer application is **one ChatGPT-style chat at `/`** with a conversation-history sidebar. No user-facing cases, case selection, case dashboard, document/form workspace, source browser, or feature-specific product page. A message starts a task; the agent maintains owner-scoped internal task state and all supported questions, evidence, uploads, actions, approvals and tracking appear as **inline chat cards**. Legacy `case_id` storage/routes are temporary compatibility only. See [single-chat contract](../../docs/SINGLE_CHAT_PRODUCT_CONTRACT.md). **Planning alignment only: Phase 5 is not started.**
+
 **Roadmap tasks 31–40.** The first free-text PracticaMIA agent identifies intent, queries the Phase 3 catalogue, clarifies when necessary, and offers a sourced next action. Users can return to their work and any pending question.
 
 **Proposed foundation.** Use one LangGraph agent on the existing Python backend and PostgreSQL. The initial slice supports procedure discovery, sourced explanations, and next actions. Attach document reading, form preparation, and receipt-based tracking as tools in later phases. Verified procedure coverage controls capability availability.
