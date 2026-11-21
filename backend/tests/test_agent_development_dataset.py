@@ -32,6 +32,8 @@ ACTIONS_BY_OUTCOME = {
     "restore_question": {"provide_information"},
     "intake_confirmation_required": {"confirm_saved_intake"},
     "intake_confirmed": {"saved_intake_confirmed"},
+    "intake_confirmation_required": {"confirm_saved_intake"},
+    "intake_confirmed": {"saved_intake_confirmed"},
 }
 QUESTION_OUTCOMES = {"clarification", "choose_goal"}
 
@@ -126,6 +128,8 @@ def test_eval_case_records_safe_outcomes_for_each_turn(case):
         if event in {"message", "reply"}:
             assert set(step["text"]) == set(DATA["languages"])
             assert len({MESSAGES.validate_python(text) for text in step["text"].values()}) == 2
+        elif event == "confirm_intake":
+            assert step.get("after_step") in previous and "facts" in step and "text" not in step
         elif event == "confirm_intake":
             assert step.get("after_step") in previous and "facts" in step and "text" not in step
         else:
