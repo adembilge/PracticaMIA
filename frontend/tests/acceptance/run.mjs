@@ -1043,7 +1043,7 @@ try{
         }],
       }}));
       await page.goto(origin+'/__acceptance/agent');
-      await page.getByRole('button',{name:'Open conversation',exact:true}).click({timeout:10000});
+      await page.locator(`li[data-active-run-id="${runId}"] button`).click({timeout:10000});
       await page.getByRole('heading',{name:'Conversation failed',exact:true}).waitFor({timeout:10000});
       await page.getByText('Send your request again later.',{exact:true}).waitFor({timeout:10000});
       const historic=page.getByRole('region',{name:'Conversation history'});
