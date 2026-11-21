@@ -2,6 +2,12 @@
 
 Start with the [project overview](../README.md). **The binding customer-product architecture is the [single-chat product contract](SINGLE_CHAT_PRODUCT_CONTRACT.md) and [D-010](DECISIONS.md)**: one ChatGPT-like conversation UI, no user-facing cases or standalone workflows. The [complete original specification](../PracticaMIA_Complete_Project_Specification.md) preserves the historical 12-stage/94-task roadmap, but its earlier multi-screen descriptions are superseded. [Progress and blockers](PROGRESS.md) records which implementation claims have evidence, in which environment and revision.
 
+## Single-chat product architecture and migration
+
+- [Binding one-chat/no-user-cases product contract](SINGLE_CHAT_PRODUCT_CONTRACT.md)
+- [Current implementation gap audit and migration gates](SINGLE_CHAT_GAP_AUDIT.md)
+- [Active Phase 4–10 chat-first plan](../planning/practicamia-2/phase-05-single-ui-and-chat-workspace.md)
+
 ## Legacy case and document implementation (migration inventory)
 
 | Topic | Reference |
