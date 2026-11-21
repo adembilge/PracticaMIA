@@ -148,7 +148,7 @@ def run_worker_step(
                 raise CheckpointConflict("A clarification reply requires its recorded question")
             question = requested.question
         topic_changed = reply is not None and reply.disposition == "change_topic"
-        case_question = message.case_id is not None and question is not None and bool(question.case_choices)
+        case_question = message.case_id is not None and question is not None and len(question.case_choices) > 1
         resume_case = (
             message.case_id is not None and checkpoint.state.next_node == "choose_next_step"
             and checkpoint.state.intent == "resume_case"
