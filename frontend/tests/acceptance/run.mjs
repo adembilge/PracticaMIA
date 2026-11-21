@@ -996,12 +996,14 @@ try{
     await owner.getByRole('radio',{name:choices[1].label,exact:true}).check();
     await owner.getByRole('button',{name:'Send reply',exact:true}).click();
     await awaitAgentStatus(owner,urls[index]);
-    const link=owner.getByRole('link',{name:new RegExp(choices[1].case_id.slice(0,8))});
-    if(!await link.isVisible()) await owner.getByRole('button',{name:'Check status'}).click();
-    await link.waitFor();
-    assert.equal(await link.getAttribute('href'),`/cases/${choices[1].case_id}`);
     const {body:snapshot}=await readJson(owner,urls[index]);
     assert.equal(snapshot.selected_case.case_id,choices[1].case_id);
+    const conversation=owner.getByRole('region',{name:'Conversation'});
+    const savedLabel=conversation.locator('p').filter({hasText:`Saved case: ${snapshot.selected_case.label}`});
+    if(!await savedLabel.isVisible()) await owner.getByRole('button',{name:'Check status'}).click();
+    await savedLabel.waitFor();
+    assert.equal(await savedLabel.locator('a').count(),0,
+      'The selected case must stay in the chat, not link to a separate workspace');
   });
 
   for(const [name,code] of [['catalogue outage','catalogue_unavailable'],['model timeout','provider_unavailable']]){
