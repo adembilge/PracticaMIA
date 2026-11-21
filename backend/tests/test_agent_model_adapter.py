@@ -153,3 +153,18 @@ def test_selector_rejects_unbounded_categories_and_candidate_lists(client):
         passages=[_passage(str(index) + ":0000") for index in range(6)],
     ) is None
     assert calls == []
+
+def test_selector_falls_back_cleanly_when_provider_invocation_fails(client):
+    def fail(_prompt):
+        raise TimeoutError("synthetic provider timeout")
+
+    selector = ModelReferenceSelector(
+        client.app.state.session_factory, _settings(),
+        model_factory=lambda: RunnableLambda(fail),
+    )
+    assert selector.select(
+        owner_subject="auth0|synthetic-user",
+        topic_category="residenza",
+        passages=[_passage()],
+    ) is None
+
