@@ -31,7 +31,7 @@ If any requirement fails, FastAPI startup raises and does **not** expose the age
 The worker is deliberately **case-free**:
 
 - It accepts only messages with `case_id=None`.
-- The one-shot worker claims only unlinked conversation runs (`unlinked_only=True)); it cannot consume or finalize legacy case-linked queue entries.
+- The one-shot worker claims only unlinked conversation runs (`unlinked_only=True`); it cannot consume or finalize legacy case-linked queue entries.
 - Location candidates are stored in the encrypted checkpoint so a municipality clarification can resume without creating or selecting a case.
 - Pilot aliases are enabled only while the exact reviewed Milan source passage is active. Retrieval and publication independently re-check source approval, version and hash.
 - With no personal task-scope assignment and no claim review, the graph can show exact official source cards as general references, but it cannot publish a legal conclusion, official channel, deadline or personalized requirement.
@@ -59,7 +59,7 @@ Do not enable a real-model executor by pointing a general agent to unapproved of
 ## Verification and rollout order
 
 1. Inspect the target API Preview service, Git SHA, Vercel protected branch and **Neon database branch ID**. Ensure the connection fingerprint is correct and distinct from production. Never modify the production DB branch.
-2. Run backend tests plus the migrated disposable PostgreSQL smoke `tests/test_postgres_agent_preview_mount.py`; it verifies owner-only history and no plaintext message, while the queued run has no fabricated response.
+2. Run backend tests plus the migrated disposable PostgreSQL smoke `tests/test_postgres_agent_preview_mount.py` and case-free graph tests in `tests/test_agent_chat_graph.py`; verify owner-only history, no plaintext message, clarification/resumption and reference-only citations. The PostgreSQL smoke deliberately returns no approved passages, so it must not fabricate an answer.
 3. Independently configure the reviewed Preview API secret and flags, then deploy **that exact reviewed commit to the isolated Preview branch**. Verify route presence via OpenAPI and 401 anonymous access; if service deployment fails, record it rather than bypassing protection.
 4. Deploy the same reviewed commit to the separate Preview web app with `ENABLE_SINGLE_CHAT_PREVIEW=1` and configured `BACKEND_API_URL`; verify first-message acceptance using two signed-in test accounts, with B denied A history.
 5. **Do not sign off as a usable assistant** until the conversation graph can produce an actual sourced or explicitly uncertain response through its rate-limited model adapter, keep personal claims behind reviewed scope, and retain history across reloads.
