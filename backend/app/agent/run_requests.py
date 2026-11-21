@@ -88,6 +88,7 @@ class RunAcceptance:
 
 
 class ConversationClarification(ContractModel):
+    event_seq: PositiveInt
     question_id: UUID
     question_text: ShortText
     disposition: ClarificationDisposition
@@ -97,6 +98,7 @@ class ConversationClarification(ContractModel):
 class ConversationApproval(ContractModel):
     """A proposal and its recorded decision; only an applied event proves a case write."""
 
+    event_seq: PositiveInt
     proposal_id: UUID
     field_id: Identifier
     proposed_value: FieldValue
@@ -413,19 +415,22 @@ def list_thread_history(
             .limit(MAX_HISTORY_EVENT_SCAN + 1)
         ).all()
         truncated = len(stored_events) > MAX_HISTORY_EVENT_SCAN
-        questions: dict[UUID, str] = {}
+        questions: dict[UUID, tuple[str, int]] = {}
         clarifications: list[ConversationClarification] = []
         approvals: list[ConversationApproval] = []
         approval_indexes: dict[UUID, int] = {}
         for saved_event in stored_events[:MAX_HISTORY_EVENT_SCAN]:
             parsed_event = _decode_event(saved_event, run, principal, key)
             if isinstance(parsed_event, QuestionRequested):
-                questions[parsed_event.question.question_id] = parsed_event.question.text
+                questions[parsed_event.question.question_id] = (
+                    parsed_event.question.text, parsed_event.event_seq,
+                )
             elif isinstance(parsed_event, QuestionAnswered):
-                question_text = questions.pop(parsed_event.question_id, None)
-                if question_text is not None:
+                pending_question = questions.pop(parsed_event.question_id, None)
+                if pending_question is not None:
+                    question_text, requested_seq = pending_question
                     clarifications.append(ConversationClarification(
-                        question_id=parsed_event.question_id,
+                        event_seq=requested_seq, question_id=parsed_event.question_id,
                         question_text=question_text,
                         disposition=parsed_event.disposition,
                         reply_text=parsed_event.text,
@@ -434,6 +439,7 @@ def list_thread_history(
                 proposal = parsed_event.proposal
                 approval_indexes[proposal.proposal_id] = len(approvals)
                 approvals.append(ConversationApproval(
+                    event_seq=parsed_event.event_seq,
                     proposal_id=proposal.proposal_id, field_id=proposal.field_id,
                     proposed_value=proposal.proposed_value,
                 ))
