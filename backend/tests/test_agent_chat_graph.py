@@ -1,5 +1,9 @@
 """Case-free LangGraph execution against a disposable approved-only source registry."""
 from uuid import uuid4
+import json
+
+from langchain_core.messages import AIMessage
+from langchain_core.runnables import RunnableLambda
 
 from app.agent.chat_graph import build_chat_executor
 from app.agent.checkpoints import CheckpointState, submit_clarification_reply
@@ -9,7 +13,9 @@ from app.agent.run_requests import StoredMessage, accept_message
 from app.agent.source_cards import read_run_source_card
 from app.agent.threads import create_thread
 from app.agent.worker import RequestClarification, run_worker_step
+from app.config import Settings
 from app.knowledge.entity_matching import CatalogueName
+from app.knowledge.search import search_approved_passages
 from app.rules.engine import JURISDICTION, PROCEDURE
 from test_agent_run_requests import ALICE, KEY
 from test_knowledge_search import HTML, _approve, _create
@@ -206,3 +212,64 @@ def test_case_free_graph_abstains_when_user_selects_another_municipality(client)
     assert completed.result.citations == []
     assert completed.result.claims == []
     assert completed.result.official_channel is None
+
+def test_case_free_model_selects_only_approved_references_without_user_message(client):
+    version, digest = _create(client, html=HTML)
+    _approve(client, version, digest)
+    factory = client.app.state.session_factory
+    with factory() as db:
+        candidates = search_approved_passages(
+            db, query="residenza", jurisdiction=JURISDICTION,
+            procedure_id=PROCEDURE, language="it", limit=5,
+        )
+    assert candidates
+    selected_id = candidates[0].passage_id
+    model_inputs = []
+
+    def model(prompt):
+        model_inputs.append(prompt.to_string())
+        return AIMessage(content=json.dumps([selected_id]))
+
+    settings = Settings(
+        deployment_environment="preview",
+        deployment_git_branch="preview/auth-review-isolated",
+        enable_case_free_agent_model=True,
+        assistant_model_privacy_approved=True,
+        assistant_chat_model="synthetic-model",
+        assistant_llm_provider="openai",
+        assistant_openai_api_key="test-key-not-used",
+        assistant_usage_hash_key="unit-test-only-case-free-usage-secret-32-bytes",
+        assistant_daily_limit=2,
+    )
+    execute = build_chat_executor(
+        factory, catalogue_names=_names(), settings=settings,
+        model_factory=lambda: RunnableLambda(model),
+    )
+    message = SendMessage(
+        client_message_id=uuid4(),
+        text="How can I change my address in Milan? My email is alice@example.test",
+        language="en",
+    )
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=ALICE)
+        accepted = accept_message(db, thread_id=thread_id, principal=ALICE, message=message, key=KEY)
+    context = {
+        "thread_id": thread_id, "run_id": accepted.run_id, "principal": ALICE, "key": KEY,
+    }
+
+    snapshot = run_worker_step(factory, **context, execute=execute)
+    for _ in range(4):
+        if snapshot.status not in {"queued", "running"}:
+            break
+        snapshot = run_worker_step(factory, **context, execute=execute)
+
+    assert snapshot.status == "completed"
+    assert [item.citation_id for item in snapshot.result.citations] == [selected_id]
+    assert snapshot.result.verification_status == "insufficient_evidence"
+    assert snapshot.result.claims == []
+    assert snapshot.result.official_channel is None
+    assert len(model_inputs) == 1
+    assert "residenza" in model_inputs[0]
+    assert "alice@example.test" not in model_inputs[0]
+    assert "How can I change my address" not in model_inputs[0]
+
