@@ -35,7 +35,10 @@ def run_preview_worker_once(settings: Settings, *, max_steps: int) -> int:
     api = create_app(settings)
     engine = api.state.engine
     try:
-        execute = build_chat_executor(api.state.session_factory)
+        execute = build_chat_executor(
+            api.state.session_factory, settings=settings,
+            model_factory=getattr(api.state, "assistant_model_factory", None),
+        )
         return run_worker_batch(
             api.state.session_factory, key=key,
             lease_for=timedelta(seconds=LEASE_SECONDS),
