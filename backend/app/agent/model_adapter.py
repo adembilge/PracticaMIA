@@ -15,6 +15,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.config import Settings
 from app.knowledge.search import EvidencePassage
+from app.knowledge.usage_model import AssistantDailyUsage  # noqa: F401 - register quota table
 from app.knowledge.usage_limit import reserve_daily_model_call
 
 _ALLOWED_TOPIC_CATEGORIES = frozenset({"residenza", "TARI", "locazione", "allegati", "domicilio"})
