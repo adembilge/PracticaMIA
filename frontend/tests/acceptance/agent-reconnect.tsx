@@ -5,6 +5,7 @@ import {
 import {AgentSourceCards, type AgentCitation} from '../../src/components/AgentSourceCards';
 import {AgentOfficialHandoff, type OfficialHandoff} from '../../src/components/AgentOfficialHandoff';
 import {AgentGoalSelection, type GoalSelection} from '../../src/components/AgentGoalSelection';
+import {CaseIntakePanel} from '../../src/components/CaseIntakePanel';
 
 type ActiveRun = { thread_id: string; run_id: string; case_id: string | null; status?: string };
 type SavedRun = ActiveRun & { status: string };
@@ -731,9 +732,16 @@ export function AgentReconnectFixture() {
           <h2>{view.snapshot.result.next_action?.operation === 'start_new_topic' ? 'Topic changed' : 'Conversation complete'}</h2>
           <p>{view.snapshot.result.explanation}</p>
           {view.snapshot.selected_case && (
-            <a href={`/cases/${view.snapshot.selected_case.case_id}${
-              view.snapshot.result.next_action?.operation === 'confirm_saved_intake' ? '#case-intake' : ''
-            }`}>{view.snapshot.selected_case.label}</a>
+            view.snapshot.result.next_action?.operation === 'confirm_saved_intake' ? (
+              <section aria-label="In-chat saved case confirmation">
+                <CaseIntakePanel key={view.snapshot.selected_case.case_id}
+                  caseId={view.snapshot.selected_case.case_id} />
+                <p role="status">
+                  After confirming, send another message in this chat to recheck the current filing step.
+                  Confirmation alone does not approve eligibility or submit anything officially.
+                </p>
+              </section>
+            ) : <p><strong>Saved case:</strong> {view.snapshot.selected_case.label}</p>
           )}
           {view.snapshot.handoff && <AgentOfficialHandoff handoff={view.snapshot.handoff} />}
           <AgentSourceCards runUrl={view.url} citations={view.snapshot.result.citations ?? []} language="en" />
