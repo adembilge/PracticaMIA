@@ -237,6 +237,12 @@ def choose_candidate_step(
             question = _QUESTIONS[fields[0]]
             question_field = fields[0][1]
             missing_information = [name for _, name in fields]
+        elif "procedure_location" in state.missing_fields:
+            # Goal extraction can identify that a municipality is missing even
+            # when applicability has no assignment from which to derive a prompt.
+            question = _QUESTIONS[("location", "destination")]
+            question_field = "destination"
+            missing_information = ["procedure_location"]
 
     candidate_ids = plausible if procedure_conflict else list(results)
     can_ask = message.clarification_reply is None or (applied_correction and question_field not in corrected_fields)
@@ -412,11 +418,27 @@ def _choose_message_goal(
     if question is not None and question.procedure_goal is not None and reply is not None and (
         reply.question_id == question.question_id
     ):
-        answer = verify_filing_channel(language)
-        return answer.model_copy(update={
-            "goals": state.goals, "goal_selection": question.procedure_goal,
-            "missing_information": question.missing_fields if reply.disposition in ("unknown", "skip") else [],
+        selection = question.procedure_goal
+        selected = state.goals[selection.active_goal - 1]
+        selected_state = state.model_copy(update={
+            "goals": [], "procedure_candidates": selected.procedure_candidates,
+            "location_candidates": selected.location_candidates,
+            "missing_fields": selected.missing_fields, "preferred_goal": None,
+            "intent": "find_procedure",
         })
+        outcome = choose_candidate_step(
+            message, selected_state, case_locations=case_locations,
+            confirmed_dates=confirmed_dates, confirmed_circumstances=confirmed_circumstances,
+            assignments=assignments, trusted_passage_ids=trusted_passage_ids,
+            reviewed_labels=reviewed_labels, assistance_contacts=assistance_contacts,
+            catalogue_names=catalogue_names,
+        )
+        if isinstance(outcome, RequestClarification):
+            next_question = outcome.question.model_copy(update={"procedure_goal": selection})
+            return RequestClarification(next_question, state)
+        if isinstance(outcome, AnswerResult):
+            return outcome.model_copy(update={"goals": state.goals, "goal_selection": selection})
+        return outcome.model_copy(update={"goals": state.goals, "preferred_goal": selection.active_goal})
     responded = (
         question is not None and question.goal_selection_language is not None
         and reply is not None and reply.question_id == question.question_id
