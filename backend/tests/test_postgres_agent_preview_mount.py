@@ -1,8 +1,8 @@
-"""Preview agent transport on the real disposable, migrated CI PostgreSQL database.
+"""Preview transport and case-free worker on the migrated disposable CI PostgreSQL database.
 
 The test verifies durable encrypted queueing, independent JWT ownership,
-idempotent first messages, no visible case selection, and deletion cleanup.
-It does not execute a worker, use real Auth0 or authorize production.
+idempotent first messages, one no-case LangGraph run, and deletion cleanup.
+It does not use real Auth0 or authorize production.
 """
 import base64
 from hashlib import sha256
