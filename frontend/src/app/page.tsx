@@ -5,6 +5,9 @@ import { HomeView } from '@/components/HomeView';
 import { SingleChatWorkspace } from '@/components/SingleChatWorkspace';
 import { singleChatPreviewEnabled } from '@/lib/single-chat-preview.js';
 
+// Account state and Preview feature gates are evaluated per request, never at build time.
+export const dynamic = 'force-dynamic';
+
 export default async function WelcomePage() {
   const session = auth0 ? await auth0.getSession() : null;
   if (singleChatPreviewEnabled(process.env)) {
