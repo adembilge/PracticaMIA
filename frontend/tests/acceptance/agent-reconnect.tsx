@@ -505,7 +505,7 @@ export function AgentReconnectFixture() {
           const label = hasOtherTasks
             ? (run.case_id ? `Open saved case task ${run.case_id.slice(0, 8)}` : 'Open unassigned conversation task')
             : 'Open conversation';
-          return <li key={run.run_id}>
+          return <li key={run.run_id} data-active-run-id={run.run_id}>
             <button type="button" disabled={busy} onClick={() => void open(
               `/api/agent/threads/${run.thread_id}/runs/${run.run_id}`,
             )}>{label}</button>
