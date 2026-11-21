@@ -285,11 +285,11 @@ def build_chat_graph(
 
     def find_evidence(state: ChatGraphState) -> dict:
         message, checkpoint = state["message"], state["checkpoint"]
-        if (
-            checkpoint.procedure_candidates != [PROCEDURE]
-            or checkpoint.location_candidates != [JURISDICTION]
-        ):
+        if checkpoint.procedure_candidates != [PROCEDURE]:
             return {"result": _answer_without_evidence(message.language, unsupported=True)}
+        # Retrieval is limited to this exact approved pilot passage. A place
+        # mentioned in the request may guide reference retrieval, but the answer
+        # remains explicitly non-applicability advice until scope is confirmed.
         try:
             with sessions() as db:
                 passages = search_approved_passages(
