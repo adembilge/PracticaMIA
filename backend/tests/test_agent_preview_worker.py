@@ -5,6 +5,7 @@ import pytest
 
 from app.agent.chat_graph import build_chat_executor
 from app.agent.checkpoints import CheckpointState
+from app.agent.contract import AnswerResult
 from app.agent.worker import RequestClarification
 from app.config import Settings
 from app.agent.preview_worker import MAX_STEPS_PER_INVOCATION, main, run_preview_worker_once
@@ -35,6 +36,20 @@ def test_chat_graph_starts_from_one_message_without_a_case_or_case_picker(client
     assert isinstance(result, RequestClarification)
     assert result.question.missing_fields == ["procedure"]
     assert "case" not in result.question.text.casefold()
+
+
+def test_chat_graph_resumes_prior_topics_from_conversation_history_not_a_case_picker(client):
+    execute = build_chat_executor(client.app.state.session_factory, catalogue_names=())
+    message = StoredMessage(
+        text="Can we pick up my saved address change?",
+        language="en",
+        case_id=None,
+    )
+    result = execute(message, CheckpointState(next_node="load_context"))
+    assert isinstance(result, AnswerResult)
+    assert "history sidebar" in result.explanation
+    assert result.selected_case is None
+    assert result.citations == []
 
 
 def test_chat_graph_fails_closed_if_a_legacy_case_link_is_passed(client):
