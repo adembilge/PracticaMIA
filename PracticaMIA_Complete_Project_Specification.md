@@ -16,6 +16,8 @@
 
 > **Product promise:** PracticaMIA helps people turn confusing government procedures into understandable, evidence-backed, manageable workflows. A specialized AI agent investigates the user's situation, uses approved official knowledge, checks documents, prepares application materials, and guides the user to an official submission channel—with the user retaining control of consequential actions.
 
+> **Current architecture amendment — D-010 (21 November 2026):** The target product is **one ChatGPT-style chat application, one composer, and a conversation-history sidebar**. Users never see or create cases, case dashboards, separate workspaces, document centers, forms, or product Preview screens. Procedure discovery, clarifications, documents, OCR, verified citations, approvals, checklists, preparation, status, reminders and resumption are **all in-chat**. Durable internal task/workflow data remains protected backend implementation state; existing `cases` records/endpoints are migration inventory only. This supersedes every inconsistent user-facing multi-screen or case UI instruction in this historical specification. See [binding single-chat contract](docs/SINGLE_CHAT_PRODUCT_CONTRACT.md), [D-010](docs/DECISIONS.md) and active [PracticaMIA 2.0 Phase 4–10 plans](planning/practicamia-2/phase-05-single-ui-and-chat-workspace.md). The source 12-stage/94-task ID ledger below is preserved for governance, not proof of completed implementation. **We remain in Phase 4; Phase 5 has not begun.**
+
 ---
 
 # Table of Contents
@@ -34,11 +36,11 @@
 12. [Official-government RAG system](#12-official-government-rag-system)
 13. [Verified administrative rules engine](#13-verified-administrative-rules-engine)
 14. [Document intelligence and application preparation](#14-document-intelligence-and-application-preparation)
-15. [Case management and persistence](#15-case-management-and-persistence)
-16. [User interface and experience](#16-user-interface-and-experience)
+15. [Internal workflow and conversation persistence](#15-internal-workflow-and-conversation-persistence-historical-case-management-section)
+16. [Single-chat user interface and experience](#16-user-interface-and-experience--single-chat-only)
 17. [Multilingual behavior and accessibility](#17-multilingual-behavior-and-accessibility)
-18. [Data architecture and proposed entities](#18-data-architecture-and-proposed-entities)
-19. [API contracts and event flows](#19-api-contracts-and-event-flows)
+18. [Conversation-first data architecture](#18-data-architecture-and-proposed-entities--conversation-first)
+19. [Conversation API contracts and event flows](#19-api-contracts-and-event-flows--conversation-entry)
 20. [Security, privacy, trust, and compliance](#20-security-privacy-trust-and-compliance)
 21. [Testing and agent evaluation](#21-testing-and-agent-evaluation)
 22. [Ten cross-functional test scenarios](#22-ten-cross-functional-test-scenarios)
@@ -56,7 +58,7 @@
 
 # 1. Executive summary
 
-**PracticaMIA** is a multilingual, AI-powered administrative case manager for people who need help navigating government bureaucracy in Italy. It is designed for practical outcomes: an applicable procedure identified, mandatory information collected, supporting documents assessed, discrepancies resolved, an administrative checklist maintained, and a reviewable application package prepared.
+**PracticaMIA** is a multilingual, conversational AI assistant for people navigating government bureaucracy in Italy. Its target user experience is entirely inside one ChatGPT-style conversation interface. It is designed for practical outcomes: an applicable procedure identified, mandatory information collected, supporting documents assessed, discrepancies resolved, an administrative checklist maintained, and a reviewable application package prepared.
 
 A user explains a goal in natural language. PracticaMIA's **LangGraph-orchestrated AI agent** interprets the request, identifies an eligible workflow, decides which approved tools to call, observes tool outputs, asks for information it cannot infer, revises its plan, and saves progress between sessions. Its internal services include a versioned government knowledge base, a Retrieval-Augmented Generation (RAG) service, a deterministic requirements evaluator, private document processing, and case management.
 
@@ -67,7 +69,7 @@ PracticaMIA is **not** a government authority, legal representative, or replacem
 ## 1.1 One-sentence descriptions
 
 - **For users:** An AI assistant that helps you get Italian paperwork ready, one verified step at a time.
-- **For engineers:** A stateful, tool-using LangGraph agent combining official-source RAG, deterministic administrative rules, document AI, and resumable case workflows.
+- **For engineers:** A stateful, tool-using LangGraph agent combining official-source RAG, deterministic rules, document AI, encrypted conversation history, and resumable internal task workflows without a customer-facing case model.
 - **For a portfolio:** A real-world agentic AI product with evidence-grounded reasoning, secure document processing, end-to-end automation within safe boundaries, and reproducible evaluations.
 
 ## 1.2 Current plan versus actual product
@@ -118,7 +120,7 @@ Make government paperwork easier to understand and prepare, especially for peopl
 
 ## 3.2 Product goals
 
-- Transform a natural-language objective into a **correctly scoped case**.
+- Interpret a natural-language objective within an **owner-scoped conversation and internal task context**, without creating a user-facing case.
 - Ask for **only relevant, necessary information**.
 - Ground administrative requirements in **reviewed, versioned official evidence**.
 - Identify missing and inconsistent documents before final preparation.
@@ -748,72 +750,83 @@ Document binaries and extracted personal fields require configured retention rul
 
 ---
 
-# 15. Case management and persistence
+# 15. Internal workflow and conversation persistence (historical case-management section)
 
-## 15.1 Core case record
+This section replaces the earlier user-facing case model. **The user has only conversations**, not "cases" to create, select or manage. Related administrative tasks and facts may be internally separated for correct scope and authorization, but must be inferred, clarified and operated on through the single chat.
 
-A case belongs to one authenticated owner, refers to one procedure and jurisdiction, has a current state, versioned facts, checklist and artifacts, relevant evidence references, agent executions, approvals, and an event history. It must be possible to inspect a case without replaying an LLM conversation.
+## 15.1 Internal task/workflow records
+
+Each authenticated conversation has a private owner, ordered message and event history, encrypted agent runs, and optional internally linked administrative tasks. A task can hold procedure, jurisdiction, typed facts, source references, dependent steps, document IDs, approvals, artifact versions, status and receipts. Internal identifiers are server-owned. They are not shown as navigable customer cases, and cannot be used to bypass a chat authorization check.
+
+**Migration:** Existing `cases`, `case_facts`, `case_intakes`, `case_documents` and `case_id` endpoints are compatibility storage during the transition. Introduce a conversation-linked task repository/adaptor, map each existing record to its owner-scoped conversation when possible, verify historical data recovery, then retire customer-facing case routes. Do not drop live tables or invent a migration completion status.
 
 ## 15.2 Data trust levels
 
-- **User-provided:** Entered but not necessarily verified.
-- **Document-extracted:** Derived from uploaded content; needs validation.
-- **User-confirmed:** Explicitly confirmed by the authorized user.
-- **System-verified:** Checked by deterministic process with evidence and known limitations.
-- **Unresolved:** Missing, contradictory, unsupported, or stale.
+- **User-provided:** entered in chat or a typed inline card; not necessarily verified.
+- **Document-extracted:** proposed from uploaded content; validation and user confirmation still required.
+- **User-confirmed:** explicitly approved in an authenticated in-chat action.
+- **System-verified:** checked by a deterministic, versioned process with approved evidence.
+- **Unresolved:** missing, inconsistent, stale or outside reviewed coverage.
 
-A later model inference must not automatically upgrade a fact's trust level.
+No model inference can silently upgrade a fact's trust level.
 
-## 15.3 Checklists
+## 15.3 Inline checklists and task dependencies
 
-Each item should record `required/conditional/optional`, dependency IDs, applicable rule ID, current status, due date if reviewed, evidence references, and completion actor. Status may be `pending`, `in_progress`, `needs_user`, `needs_review`, `blocked`, `verified`, or `not_applicable`.
+Requirements remain typed, versioned and evidence-backed. A checklist item records its rule/source version, required/conditional/optional state, dependencies, status, responsible actor and due date only where verified. **Display and update the checklist inside the active conversation**, with the next action visible as an inline card.
 
-## 15.4 Case event history
+## 15.4 Ordered event journal and conversation history
 
-Record action type, timestamp, actor type (user/system/agent/reviewer), previous and new status, minimal identifiers, and why an important decision occurred. **Do not log sensitive document text by default.**
+Keep immutable events for messages, clarification prompts/replies, uploaded-file references, proposed changes, accepted decisions, committed writes, rejections, errors and official handoff guidance. Minimize private content in logs and telemetry; the encrypted journal is the authoritative history. The sidebar lists **conversations**, never cases or tasks.
 
-## 15.5 Resumption and idempotency
+## 15.5 Resume, archive, delete and recovery
 
-- Save checkpoints before/after consequential tool operations.
-- Use idempotency keys to avoid duplicate package generation or case updates after retries.
-- Revalidate requirements if a trusted ruleset changed while a case was paused.
-- Show users why an item previously marked complete may need re-review.
-- Permit deliberate case archiving and deletion where allowed by retention/legal obligations.
+Retry operations using idempotent message/action IDs; recheck owner, source freshness, internal task state and document permissions at the actual write boundary. Archive and restore are conversation actions. Account changes remove the previous account's private content from the shell. Honor justified retention and verified deletion. A deleted or archived legacy record cannot be silently updated through a stale interactive card.
+
+## 15.6 Scope preservation
+
+One conversation can contain multiple independent administrative goals. The agent asks for clarification when ambiguity affects which internal task is changed. It must never copy one task's facts into another without the user's clear confirmation and server-checked authorization.
 
 ---
 
-# 16. User interface and experience
+# 16. User interface and experience — single-chat only
 
-## 16.1 Main screens
+## 16.1 The one customer screen
 
-1. **Welcome / authentication:** Value proposition, login, account creation, language selection.
-2. **Dashboard:** Active cases, due actions, recently updated cases, new case entry.
-3. **New case:** Natural-language request and structured routing questions.
-4. **Case workspace:** Current goal, summary, progress, chat, documents, and checklist.
-5. **AI conversation:** Messages, typed intake controls, tool activity summaries, clarification prompts.
-6. **Documents:** Upload, processing state, previews, extracted fields, correction workflow.
-7. **Requirements and sources:** Applicable requirements with evidence and last-reviewed context.
-8. **Checklist:** Dependencies, status, reasons, actions to complete.
-9. **Application review:** Confirmed values, warnings, prepared files, approval control.
-10. **Official handoff:** Verified service destination, instructions, user action, reported status.
-11. **Profile and privacy settings:** Personal details, language, data controls, deletion requests.
-12. **Error and unsupported screens:** Recovery guidance without fabricated completion.
+The customer-facing app is **one full-page ChatGPT-like conversation at `/`**. It has a transcript, persistent message composer, optional attachment control, collapsible conversation-history sidebar, and a lightweight account/language control. Users begin with a free-text question; no authority picker, form, example case or account-specific case list is a prerequisite. On mobile the same chat fills the screen with a collapsible history drawer.
 
-## 16.2 UX requirements
+**No separate customer routes** for dashboards, cases, documents, source browsing, checklists, form editing, preparation previews or process tracking. A legal privacy policy or hosted identity-provider login is supporting content rather than another product workflow. Human source approval is an operator-only protected function. Authenticated government service handoff is an explicit **external** action initiated by the user.
 
-- Always show whether a value is **user-entered, extracted, or confirmed**.
-- Display source links near legal or administrative claims, not only in a global bibliography.
-- Explain the next action and why it is needed.
-- Avoid asking questions already answered or documented, unless a value needs reconfirmation.
-- Distinguish optional recommendations from mandatory requirements.
-- Present agent progress without displaying private chain-of-thought; show tool actions and factual outcomes instead.
-- Support saved progress and a clear return path.
-- Make critical warnings persistent and understandable.
-- Ensure mobile usability for uploading and reviewing documents.
+## 16.2 In-chat interactive cards
 
-## 16.3 Interface styling
+| Interaction | Inline chat affordance |
+| --- | --- |
+| Clarification | Single choice, free-text reply, unknown/skip |
+| Verified answer | Exact evidence citations, expandable source passage and review/version metadata |
+| Upload/OCR | File chip, processing progress, page evidence, extracted fields and correction confirmation |
+| Requirements | Current sourced checklist and dependent next-step actions |
+| Draft preparation | Inline form values, missing/contradictory fields, explicit approval, generated download |
+| Progress | Receipt and deadline cards with provenance; user-controlled reminder action |
+| Multiple goals | Conversational topic disambiguation and automatic internal task binding, not a case switcher |
+| Return visit | Conversation history and restored transcript, encrypted state and pending action |
 
-The frontend uses an editorial civic-tech design with warm neutral backgrounds, serif headings, restrained status labels and a linked case journey. See the [frontend guide](frontend/README.md#architecture) for styling and localization files. Avoid decorative robot imagery or visual design suggesting official government affiliation.
+The UI must never imply an event was saved without an authoritative committed receipt, nor that a government submission was performed because the agent prepared a draft.
+
+## 16.3 Interaction and accessibility requirements
+
+- Show user's input and the agent's actual verified answer in the same transcript.
+- Preserve drafts, focus and scroll position when expanding cards or switching prior conversations.
+- Make status and evidence labels clear: user-entered, extracted, user-confirmed, system-verified or unresolved.
+- Ask only necessary follow-up questions and avoid repeating confirmed information without reason.
+- Show tool activity as bounded factual status, not private chain-of-thought.
+- Handle network failures, expired sessions, stale approvals, duplicate sends and stopped runs with safe retry/reconnect.
+- Support EN/IT, keyboard and screen readers, and narrow mobile viewports.
+- Keep exact official source wording and warning disclaimers where necessary.
+
+## 16.4 Styling and migration reality
+
+The target is restrained, readable, conversation-first UI; never a linked "case journey" or editorial multi-screen app. Existing `HomeView`, `/cases/*`, separate document/knowledge screens, and isolated `AgentReconnectFixture` are **current legacy or test assets**, not the delivered product. Phase 5 implementation is required to replace them in the hosted app, but **may not start until the current Phase 4 gate is lifted**.
+
+**Acceptance:** One user can ask, clarify, attach, inspect source, correct a value, approve, download and resume without navigating away from the chat shell. Passing legacy case-page tests alone is insufficient.
 
 ---
 
@@ -837,114 +850,80 @@ Launch languages: English and Italian. The agent can explain Italian procedural 
 Plan keyboard navigation, accessible form labels, screen-reader status announcements, understandable errors, adequate contrast, focus indicators, responsive layouts, and WCAG-aligned development/testing. Automated tooling is a baseline, not a complete accessibility audit.
 
 ---
-# 18. Data architecture and proposed entities
+# 18. Data architecture and proposed entities — conversation-first
 
-## 18.1 Entity catalog
+## 18.1 Target entity catalog
 
-| Entity | Representative fields | Key rules |
-|---|---|---|
-| `users` | ID, auth reference, language, created_at | Strict ownership and data minimization |
-| `profiles` | User ID, selected reusable fields, consent metadata | Optional; delete/correct by user |
-| `cases` | ID, owner ID, procedure, jurisdiction, status, ruleset version | Case-owned, versioned |
-| `case_facts` | Case ID, field name, value, origin, verification state | Preserve provenance and corrections |
-| `case_events` | Case ID, actor, action, status transition, timestamp | Minimal audit metadata |
-| `case_checklist_items` | Case ID, rule ID, dependency IDs, state | Must refer to applicable approved rule or approved user task |
-| `documents` | ID, case ID, private storage key, type, status, hashes | Authorized access only |
-| `document_fields` | Document ID, typed value, source span, verification | Do not silently trust extraction |
-| `application_artifacts` | Case ID, template version, status, storage key | Regenerate after meaningful corrections |
-| `approval_events` | Case ID, action, approver, timestamp, scope | Required for designated actions |
-| `procedures` | ID, jurisdiction, language, active version, support status | Explicit MVP whitelist |
-| `official_sources` | ID, institution, URL, jurisdiction, review/approval | Source provenance |
-| `source_versions` | Source ID, content hash, snapshot, validity | Immutable version history |
-| `knowledge_passages` | Version ID, section, text, metadata, text search | Evidence-specific references |
-| `passage_embeddings` | Passage ID, vector, model ID/version | Reindexable without losing provenance |
-| `administrative_rules` | Condition tree, effect, evidence refs, status | Only approved, active rules are authoritative in-app |
-| `agent_runs` | Case ID, checkpoint, model config, outcome, timestamps | Redacted telemetry |
-| `tool_calls` | Run ID, tool name, arguments metadata, result status | Minimize or redact user content |
-| `feedback` | Case ID, feedback type, consent, issue ID | No unapproved sensitive-data replication |
+| Entity | Purpose and protection |
+| --- | --- |
+| `users` / minimal preferences | Owner and language; avoid unnecessary reusable personal details |
+| `conversations` / `threads` | Owner-scoped, ordered private interactions, names and timestamps; sidebar items |
+| `messages` / `agent_runs` / `events` | Encrypted requests, typed agent results, retries, approvals and confirmed receipts |
+| `internal_tasks` | Server-owned procedure/jurisdiction/workflow state, never a user-managed "case" |
+| `task_facts` / `task_events` | Field provenance, verification state, dependencies and audit |
+| `documents` / `document_fields` | User-authorized private file, processing and extracted-field references |
+| `requirements` / `checklist_items` | Sourced, versioned deterministic obligations and review state |
+| `artifacts` / `approval_events` | Reviewable output, exact approval and committed operation references |
+| `official_sources` / `source_versions` / `knowledge_passages` | Shared approved evidence with provenance and status |
+| `administrative_rules` / `procedures` | Reviewed scope, conditions, authority and official handoffs |
 
-## 18.2 Data access principles
+Existing `cases` rows, foreign keys and API paths remain **legacy implementation**, not the target schema naming. Migrate via an owner-scoped adapter/backfill and audit recovery; internal task state must stay typed and durable even though no customer case concept exists.
 
-Every case-private row carries an ownership path to the authenticated user. Where feasible, use database and service-layer defense in depth. Internal administrative knowledge is generally shared read-only; approval/edit access is restricted to trusted operators. Private uploaded files never appear in the shared RAG index.
+## 18.2 Access and isolation
 
-## 18.3 Versioning
+Every private conversation, task, document, artifact, reminder and event belongs to the authenticated owner. The server checks ownership independently of frontend routing. Agents cannot guess another task ID or use prompt text to cross scopes. Official-source records can be shared for read but require privileged, human-reviewed writes.
 
-Version: rulesets, procedures, official source snapshots, form templates, embedding models, and generated application packages. Record the versions used to make each consequential recommendation. Updating an official source should not retroactively rewrite historical case events.
+## 18.3 Versioning and retention
 
-## 18.4 Data lifecycle
-
-`collect → validate → use → retain for justified purpose → export/correct/delete per policy`. Define retention periods and deletion semantics after legal and privacy review. Never promise instant erasure of backups without verifying what retention architecture can actually do.
+Version source snapshots, rulesets, task facts, evidence links, approvals, document processing and generated artifacts. Show stale/invalidation states in chat. Apply reviewed retention, correction/export and deletion policies to all private records, including migrated historical data. Do not imply backup erasure without evidence.
 
 ---
 
-# 19. API contracts and event flows
+# 19. API contracts and event flows — conversation entry
 
-## 19.1 Proposed endpoints
+## 19.1 Customer-facing conversation APIs (target)
 
-The table is a proposed design. For implemented routes use the [Auth0 integration](docs/AUTHENTICATION_INTEGRATION.md), [saved-case workflow](docs/UNIFIED_CASE_WORKFLOW.md), and [private document intelligence](docs/PRIVATE_DOCUMENT_INTELLIGENCE.md) references.
+The public app uses one conversation-oriented backend-for-frontend surface. Endpoint names below are target contracts to reconcile with the **already implemented isolated** Phase 4 `/api/v1/agent` routes; they are not a claim of hosted deployment.
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| `POST` | `/api/v1/auth/register` | Account creation if selected auth strategy uses local registration |
-| `POST` | `/api/v1/auth/login` | Authentication |
-| `GET` | `/api/v1/me` | Current user profile |
-| `GET` | `/api/v1/cases` | Authorized cases list |
-| `POST` | `/api/v1/cases` | Create case |
-| `GET` | `/api/v1/cases/{id}` | Get case state |
-| `PATCH` | `/api/v1/cases/{id}` | Update permitted case fields |
-| `POST` | `/api/v1/cases/{id}/messages` | User input and agent execution |
-| `GET` | `/api/v1/cases/{id}/messages` | Conversation history/structured events |
-| `GET` | `/api/v1/cases/{id}/checklist` | Required actions and status |
-| `POST` | `/api/v1/cases/{id}/documents` | Upload authorized document |
-| `GET` | `/api/v1/cases/{id}/documents` | List document metadata |
-| `GET` | `/api/v1/documents/{id}` | Authorized document detail or secure download |
-| `POST` | `/api/v1/documents/{id}/extract` | Start/process extraction job |
-| `POST` | `/api/v1/documents/{id}/confirm-fields` | User corrections and confirmation |
-| `GET` | `/api/v1/cases/{id}/requirements` | Approved rule outputs and sources |
-| `POST` | `/api/v1/cases/{id}/application/prepare` | Generate reviewable package when valid |
-| `POST` | `/api/v1/cases/{id}/application/approve` | User approval of prepared package |
-| `GET` | `/api/v1/cases/{id}/submission-guidance` | Verified portal handoff |
-| `POST` | `/api/v1/cases/{id}/submission-evidence` | User-provided confirmation data |
-| `DELETE` | `/api/v1/cases/{id}` | Authorized deletion/retention workflow |
+| Operation | Target purpose |
+| --- | --- |
+| `POST /api/v1/agent/conversations` | Send the **first free-text message**, no case ID |
+| `POST /api/v1/agent/threads/{thread_id}/messages` | Continue conversation, optional server-verified internal task binding |
+| `GET /api/v1/agent/conversations/recent` | Owner-only distinct conversation sidebar |
+| `GET /api/v1/agent/threads/{thread_id}/history` | Private transcript pages, receipts and persisted actions |
+| `GET /api/v1/agent/threads/{thread_id}/runs/{run_id}` | Typed current state and next action |
+| `GET .../events`, `GET .../sources/{citation_id}` | Event replay and exact reviewed citation |
+| `POST .../questions/{question_id}/reply` | Clarification response |
+| `POST .../proposals/{proposal_id}/decision` | Authenticated approval/rejection/correction |
+| `POST .../stop` | Stop with exact previous committed receipts preserved |
+| Scoped internal document/task APIs | Invoked by typed, authorized in-chat actions, not standalone pages |
 
-Admin-only operations for sources and rules should have separate authorization policies and, ideally, separate administration routes or services.
+**Legacy APIs:** `/api/v1/cases/**`, `/api/cases/**` and `case_id` are existing compatibility routes. Keep them protected until the conversation/state migration and security tests pass, then deprecate customer-visible coupling. Do **not** make clients visit them directly.
 
-## 19.2 Request/response policies
+## 19.2 Request and response rules
 
-- Typed schemas; consistent error envelope; explicit validation failures.
-- Proper HTTP status codes and correlation IDs without exposing secrets.
-- Pagination for listings; upload size and MIME limits.
-- API authorization on every private object lookup and mutation.
-- Idempotency keys for write operations prone to retry.
-- State version checks for concurrent edits, when needed.
-- Clear `not_supported`, `needs_information`, `needs_review`, and `service_unavailable` outcomes.
+Requests use validated typed payloads, owner-bound IDs, idempotency keys and optimistic revision checks. Events distinguish proposed/accepted/committed/failed states. Downloads are authorized and non-cacheable; no cross-user content, sensitive logs or provider token disclosure. A missing source yields an explicitly unverified answer, not a plausible fabricated next step.
 
-## 19.3 Example agent-turn response
+## 19.3 Conversation example (illustrative, no legal advice)
 
-```json
-{
-  "case_id": "synthetic-case-id",
-  "run_status": "needs_user_input",
-  "message": "I need to confirm your previous registration context.",
-  "question": {
-    "field": "previous_registration_context",
-    "input_type": "single_select",
-    "options": ["registered_in_italy", "arrival_from_abroad", "unknown"]
-  },
-  "case_status": "collecting_information",
-  "tool_actions": [
-    {"name": "find_procedure", "status": "needs_information"}
-  ],
-  "evidence_refs": [],
-  "blocking_issues": ["procedure_route_unresolved"]
-}
+```text
+User: I need to register my new address in Milan.
+Assistant: I can help check which reviewed procedure applies.
+Assistant: [Clarification card: Previous registered residence in Italy?]
+User: [Selects answer]
+Assistant: [Reviewed source card] [Next action / missing information]
+User: Here is my document. [Attachment]
+Assistant: [Private processing] [OCR fields to review]
+User: [Explicitly confirms corrected field]
+Assistant: [Saved receipt] [Downloadable preparation draft, if verified]
+Assistant: [Official government link — user completes submission externally]
 ```
 
-These are placeholder values, not descriptions of verified Italian procedure branches.
+The agent never asks the user to create or open a "case". Internal task state and event receipts remain server-owned.
 
-## 19.4 Event-driven updates
+## 19.4 Long operations and reconnect
 
-Document OCR, RAG reindexing, and application generation may take longer than a web request. Use background tasks for them once necessary, with status polling or server-sent events. Do not design a complex distributed queue before measuring need. Long-running jobs should be resumable or safely retryable.
+Uploads, OCR, source checks and package generation may use bounded background processing. Use resumable, idempotent jobs and cursor-based event replay. A disconnected client resumes in the **same conversation**, with pending action cards and verified history restored. Avoid speculative progress or unapproved official completion.
 
 ---
 

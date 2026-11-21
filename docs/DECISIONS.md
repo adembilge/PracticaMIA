@@ -53,6 +53,16 @@ The product owner explicitly approved continuing Phase 4 development without wai
 
 This decision does **not** disable the repository's existing Vercel Git integration; GitHub pushes may still trigger automatic deployment attempts. Do not change Vercel project settings, payment, rate limits, team permissions, or production aliases without separate authorisation. Deployment/staging acceptance, live identity and privacy checks, official source review, real-user pilots and explicit production release sign-off remain independent gates. This clarifies D-006; it does not authorize production release or proceeding to Phase 5.
 
+## D-010 — No user-facing cases; one ChatGPT-style conversation workspace (21 November 2026)
+
+**State:** explicit product-owner correction and binding target architecture. This **supersedes D-007/D-008 wherever those decisions permit a case switcher or user-facing case concept**; D-009's release and merge controls are unchanged.
+
+The product has exactly **one primary customer interface**: a ChatGPT-like chat at the application root. Users do not create, name, select, open, browse, or manage "cases" as a product entity. Users start by writing any Italian administrative question in ordinary language. The agent identifies the procedure and authority and handles clarifications, documents, OCR, fields, requirements, checklists, application drafts, approvals, cited sources, official handoff, status, reminders, corrections and resumption as messages or interactive inline cards. The navigation drawer contains **conversation history only**, not a separate case or task switcher. All supported actions happen within chat; a human-operated official government portal is a clearly distinguished external destination.
+
+Private, owner-scoped **internal task/workflow records** remain technically necessary for consistency, authorization, versioning and resumption; they must not become a required user-facing case workflow. Existing case schemas, endpoints and screens are *legacy compatibility and migration inventory*, not the desired customer UI. Migrate them behind the conversation API with a verified retention, owner-authorization and recovery plan rather than deleting stored user records. No standalone dashboard, case page, document workspace, source browser or form editor may be built as a customer surface.
+
+The authoritative UX architecture and acceptance contract is [SINGLE_CHAT_PRODUCT_CONTRACT.md](SINGLE_CHAT_PRODUCT_CONTRACT.md). Update the full specification, active 2.0 Phase 4–10 plan, documentation, tests and future implementation against this decision. Old screenshots and multi-screen descriptions must be labeled historical and cannot define the new product. This planning correction **does not declare the hosted app migrated, approve sources or real data, or authorize starting Phase 5**. Phase 4 remains in progress until its independent gates are met.
+
 ## Decisions still unresolved
 
 - Currency and applicability reviews for the approved first Milan scenario, especially the officially required attachments and exceptions.

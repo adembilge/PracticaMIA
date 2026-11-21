@@ -1,46 +1,54 @@
 # PracticaMIA
 
-**AI-assisted preparation for Italian administrative procedures.**
+**One conversational AI assistant for Italian administrative questions and preparation.**
 
-PracticaMIA helps people navigate administrative paperwork in Italy through structured, evidence-backed workflows. It combines a bilingual interface, case management, an AI assistant, official-source retrieval, deterministic requirements, and document review to help users understand what to prepare and what to do next.
+**Target product:** A single ChatGPT-style interface. The user sends a natural-language question, and the AI agent handles procedure discovery, clarifying questions, verified evidence, documents, forms, checklists, approvals, progress and return visits **entirely inside the same conversation**. Chat history is the only customer-facing work selector. There is **no case creation, case list, case workspace, separate document center, dashboard or page-based wizard** in the intended UX. Protected source review remains operator-only; external government portals are clearly labelled user-controlled handoffs.
 
-The current domain focus is **`cambio di residenza`** (change of registered residence) in **Milano**. PracticaMIA is independent of the Italian government: it prepares and explains information but does **not** authenticate to government services, submit an application, or issue an official decision.
+**Important implementation status (21 Nov 2026):** The repository still includes an **older deployed multi-screen MVP** with `/cases/*` routes and legacy `case_id` services. The complete single-chat application is **not yet deployed**. Its isolated agent conversation components and signed API acceptance fixtures are development assets, not proof of hosted readiness. The [binding single-chat contract](docs/SINGLE_CHAT_PRODUCT_CONTRACT.md) and [D-010](docs/DECISIONS.md#d-010--no-user-facing-cases-one-chatgpt-style-conversation-workspace-21-november-2026) govern migration; Phase 5 implementation remains on hold while Phase 4 continues.
 
-## What PracticaMIA does
+Initial reviewed scope remains a narrow individual residence-change scenario in **Milano**; broader requests must receive accurate coverage boundaries. PracticaMIA is independent of the Italian government and does not log in, sign, pay or submit to official services on the user's behalf.
 
-- **Guided case intake:** collect relevant facts through focused questions, distinguish known information from unresolved details, and save progress.
-- **Case workspace:** organize intake, next actions, checklists, documents, and preparation status in one place.
-- **Official-source knowledge:** store versioned municipal material, track its provenance and approval, and retrieve passages using lexical and vector search.
-- **AI assistance:** use bounded agent actions and retrieval-augmented answers while checking quoted evidence against approved sources.
-- **Requirements and review:** apply deterministic, versioned conditions; flag missing information and contradictions rather than guessing.
-- **Document intelligence:** process supported private documents, extract candidate fields, compare them against case facts, and request explicit user confirmation.
-- **Application preparation:** assemble reviewable information and PDF artifacts when the supported workflow's evidence and review conditions are satisfied.
+## What the single-chat experience must do
 
-The reviewed example path covers one adult Italian citizen already registered in Italy, moving alone to Comune di Milano as the holder of a registered private rental contract. The signed-in example uses fictional data and produces a preparation draft for user review. Real document uploads are disabled. See [release evidence](docs/PROGRESS.md) for the deployed revisions and open acceptance gates.
+- **Ask anything first:** user can send a message without choosing a procedure, authority, or case.
+- **Clarify and route:** one LangGraph specialist identifies the relevant administrative goal and asks only necessary questions in chat.
+- **Show official evidence:** expanded approved-source cards appear beside the supported claim and make uncertainty explicit.
+- **Handle documents in messages:** authorized uploads, processing, OCR candidates and explicit field confirmation are inline, subject to release gates.
+- **Plan and prepare:** requirements, checklists, progress, proposed changes, PDF drafts, reminders and official handoff are conversation actions, not distinct screens.
+- **Resume safely:** prior conversations and verified action receipts are available from chat history; internal task records remain private implementation details.
 
-## How the system works
+**Current code caveat:** The old Milan case pages, downloadable draft and synthetic browser checks remain implemented for backward compatibility and security testing until replacement. A working legacy feature is not evidence that its in-chat successor exists.
+
+## How the target single-chat system works
 
 ```text
-User (English / Italian)
-    |
-    v
-Next.js interface, Auth0 session and server-side API proxy
-    |
-    v
-FastAPI — authentication, case ownership and typed services
-    |
-    +--> Case intake, checklist and workflow state
-    +--> LangGraph assistant and constrained tool selection
-    |       +--> Source-grounded retrieval and quote verification
-    |       +--> Deterministic administrative rules
-    +--> Release-gated private document extraction and user review
-    +--> Reviewable preparation and PDF output
-    |
-    v
-PostgreSQL — case records, source versions and retrieval indexes
+User question (English / Italian)
+          |
+          v
+ONE Next.js conversation shell + chat history + composer
+          | authenticated server-side API proxy
+          v
+FastAPI conversation transport and encrypted events
+          |
+          v
+One LangGraph specialist agent
+  +-- Intent / municipality / authority clarification
+  +-- Official-source RAG and citation checks
+  +-- Deterministic requirements, next steps and official handoff
+  +-- Owner-scoped internal task facts and approvals
+  +-- Private document/OCR and artifact tools (release gated)
+          |
+          v
+PostgreSQL: conversations, internal task state, approvals,
+            source versions, private metadata and retrieval indexes
+          |
+          v
+Typed in-chat replies, questions, documents, citations,
+checklists, approvals, receipts, downloads and history
 ```
 
-**Evidence and control are separate from language generation.** The language model can help interpret a request and explain verified results, but it cannot approve official sources, invent binding procedural requirements, confirm extracted personal information, or mark an application as submitted.
+**Internal state is not a user-facing case.** The earlier backend still has owner-scoped `cases` tables and routes; those need a verified conversation-task migration. The target architecture above is **not fully hosted or released**. Evidence, identity and approval controls remain server-side; language generation cannot approve sources, silently confirm fields or claim a government submission.
+
 
 ## Technology
 
@@ -123,4 +131,4 @@ Administrative guidance must be grounded in human-reviewed, versioned official m
 
 PracticaMIA is **not an official municipal service, legal representative, or application-submission channel**. Users remain responsible for reviewing their information and completing any submission through the appropriate government service.
 
-For implementation details, see [documentation index](docs/README.md), [case workflow](docs/UNIFIED_CASE_WORKFLOW.md), [official-source review](docs/KNOWLEDGE_REVIEW_WORKFLOW.md), [document processing](docs/PRIVATE_DOCUMENT_INTELLIGENCE.md), and the [full product specification](PracticaMIA_Complete_Project_Specification.md).
+For implementation details, see [documentation index](docs/README.md), [legacy case workflow implementation](docs/UNIFIED_CASE_WORKFLOW.md), [official-source review](docs/KNOWLEDGE_REVIEW_WORKFLOW.md), [document processing](docs/PRIVATE_DOCUMENT_INTELLIGENCE.md), and the [full product specification](PracticaMIA_Complete_Project_Specification.md).

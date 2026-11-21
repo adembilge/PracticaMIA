@@ -1,6 +1,6 @@
 # PracticaMIA Frontend
 
-The user interface for PracticaMIA is a **Next.js 15 / React 19 / TypeScript** application. It provides English and Italian navigation, authentication, saved cases, structured intake, case progress, assistant interactions, and review interfaces. Availability of individual features depends on the configured backend and environment.
+The frontend is **Next.js 15 / React 19 / TypeScript**. Its **binding target is one ChatGPT-like customer chat at `/`**, one composer, conversation-only sidebar and inline document, source, checklist, approval, form and status cards. There is **no user-facing case/workspace/dashboard concept** in the target. **Current implementation remains legacy**: the landing page, `/cases/*` workflows, and the isolated agent-chat acceptance fixture have not been migrated to a full hosted single-chat product. Do not treat the existing pages as the target design. See [single-chat contract](../docs/SINGLE_CHAT_PRODUCT_CONTRACT.md) and D-010.
 
 ## Development
 
@@ -28,7 +28,7 @@ The [frontend CI workflow](../.github/workflows/frontend-ci.yml) runs a built-se
 
 ## Architecture
 
-- `src/app/` — routes and server-side API proxies.
+- `src/app/` — currently includes legacy standalone screens and server-side proxies; target primary customer route is `/` only. Internal auth/reviewer and legal routes are distinct supporting surfaces.
 - `src/components/` — reusable case, document, assistant, and layout components.
 - `src/lib/` — authentication configuration, request validation, state helpers, and domain clients.
 - `src/app/globals.css` and `src/app/editorial.css` — shared styles and the editorial UI.
