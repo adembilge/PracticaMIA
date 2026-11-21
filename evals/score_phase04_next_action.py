@@ -65,6 +65,7 @@ class ScenarioReplay:
         self.sessions = sessions
         self.references = data["references"]
         self.facts = data["profiles"].get(case.get("initial_profile"), {}) | case.get("initial_facts", {})
+        self.reply_facts = {}
         self.language = language
         self.route_conditions = [rule["condition"] for rule in catalog["rules"] if rule["kind"] == "route"]
         self.case_id = uuid4() if case.get("initial_profile") else None
@@ -114,10 +115,11 @@ class ScenarioReplay:
             ),
         )
 
-    def read_scope(self, *_):
+    def read_scope(self, *_, include_reply_facts=True):
+        facts = self.facts | (self.reply_facts if include_reply_facts else {})
         return AnswerEvidenceScope(
             procedure_id=PROCEDURE,
-            case_locations=_locations(self.facts),
+            case_locations=_locations(facts),
             confirmed_dates={}, confirmed_circumstances={},
             assignments=tuple(item.assignment for item in self.evidence),
             claim_reviews=(self.channel_review,),
@@ -129,7 +131,8 @@ class ScenarioReplay:
         if state.next_node == "identify_intent":
             return identify_intent_step(message, state, catalogue_names=NAMES)
         if state.next_node == "choose_next_step":
-            scope = self.read_scope()
+            # Do not inject a reply fixture into routing. The graph must parse and retain the answer itself.
+            scope = self.read_scope(include_reply_facts=False)
             with self.sessions() as db:
                 trusted = frozenset(
                     item.citation.passage_id for item in self.evidence
@@ -313,6 +316,9 @@ class ScenarioReplay:
             submit_clarification_reply(
                 db, **self.context, question_id=question.question_id, reply=reply,
             )
+        # The synthetic answer becomes confirmed evidence for publication revalidation only.
+        # Candidate routing must still be resolved from the actual clarification reply.
+        self.reply_facts.update(step.get("facts", {}))
         return self.advance()
 
 
