@@ -1023,8 +1023,16 @@ try{
         thread_id:threadId,next_before_revision:null,items:[{
           run_id:runId,case_id:null,status:'failed',accepted_revision:1,
           user_message:'Synthetic error fixture',language:'en',answer:null,
-          clarifications:[],approvals:[],clarification_history_truncated:false,
-          approval_history_truncated:false,
+          clarifications:[{
+            event_seq:4,question_id:'00000000-0000-4000-8000-000000000004',
+            question_text:'What detail should I verify?',disposition:'unknown',reply_text:null,
+          }],
+          approvals:[{
+            event_seq:2,proposal_id:'00000000-0000-4000-8000-000000000003',
+            field_id:'move_in_date',proposed_value:'2026-11-20',decision:'reject',
+            corrected_value:null,applied_operation_id:null,applied_case_revision:null,
+          }],
+          clarification_history_truncated:false,approval_history_truncated:false,
           terminal_event:{
             type:'run.failed',schema_version:1,thread_id:threadId,run_id:runId,
             event_seq:3,occurred_at:'2026-11-20T12:00:00Z',code,
@@ -1036,8 +1044,13 @@ try{
       await page.getByRole('button',{name:'Open conversation',exact:true}).click({timeout:10000});
       await page.getByRole('heading',{name:'Conversation failed',exact:true}).waitFor({timeout:10000});
       await page.getByText('Send your request again later.',{exact:true}).waitFor({timeout:10000});
-      await page.getByRole('region',{name:'Conversation history'})
-        .getByText(/This attempt failed.*send a new message in this chat to retry/i).waitFor();
+      const historic=page.getByRole('region',{name:'Conversation history'});
+      await historic.getByText(/This attempt failed.*send a new message in this chat to retry/i).waitFor();
+      const visibleHistory=await historic.innerText();
+      assert.ok(
+        visibleHistory.indexOf('Proposed change:') < visibleHistory.indexOf('What detail should I verify?'),
+        'A saved proposal must display before a later clarification, regardless of array grouping',
+      );
       assert.equal(await page.getByRole('button',{name:'Check status',exact:true}).isVisible(),false);
     });
   }
