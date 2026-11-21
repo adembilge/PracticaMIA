@@ -277,7 +277,9 @@ def run_worker_step(
                 run.lease_expires_at = None
             return None
         if isinstance(result, AnswerResult) and (
-            resolve_case or (result.goal_selection and result.goal_selection.active_goal)
+            resolve_case or (
+                message.case_id is not None and result.goal_selection and result.goal_selection.active_goal
+            )
         ):
             resolved = resolve_saved_case(
                 db, thread_id=thread_id, principal=principal, message=message, answer=result, resume_case=resume_case,
