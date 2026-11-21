@@ -42,7 +42,7 @@ _QUESTIONS = {
         "Which procedure do you need help with?", "Per quale pratica ti serve aiuto?",
     ),
     "case_reference": (
-        "Which saved case would you like to resume?", "Quale pratica salvata vuoi riprendere?",
+        "Which previous request would you like to continue?", "Quale richiesta precedente vuoi riprendere?",
     ),
     ("location", "destination"): (
         "Which municipality are you moving to?", "In quale comune ti trasferisci?",
