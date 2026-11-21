@@ -1357,7 +1357,7 @@ try{
     await owner.getByRole('button',{name:'Open completed conversation'}).click();
     const conversation=owner.getByRole('region',{name:'Conversation'});
     const inline=conversation.getByRole('region',{name:'In-chat saved case confirmation'});
-    const panel=inline.getByRole('region',{name:'Confirm the details of this example case'});
+    const panel=inline.getByRole('region',{name:'Review the information for this request'});
     await panel.waitFor();
     assert.equal(await conversation.locator(`a[href^="/cases/${caseId}"]`).count(),0,
       'Confirming intake must stay in the same chatbot');
