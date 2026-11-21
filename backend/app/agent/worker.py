@@ -153,11 +153,13 @@ def run_worker_step(
             message.case_id is not None and checkpoint.state.next_node == "choose_next_step"
             and checkpoint.state.intent == "resume_case"
         )
-        # A generic "resume my case" first resolves the saved task. If the same message
-        # already identifies its procedure, load that linked case context and continue
-        # the requested workflow instead of stopping at case selection.
+        # Resolve a case only for an explicit case-choice reply or a generic resume
+        # with no procedure candidates. A reply to an existing task clarification must
+        # continue that task even when its checkpoint no longer carries candidates.
         resolve_case = message.case_id is not None and not topic_changed and (
-            case_question or (resume_case and not checkpoint.state.procedure_candidates)
+            case_question or (
+                resume_case and reply is None and not checkpoint.state.procedure_candidates
+            )
         )
 
         case_context = None
