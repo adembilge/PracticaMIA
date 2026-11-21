@@ -1,4 +1,4 @@
-"""Owner-scoped case choices through the real worker and signed reply API."""
+"""Legacy linked-run selection compatibility; new case-free chat runs never expose case choices."""
 
 from functools import partial
 from uuid import UUID, uuid4
@@ -105,7 +105,7 @@ def test_other_case_is_clarified_with_only_active_owned_links(client, auth_heade
 
 
 def test_case_archive_between_offer_and_reply_is_rejected_and_live_selection_is_rechecked(client, auth_headers):
-    factory, context, url, _, other, second_other = _run(client, "Resume my case")
+    factory, context, url, _, other, second_other = _run(client, "Resume my case", bind=True)
     owner = auth_headers("alice")
     _resume_case(factory, context)
     snapshot, question = _read_question(client, url, owner)
@@ -129,33 +129,38 @@ def test_explicit_linked_case_is_verified_without_another_question(client, auth_
     assert client.get(url, headers=auth_headers("alice")).json()["selected_case"]["case_id"] == str(bound)
 
 
-def test_active_goal_case_choices_preserve_goal_and_filter_by_its_procedure(client, auth_headers):
-    factory, context, url, _, other, second_other = _run(client, "Synthetic task choice")
-    with factory.begin() as db:
-        db.get(CaseRecord, str(other)).procedure = "fixture-tax"
-        db.get(CaseRecord, str(second_other)).procedure = "fixture-tax"
+def test_active_goal_uses_an_in_chat_choice_without_case_selection(client, auth_headers):
+    factory, context, url, _, _, _ = _run(client, "Synthetic task choice")
     state = CheckpointState(
         next_node="choose_next_step", intent="plan_multiple_tasks", preferred_goal=2,
         goals=[MessageGoal(procedure_candidates=["milan_residence_change"]),
                MessageGoal(procedure_candidates=["fixture-tax"])],
     )
-    run_worker_step(factory, **context, execute=lambda *_: state)
-    run_worker_step(factory, **context, execute=partial(
+    choose = partial(
         choose_candidate_step, case_locations={}, confirmed_dates={}, confirmed_circumstances={},
         assignments=(), trusted_passage_ids=frozenset(), reviewed_labels={"fixture-tax": "Synthetic tax task"},
-    ))
+    )
+    run_worker_step(factory, **context, execute=lambda *_: state)
+    run_worker_step(factory, **context, execute=choose)
     owner = auth_headers("alice")
     snapshot, question = _read_question(client, url, owner)
-    assert snapshot["goal_selection"]["active_goal"] == 2
-    assert {choice["case_id"] for choice in question["case_choices"]} == {str(other), str(second_other)}
-    _, _, reply = _select(client, url, owner, snapshot, question, second_other)
-    assert reply.status_code == 200
-    final = run_worker_step(factory, **context, execute=_no_routing)
-    assert final.goal_selection.active_goal == 2 and final.selected_case.case_id == second_other
+    assert snapshot["goal_selection"]["active_goal"] is None
+    assert question["missing_fields"] == ["active_goal"]
+    assert question["case_choices"] == []
+    reply_path = f"{url}/questions/{question['question_id']}/reply"
+    reply = {
+        "client_reply_id": str(uuid4()), "expected_run_revision": snapshot["run_revision"],
+        "text": question["options"][1],
+    }
+    response = client.post(reply_path, headers=owner, json=reply)
+    assert response.status_code == 200 and response.json()["selected_goal"] == 2
+    final = run_worker_step(factory, **context, execute=choose)
+    assert final.goal_selection.active_goal == 2
+    assert final.selected_case is None
 
 
 def test_worker_reasks_when_a_case_is_archived_after_an_accepted_reply(client, auth_headers):
-    factory, context, url, _, other, _ = _run(client, "Resume my case")
+    factory, context, url, _, other, _ = _run(client, "Resume my case", bind=True)
     owner = auth_headers("alice")
     _resume_case(factory, context)
     snapshot, question = _read_question(client, url, owner)
@@ -169,7 +174,7 @@ def test_worker_reasks_when_a_case_is_archived_after_an_accepted_reply(client, a
 
 
 def test_a_goal_with_a_different_destination_does_not_use_the_bound_milan_case(client):
-    factory, context, _, _, _, _ = _run(client, "Synthetic task choice", bind=True)
+    factory, context, _, _, _, _ = _run(client, "Synthetic task choice")
     state = CheckpointState(
         next_node="choose_next_step", intent="plan_multiple_tasks", preferred_goal=2,
         goals=[MessageGoal(procedure_candidates=["milan_residence_change"], location_candidates=["IT-MI-MILANO"]),
@@ -181,12 +186,12 @@ def test_a_goal_with_a_different_destination_does_not_use_the_bound_milan_case(c
         assignments=(), trusted_passage_ids=frozenset(), reviewed_labels={},
     ))
     assert result.goal_selection.active_goal == 2
-    assert result.selected_case is None and result.result.missing_information == ["case_reference"]
+    assert result.selected_case is None and "case_reference" not in result.result.missing_information
 
 
 @pytest.mark.parametrize("language", ["en", "it"])
 def test_banns_task_asks_for_both_roles_and_preserves_selection_across_reconnect(client, auth_headers, language):
-    factory, context, url, bound, _, _ = _run(client, "Synthetic two-task request", bind=True, language=language)
+    factory, context, url, bound, _, _ = _run(client, "Synthetic two-task request", language=language)
     state = CheckpointState(
         next_node="choose_next_step", intent="plan_multiple_tasks",
         goals=[
@@ -234,4 +239,4 @@ def test_banns_task_asks_for_both_roles_and_preserves_selection_across_reconnect
     assert final.result.verification_status == "insufficient_evidence"
     assert final.result.citations == [] and final.result.official_channel is None
     with factory() as db:
-        assert db.get(AgentRunRequest, str(context["run_id"])).case_id == str(bound)
+        assert db.get(AgentRunRequest, str(context["run_id"])).case_id is None
