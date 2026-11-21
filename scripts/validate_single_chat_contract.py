@@ -29,6 +29,51 @@ PHASE_FILES = (
     "planning/practicamia-2/phase-09-privacy-security-and-quality-evaluation.md",
     "planning/practicamia-2/phase-10-pilot-release-and-nationwide-growth.md",
 )
+# Customer-facing legacy routes are retained only to protect prior records and
+# synthetic regression coverage during migration. Report them on every CI run.
+# The strict release gate must fail until they have been retired safely.
+LEGACY_CUSTOMER_ROUTES = (
+    "frontend/src/app/cases/new/page.tsx",
+    "frontend/src/app/cases/saved/page.tsx",
+    "frontend/src/app/cases/[id]/page.tsx",
+    "frontend/src/app/cases/[id]/documents/page.tsx",
+    "frontend/src/app/cases/[id]/preparation/page.tsx",
+    "frontend/src/app/cases/[id]/assistant/page.tsx",
+    "frontend/src/app/cases/demo/page.tsx",
+    "frontend/src/app/cases/demo/review/page.tsx",
+    "frontend/src/app/demo/synthetic/page.tsx",
+)
+CHAT_FIXTURE = "frontend/tests/acceptance/agent-reconnect.tsx"
+FORBIDDEN_VISIBLE_CHAT = (
+    "Cases in this conversation",
+    "Open saved case task",
+    "<strong>Saved case:</strong>",
+    "No linked cases.",
+)
+
+
+def runtime_legacy_inventory(root: Path) -> list[str]:
+    """Outstanding old customer routes; never remove stored data in this audit."""
+    issues = [
+        f"Legacy customer page: {path}"
+        for path in LEGACY_CUSTOMER_ROUTES if (root / path).is_file()
+    ]
+    main = root / "frontend/src/app/page.tsx"
+    if main.is_file() and "HomeView" in main.read_text(encoding="utf-8"):
+        issues.append("Root still renders the editorial HomeView, not a chat shell")
+    nav = root / "frontend/src/components/SiteHeader.tsx"
+    if nav.is_file() and ('href="/cases/new"' in nav.read_text(encoding="utf-8")):
+        issues.append("Site header still links to old case creation")
+    return issues
+
+
+def validate_visible_chat_fixture(content: str) -> list[str]:
+    return [
+        f"Chat fixture still exposes legacy case navigation: {marker}"
+        for marker in FORBIDDEN_VISIBLE_CHAT if marker in content
+    ]
+
+
 REQUIRED = {
     "docs/SINGLE_CHAT_PRODUCT_CONTRACT.md": ("There is no user-facing case", "one ChatGPT-style", "Phase 5 is not"),
     "docs/SINGLE_CHAT_GAP_AUDIT.md": ("Not D-010-compliant yet", "legacy"),
@@ -80,8 +125,23 @@ def main(root: Path = ROOT) -> int:
         for error in errors:
             print("ERROR: " + error, file=sys.stderr)
         return 1
-    print("PASS: D-010 single-chat contract and Phase 4–10 planning gates")
-    print("NOTE: Hosted single-chat UI migration is NOT verified by this planning check")
+    fixture = root / CHAT_FIXTURE
+    if not fixture.is_file():
+        print(f"ERROR: Missing chat fixture: {CHAT_FIXTURE}", file=sys.stderr)
+        return 1
+    visible_errors = validate_visible_chat_fixture(fixture.read_text(encoding="utf-8"))
+    if visible_errors:
+        for error in visible_errors:
+            print("ERROR: " + error, file=sys.stderr)
+        return 1
+    legacy = runtime_legacy_inventory(root)
+    for item in legacy:
+        print("LEGACY MIGRATION BLOCKER: " + item)
+    if "--require-migrated" in sys.argv and legacy:
+        print("FAIL: legacy customer routes or landing remain in the release candidate")
+        return 1
+    print("PASS: D-010 planning contract and chat-fixture no-case surface")
+    print(f"NOTE: Hosted chat migration is {'NOT complete' if legacy else 'not yet live-verified'}; legacy blockers: {len(legacy)}")
     return 0
 
 
