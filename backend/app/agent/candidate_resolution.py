@@ -1,7 +1,7 @@
 """Choose a read-only worker response when procedure routing is unresolved."""
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 import re
 from uuid import uuid4
