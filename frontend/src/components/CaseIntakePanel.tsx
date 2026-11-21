@@ -51,6 +51,7 @@ const labels = {
     retry:'Reload intake',
     confirmedState:'User confirmed',
     draftState:'Draft',
+    archived:'This case is archived. Restore it before editing or confirming intake facts.',
     noLaw:'No legal eligibility, document requirements or government records have been checked.',
   },
   it: {
@@ -90,11 +91,12 @@ const labels = {
     retry:'Ricarica',
     confirmedState:'Confermato dall’utente',
     draftState:'Bozza',
+    archived:'La pratica è archiviata. Ripristinala prima di modificare o confermare i dati.',
     noLaw:'Non sono stati verificati requisiti legali, documenti necessari o registri ufficiali.',
   },
 } as const;
 
-export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=>void}) {
+export function CaseIntakePanel({caseId,onChanged,readOnly=false}:{caseId:string;onChanged?:()=>void;readOnly?:boolean}) {
   const {locale}=useDemo();
   const t=labels[locale];
   const [facts,setFacts]=useState<Facts>({});
@@ -139,7 +141,7 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
     facts[k as FieldKey]!=='unknown');
   const validDate=!date||isRealCalendarDate(date);
   async function persist(confirm:boolean){
-    if(busy||expired||!validDate||(confirm&&(!ack||!localComplete))) return;
+    if(busy||expired||readOnly||!validDate||(confirm&&(!ack||!localComplete))) return;
     setBusy(true);setError('');setMessage('');setFailure(null);
     try{
       const payload={facts:{...facts,...(date?{move_in_date:date}:{})},confirm};
@@ -158,7 +160,7 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
     finally{setBusy(false);}
   }
   async function erase(){
-    if(busy||expired||!window.confirm(t.resetConfirm))return;
+    if(busy||expired||readOnly||!window.confirm(t.resetConfirm))return;
     setBusy(true);setError('');setMessage('');setFailure(null);
     try{
       const r=await fetch('/api/cases/'+caseId+'/intake',{method:'DELETE',credentials:'same-origin'});
@@ -180,6 +182,7 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
     <h3 style={{marginTop:10}}>{t.heading}</h3>
     <p>{t.intro}</p>
     <div className="message-box notice" style={{marginTop:12}}><div><p>{t.privacy}</p></div></div>
+    {readOnly&&<p role="status">{t.archived}</p>}
     {loading?<p className="editorial-pending" role="status">{locale === 'it' ? 'Caricamento…' : 'Loading…'}</p>:<>
       <div style={{display:'grid',gap:16,marginTop:20}}>
         {INTAKE_FIELDS.map(key=>{
@@ -188,7 +191,7 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
           return <div key={field}>
             <label htmlFor={'intake-'+field} className="field-label">{t.fields[field]}</label>
             <select id={'intake-'+field} className="input" value={facts[field]??''}
-              disabled={busy||expired}
+              disabled={busy||expired||readOnly}
               onChange={e=>change(field,e.target.value)}>
               <option value="">{t.placeholder}</option>
               {INTAKE_OPTIONS[field].map(value=><option key={value} value={value}>
@@ -200,7 +203,7 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
         <div>
           <label htmlFor="intake-move-date" className="field-label">{t.date}</label>
           <input className="input" id="intake-move-date" type="date" value={date}
-            min="1900-01-01" max="2100-12-31" disabled={busy||expired}
+            min="1900-01-01" max="2100-12-31" disabled={busy||expired||readOnly}
             onChange={e=>{setDate(e.target.value);setStored(old=>old?{...old,confirmed:false}:old);setAck(false);setMessage('');}}/>
         </div>
       </div>
@@ -210,16 +213,16 @@ export function CaseIntakePanel({caseId,onChanged}:{caseId:string;onChanged?:()=
         {state==='outside_first_scenario'&&<p role="status">{t.outside}</p>}
         {state==='incomplete'&&<p role="status">{t.incomplete}</p>}
         <label style={{display:'flex',alignItems:'flex-start',gap:8}}>
-          <input type="checkbox" checked={ack} disabled={busy||expired}
+          <input type="checkbox" checked={ack} disabled={busy||expired||readOnly}
             onChange={e=>setAck(e.target.checked)}/>
           <span>{t.acknowledge}</span>
         </label>
         <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:12}}>
-          <button type="button" className="button button-outline" disabled={busy||expired||!validDate}
+          <button type="button" className="button button-outline" disabled={busy||expired||readOnly||!validDate}
             onClick={()=>void persist(false)}>{busy?t.saving:t.save}</button>
-          <button type="button" className="button button-primary" disabled={busy||expired||!ack||!localComplete||!validDate}
+          <button type="button" className="button button-primary" disabled={busy||expired||readOnly||!ack||!localComplete||!validDate}
             onClick={()=>void persist(true)}>{busy?t.saving:t.confirm}</button>
-          <button type="button" className="button button-outline" disabled={busy||expired}
+          <button type="button" className="button button-outline" disabled={busy||expired||readOnly}
             onClick={()=>void erase()}>{t.reset}</button>
         </div>
       </div>
