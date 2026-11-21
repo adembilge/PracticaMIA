@@ -488,8 +488,9 @@ try{
     await owner.getByText('Manage this case',{exact:true}).click();
     await owner.getByRole('button',{name:'Restore to active cases',exact:true}).click();
     await owner.getByRole('button',{name:'Archive case',exact:true}).waitFor();
+    assert.equal(await owner.locator('#case-intake select').first().isDisabled(),false);
     assert.equal(await owner.locator('#case-intake').getByRole(
-      'button',{name:'Confirm facts',includeHidden:true}
+      'checkbox',{name:'I have reviewed the information above.',includeHidden:true}
     ).isDisabled(),false);
     assert.deepEqual((await readJson(owner,api+'/intake')).body,originalIntake);
     const restored=(await readJson(owner,api+'/workflow')).body;
