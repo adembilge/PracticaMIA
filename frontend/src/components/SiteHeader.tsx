@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useDemo } from '@/components/DemoProvider';
 import { Icon } from '@/components/Icon';
 
@@ -8,8 +9,13 @@ export function Brand() {
   return <Link href="/" className="brand" aria-label="PracticaMIA"><span className="brand-mark">P<span>.</span></span><span className="brand-name">practica<span>mia</span></span></Link>;
 }
 
-export function SiteHeader({ signedIn, accountName }: { signedIn: boolean; accountName?: string }) {
+export function SiteHeader({ signedIn, accountName, chatPreview = false }: {
+  signedIn: boolean; accountName?: string; chatPreview?: boolean;
+}) {
+  const pathname = usePathname();
   const { locale, toggleLocale, t } = useDemo();
+  // The customer chat owns its toolbar. Old routes retain their header until migration.
+  if (chatPreview && pathname === '/') return null;
   return <><a className="skip-link" href="#main-content">{t.skipToMain}</a><header className="site-header">
     <div className="container header-inner">
       <Brand />
