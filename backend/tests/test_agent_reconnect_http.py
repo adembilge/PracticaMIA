@@ -462,12 +462,17 @@ def test_owner_reconnects_replies_and_resumes_the_same_run(client, auth_headers,
         complete_history = reconnected.get(history_url, headers=owner)
         assert complete_history.headers["Cache-Control"] == "private, no-store"
         assert complete_history.json()["items"][0]["clarifications"] == [{
+            "event_seq": 2,
             "question_id": str(question.question_id),
             "question_text": question.text,
             "disposition": "answer",
             "reply_text": "Fixture B",
         }]
         assert complete_history.json()["items"][0]["answer"]["explanation"] == "Synthetic answer"
+        recorded_question = reconnected.get(url + "/events", headers=owner).json()["events"][1]
+        assert complete_history.json()["items"][0]["clarifications"][0]["event_seq"] == (
+            recorded_question["event_seq"]
+        )
         late_stop = reconnected.post(
             url + "/stop", headers=owner, json={"expected_run_revision": snapshot.json()["run_revision"]},
         )
@@ -507,6 +512,7 @@ def test_unknown_clarification_is_replayed_as_action_not_invented_text(client, a
         f"/api/v1/agent/threads/{context['thread_id']}/history", headers=owner,
     )
     assert history.json()["items"][0]["clarifications"] == [{
+        "event_seq": 2,
         "question_id": str(question.question_id),
         "question_text": question.text,
         "disposition": "unknown",

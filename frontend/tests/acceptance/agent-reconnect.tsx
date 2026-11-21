@@ -9,11 +9,11 @@ import {AgentGoalSelection, type GoalSelection} from '../../src/components/Agent
 type ActiveRun = { thread_id: string; run_id: string; case_id: string | null; status?: string };
 type SavedRun = ActiveRun & { status: string };
 type HistoryClarification = {
-  question_id: string; question_text: string;
+  event_seq: number; question_id: string; question_text: string;
   disposition: ReplyDisposition; reply_text: string | null;
 };
 type HistoryApproval = {
-  proposal_id: string; field_id: string; proposed_value: string | number | boolean;
+  event_seq: number; proposal_id: string; field_id: string; proposed_value: string | number | boolean;
   decision: 'accept' | 'correct' | 'reject' | 'cancel' | null;
   corrected_value: string | number | boolean | null;
   applied_operation_id: string | null;
@@ -38,6 +38,19 @@ type HistoryTurn = {
   terminal_event: HistoryTerminal | null;
 };
 type HistoryPage = { thread_id: string; items: HistoryTurn[]; next_before_revision: number | null };
+type HistoryActivity =
+  | { kind: 'clarification'; eventSeq: number; data: HistoryClarification }
+  | { kind: 'approval'; eventSeq: number; data: HistoryApproval };
+function historyActivities(turn: HistoryTurn): HistoryActivity[] {
+  return [
+    ...turn.clarifications.map(data => ({
+      kind: 'clarification' as const, eventSeq: data.event_seq, data,
+    })),
+    ...turn.approvals.map(data => ({
+      kind: 'approval' as const, eventSeq: data.event_seq, data,
+    })),
+  ].sort((a, b) => a.eventSeq - b.eventSeq);
+}
 type CaseTask = { case_id: string; label: string; run_id: string | null };
 type CaseTaskPage = { items: CaseTask[]; next_case_id: string | null; unbound_run_id: string | null };
 type Snapshot = {
@@ -503,50 +516,53 @@ export function AgentReconnectFixture() {
             onClick={() => void loadEarlierHistory()}>Earlier messages</button>}
           {history.items.map(turn => <article key={turn.run_id}>
             <p><strong>You:</strong> {turn.user_message}</p>
-            {turn.clarifications.map(exchange => <div key={exchange.question_id}>
-              <p><strong>PracticaMIA:</strong> <span>{exchange.question_text}</span></p>
-              {exchange.disposition === 'answer' ? (
-                <p><strong>You:</strong> <span>{exchange.reply_text}</span></p>
+            {historyActivities(turn).map(entry => entry.kind === 'clarification' ? (
+              <div key={`q-${entry.data.question_id}`}>
+              <p><strong>PracticaMIA:</strong> <span>{entry.data.question_text}</span></p>
+              {entry.data.disposition === 'answer' ? (
+                <p><strong>You:</strong> <span>{entry.data.reply_text}</span></p>
               ) : (
                 <p><strong>{turn.language === 'it' ? 'Azione:' : 'Action:'}</strong> <span>{
-                  exchange.disposition === 'unknown'
+                  entry.data.disposition === 'unknown'
                     ? (turn.language === 'it' ? 'Non lo so' : "I don't know")
-                    : exchange.disposition === 'skip'
+                    : entry.data.disposition === 'skip'
                       ? (turn.language === 'it' ? 'Saltato' : 'Skipped')
                       : (turn.language === 'it' ? 'Argomento cambiato' : 'Changed topic')
                 }</span></p>
               )}
-            </div>)}
-            {turn.approvals.map(approval => <section key={approval.proposal_id}
-              aria-label={`Review history for ${approval.field_id}`}>
+              </div>
+            ) : (
+              <section key={`a-${entry.data.proposal_id}`}
+              aria-label={`Review history for ${entry.data.field_id}`}>
               <p><strong>{turn.language === 'it' ? 'Modifica proposta:' : 'Proposed change:'}</strong>{' '}
-                {approval.field_id}: <span>{String(approval.proposed_value)}</span></p>
-              {approval.decision === 'correct' && <p>
+                {entry.data.field_id}: <span>{String(entry.data.proposed_value)}</span></p>
+              {entry.data.decision === 'correct' && <p>
                 {turn.language === 'it' ? 'Correzione richiesta:' : 'Correction requested:'}{' '}
-                <span>{String(approval.corrected_value)}</span>.{' '}
+                <span>{String(entry.data.corrected_value)}</span>.{' '}
                 {turn.language === 'it' ? 'Non salvata.' : 'Not saved.'}
               </p>}
-              {approval.decision === 'reject' && <p>
+              {entry.data.decision === 'reject' && <p>
                 {turn.language === 'it' ? 'Rifiutata; nessuna modifica salvata.' : 'Rejected; no change saved.'}
               </p>}
-              {approval.decision === 'cancel' && <p>
+              {entry.data.decision === 'cancel' && <p>
                 {turn.language === 'it' ? 'Annullata; nessuna modifica salvata.' : 'Cancelled; no change saved.'}
               </p>}
-              {approval.decision === null && <p>
+              {entry.data.decision === null && <p>
                 {turn.language === 'it' ? 'In attesa di una decisione.' : 'Awaiting a decision.'}
               </p>}
-              {approval.decision === 'accept' && (
-                approval.applied_operation_id && approval.applied_case_revision ? <p role="status">
+              {entry.data.decision === 'accept' && (
+                entry.data.applied_operation_id && entry.data.applied_case_revision ? <p role="status">
                   {turn.language === 'it' ? 'Salvata nel caso' : 'Saved to case'}{' '}
                   ({turn.language === 'it' ? 'revisione' : 'revision'}{' '}
-                  <span>{approval.applied_case_revision}</span>).
+                  <span>{entry.data.applied_case_revision}</span>).
                 </p> : <p role="status">
                   {turn.language === 'it'
                     ? 'Accettata; nessun salvataggio confermato.'
                     : 'Accepted; no saved update confirmed.'}
                 </p>
               )}
-            </section>)}
+              </section>
+            ))}
             {(turn.clarification_history_truncated || turn.approval_history_truncated) && <p role="status">
               Earlier steps in this turn are available in the run event history.
             </p>}

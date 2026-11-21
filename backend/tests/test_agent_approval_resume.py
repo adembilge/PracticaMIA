@@ -63,6 +63,14 @@ def test_owner_accepts_after_restart_and_the_same_run_continues(client, auth_hea
     corrected_reviews = corrected_history.json()["items"][0]["approvals"]
     assert len(corrected_reviews) == 2
     assert corrected_reviews[0]["proposal_id"] == str(proposal.proposal_id)
+    requested_events = client.get(base + "/events", headers=owner).json()["events"]
+    request_sequences = {
+        event["proposal"]["proposal_id"]: event["event_seq"]
+        for event in requested_events if event["type"] == "approval.requested"
+    }
+    assert [approval["event_seq"] for approval in corrected_reviews] == [
+        request_sequences[approval["proposal_id"]] for approval in corrected_reviews
+    ]
     assert corrected_reviews[0]["decision"] == "correct"
     assert corrected_reviews[0]["corrected_value"] == "2026-11-20"
     assert corrected_reviews[0]["applied_operation_id"] is None
