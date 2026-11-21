@@ -420,15 +420,6 @@ def _choose_message_goal(
             "missing_fields": selected.missing_fields, "preferred_goal": None,
             "intent": "find_procedure",
         })
-        if "procedure_location" in selected.missing_fields and not selected.location_candidates:
-            question = ClarifyingQuestion(
-                question_id=uuid4(),
-                text=_QUESTIONS[("location", "destination")][0 if en else 1],
-                missing_fields=["destination"],
-            )
-            selection = GoalSelection(language=language, options=options, active_goal=active_goal)
-            question = question.model_copy(update={"procedure_goal": selection})
-            return RequestClarification(question, state)
         outcome = choose_candidate_step(
             message, selected_state, case_locations=case_locations,
             confirmed_dates=confirmed_dates, confirmed_circumstances=confirmed_circumstances,
