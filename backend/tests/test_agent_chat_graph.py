@@ -28,6 +28,11 @@ def _names():
             approved_for_search=True,
         ),
         CatalogueName(
+            catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
+            name="cambiare la residenza", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
+        CatalogueName(
             catalogue_id=JURISDICTION, entity_type="municipality", display_name="Milano",
             name="Milan", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
             approved_for_search=True,
