@@ -20,13 +20,19 @@ router = APIRouter(prefix="/api/v1/cases", tags=["case-intake"],
                    dependencies=[Depends(get_principal)])
 
 
-def _owned_case(db: Session, case_id: UUID, owner: str, *, lock: bool = False) -> CaseRecord:
+def _owned_case(
+    db: Session, case_id: UUID, owner: str, *, lock: bool = False, require_active: bool = False,
+) -> CaseRecord:
     statement = select(CaseRecord).where(
         CaseRecord.id == str(case_id), CaseRecord.owner_subject == owner
     )
     case = db.scalar(statement.with_for_update() if lock else statement)
     if case is None:
         raise HTTPException(404, "Case not found")
+    # Archived cases remain readable by their owner, but cannot be modified
+    # from a stale chat or open intake form until explicitly restored.
+    if require_active and case.archived_at is not None:
+        raise HTTPException(409, "Restore the archived case before changing intake")
     return case
 
 
@@ -59,7 +65,7 @@ def read_intake(case_id: UUID, db: Session = Depends(get_session),
 def write_intake(case_id: UUID, payload: IntakeUpdate,
                  db: Session = Depends(get_session),
                  principal: Principal = Depends(get_principal)):
-    case = _owned_case(db, case_id, principal.subject, lock=True)
+    case = _owned_case(db, case_id, principal.subject, lock=True, require_active=True)
     if case.status != "provisionally_in_scope" or case.scope_answers != [
         "yes", "yes", "yes", "no", "yes"
     ]:
@@ -89,7 +95,7 @@ def write_intake(case_id: UUID, payload: IntakeUpdate,
 @router.delete("/{case_id}/intake", status_code=204)
 def erase_intake(case_id: UUID, db: Session = Depends(get_session),
                  principal: Principal = Depends(get_principal)):
-    _owned_case(db, case_id, principal.subject, lock=True)
+    _owned_case(db, case_id, principal.subject, lock=True, require_active=True)
     db.execute(delete(CaseIntake).where(
         CaseIntake.case_id == str(case_id), CaseIntake.owner_subject == principal.subject
     ))
