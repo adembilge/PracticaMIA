@@ -74,6 +74,7 @@ class CheckpointState(ContractModel):
     next_node: AgentNode
     intent: AgentIntent | None = None
     procedure_candidates: list[Identifier] = Field(default_factory=list, max_length=MAX_PROCEDURE_CANDIDATES)
+    location_candidates: list[Identifier] = Field(default_factory=list, max_length=MAX_PROCEDURE_CANDIDATES)
     uses_confirmed_case_scope: bool = False
     goals: list[MessageGoal] = Field(default_factory=list, max_length=MAX_MESSAGE_GOALS)
     preferred_goal: GoalNumber | None = None

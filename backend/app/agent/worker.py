@@ -61,11 +61,11 @@ ExecuteStep = Callable[
 def run_next_worker_step(
     sessions: sessionmaker[Session], *, key: bytes, lease_for: timedelta, execute: ExecuteStep,
     document_settings: Settings | None = None,
-    read_evidence_scope: AnswerEvidenceScopeReader | None = None,
+    read_evidence_scope: AnswerEvidenceScopeReader | None = None, unlinked_only: bool = False,
 ) -> RunSnapshot | None:
     """Claim and advance one eligible run, leaving crash recovery to its lease."""
     with sessions.begin() as db:
-        lease = claim_next_run(db, lease_for=lease_for)
+        lease = claim_next_run(db, lease_for=lease_for, unlinked_only=unlinked_only)
     if lease is None:
         return None
     return run_worker_step(
@@ -78,7 +78,7 @@ def run_next_worker_step(
 def run_worker_batch(
     sessions: sessionmaker[Session], *, key: bytes, lease_for: timedelta,
     execute: ExecuteStep, max_steps: int, document_settings: Settings | None = None,
-    read_evidence_scope: AnswerEvidenceScopeReader | None = None,
+    read_evidence_scope: AnswerEvidenceScopeReader | None = None, unlinked_only: bool = False,
 ) -> int:
     """Process up to the caller's attempt budget and return the recorded step count."""
     if max_steps < 1:
@@ -89,7 +89,7 @@ def run_worker_batch(
         try:
             snapshot = run_next_worker_step(
                 sessions, key=key, lease_for=lease_for, execute=execute, document_settings=document_settings,
-                read_evidence_scope=read_evidence_scope,
+                read_evidence_scope=read_evidence_scope, unlinked_only=unlinked_only,
             )
         except WorkerLeaseConflict:
             # A replacement worker may already own this run. A lost lease still
@@ -148,9 +148,12 @@ def run_worker_step(
                 raise CheckpointConflict("A clarification reply requires its recorded question")
             question = requested.question
         topic_changed = reply is not None and reply.disposition == "change_topic"
-        case_question = question is not None and bool(question.case_choices)
-        resume_case = checkpoint.state.next_node == "choose_next_step" and checkpoint.state.intent == "resume_case"
-        resolve_case = not topic_changed and (case_question or resume_case)
+        case_question = message.case_id is not None and question is not None and bool(question.case_choices)
+        resume_case = (
+            message.case_id is not None and checkpoint.state.next_node == "choose_next_step"
+            and checkpoint.state.intent == "resume_case"
+        )
+        resolve_case = message.case_id is not None and not topic_changed and (case_question or resume_case)
 
         case_context = None
         choosing_goal = checkpoint.state.next_node == "choose_next_step" and bool(checkpoint.state.goals)
@@ -196,8 +199,10 @@ def run_worker_step(
     # run again, so this callback must not perform external writes.
     corrections = checkpoint.state.routing_corrections
     destination_correction = message.destination_correction
-    destination_pending = destination_correction is not None and destination_correction.needs_confirmation(
-        case_context.intake_confirmed_at if case_context is not None else None,
+    destination_pending = message.case_id is not None and destination_correction is not None and (
+        destination_correction.needs_confirmation(
+            case_context.intake_confirmed_at if case_context is not None else None,
+        )
     )
     if topic_changed and question is not None:
         explanation, label = (
@@ -222,13 +227,13 @@ def run_worker_step(
             goals=checkpoint.state.goals,
             goal_selection=goal_selection,
         )
-    elif message.corrects_destination and checkpoint.state.next_node == "choose_next_step":
+    elif message.case_id is not None and message.corrects_destination and checkpoint.state.next_node == "choose_next_step":
         result = reassess_destination(message.language)
     elif destination_pending and checkpoint.state.next_node in ("find_evidence", "verify_and_respond") and (
         corrections is None or corrections.destination in (None, JURISDICTION)
     ):
         result = reassess_destination(message.language)
-    elif checkpoint.state.next_node == "find_evidence" and corrections:
+    elif message.case_id is not None and checkpoint.state.next_node == "find_evidence" and corrections:
         for attempt in range(2):
             try:
                 with sessions() as db:
@@ -272,7 +277,9 @@ def run_worker_step(
                 run.lease_expires_at = None
             return None
         if isinstance(result, AnswerResult) and (
-            resolve_case or (result.goal_selection and result.goal_selection.active_goal)
+            resolve_case or (
+                message.case_id is not None and result.goal_selection and result.goal_selection.active_goal
+            )
         ):
             resolved = resolve_saved_case(
                 db, thread_id=thread_id, principal=principal, message=message, answer=result, resume_case=resume_case,

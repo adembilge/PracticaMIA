@@ -116,6 +116,50 @@ def test_active_matching_passage_is_revalidated_without_prior_checkpoint_retriev
     })
 
 
+def test_unlinked_chat_keeps_only_an_exact_live_reference_without_claims(queued_run, approved_citation):
+    citation, _ = approved_citation
+    answer = AnswerResult(
+        explanation="These reviewed excerpts are general references only, not a personal eligibility decision.",
+        verification_status="insufficient_evidence",
+        citations=[citation],
+    )
+    result = _finish(queued_run, answer, None)
+    assert result.verification_status == "insufficient_evidence"
+    assert result.citations == [citation]
+    assert result.claims == []
+    assert result.official_channel is None
+
+
+def test_unlinked_chat_drops_a_reference_after_its_source_is_revoked(queued_run, approved_citation):
+    citation, _ = approved_citation
+    answer = AnswerResult(
+        explanation="These reviewed excerpts are general references only.",
+        verification_status="insufficient_evidence",
+        citations=[citation],
+    )
+    factory, _, _, _ = queued_run
+    with factory.begin() as db:
+        active = resolve_approved_passage(
+            db, citation_id=citation.citation_id, jurisdiction=SCOPE["jurisdiction"],
+            procedure_id=SCOPE["procedure_id"], language="it",
+        )
+        revoke_version(
+            db, version_id=active.source_version_id, expected_digest=active.source_sha256,
+            actor_subject="synthetic-reviewer", reason="Reference-only revocation test",
+        )
+    result = _finish(queued_run, answer, None)
+    assert result.verification_status == "insufficient_evidence"
+    assert result.citations == []
+    assert result.claims == []
+    assert result.official_channel is None
+
+
+def test_unlinked_chat_cannot_publish_claims_without_personal_scope(queued_run, proposal):
+    answer, _ = proposal
+    result = _finish(queued_run, answer, None)
+    _assert_withheld(result)
+
+
 def test_valid_authority_page_does_not_prove_an_absent_deadline(queued_run, proposal):
     answer, scope = proposal
     claim = EvidenceLinkedClaim(

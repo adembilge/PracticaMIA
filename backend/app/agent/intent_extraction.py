@@ -362,6 +362,7 @@ def identify_intent_step(
                 municipality = match.selected_id
         return CheckpointState(
             intent="find_procedure", procedure_candidates=[PROCEDURE],
+            location_candidates=[municipality] if municipality else [],
             next_node="find_evidence" if municipality else "choose_next_step",
             routing_corrections=RoutingCorrections(destination=municipality) if municipality else None,
         )
@@ -379,9 +380,13 @@ def identify_intent_step(
         and procedures[0] not in (MARRIAGE_BANNS, PERMIT_RENEWAL)
         and result.intent in ("find_procedure", "request_information")
     )
+    # A place mention in a free-form request is only a candidate: "a Milano"
+    # does not establish whether Milan is the previous or destination municipality.
+    # Keep unconfirmed place names out of the durable routing checkpoint.
+    locations = [JURISDICTION] if result.uses_confirmed_case_scope and message.case_context is not None else []
     return CheckpointState(
         next_node="find_evidence" if evidence_ready else "choose_next_step",
-        intent=result.intent, procedure_candidates=procedures, missing_fields=missing,
-        goals=list(result.goals), preferred_goal=result.preferred_goal,
+        intent=result.intent, procedure_candidates=procedures, location_candidates=locations,
+        missing_fields=missing, goals=list(result.goals), preferred_goal=result.preferred_goal,
         uses_confirmed_case_scope=result.uses_confirmed_case_scope,
     )

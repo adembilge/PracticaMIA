@@ -36,7 +36,7 @@ def _database_now(db: Session) -> datetime:
     return _utc(db.scalar(select(clock)))
 
 
-def claim_next_run(db: Session, *, lease_for: timedelta) -> WorkerLease | None:
+def claim_next_run(db: Session, *, lease_for: timedelta, unlinked_only: bool = False) -> WorkerLease | None:
     """Reserve the oldest runnable run until the caller releases it or it expires."""
     if lease_for <= timedelta(0):
         raise ValueError("The worker lease duration must be positive")
@@ -56,6 +56,14 @@ def claim_next_run(db: Session, *, lease_for: timedelta) -> WorkerLease | None:
         )
         .exists()
     )
+    criteria = [
+        AgentRunRequest.status.in_(WORKER_RUN_STATUSES),
+        (AgentRunRequest.status == "queued") | ready_checkpoint,
+        AgentRunRequest.case_id.is_(None) | CaseRecord.id.is_not(None),
+        or_(AgentRunRequest.lease_token.is_(None), AgentRunRequest.lease_expires_at <= now),
+    ]
+    if unlinked_only:
+        criteria.append(AgentRunRequest.case_id.is_(None))
     found = db.execute(
         select(AgentRunRequest, AgentThread.owner_subject)
         .join(AgentThread)
@@ -67,12 +75,7 @@ def claim_next_run(db: Session, *, lease_for: timedelta) -> WorkerLease | None:
             CaseRecord.id == AgentThreadCase.case_id,
             CaseRecord.owner_subject == AgentThread.owner_subject,
         ))
-        .where(
-            AgentRunRequest.status.in_(WORKER_RUN_STATUSES),
-            (AgentRunRequest.status == "queued") | ready_checkpoint,
-            AgentRunRequest.case_id.is_(None) | CaseRecord.id.is_not(None),
-            or_(AgentRunRequest.lease_token.is_(None), AgentRunRequest.lease_expires_at <= now),
-        )
+        .where(*criteria)
         .order_by(AgentRunRequest.accepted_at, AgentRunRequest.id)
         .limit(1)
         .execution_options(populate_existing=True)

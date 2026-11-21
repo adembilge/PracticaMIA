@@ -252,6 +252,26 @@ def revalidate_answer_evidence(
     if not result.citations:
         return result
     if scope is None:
+        # A chat can show an approved passage as a general reference without a
+        # linked legacy case. That is NOT proof of personal applicability:
+        # preserve only exact, currently active citations and never claims,
+        # deadlines, channels or a verified status.
+        if result.claims or result.official_channel is not None or result.verification_status == "verified":
+            return _partial_answer(result, [], [], None, language)
+        _lock_sources(db, result.citations)
+        references = []
+        for citation in result.citations:
+            active = resolve_approved_passage(
+                db, citation_id=citation.citation_id, jurisdiction=citation.location_id,
+                procedure_id=citation.procedure_id, language=None,
+            )
+            if active is not None and catalogue_passage(active).citation == citation:
+                references.append(citation)
+        if references:
+            return result.model_copy(update={
+                "verification_status": "insufficient_evidence",
+                "citations": references, "claims": [], "official_channel": None,
+            })
         return _partial_answer(result, [], [], None, language)
 
     _lock_sources(db, (*result.citations, *scope.assistance_citations))
