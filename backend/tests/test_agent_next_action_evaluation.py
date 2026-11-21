@@ -39,9 +39,12 @@ def test_documented_next_action_command_reports_cases_and_turns():
     cases = report["cases"]
     turns = [turn for case in cases for turn in case["turns"]]
     assert report["unassisted_next_action"]["total"] == len({case["id"] for case in cases}) == 26
-    failed_scenarios = [case["id"] for case in cases if not case["passed"]]
+    failed_details = [
+        {"id": case["id"], "turns": [turn for turn in case["turns"] if not turn["passed"]]}
+        for case in cases if not case["passed"]
+    ]
     assert report["unassisted_next_action"]["passed"] == 26, (
-        f"Unassisted next-action scenarios still failing: {failed_scenarios}"
+        f"Unassisted next-action scenarios still failing: {failed_details}"
     )
     assert report["unassisted_next_action"]["passed"] == sum(
         all(turn["passed"] for turn in case["turns"]) for case in cases
