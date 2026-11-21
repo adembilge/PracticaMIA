@@ -137,7 +137,7 @@ def test_unlinked_chat_drops_a_reference_after_its_source_is_revoked(queued_run,
         verification_status="insufficient_evidence",
         citations=[citation],
     )
-    factory, context, _, _ = queued_run
+    factory, _, _, _ = queued_run
     with factory.begin() as db:
         active = resolve_approved_passage(
             db, citation_id=citation.citation_id, jurisdiction=SCOPE["jurisdiction"],
