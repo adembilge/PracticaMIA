@@ -146,6 +146,44 @@ def test_scope_edit_invalidates_and_erases_confirmed_intake(client, auth_headers
     assert client.get(path, headers=headers).json()["facts"] == {}
 
 
+def test_archived_case_blocks_stale_chat_intake_writes_until_restored(client, auth_headers):
+    """An old chat form cannot change or erase a case after its owner archives it."""
+    owner, other = auth_headers("alice"), auth_headers("bob")
+    case_id = create_scoped_case(client, owner)
+    path = f"/api/v1/cases/{case_id}/intake"
+    archive = f"/api/v1/cases/{case_id}/archive"
+    payload = {"facts": FACTS, "confirm": True}
+    assert client.put(path, json=payload, headers=owner).status_code == 200
+    original = client.get(path, headers=owner).json()
+    assert original["confirmed"] is True
+    assert client.patch(archive, json={"archived": True}, headers=owner).status_code == 200
+
+    # The owner can inspect their archived record, but neither its open form
+    # nor an old conversation may update, reconfirm or erase saved facts.
+    assert client.get(path, headers=owner).json() == original
+    for confirm in (False, True):
+        denied = client.put(path, json={
+            "facts": {**FACTS, "move_in_date": "2026-11-03"}, "confirm": confirm,
+        }, headers=owner)
+        assert denied.status_code == 409
+        assert "Restore" in denied.json()["detail"]
+    assert client.delete(path, headers=owner).status_code == 409
+
+    # Foreign identities still see 404, never the archived case's state.
+    assert client.get(path, headers=other).status_code == 404
+    assert client.put(path, json=payload, headers=other).status_code == 404
+    assert client.delete(path, headers=other).status_code == 404
+    assert client.get(path, headers=owner).json() == original
+
+    assert client.patch(archive, json={"archived": False}, headers=owner).status_code == 200
+    restored = client.get(path, headers=owner).json()
+    assert restored == original
+    assert client.put(path, json={
+        "facts": {**FACTS, "move_in_date": "2026-11-03"}, "confirm": False,
+    }, headers=owner).status_code == 200
+    assert client.get(path, headers=owner).json()["confirmed"] is False
+
+
 def test_delete_intake_and_delete_case_remove_owner_rows(client, auth_headers):
     headers = auth_headers("alice")
     bob = auth_headers("bob")

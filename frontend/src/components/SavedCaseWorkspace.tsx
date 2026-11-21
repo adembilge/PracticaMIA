@@ -278,7 +278,8 @@ export function SavedCaseWorkspace({ caseId, configured, signedIn, assistantEnab
           </div></div>}
           {notice && <p className="case-confirmation" role="status">{notice}</p>}
         </div>}
-        intake={<CaseIntakePanel caseId={caseId} onChanged={() => setJourneyRevision(n => n + 1)}/>}
+        intake={<CaseIntakePanel caseId={caseId} readOnly={Boolean(record.archived_at)}
+          onChanged={() => setJourneyRevision(n => n + 1)}/>}
       />}
       {record && <details className="case-settings case-more">
         <summary>{locale === 'it' ? 'Gestisci la pratica' : 'Manage this case'}</summary><p>{t.savedSyntheticOnly}</p>
