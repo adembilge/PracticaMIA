@@ -67,6 +67,14 @@ def status_is(response, expected: int, label: str) -> None:
     raise Failed(f"{label}: expected HTTP {expected}, received HTTP {response.status}")
 
 
+def assert_owner_case_unchanged(response, expected_scope: list[str], label: str) -> None:
+    """An unauthorized mutation must not silently alter or remove the owner's case."""
+    status_is(response, 200, label)
+    saved = response.json()
+    if saved.get("scope_answers") != expected_scope or saved.get("archived_at") is not None:
+        raise Failed(f"{label}: foreign mutation changed owner case state")
+
+
 def login(context, base: str, auth0_host: str, email: str, password: str):
     """Use the real Auth0 hosted login; never fill credentials on an unknown host."""
     from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
@@ -164,20 +172,39 @@ def run_checks(base: str, auth0_host: str, env: dict[str, str]) -> dict[str, obj
                 status_is(b.request.patch(base + f"/api/cases/{id_a}/scope",
                                           data={"answers": ["unsure"]}, headers=headers),
                           404, "B cannot update A")
+                status_is(b.request.patch(base + f"/api/cases/{id_a}/archive",
+                                           data={"archived": True}, headers=headers),
+                          404, "B cannot archive A")
                 status_is(b.request.delete(base + f"/api/cases/{id_a}", headers=headers),
                           404, "B cannot delete A")
                 if any(row["id"] == id_a for row in b.request.get(base + "/api/cases").json()):
                     raise Failed("B can list A's case")
-                completed.append("B cannot read, update, delete or list A case")
+                assert_owner_case_unchanged(
+                    a.request.get(base + f"/api/cases/{id_a}"),
+                    ["yes", "yes", "yes", "no", "yes"], "A case after B writes",
+                )
+                completed.append("B cannot read, update, archive, delete or list A case")
 
                 created_b = b.request.post(base + "/api/cases", data={}, headers=headers)
                 status_is(created_b, 201, "account B creates synthetic case")
                 id_b = str(UUID(created_b.json()["id"]))
                 created.append((b, id_b))
                 status_is(a.request.get(base + f"/api/cases/{id_b}"), 404, "A cannot read B")
+                status_is(a.request.patch(base + f"/api/cases/{id_b}/scope",
+                                          data={"answers": ["unsure"]}, headers=headers),
+                          404, "A cannot update B")
+                status_is(a.request.patch(base + f"/api/cases/{id_b}/archive",
+                                          data={"archived": True}, headers=headers),
+                          404, "A cannot archive B")
+                status_is(a.request.delete(base + f"/api/cases/{id_b}", headers=headers),
+                          404, "A cannot delete B")
                 if any(row["id"] == id_b for row in a.request.get(base + "/api/cases").json()):
                     raise Failed("A can list B's case")
-                completed.append("bidirectional tenant isolation")
+                assert_owner_case_unchanged(
+                    b.request.get(base + f"/api/cases/{id_b}"), [],
+                    "B case after A writes",
+                )
+                completed.append("bidirectional read and write tenant isolation")
 
                 page_a.goto(base + "/cases/saved", wait_until="domcontentloaded")
                 try:
