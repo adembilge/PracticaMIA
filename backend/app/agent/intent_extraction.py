@@ -380,11 +380,10 @@ def identify_intent_step(
         and procedures[0] not in (MARRIAGE_BANNS, PERMIT_RENEWAL)
         and result.intent in ("find_procedure", "request_information")
     )
-    locations = list(dict.fromkeys(
-        location_id for _, location_id in _places(result.mentions)
-    ))
-    if result.uses_confirmed_case_scope and message.case_context is not None:
-        locations = [JURISDICTION]
+    # A place mention in a free-form request is only a candidate: "a Milano"
+    # does not establish whether Milan is the previous or destination municipality.
+    # Keep unconfirmed place names out of the durable routing checkpoint.
+    locations = [JURISDICTION] if result.uses_confirmed_case_scope and message.case_context is not None else []
     return CheckpointState(
         next_node="find_evidence" if evidence_ready else "choose_next_step",
         intent=result.intent, procedure_candidates=procedures, location_candidates=locations,
