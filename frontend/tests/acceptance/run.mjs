@@ -1356,7 +1356,7 @@ try{
     await owner.goto(origin+'/__acceptance/agent');
     await owner.getByRole('button',{name:'Open completed conversation'}).click();
     const conversation=owner.getByRole('region',{name:'Conversation'});
-    const inline=conversation.getByRole('region',{name:'In-chat saved case confirmation'});
+    const inline=conversation.getByRole('region',{name:'In-chat information confirmation'});
     const panel=inline.getByRole('region',{name:'Review the information for this request'});
     await panel.waitFor();
     assert.equal(await conversation.locator(`a[href^="/cases/${caseId}"]`).count(),0,
@@ -1378,7 +1378,7 @@ try{
     assert.equal(await inline.getByText(/send another message in this chat/i).count(),1);
     await owner.reload();
     await owner.getByRole('button',{name:'Open completed conversation'}).click();
-    const restored=owner.getByRole('region',{name:'In-chat saved case confirmation'});
+    const restored=owner.getByRole('region',{name:'In-chat information confirmation'});
     await restored.getByText(/Intake status:\s*User confirmed/).waitFor();
     assert.equal(await owner.locator(`a[href^="/cases/${caseId}"]`).count(),0);
   });
