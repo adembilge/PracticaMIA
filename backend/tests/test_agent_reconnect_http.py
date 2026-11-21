@@ -462,6 +462,7 @@ def test_owner_reconnects_replies_and_resumes_the_same_run(client, auth_headers,
         complete_history = reconnected.get(history_url, headers=owner)
         assert complete_history.headers["Cache-Control"] == "private, no-store"
         assert complete_history.json()["items"][0]["clarifications"] == [{
+            "event_seq": 2,
             "question_id": str(question.question_id),
             "question_text": question.text,
             "disposition": "answer",
@@ -511,6 +512,7 @@ def test_unknown_clarification_is_replayed_as_action_not_invented_text(client, a
         f"/api/v1/agent/threads/{context['thread_id']}/history", headers=owner,
     )
     assert history.json()["items"][0]["clarifications"] == [{
+        "event_seq": 2,
         "question_id": str(question.question_id),
         "question_text": question.text,
         "disposition": "unknown",
