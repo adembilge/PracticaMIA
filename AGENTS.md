@@ -4,6 +4,17 @@
 
 PracticaMIA is an independent English–Italian administrative preparation prototype for strictly reviewed individual Milan residence-change scenarios. It is **not** a government authority or legal representative; never imply otherwise. The system does **not** submit applications or use SPID/CIE credentials.
 
+The 12-stage/94-task specification is a **historical task baseline**, not the current customer UX. The binding product direction is [D-010](docs/DECISIONS.md) and [single-chat product contract](docs/SINGLE_CHAT_PRODUCT_CONTRACT.md), which supersede its multi-screen and user-facing case assumptions. Read both before changing product or frontend behavior. Keep the historical task IDs and evidence gates intact.
+
+## Non-negotiable single-chat customer experience
+
+- Exactly one primary customer application UI: ChatGPT-style conversation at `/`, with one message composer, conversational answers, owner-scoped chat history and inline interactive cards.
+- Do not introduce a customer case, case creation/selection, case dashboard, separate document/form/source workspace, procedure wizard or alternate Preview product page. The sidebar is for **conversations only**; internal workflow/task state is never a separate user-facing entity.
+- Scope detection, clarifications, document upload/OCR, field correction, approved sources, checklists, forms, approvals, next actions, timelines, reminders and handoff are **in the transcript**. Authentication and external official portals are distinct security/authority handoffs.
+- Existing `/cases/*`, `case_id` and old screens are temporary **migration inventory**. Do not delete live records, change owner bindings, weaken gates, or claim these routes have already been retired. Replace them only with an explicitly verified migration and identical or stronger privacy controls.
+- Acceptance requires end-to-end **one-route** customer journeys at desktop and mobile, restart/reconnect and two-account isolation. Browser fixtures and internal API names do not establish a deployed customer UI.
+- User instruction: **remain in Phase 4; do not implement Phase 5 until separately approved**. Planning corrections to later phases are permitted without claiming delivery.
+
 The product specification at `PracticaMIA_Complete_Project_Specification.md` is the authoritative planning source. Read sections 5, 12–14, 20–26 before making consequential product decisions.
 
 ## Start every development session
