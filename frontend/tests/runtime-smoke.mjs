@@ -221,6 +221,41 @@ test('preview-mode HTTP: interface renders but input and authentication gates ho
   });
 });
 
+test('isolated chat Preview: root has one composer, while agent API fails closed without auth', {
+  timeout: 45000,
+}, async () => {
+  await withServer({VERCEL_ENV: 'preview', ENABLE_SINGLE_CHAT_PREVIEW: '1'}, async origin => {
+    const root = await fetch(origin + '/');
+    assert.equal(root.status, 200);
+    const html = await root.text();
+    assert.match(html, /data-chat-only="true"/);
+    assert.match(html, /Message PracticaMIA/);
+    assert.doesNotMatch(html, /href="\/cases\/new"/);
+    const list = await fetch(origin + '/api/agent/conversations/recent');
+    assert.equal(list.status, 503, 'no tokenless agent API, even in Preview');
+    const privateList = await fetch(origin + '/api/agent/threads/' + SAMPLE_ID + '/cases');
+    assert.equal(privateList.status, 404, 'internal case picker must not be exposed through the chat proxy');
+    const denied = await fetch(origin + '/api/agent/conversations', {
+      method: 'POST', headers: {Origin:'https://untrusted.invalid','Content-Type':'application/json'},
+      body: JSON.stringify({client_message_id:SAMPLE_ID,language:'en',text:'Test'}),
+    });
+    assert.equal(denied.status, 403);
+    const browserOrigin = origin.replace('127.0.0.1','localhost');
+    const unavailable = await fetch(origin + '/api/agent/conversations', {
+      method:'POST',headers:{Host:new URL(browserOrigin).host,Origin:browserOrigin,
+        'Content-Type':'application/json'},
+      body:JSON.stringify({client_message_id:SAMPLE_ID,language:'en',text:'Test'}),
+    });
+    assert.equal(unavailable.status,503,'must not bypass missing Auth0 credentials');
+  });
+
+  await withServer({VERCEL_ENV:'production',ENABLE_SINGLE_CHAT_PREVIEW:'1'}, async origin=>{
+    const html=await (await fetch(origin+'/')).text();
+    assert.doesNotMatch(html,/data-chat-only="true"/,'production must not render the in-progress chat');
+    assert.equal((await fetch(origin+'/api/agent/conversations/recent')).status,404);
+  });
+});
+
 test('the enabled fictional document link opens directly at the sample', {
   timeout: 45000,
 }, async () => {
