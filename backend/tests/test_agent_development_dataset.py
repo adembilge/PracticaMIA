@@ -128,8 +128,6 @@ def test_eval_case_records_safe_outcomes_for_each_turn(case):
             assert len({MESSAGES.validate_python(text) for text in step["text"].values()}) == 2
         elif event == "confirm_intake":
             assert step.get("after_step") in previous and "facts" in step and "text" not in step
-        elif event == "confirm_intake":
-            assert step.get("after_step") in previous and "facts" in step and "text" not in step
         else:
             assert event in {"reopen", "source_change"} and "text" not in step
         if event == "source_change":
