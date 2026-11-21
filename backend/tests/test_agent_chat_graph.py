@@ -30,6 +30,16 @@ def _names():
         ),
         CatalogueName(
             catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
+            name="address change", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
+        CatalogueName(
+            catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
+            name="cambio di indirizzo", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
+        CatalogueName(
+            catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
             name="cambio di residenza", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
             approved_for_search=True,
         ),
