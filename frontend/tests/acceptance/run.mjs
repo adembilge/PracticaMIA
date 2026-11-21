@@ -1264,6 +1264,90 @@ try{
     assert.equal(await transcript.getByRole('button',{name:'Earlier messages'}).count(),0);
   });
 
+  await scenario('Agent saved intake: owner reviews and confirms categoricals inside one chat',async()=>{
+    const owner=await contextFor('alice',{width:390,height:800});
+    const threadId='a0000000-0000-4000-8000-000000000001';
+    const runId='b0000000-0000-4000-8000-000000000001';
+    const caseId='c0000000-0000-4000-8000-000000000001';
+    const facts={
+      citizenship_class:'italian',
+      registration_context:'already_registered_in_italy',
+      household_scope:'individual_no_aggregation',
+      housing_basis:'registered_private_rental',
+    };
+    let confirmed=false;
+    const updates=[];
+    const intakeState=()=>({
+      facts:{...facts},confirmed,confirmed_at:confirmed?'2026-11-21T10:00:00Z':null,
+      updated_at:confirmed?'2026-11-21T10:00:00Z':null,
+      missing_fields:['citizenship_class','registration_context','destination_municipality',
+        'household_scope','housing_basis'].filter(key=>!facts[key]||facts[key]==='unknown'),
+      outside_first_scenario:[],first_scenario_match:confirmed,
+      eligibility_evaluated:false,document_requirements_evaluated:false,official_submission:false,
+    });
+    await owner.route(origin+'/api/agent/runs/active',route=>route.fulfill({json:{
+      items:[],next_cursor:null,
+    }}));
+    await owner.route('**/api/agent/conversations/recent**',route=>route.fulfill({json:{
+      items:[{thread_id:threadId,run_id:runId,case_id:caseId,status:'completed'}],
+      next_cursor:null,
+    }}));
+    await owner.route(origin+`/api/agent/threads/${threadId}/runs/${runId}`,route=>route.fulfill({json:{
+      thread_id:threadId,run_id:runId,status:'completed',last_event_seq:2,run_revision:3,
+      selected_case:{case_id:caseId,label:'Saved Milan case'},
+      result:{
+        explanation:'Review your saved categorical facts before requesting the filing step.',
+        next_action:{operation:'confirm_saved_intake',label:'Confirm case facts'},
+        verification_status:'insufficient_evidence',citations:[],
+      },handoff:null,
+    }}));
+    await owner.route(origin+`/api/agent/threads/${threadId}/history`,route=>route.fulfill({json:{
+      thread_id:threadId,next_before_revision:null,items:[],
+    }}));
+    await owner.route(origin+`/api/cases/${caseId}/intake`,async route=>{
+      const request=route.request();
+      if(request.method()==='GET') return route.fulfill({json:intakeState()});
+      assert.equal(request.method(),'PUT');
+      const body=request.postDataJSON();
+      assert.equal(typeof body.confirm,'boolean');
+      assert.ok(body.facts&&Object.keys(body.facts).every(key=>
+        ['citizenship_class','registration_context','destination_municipality',
+          'household_scope','housing_basis','move_in_date'].includes(key)));
+      updates.push(body);
+      Object.assign(facts,body.facts);
+      confirmed=body.confirm;
+      return route.fulfill({json:intakeState()});
+    });
+    await owner.goto(origin+'/__acceptance/agent');
+    await owner.getByRole('button',{name:'Open completed conversation'}).click();
+    const conversation=owner.getByRole('region',{name:'Conversation'});
+    const inline=conversation.getByRole('region',{name:'In-chat saved case confirmation'});
+    const panel=inline.getByRole('region',{name:'Confirm the details of this example case'});
+    await panel.waitFor();
+    assert.equal(await conversation.locator(`a[href^="/cases/${caseId}"]`).count(),0,
+      'Confirming intake must stay in the same chatbot');
+    assert.equal(await panel.getByRole('button',{name:'Confirm facts'}).isEnabled(),false);
+    await panel.getByLabel('Destination municipality').selectOption('milano');
+    assert.equal(await panel.getByRole('button',{name:'Confirm facts'}).isEnabled(),false);
+    await panel.getByRole('button',{name:'Save draft'}).click();
+    await panel.getByText('Draft saved. You can leave and return later.').waitFor();
+    assert.equal(confirmed,false);
+    await panel.getByRole('checkbox',{name:'I have reviewed the information above.'}).check();
+    await panel.getByRole('button',{name:'Confirm facts'}).click();
+    await panel.getByText('Facts confirmed for this example case.').waitFor();
+    assert.equal(confirmed,true);
+    assert.deepEqual(updates.map(entry=>entry.confirm),[false,true]);
+    assert.equal(updates[1].facts.destination_municipality,'milano');
+    assert.equal(await conversation.getByRole('region',{name:'Official handoff'}).count(),0,
+      'Intake confirmation is not an official filing or verified handoff');
+    assert.equal(await inline.getByText(/send another message in this chat/i).count(),1);
+    await owner.reload();
+    await owner.getByRole('button',{name:'Open completed conversation'}).click();
+    const restored=owner.getByRole('region',{name:'In-chat saved case confirmation'});
+    await restored.getByText('User confirmed',{exact:true}).waitFor();
+    assert.equal(await owner.locator(`a[href^="/cases/${caseId}"]`).count(),0);
+  });
+
   await scenario('A8: browser runs without uncaught runtime errors',async()=>{
     assert.deepEqual(errors,[]);
   });
