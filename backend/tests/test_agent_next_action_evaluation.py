@@ -50,7 +50,7 @@ def test_documented_next_action_command_reports_cases_and_turns():
         all(turn["passed"] for turn in case["turns"]) for case in cases
     )
     diagnostics = report["diagnostics"]
-    assert diagnostics["total_turns"] == len(turns) == 36
+    assert diagnostics["total_turns"] == len(turns) == 40
     assert diagnostics["correct_turns"] == sum(turn["passed"] for turn in turns)
     assert diagnostics["correct_authorities"] <= diagnostics["required_authorities"]
     assert diagnostics["supported_citations"] <= diagnostics["emitted_citations"]
