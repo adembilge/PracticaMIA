@@ -3,8 +3,8 @@ import unittest
 from types import SimpleNamespace
 
 from audit.authenticated_preview_e2e import (
-    Blocked, Failed, assert_identity_origin, require_test_accounts,
-    status_is, validate_target,
+    Blocked, Failed, assert_identity_origin, assert_owner_case_unchanged,
+    require_test_accounts, status_is, validate_target,
 )
 
 HOST = "practicamia-4cacckohr-firatadembilge-4729.vercel.app"
@@ -47,6 +47,23 @@ class PreviewSafetyTests(unittest.TestCase):
             require_test_accounts({**good, "E2E_B_EMAIL": "A@EXAMPLE.TEST"})
         with self.assertRaises(Blocked):
             require_test_accounts({**good, "E2E_A_PASSWORD": ""})
+
+    def test_owner_case_remains_intact_after_foreign_write_attempts(self):
+        expected = ["yes", "yes", "yes", "no", "yes"]
+        def response(status, answers, archived_at=None):
+            return SimpleNamespace(
+                status=status,
+                json=lambda: {"scope_answers": answers, "archived_at": archived_at},
+            )
+
+        assert_owner_case_unchanged(response(200, expected), expected, "owner")
+        with self.assertRaises(Failed):
+            assert_owner_case_unchanged(response(404, expected), expected, "deleted")
+        with self.assertRaises(Failed):
+            assert_owner_case_unchanged(response(200, ["unsure"]), expected, "scope edit")
+        with self.assertRaises(Failed):
+            assert_owner_case_unchanged(response(200, expected, "2026-11-21T12:00:00Z"),
+                                        expected, "archive")
 
     def test_expected_reviewer_denial_is_a_pass_not_preview_blocker(self):
         status_is(SimpleNamespace(status=403), 403, "ordinary user denied")
