@@ -314,6 +314,11 @@ export function AgentReconnectFixture() {
     }
   }
 
+  function answer(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void sendReply('answer');
+  }
+
   async function sendReply(disposition: ReplyDisposition) {
     const text = disposition === 'answer' ? reply.trim() : null;
     if (!view?.question || text === '' || busy || staleReply) return;
