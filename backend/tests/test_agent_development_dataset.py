@@ -32,8 +32,6 @@ ACTIONS_BY_OUTCOME = {
     "restore_question": {"provide_information"},
     "intake_confirmation_required": {"confirm_saved_intake"},
     "intake_confirmed": {"saved_intake_confirmed"},
-    "intake_confirmation_required": {"confirm_saved_intake"},
-    "intake_confirmed": {"saved_intake_confirmed"},
 }
 QUESTION_OUTCOMES = {"clarification", "choose_goal"}
 
