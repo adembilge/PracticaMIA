@@ -2,14 +2,13 @@
 from uuid import uuid4
 
 from app.agent.chat_graph import build_chat_executor
-from app.agent.checkpoints import CheckpointState
+from app.agent.checkpoints import CheckpointState, submit_clarification_reply
 from app.agent.contract import AnswerResult, ClarificationReply, QuestionRequested, SendMessage
 from app.agent.run_events import read_run_events
 from app.agent.run_requests import StoredMessage, accept_message
 from app.agent.source_cards import read_run_source_card
 from app.agent.threads import create_thread
 from app.agent.worker import RequestClarification, run_worker_step
-from app.agent.checkpoints import submit_clarification_reply
 from app.knowledge.entity_matching import CatalogueName
 from app.rules.engine import JURISDICTION, PROCEDURE
 from test_agent_run_requests import ALICE, KEY
