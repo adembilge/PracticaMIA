@@ -69,8 +69,8 @@ def _no_routing(*_):
 
 
 @pytest.mark.parametrize(("language", "text", "prompt"), [
-    ("en", "What is the status of the other application?", "Which saved case do you mean?"),
-    ("it", "E per l’altra pratica?", "A quale pratica salvata ti riferisci?"),
+    ("en", "What is the status of the other application?", "Which previous request do you mean?"),
+    ("it", "E per l’altra pratica?", "A quale richiesta precedente ti riferisci?"),
 ])
 def test_other_case_is_clarified_with_only_active_owned_links(client, auth_headers, language, text, prompt):
     factory, context, url, bound, other, second_other = _run(client, text, language=language, bind=True)
