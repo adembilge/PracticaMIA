@@ -23,6 +23,11 @@ def _names():
             approved_for_search=True,
         ),
         CatalogueName(
+            catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
+            name="cambio di residenza", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
+        CatalogueName(
             catalogue_id=JURISDICTION, entity_type="municipality", display_name="Milano",
             name="Milan", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
             approved_for_search=True,
@@ -124,3 +129,75 @@ def test_chat_graph_does_not_publish_unapproved_or_missing_passages(client):
     assert answer.citations == []
     assert answer.claims == []
     assert answer.official_channel is None
+
+
+
+def test_case_free_italian_message_retrieves_only_active_approved_reference(client):
+    version, digest = _create(client, html=HTML)
+    _approve(client, version, digest)
+    factory = client.app.state.session_factory
+    execute = build_chat_executor(factory, catalogue_names=_names())
+    message = SendMessage(
+        client_message_id=uuid4(),
+        text="Come posso cambiare la residenza a Milano?",
+        language="it",
+    )
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=ALICE)
+        accepted = accept_message(db, thread_id=thread_id, principal=ALICE, message=message, key=KEY)
+        assert accepted.outcome == "accepted"
+
+    snapshot = run_worker_step(
+        factory, thread_id=thread_id, run_id=accepted.run_id, principal=ALICE, key=KEY,
+        execute=execute,
+    )
+    while snapshot.status in {"queued", "running"}:
+        snapshot = run_worker_step(
+            factory, thread_id=thread_id, run_id=accepted.run_id, principal=ALICE, key=KEY,
+            execute=execute,
+        )
+
+    assert snapshot.status == "completed"
+    assert snapshot.result.verification_status == "insufficient_evidence"
+    assert snapshot.result.citations
+    assert snapshot.result.claims == []
+    assert snapshot.result.official_channel is None
+    assert "solo riferimenti" in snapshot.result.explanation
+
+
+def test_case_free_graph_abstains_when_user_selects_another_municipality(client):
+    version, digest = _create(client, html=HTML)
+    _approve(client, version, digest)
+    factory = client.app.state.session_factory
+    execute = build_chat_executor(factory, catalogue_names=_names())
+    message = SendMessage(
+        client_message_id=uuid4(), text="How can I change my address?", language="en",
+    )
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=ALICE)
+        accepted = accept_message(db, thread_id=thread_id, principal=ALICE, message=message, key=KEY)
+    context = {
+        "thread_id": thread_id, "run_id": accepted.run_id, "principal": ALICE, "key": KEY,
+    }
+
+    paused = run_worker_step(factory, **context, execute=execute)
+    assert paused.status == "waiting_for_information"
+    with factory() as db:
+        events = read_run_events(db, **context, after_seq=0).events
+    question = next(event.question for event in events if isinstance(event, QuestionRequested))
+    assert question.options == ["Milano", "Another municipality"]
+
+    reply = ClarificationReply(
+        client_reply_id=uuid4(), expected_run_revision=paused.run_revision, text="Another municipality",
+    )
+    with factory.begin() as db:
+        submit_clarification_reply(
+            db, **context, question_id=question.question_id, reply=reply,
+        )
+
+    completed = run_worker_step(factory, **context, execute=execute)
+    assert completed.status == "completed"
+    assert completed.result.verification_status == "unsupported"
+    assert completed.result.citations == []
+    assert completed.result.claims == []
+    assert completed.result.official_channel is None
