@@ -153,7 +153,12 @@ def run_worker_step(
             message.case_id is not None and checkpoint.state.next_node == "choose_next_step"
             and checkpoint.state.intent == "resume_case"
         )
-        resolve_case = message.case_id is not None and not topic_changed and (case_question or resume_case)
+        # A generic "resume my case" first resolves the saved task. If the same message
+        # already identifies its procedure, load that linked case context and continue
+        # the requested workflow instead of stopping at case selection.
+        resolve_case = message.case_id is not None and not topic_changed and (
+            case_question or (resume_case and not checkpoint.state.procedure_candidates)
+        )
 
         case_context = None
         choosing_goal = checkpoint.state.next_node == "choose_next_step" and bool(checkpoint.state.goals)
