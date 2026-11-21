@@ -459,10 +459,25 @@ try{
     const casePath='/cases/'+caseId;
     const api='/api'+casePath;
     const original=(await readJson(owner,api+'/workflow')).body;
+    const originalIntake=(await readJson(owner,api+'/intake')).body;
     await owner.goto(origin+casePath);
     await owner.getByText('Manage this case',{exact:true}).click();
     await owner.getByRole('button',{name:'Archive case',exact:true}).click();
     await owner.getByText('Case archived.',{exact:true}).waitFor();
+    const intakePanel=owner.locator('#case-intake');
+    await intakePanel.getByText(
+      'This case is archived. Restore it before editing or confirming intake facts.'
+    ).waitFor({state:'attached'});
+    assert.equal(await intakePanel.getByRole('button',{name:'Confirm facts',includeHidden:true}).isDisabled(),true);
+    assert.equal(await intakePanel.locator('select').first().isDisabled(),true);
+    const mutationHeaders={'Origin':origin,'Content-Type':'application/json'};
+    assert.equal((await owner.request.put(origin+api+'/intake',{
+      headers:mutationHeaders,data:{facts,confirm:true},
+    })).status(),409);
+    assert.equal((await owner.request.delete(origin+api+'/intake',{
+      headers:{Origin:origin},
+    })).status(),409);
+    assert.deepEqual((await readJson(owner,api+'/intake')).body,originalIntake);
     assert.equal((await second.request.patch(origin+api+'/archive',{data:{archived:false}})).status(),404);
     assert.equal((await readJson(owner,'/api/cases')).body.some(row=>row.id===caseId),false);
     assert.equal((await readJson(owner,'/api/cases?view=archived')).body.some(row=>row.id===caseId),true);
@@ -473,6 +488,10 @@ try{
     await owner.getByText('Manage this case',{exact:true}).click();
     await owner.getByRole('button',{name:'Restore to active cases',exact:true}).click();
     await owner.getByRole('button',{name:'Archive case',exact:true}).waitFor();
+    assert.equal(await owner.locator('#case-intake').getByRole(
+      'button',{name:'Confirm facts',includeHidden:true}
+    ).isDisabled(),false);
+    assert.deepEqual((await readJson(owner,api+'/intake')).body,originalIntake);
     const restored=(await readJson(owner,api+'/workflow')).body;
     assert.deepEqual(restored.checklist.reviewed_items,original.checklist.reviewed_items);
     assert.equal((await owner.request.get(origin+api+'/package/pdf')).status(),200);
