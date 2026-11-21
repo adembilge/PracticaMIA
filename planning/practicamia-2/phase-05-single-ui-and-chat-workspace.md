@@ -4,9 +4,9 @@
 
 **Roadmap tasks 41–50.** Deliver one user-facing chatbot interface for PracticaMIA. Users describe a task in their own words, answer the agent's questions, open official evidence, and see their next action. They can discuss multiple goals in the same conversation, or return to a prior conversation using chat history; internal task context is managed by the agent, not a user-facing case selector.
 
-Connect the Phase 3 catalogue and Phase 4 agent API to real application data. Phases 6–8 add document handling, form preparation, checklist management, case history, and tracking **inside the same conversation**. Show actions only when the backend reports the capability available for the authenticated conversation and its internal task context.
+Connect the Phase 3 catalogue and Phase 4 agent API to real application data. Phases 6–8 add document handling, form preparation, checklist management, conversation and task history, and tracking **inside the same conversation**. Show actions only when the backend reports the capability available for the authenticated conversation and its internal task context.
 
-**Binding product decision — one UI, one chat.** The customer has a single main conversation route and one message composer. Starting a procedure, asking questions, uploading documents, seeing OCR results, correcting fields, reviewing requirements and forms, approving changes, tracking cases, and resuming work all happen in the transcript using inline messages and interactive cards. Only a **conversation-history** sidebar is allowed; there is no customer case or task switcher. **Do not build standalone case dashboards, document workspaces, source browsers, form editor pages, separate task wizards, split-screen workspaces, or a separate Preview experience.** Sources and document pages may expand within the conversation without replacing it. An exported file is a downloadable result, not a second application screen. Government sign-in/payment/submission may still require an external official channel; show the verified handoff in chat and never claim the app performed it. Internal development, CI, and isolated test/staging deployments are engineering environments, not user-facing products or alternative UIs.
+**Binding product decision — one UI, one chat.** The customer has a single main conversation route and one message composer. Starting a procedure, asking questions, uploading documents, seeing OCR results, correcting fields, reviewing requirements and forms, approving changes, tracking progress, and resuming conversations all happen in the transcript using inline messages and interactive cards. Only a **conversation-history** sidebar is allowed; there is no customer case or task switcher. **Do not build standalone case dashboards, document workspaces, source browsers, form editor pages, separate task wizards, split-screen workspaces, or a separate Preview experience.** Sources and document pages may expand within the conversation without replacing it. An exported file is a downloadable result, not a second application screen. Government sign-in/payment/submission may still require an external official channel; show the verified handoff in chat and never claim the app performed it. Internal development, CI, and isolated test/staging deployments are engineering environments, not user-facing products or alternative UIs.
 
 The [Phase 4 agent API handoff](phase-04-phase-05-handoff.md) records the implemented isolated routes, client state transitions, checked wire examples and integration decisions still open.
 
@@ -19,7 +19,7 @@ The [Phase 4 agent API handoff](phase-04-phase-05-handoff.md) records the implem
 | Questions, approvals and next steps | Interactive cards inserted at the relevant message | The same inline cards with touch-friendly controls |
 | Sources, documents, forms and checklists | Expandable inline evidence, file, field and task cards | The same cards in the transcript; no route change or separate preview page |
 
-Changing topic only changes agent context; there is no visible case concept or manual case selection. Expanded details must preserve composer drafts, transcript position, focus and the correct case binding. Keep official source links and downloads as explicit user actions.
+Changing topic only changes agent context; there is no visible case concept or manual case selection. Expanded details must preserve composer drafts, transcript position, focus and the correct internal task binding. Keep official source links and downloads as explicit user actions.
 
 ## 41. Build the information architecture and application shell
 
@@ -48,7 +48,7 @@ Changing topic only changes agent context; there is no visible case concept or m
 - **43.3** Use the Phase 4 client message ID for safe retries and duplicate suppression.
 - **43.4** Define per-file name, upload state, cancellation, and retry. A failed attachment preserves the message and other attachments.
 - **43.5** Connect attachment availability to backend capability. Show actual progress once Phase 6 is enabled. Treat selection, upload, and processing as separate states.
-- **43.6** Preserve the composer draft when expanding inline cards, switching cases, or reopening message history. Avoid persisting sensitive drafts in unprotected browser storage.
+- **43.6** Preserve the composer draft when expanding inline cards, switching conversations, or reopening message history. Avoid persisting sensitive drafts in unprotected browser storage.
 
 **Acceptance.** Failed messages can be edited and retried without duplicates. A failed attachment does not remove other files or the draft.
 
@@ -59,7 +59,7 @@ Changing topic only changes agent context; there is no visible case concept or m
 - **44.3** Place verified answers in the conversation. If the user is reading older messages, retain scroll position and offer a control to jump to the new answer.
 - **44.4** Reconnect by run ID and last event sequence. Fetch missed events, display duplicates once, and reconcile with the final server state.
 - **44.5** Connect Stop to the backend. Show distinct states for cancellation, a temporary disconnect, and an execution error. Reflect any changes already committed.
-- **44.6** Keep verified partial output visible after a timeout. Retry with the current question and case intact where possible.
+- **44.6** Keep verified partial output visible after a timeout. Retry with the current question and internal task context intact where possible.
 
 **Acceptance.** Disconnecting and reconnecting during a response creates no duplicate output. Stop reports the actual result.
 
@@ -79,18 +79,18 @@ Changing topic only changes agent context; there is no visible case concept or m
 - **45.4** Handle pending, successful, declined, failed, and stale states. A stale card should link to the current proposal where available.
 - **45.5** Show “Saved” or “Updated” after the server confirms the operation.
 
-**Acceptance.** Users can answer a question, correct a value, and see the result in chat. Stale cards cannot change the current case inadvertently.
+**Acceptance.** Users can answer a question, correct a value, and see the result in chat. Stale cards cannot change another internal task inadvertently.
 
 ## 46. Build the in-chat “What should I do next?” card
 
-- **46.1** Include active case, next step, rationale, any missing input or document, and competent channel.
+- **46.1** Include the current goal, next step, rationale, any missing input or document, and competent channel.
 - **46.2** Show one primary in-chat action. Other goals are resumed through natural-language clarification or a previous **conversation**, not a case switcher.
-- **46.3** Show whether a case event comes from a user note, agent proposal, receipt, or official status. Make the basis of a completion claim inspectable.
+- **46.3** Show whether a workflow event comes from a user note, agent proposal, receipt, or official status. Make the basis of a completion claim inspectable.
 - **46.4** Use actionable recovery for missing data, unverified sources, and technical failures. Link to the corresponding question, source, or retry.
 - **46.5** Disambiguate multiple administrative goals using an inline question, then show the correct next-action card for the server-bound internal task; never expose a customer case name or selector.
-- **46.6** Refresh from backend case state after changes. Merely writing a chat message does not complete a task.
+- **46.6** Refresh from backend conversation and internal task state after changes. Merely writing a chat message does not complete a task.
 
-**Acceptance.** A returning user can find and understand the next step without rereading the conversation. Switching cases shows the right task.
+**Acceptance.** A returning user can find and understand the next step without rereading the conversation. A clarified topic switch displays the right task without a case selector.
 
 ## 47. Connect citations to the official catalogue
 
@@ -107,28 +107,28 @@ Changing topic only changes agent context; there is no visible case concept or m
 
 - **48.1** Define document name, type, upload and processing state, preview, and page reference components.
 - **48.2** Define the form name and version, original labels, proposed values, evidence, and confirmation controls. Show the difference between missing and confirmed fields.
-- **48.3** Show case events chronologically, including messages, attachments, proposals, corrections, and saved changes.
+- **48.3** Show conversation and internal task events chronologically, including messages, attachments, proposals, corrections, and saved changes.
 - **48.4** Standardise expand, collapse, in-chat anchors, scroll, and focus. Ask how to proceed when collapsing a card would discard an unsaved edit.
 - **48.5** Pass inline-card contracts to Phase 6 for documents and pages, Phase 7 for forms and fields, and Phase 8 for tracking events.
-- **48.6** Verify card composition with safe fixtures. Once real tools are enabled, render results in the same conversation bound to the correct case.
+- **48.6** Verify card composition with safe fixtures. Once real tools are enabled, render results in the same conversation bound to the correctly authorised internal task.
 
-**Acceptance.** Document evidence, form review, and case history expand inline in one chat route. Later phases can supply data without adding a user-facing page or changing navigation.
+**Acceptance.** Document evidence, form review, and conversation history expand inline in one chat route. Later phases can supply data without adding a user-facing page or changing navigation.
 
 ## 49. Complete session, saving, and return flows
 
-- **49.1** Make sign-in requirements clear according to product rules. Test questions, case saving, personal attachments, and history independently.
-- **49.2** Carry a safe internal return target during sign-in. Restore the intended conversation or case after successful authentication.
+- **49.1** Make sign-in requirements clear according to product rules. Test questions, confirmed in-chat saves, personal attachments, and history independently.
+- **49.2** Carry a safe internal return target during sign-in. Restore the intended conversation after successful authentication.
 - **49.3** On expiry, show which operations completed and what must be retried after signing in again.
 - **49.4** In the conversations-only sidebar show conversation title, last activity and optional safe pending-action indicator. Selecting a conversation restores the transcript, current internal task context and inline cards. Do not render cases or tasks as selectable entities.
-- **49.5** Clear private data and visible case state when accounts change. Previous account messages, documents, and notes must disappear.
-- **49.6** Use two test accounts for shared links, expiry, sign-in, case switching, and return behaviour.
+- **49.5** Clear private data and visible internal task state when accounts change. Previous account messages, documents, and notes must disappear.
+- **49.6** Use two test accounts for shared links, expiry, sign-in, conversation switching, and return behaviour.
 
 **Acceptance.** Users resume authorised **conversations** after sign-in; there is no user-facing case. A second account cannot see the first account's messages, internal task state, documents or receipts.
 
 ## 50. Verify mobile, accessibility, and the full journey
 
 - **50.1** Test desktop, tablet, and narrow mobile screens. Include long Italian authority names, source links, conversations, and the on-screen keyboard.
-- **50.2** Complete the workflow with a keyboard. Verify focus when expanding and collapsing cards, correcting approvals, and switching cases in the same chat.
+- **50.2** Complete the workflow with a keyboard. Verify focus when expanding and collapsing cards, correcting approvals, and switching conversations in the same chat.
 - **50.3** Announce meaningful states such as new question, answer ready, and error. Avoid announcing each streaming update. Use [WCAG 2.2 AA](https://www.w3.org/TR/WCAG22/) as the accessibility target.
 - **50.4** Measure initial usability, first status event, conversation scrolling, and detail open time. Load heavy viewers on demand.
 - **50.5** Automate first question, clarification, source review, correction, saving, disconnect, and sign-in recovery.
@@ -145,4 +145,4 @@ Changing topic only changes agent context; there is no visible case concept or m
 | Return to the same task | 48–49 and reconnection in 44 | Resume after collapsing a card, closing the tab, or signing in again |
 | Verify the journey | 50 | Mobile, keyboard, and network interruption tests pass |
 
-**End-to-end demonstration.** The user starts with free text and completes clarification, cited-source expansion, an authenticated in-chat save receipt and conversation resumption **without leaving the chatbot route or seeing a case object**. Phase 6 adds in-chat document upload, extraction review and confirmation; Phase 7 adds inline checklist/form preparation and official handoff; Phase 8 adds case history and tracking through the same composer. Any external government interaction is a clearly labelled link-out, not another PracticaMIA UI.
+**End-to-end demonstration.** The user starts with free text and completes clarification, cited-source expansion, an authenticated in-chat save receipt and conversation resumption **without leaving the chatbot route or seeing a case object**. Phase 6 adds in-chat document upload, extraction review and confirmation; Phase 7 adds inline checklist/form preparation and official handoff; Phase 8 adds conversation history, internal task events and tracking through the same composer. Any external government interaction is a clearly labelled link-out, not another PracticaMIA UI.
