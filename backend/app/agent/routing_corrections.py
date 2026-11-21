@@ -95,8 +95,6 @@ def apply_routing_reply(
         "reply_event_seqs": previous.reply_event_seqs | dict.fromkeys(updates, reply.event_seq),
     })
     location_candidates = state.location_candidates
-    if procedure and procedure != (state.routing_corrections.procedure if state.routing_corrections else None):
-        location_candidates = []
     if destination := updates.get("destination"):
         location_candidates = [destination]
     elif activity_location := updates.get("activity_location"):
