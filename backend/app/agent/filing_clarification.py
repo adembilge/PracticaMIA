@@ -120,13 +120,13 @@ def confirm_saved_intake(language: Language) -> AnswerResult:
     en = language == "en"
     return AnswerResult(
         explanation=(
-            "Complete and confirm your saved case details. Then return here and ask for the filing step."
-            if en else "Completa e conferma i dati della pratica salvata. Poi torna qui e chiedi come presentarla."
+            "Review and confirm the requested information in this conversation. Then ask again for the filing step."
+            if en else "Rivedi e conferma i dati richiesti in questa conversazione, poi chiedi come procedere."
         ),
         verification_status="insufficient_evidence",
         missing_information=["intake_confirmation"],
         next_action=NextAction(
-            label="Confirm saved case details" if en else "Conferma i dati della pratica",
+            label="Confirm request details" if en else "Conferma i dati richiesti",
             operation="confirm_saved_intake",
         ),
     )
