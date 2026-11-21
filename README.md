@@ -19,29 +19,36 @@ Initial reviewed scope remains a narrow individual residence-change scenario in 
 
 **Current code caveat:** The old Milan case pages, downloadable draft and synthetic browser checks remain implemented for backward compatibility and security testing until replacement. A working legacy feature is not evidence that its in-chat successor exists.
 
-## How the system works
+## How the target single-chat system works
 
 ```text
-User (English / Italian)
-    |
-    v
-Next.js interface, Auth0 session and server-side API proxy
-    |
-    v
-FastAPI — authentication, case ownership and typed services
-    |
-    +--> Case intake, checklist and workflow state
-    +--> LangGraph assistant and constrained tool selection
-    |       +--> Source-grounded retrieval and quote verification
-    |       +--> Deterministic administrative rules
-    +--> Release-gated private document extraction and user review
-    +--> Reviewable preparation and PDF output
-    |
-    v
-PostgreSQL — case records, source versions and retrieval indexes
+User question (English / Italian)
+          |
+          v
+ONE Next.js conversation shell + chat history + composer
+          | authenticated server-side API proxy
+          v
+FastAPI conversation transport and encrypted events
+          |
+          v
+One LangGraph specialist agent
+  +-- Intent / municipality / authority clarification
+  +-- Official-source RAG and citation checks
+  +-- Deterministic requirements, next steps and official handoff
+  +-- Owner-scoped internal task facts and approvals
+  +-- Private document/OCR and artifact tools (release gated)
+          |
+          v
+PostgreSQL: conversations, internal task state, approvals,
+            source versions, private metadata and retrieval indexes
+          |
+          v
+Typed in-chat replies, questions, documents, citations,
+checklists, approvals, receipts, downloads and history
 ```
 
-**Evidence and control are separate from language generation.** The language model can help interpret a request and explain verified results, but it cannot approve official sources, invent binding procedural requirements, confirm extracted personal information, or mark an application as submitted.
+**Internal state is not a user-facing case.** The earlier backend still has owner-scoped `cases` tables and routes; those need a verified conversation-task migration. The target architecture above is **not fully hosted or released**. Evidence, identity and approval controls remain server-side; language generation cannot approve sources, silently confirm fields or claim a government submission.
+
 
 ## Technology
 
@@ -124,4 +131,4 @@ Administrative guidance must be grounded in human-reviewed, versioned official m
 
 PracticaMIA is **not an official municipal service, legal representative, or application-submission channel**. Users remain responsible for reviewing their information and completing any submission through the appropriate government service.
 
-For implementation details, see [documentation index](docs/README.md), [case workflow](docs/UNIFIED_CASE_WORKFLOW.md), [official-source review](docs/KNOWLEDGE_REVIEW_WORKFLOW.md), [document processing](docs/PRIVATE_DOCUMENT_INTELLIGENCE.md), and the [full product specification](PracticaMIA_Complete_Project_Specification.md).
+For implementation details, see [documentation index](docs/README.md), [legacy case workflow implementation](docs/UNIFIED_CASE_WORKFLOW.md), [official-source review](docs/KNOWLEDGE_REVIEW_WORKFLOW.md), [document processing](docs/PRIVATE_DOCUMENT_INTELLIGENCE.md), and the [full product specification](PracticaMIA_Complete_Project_Specification.md).
