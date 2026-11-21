@@ -429,9 +429,8 @@ def _choose_message_goal(
             selection = GoalSelection(language=language, options=options, active_goal=active_goal)
             question = question.model_copy(update={"procedure_goal": selection})
             return RequestClarification(question, state)
-        fresh_message = replace(message, clarification_reply=None, clarification_question=None)
         outcome = choose_candidate_step(
-            fresh_message, selected_state, case_locations=case_locations,
+            message, selected_state, case_locations=case_locations,
             confirmed_dates=confirmed_dates, confirmed_circumstances=confirmed_circumstances,
             assignments=assignments, trusted_passage_ids=trusted_passage_ids,
             reviewed_labels=reviewed_labels, assistance_contacts=assistance_contacts,
