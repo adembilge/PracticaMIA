@@ -139,7 +139,7 @@ def test_destination_sentence_uses_only_the_requested_field_and_a_unique_reviewe
     ("en", "Can we finish the address change I saved?", "Milan", "The destination is the municipality of Milan.",
      "Confirm request details"),
     ("it", "Possiamo finire il cambio di residenza che ho salvato?", "Milano", "Il Comune di destinazione è Milano.",
-     "Conferma i dati della pratica"),
+     "Conferma i dati richiesti"),
 ])
 def test_reopened_destination_question_rechecks_saved_intake_before_retrieving(
     client, auth_headers, monkeypatch, saved_state, language, opening, name, reply, confirm_label,
