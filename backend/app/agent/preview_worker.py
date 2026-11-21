@@ -1,10 +1,9 @@
-"""One bounded Phase 4 agent worker invocation for an isolated Preview only.
+"""One bounded Phase 4 case-free LangGraph worker invocation for isolated Preview.
 
-This module is intentionally NOT an autonomous scheduler or an LLM executor.
-It uses existing durable lease/checkpoint fencing. Until an independently
-reviewed official-source execution adapter is approved, it can produce only
-an explicitly *unverified* no-guidance response. No writes to case facts,
-documents, external portals or human-review records are performed.
+This is a manual scheduler entry point, not a hosted background service or
+LLM executor. The graph can return clarifications and approved-source
+references only; it cannot publish verified personal claims. No writes to
+legacy task facts, documents, external portals or human-review records occur.
 """
 from __future__ import annotations
 
@@ -19,6 +18,7 @@ from app.config import Settings
 
 MAX_STEPS_PER_INVOCATION = 20
 LEASE_SECONDS = 120
+
 
 def run_preview_worker_once(settings: Settings, *, max_steps: int) -> int:
     """Use the mounted API's exact schema/identity/config checks and same DB.
