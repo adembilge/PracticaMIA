@@ -30,7 +30,7 @@ The second audit inspected the repository tree, current Next.js route files, the
 | --- | --- | --- |
 | `/` → `HomeView` | Hero content and "Prepare my case" instead of an actual composer | Replace with real authenticated chat shell |
 | `SiteHeader` | Navigation to `/cases/new` and `/account` | Convert to conversation-only sidebar and an inline account menu |
-| `/cases/new`, `/cases/saved` | User must create/select cases | Retire only after validated conversation migration |
+| `/account`, `/cases/new`, `/cases/saved` | Separate account/case page navigation remains | Retire only after validated conversation migration |
 | `/cases/[id]`, `/cases/[id]/documents`, `/cases/[id]/preparation`, `/cases/[id]/assistant` | Dedicated case and document/preview screens | Move actions to inline cards; provide owner-scoped recovery for old links |
 | `/cases/demo`, `/cases/demo/review`, `/demo/synthetic` | Separate customer-style demo workflow | Keep synthetic CI testing separate from customer navigation; retire feature routes |
 | `frontend/src/components/CaseIntakePanel.tsx`, `CaseJourneyPanel.tsx`, `SavedCaseWorkspace.tsx` | Old standalone workflow composition | Replace with typed in-chat action cards |
@@ -38,7 +38,7 @@ The second audit inspected the repository tree, current Next.js route files, the
 | `frontend/tests/acceptance/run.mjs` | Synthetic acceptance still exercises historical pages | Keep these security regressions until equivalent hosted chat E2E has passed |
 | `frontend/tests/acceptance/agent-reconnect.tsx` | Isolated chat prototype previously had visible case picker and IDs | **This Phase 4 cleanup removes the UI picker**, retains internal signed API test as a compatibility regression; not a deployed UI |
 
-The repeatable check is `python scripts/validate_single_chat_contract.py` (reports all known old customer routes plus `HomeView` and navigation). The strict non-release command `python scripts/validate_single_chat_contract.py --require-migrated` must fail while these remain. Governance CI enforces that the isolated chat fixture has no case navigation; a green planning/fixture check **cannot** certify the hosted app. Runtime migration must not begin until user-authorized Phase 5 implementation and necessary identity/retention gates.
+The repeatable check is `python scripts/validate_single_chat_contract.py` (reports all 10 known standalone legacy customer routes plus `HomeView` and navigation, and rejects new unregistered standalone customer pages). The strict non-release command `python scripts/validate_single_chat_contract.py --require-migrated` must fail while these remain. Governance CI enforces that the isolated chat fixture has no case navigation; a green planning/fixture check **cannot** certify the hosted app. Runtime migration must not begin until user-authorized Phase 5 implementation and necessary identity/retention gates.
 
 **Non-destructive boundary:** User said no old product behavior should remain, which is the **release acceptance requirement**. Removing saved database rows, encryption keys, source snapshots or audit history to achieve a superficially clean repository would risk losing records and weakening protection. Existing operational and test compatibility may remain until their safe replacements are proved, but **none is acceptable as a final customer UX**.
 
