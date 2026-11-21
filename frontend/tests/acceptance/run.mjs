@@ -1173,11 +1173,15 @@ try{
     assert.equal(followupActive.filter(run=>run.thread_id===thread_id).length,1);
     assert.equal(followupActive.find(run=>run.run_id===secondRun.run_id).case_id,null);
 
+    const recentReload=owner.waitForResponse(response=>
+      response.url()===origin+'/api/agent/runs/recent' && response.status()===200);
     await owner.reload();
-    await owner.getByRole('region',{name:'Past conversations'}).waitFor();
+    await recentReload;
+    const activeSecond=owner.locator(`li[data-active-run-id="${secondRun.run_id}"] button`);
+    await activeSecond.waitFor();
     assert.equal(await owner.locator(`li[data-conversation-thread="${thread_id}"]`).count(),0,
       'An active conversation must not also appear as an older completed conversation');
-    await owner.locator(`li[data-active-run-id="${secondRun.run_id}"] button`).click();
+    await activeSecond.click();
     await owner.getByRole('region',{name:'Conversation history'})
       .getByText('How do I change my registered address?',{exact:false}).waitFor();
     assert.equal((await readJson(owner,url)).body.status,'completed');
