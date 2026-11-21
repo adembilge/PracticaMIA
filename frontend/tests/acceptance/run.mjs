@@ -1344,7 +1344,7 @@ try{
     await owner.reload();
     await owner.getByRole('button',{name:'Open completed conversation'}).click();
     const restored=owner.getByRole('region',{name:'In-chat saved case confirmation'});
-    await restored.getByText('User confirmed',{exact:true}).waitFor();
+    await restored.getByText(/Intake status:\s*User confirmed/).waitFor();
     assert.equal(await owner.locator(`a[href^="/cases/${caseId}"]`).count(),0);
   });
 
