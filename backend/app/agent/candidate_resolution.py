@@ -152,7 +152,12 @@ def choose_candidate_step(
     if state.next_node != "choose_next_step":
         raise ValueError("Candidate resolution requires the choose_next_step node")
     if state.goals:
-        return _choose_message_goal(message, state, reviewed_labels)
+        return _choose_message_goal(
+            message, state, reviewed_labels, case_locations=case_locations,
+            confirmed_dates=confirmed_dates, confirmed_circumstances=confirmed_circumstances,
+            assignments=assignments, trusted_passage_ids=trusted_passage_ids,
+            assistance_contacts=assistance_contacts, catalogue_names=catalogue_names,
+        )
     if state.intent == "explain_notice" and (field := unreadable_notice_field(message.text)):
         return _clarify_notice(message, state, field)
     if state.intent == "request_information" and _asks_about_current_upload_limit(message.text):
@@ -395,7 +400,11 @@ def _candidate_labels(candidate_ids: Sequence[str], reviewed_labels: Mapping[str
 
 
 def _choose_message_goal(
-    message: StoredMessage, state: CheckpointState, reviewed_labels: Mapping[str, str],
+    message: StoredMessage, state: CheckpointState, reviewed_labels: Mapping[str, str], *,
+    case_locations: Mapping[str, CaseLocation], confirmed_dates: Mapping[str, date],
+    confirmed_circumstances: Mapping[str, str], assignments: Sequence[ServiceArea],
+    trusted_passage_ids: frozenset[str], assistance_contacts: Sequence[AssistanceContact],
+    catalogue_names: Sequence[CatalogueName],
 ) -> RequestClarification | AnswerResult:
     language = message.language
     en = language == "en"
@@ -434,17 +443,34 @@ def _choose_message_goal(
             resume_state=state,
         )
 
-    if active_goal is None:
-        explanation = "You can choose a task in a new message." if en else (
-            "Puoi scegliere una pratica in un nuovo messaggio."
+    if active_goal is not None:
+        selected = state.goals[active_goal - 1]
+        selected_state = state.model_copy(update={
+            "goals": [], "procedure_candidates": selected.procedure_candidates,
+            "location_candidates": selected.location_candidates,
+            "missing_fields": selected.missing_fields, "preferred_goal": None,
+            "intent": "find_procedure",
+        })
+        fresh_message = replace(message, clarification_reply=None, clarification_question=None)
+        outcome = choose_candidate_step(
+            fresh_message, selected_state, case_locations=case_locations,
+            confirmed_dates=confirmed_dates, confirmed_circumstances=confirmed_circumstances,
+            assignments=assignments, trusted_passage_ids=trusted_passage_ids,
+            reviewed_labels=reviewed_labels, assistance_contacts=assistance_contacts,
+            catalogue_names=catalogue_names,
         )
-        missing = state.missing_fields
-    else:
-        explanation = "The selected task is ready for its own case and procedure checks." if en else (
-            "La pratica selezionata può passare alla verifica dei suoi dati e della procedura."
-        )
-        missing = state.goals[active_goal - 1].missing_fields
+        selection = GoalSelection(language=language, options=options, active_goal=active_goal)
+        if isinstance(outcome, RequestClarification):
+            question = outcome.question.model_copy(update={"procedure_goal": selection})
+            return RequestClarification(question, state)
+        if isinstance(outcome, AnswerResult):
+            return outcome.model_copy(update={"goals": state.goals, "goal_selection": selection})
+        return outcome.model_copy(update={"goals": state.goals, "preferred_goal": active_goal})
+    explanation = "You can choose a task in a new message." if en else (
+        "Puoi scegliere una pratica in un nuovo messaggio."
+    )
     return AnswerResult(
-        explanation=explanation, verification_status="insufficient_evidence", missing_information=missing,
-        goals=state.goals, goal_selection=GoalSelection(language=language, options=options, active_goal=active_goal),
+        explanation=explanation, verification_status="insufficient_evidence",
+        missing_information=state.missing_fields, goals=state.goals,
+        goal_selection=GoalSelection(language=language, options=options, active_goal=None),
     )
