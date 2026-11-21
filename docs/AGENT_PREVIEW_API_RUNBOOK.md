@@ -18,7 +18,28 @@ The ordinary FastAPI application now *can* mount the existing encrypted `/api/v1
 
 If any requirement fails, FastAPI startup raises and does **not** expose the agent route. Without `ENABLE_AGENT_PREVIEW_API`, the same endpoints stay 404.
 
-## Current backend boundary: no agent worker yet
+## Phase 4 bounded worker adapter (code available; not deployed)
+
+`backend/app/agent/preview_worker.py` now provides a **manual, one-shot, strictly capped diagnostic worker**, using the existing `run_worker_batch` lease and encrypted checkpoint/event journal.
+
+- It checks **the same** pinned Preview-branch, PostgreSQL fingerprint, separate 256-bit journal key, migration and Auth0 configuration requirements as the API.
+- It requires explicit CLI acknowledgements `--once --unverified-only`; `--max-steps` is limited to 1–20. It never starts a daemon, invokes a remote LLM, submits anything to an authority or modifies a person's data.
+- In current **unverified-only** mode, it reads the owner-scoped message, advances a conservative heuristic intent node and records an explicitly unverified response (no legal claims, citations or official handoff). This mode demonstrates queue → leased worker → encrypted history → chat read, **not a ready administrative assistant**.
+- A worker crash can leave a lease until expiry; the existing DB fences old writers. Only committed checkpoints can be resumed; never retry with unbounded busy loops.
+- Do not run this on a database with real user requests without reviewing the impact: even a diagnostic response finalizes a queued run. This adapter is for synthetic, disposable Preview validation, not participant pilots.
+
+**Optional manually controlled command in a reviewed isolated execution environment** (not executed by this PR):
+
+```bash
+cd backend
+python -m app.agent.preview_worker --once --unverified-only --max-steps 8
+```
+
+The expected output is a **count of committed steps only**. It intentionally omits prompts, subjects, private data, tokens, keys and connection strings. GitHub CI exercises SQLite signed JWT roundtrips and the already-migrated disposable PostgreSQL store, but the runner is **not scheduled**, a separate worker service has not been deployed, and hosted Auth0 two-account tests remain pending.
+
+**Next dependency:** Replace this no-guidance diagnostic adapter with a reviewed-source execution adapter wired into the intended LangGraph nodes, then independently add bounded scheduling/monitoring and real Preview acceptance. Do not activate full execution while official-source and privacy gates are pending.
+
+## Earlier boundary: no autonomous agent worker yet
 
 The endpoint returns `202 Accepted` for a successfully persisted, encrypted user message, **not a generated answer**. A runnable agent must advance the `queued` request using the already implemented lease/fenced `run_worker_batch` service, a permitted execution adapter, and reviewed source scope. No background worker is started in a serverless request and the frontend must not present queued as completed. A dedicated worker deployment and external scheduling/retry policy are still separate tasks.
 

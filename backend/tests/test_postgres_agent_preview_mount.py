@@ -7,11 +7,14 @@ It does not execute a worker, use real Auth0 or authorize production.
 import base64
 from hashlib import sha256
 import os
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 
+from app.agent.preview_worker import preview_unverified_step
+from app.agent.worker import run_worker_step
+from app.auth.tokens import Principal
 from app.agent.run_requests import AgentRunRequest
 from app.agent.threads import AgentThread
 from app.config import Settings
@@ -85,6 +88,25 @@ def test_gated_preview_mount_accepts_encrypted_first_message_and_rejects_foreign
                 row = db.get(AgentRunRequest, run_id)
                 assert row is not None
                 assert message["text"].encode() not in row.message_ciphertext
+            # Independently advance the exact signed user's run using the
+            # source-safe Preview adapter, not a mock LLM or a fake response.
+            for _ in range(4):
+                updated = run_worker_step(
+                    app.state.session_factory, thread_id=UUID(thread_id), run_id=UUID(run_id),
+                    principal=Principal("phase4-preview-transport-owner"),
+                    key=bytes(range(32, 64)), execute=preview_unverified_step,
+                )
+                if updated.status == "completed":
+                    break
+            finished = client.get(run_url, headers=owner)
+            assert finished.status_code == 200
+            assert finished.json()["status"] == "completed"
+            answer = finished.json()["result"]
+            assert answer["verification_status"] == "insufficient_evidence"
+            assert answer["citations"] == [] and answer["official_channel"] is None
+            assert client.get(run_url, headers=foreign).status_code == 404
+            final_history = client.get(history_url, headers=owner).json()["items"][0]
+            assert final_history["answer"]["verification_status"] == "insufficient_evidence"
     finally:
         if thread_id:
             with app.state.session_factory.begin() as db:

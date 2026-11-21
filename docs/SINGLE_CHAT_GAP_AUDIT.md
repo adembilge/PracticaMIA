@@ -18,7 +18,7 @@ A **feature-gated first functional frontend shell** now exists at `frontend/src/
 
 **New Phase 4 staging transport:** `backend/app/agent/preview_mount.py` and the FastAPI app factory now permit the owner-scoped `/api/v1/agent/*` routes **only behind a pinned, isolated Preview branch, staging fingerprint and separate encryption key**. See [agent mount runbook](AGENT_PREVIEW_API_RUNBOOK.md). The old matrix's assertion that `backend/app/main.py` never mounts the router now applies only to default/production deployments. A dedicated lease-based worker, real source review and hosted two-account acceptance are still unimplemented gates; queued is not completed.
 
-## Current-to-target matrix
+**Bounded worker adapter follow-up:** A one-shot, explicit `--unverified-only` worker command now demonstrates the transport's owned encrypted messages and durable, leased advancement in CI. It returns **unverified-only** responses and cannot establish official-source correctness or a working hosted LangGraph assistant. No worker scheduler or deployment is enabled. [Runbook](AGENT_PREVIEW_API_RUNBOOK.md#phase-4-bounded-worker-adapter-code-available-not-deployed).\n\n## Current-to-target matrix
 
 | Surface/capability | Verified repository location | Current status | D-010 target | Delivery gate |
 | --- | --- | --- | --- | --- |
