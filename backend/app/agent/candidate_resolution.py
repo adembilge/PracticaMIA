@@ -472,6 +472,7 @@ def _choose_message_goal(
             question = ClarifyingQuestion(
                 question_id=uuid4(),
                 text=_QUESTIONS[("location", "destination")][0 if en else 1],
+                answer_shape="free_text",
                 missing_fields=["destination"],
             ).model_copy(update={"procedure_goal": selection})
             return RequestClarification(question, state)
