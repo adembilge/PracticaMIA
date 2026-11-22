@@ -107,8 +107,6 @@ export function RequestDetailsCard({taskId,language,onChanged,readOnly=false}:{t
   const [error,setError]=useState('');
   const [failure,setFailure]=useState<'load'|'draft'|'confirm'|null>(null);
   const [expired,setExpired]=useState(false);
-  const it=language==='it';
-  const login='/auth/login?returnTo='+encodeURIComponent('/');
   const load=useCallback(async(signal?:AbortSignal)=>{
     setLoading(true);setError('');setFailure(null);
     try{
