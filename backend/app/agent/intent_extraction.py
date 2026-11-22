@@ -375,12 +375,10 @@ def identify_intent_step(
         procedures = []
         if "procedure" not in missing:
             missing.append("procedure")
-    # Place mentions remain candidates, not confirmed case facts. They are
-    # retained only so an explicit out-of-scope municipality can be rejected
-    # before the Milan-only evidence retrieval path.
-    # Only reviewed search-variant municipality records are scope-routing
-    # candidates. Ordinary aliases (including synthetic catalogue fixtures)
-    # must not silently change the existing evidence-routing contract.
+    # Place mentions remain candidates, not confirmed case facts. Reviewed
+    # current official names and search variants are both eligible for the
+    # explicit out-of-scope municipality guard before Milan-only retrieval.
+    # Ordinary aliases must not silently change the evidence-routing contract.
     off_scope_municipality_ids = {
         record.catalogue_id for record in catalogue_names
         if record.entity_type == "municipality" and record.kind in {"current_official", "search_variant"}

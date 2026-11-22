@@ -267,3 +267,8 @@ Added four independent bilingual case-free graph holdout scenarios for explicit 
 These are isolated synthetic regression checks, not reviewed guidance for Como or Torino and not participant evidence. The three-authority source review, participant sessions, hosted account-session acceptance and operational validation remain open. D-010 remains binding: one chat with conversation-only history and inline cards. Phase 5 remains paused. No Vercel build or deployment was initiated.
 
 A follow-up scope-guard regression now uses `current_official` municipality records for the Como and Torino holdouts, in addition to the previously covered `search_variant` records. This ensures explicitly resolved official municipality names are also rejected before Milan-only evidence retrieval. The tests remain synthetic and do not approve non-Milan guidance.
+
+
+### 22 November 2026 — Phase 4 municipality name-kind holdouts
+
+Expanded the case-free off-scope municipality regression matrix so each of the four bilingual Como and Torino requests runs against both `current_official` and `search_variant` catalogue records. This verifies both supported name kinds are rejected before Milan-only evidence retrieval. The implementation comment now describes both eligible record kinds. These remain synthetic scope-boundary checks; no non-Milan guidance is approved and no participant or legal validation is claimed. Phase 5 remains paused; no Vercel deployment was requested.
