@@ -383,3 +383,28 @@ def test_confirmed_activity_location_mismatch_excludes_route_without_irrelevant_
     assert result.missing_information == []
     assert result.official_channel is None
     assert result.citations == []
+
+
+@pytest.mark.parametrize("language", ["en", "it"])
+def test_province_level_activity_scope_uses_confirmed_province_not_municipality(language):
+    assignment = replace(
+        SERVICE,
+        case_location_role="activity_location",
+        unit_type="province",
+        unit_ids=("province-p",),
+        effective_period=EffectivePeriod("filing_date", effective_from=date(2026, 4, 1)),
+        required_circumstances=(("housing_basis", "owner"),),
+    )
+    result = choose(
+        language=language,
+        case_locations={
+            "activity_location": CaseLocation(
+                municipality_id="municipality-c", province_id="province-p", confirmed=True,
+            ),
+        },
+        assignments=(assignment,),
+    )
+
+    assert isinstance(result, RequestClarification)
+    assert result.question.missing_fields == ["filing_date", "housing_basis"]
+    assert "activity_location" not in result.question.missing_fields

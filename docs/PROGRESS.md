@@ -302,3 +302,6 @@ The next Task 34.4 regression checks a separate boundary: a confirmed destinatio
 
 
 PR #235 was squash-merged as `3a481fffb57830649638d6778d59de88197fb484` after Backend CI, Frontend CI, Synthetic MVP Acceptance (Chromium + API), Roadmap governance CI, and Vercel Preview Comments all passed on its final head. The next Task 34.4 regression is the inverse location-role case: when the required activity municipality is explicitly confirmed to be a different municipality, the assignment must be excluded and the worker must not ask for its otherwise-missing filing date or housing basis. English and Italian synthetic cases add no real authority coverage. Phase 5 remains paused.
+
+
+PR #236 was squash-merged as `5eb77ac2881eb347b120be706bd108826b8b4159` after all required checks passed on its final head: Backend CI, Frontend CI, Synthetic MVP Acceptance, Roadmap governance CI, and Vercel Preview Comments. The next Task 34.4 regression protects territorial hierarchy: a province-level assignment for the activity location must match the confirmed province even when the municipality differs. The worker should then ask only for the still-missing filing date and housing basis. English and Italian cases remain synthetic and do not approve real routing. Phase 5 remains paused.
