@@ -132,7 +132,7 @@ export function RequestDetailsCard({taskId,language,onChanged,readOnly=false}:{t
     void load(controller.signal);
     return ()=>controller.abort();
   },[load]);
-  const state=firstRouteIntakeState(facts,Boolean(stored?.confirmed));
+  const state=requestIntakeState(facts,Boolean(stored?.confirmed));
   const localComplete=INTAKE_FIELDS.every(k=>typeof facts[k as FieldKey]==='string'&&
     facts[k as FieldKey]!=='unknown');
   const validDate=!date||isRealCalendarDate(date);

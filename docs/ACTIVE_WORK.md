@@ -10,7 +10,7 @@
 - PR #244 was merged as `27f853507e9f48caea2ecb506cb42738382793d9`.
 - This cleanup PR moves the customer entry route to the single-chat shell and removes legacy customer case/demo pages.
 - The agent API and worker remain isolated to the reviewed Preview environment. No production enablement is included.
-- Phase 5 is explicitly paused.
+- Phase 5 is paused.
 
 ## Phase 4 priorities
 
