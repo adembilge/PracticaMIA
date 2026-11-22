@@ -75,6 +75,41 @@ def _names():
             approved_for_search=True,
         ),
         CatalogueName(
+            catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
+            name="update my registered address", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
+        CatalogueName(
+            catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
+            name="change my registered residence", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
+        CatalogueName(
+            catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
+            name="transfer my residence", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
+        CatalogueName(
+            catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
+            name="register my residence", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
+        CatalogueName(
+            catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
+            name="trasferire la residenza", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
+        CatalogueName(
+            catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
+            name="spostare la residenza", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
+        CatalogueName(
+            catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
+            name="fare il cambio di residenza", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
+        CatalogueName(
             catalogue_id=JURISDICTION, entity_type="municipality", display_name="Milano",
             name="Milan", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
             approved_for_search=True,
@@ -94,6 +129,13 @@ def _names():
         ("I need to register a new address in Milan.", "en"),
         ("Devo comunicare il nuovo indirizzo a Milano.", "it"),
         ("Devo registrare il nuovo indirizzo a Milano.", "it"),
+        ("I need to update my registered address in Milan.", "en"),
+        ("I want to change my registered residence in Milan.", "en"),
+        ("I need to transfer my residence to Milan.", "en"),
+        ("I need to register my residence in Milan.", "en"),
+        ("Devo trasferire la residenza a Milano.", "it"),
+        ("Voglio spostare la residenza a Milano.", "it"),
+        ("Devo fare il cambio di residenza a Milano.", "it"),
     ],
 )
 def test_case_free_natural_address_phrases_retrieve_only_approved_references(client, text, language):

@@ -87,6 +87,13 @@ def load_pilot_catalogue_names(sessions: sessionmaker) -> tuple[CatalogueName, .
         ("procedure", PROCEDURE, "Cambio di residenza", "register my new address", "search_variant"),
         ("procedure", PROCEDURE, "Cambio di residenza", "comunicare il nuovo indirizzo", "search_variant"),
         ("procedure", PROCEDURE, "Cambio di residenza", "registrare il nuovo indirizzo", "search_variant"),
+        ("procedure", PROCEDURE, "Cambio di residenza", "update my registered address", "search_variant"),
+        ("procedure", PROCEDURE, "Cambio di residenza", "change my registered residence", "search_variant"),
+        ("procedure", PROCEDURE, "Cambio di residenza", "transfer my residence", "search_variant"),
+        ("procedure", PROCEDURE, "Cambio di residenza", "register my residence", "search_variant"),
+        ("procedure", PROCEDURE, "Cambio di residenza", "trasferire la residenza", "search_variant"),
+        ("procedure", PROCEDURE, "Cambio di residenza", "spostare la residenza", "search_variant"),
+        ("procedure", PROCEDURE, "Cambio di residenza", "fare il cambio di residenza", "search_variant"),
         ("municipality", JURISDICTION, "Milano", "Milano", "current_official"),
         ("municipality", JURISDICTION, "Milano", "Milan", "search_variant"),
     )
