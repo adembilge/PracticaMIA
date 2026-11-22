@@ -49,6 +49,8 @@ ALIASES = {
     PROCEDURE: (
         "cambio di residenza", "registered address", "address change", "change of registered residence",
         "indirizzo all’anagrafe", "file the residence change", "file my residence change",
+        "register a new address", "register my new address",
+        "comunicare il nuovo indirizzo", "registrare il nuovo indirizzo",
     ),
     "marriage_banns": ("pubblicazioni di matrimonio", "marriage banns"),
     "residence_permit_renewal": ("permesso di soggiorno", "residence permit"),
