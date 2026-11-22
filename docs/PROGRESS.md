@@ -311,3 +311,7 @@ PR #237 was squash-merged as `9330ec78a2317d513a452b23728249bee0544c91` after al
 
 
 PR #238 was squash-merged as `5644f4ef0088701582b6ee254dd5a2ef10a89b57` after Backend CI, Frontend CI, Synthetic MVP Acceptance, Roadmap governance CI, and Vercel Preview Comments all passed. The next Task 34.4 regression covers competing location roles: one destination-scoped authority matches the confirmed destination, while a second authority remains possible only if a missing activity location matches. The worker must ask for the activity location instead of selecting the partial destination match. English and Italian tests use synthetic assignments only. Phase 5 remains paused.
+
+### 22 November 2026 — Phase 4 confirmed-date exclusion
+
+Added a bilingual Task 34.4 worker-outcome regression for an assignment whose confirmed filing date is outside its reviewed effective period while its activity location and housing basis remain unknown. The assignment must be excluded by the known date mismatch; the worker must not ask for location or circumstance details that cannot make the expired assignment applicable. The test uses a fictional assignment and does not add real authority coverage. Phase 5 remains paused.

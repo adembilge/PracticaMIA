@@ -451,3 +451,26 @@ def test_matching_destination_does_not_resolve_competing_activity_location_autho
     assert result.question.missing_fields == ["activity_location"]
     assert result.question.answer_shape == "free_text"
     assert result.resume_state.next_node == "choose_next_step"
+
+@pytest.mark.parametrize("language", ["en", "it"])
+def test_confirmed_filing_date_mismatch_excludes_candidate_without_irrelevant_questions(language):
+    assignment = replace(
+        SERVICE,
+        case_location_role="activity_location",
+        effective_period=EffectivePeriod("filing_date", effective_until=date(2026, 3, 31)),
+        required_circumstances=(("housing_basis", "owner"),),
+    )
+    result = choose(
+        language=language,
+        case_locations={},
+        confirmed_dates={"filing_date": date(2026, 4, 1)},
+        confirmed_circumstances={},
+        assignments=(assignment,),
+    )
+
+    assert isinstance(result, AnswerResult)
+    assert result.verification_status == "insufficient_evidence"
+    assert result.missing_information == []
+    assert result.official_channel is None
+    assert result.citations == []
+    assert result.claims == []
