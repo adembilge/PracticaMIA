@@ -39,12 +39,18 @@ def test_documented_next_action_command_reports_cases_and_turns():
     cases = report["cases"]
     turns = [turn for case in cases for turn in case["turns"]]
     assert report["unassisted_next_action"]["total"] == len({case["id"] for case in cases}) == 26
-    assert report["unassisted_next_action"]["passed"] == 24
+    failed_details = [
+        {"id": case["id"], "turns": [turn for turn in case["turns"] if not turn["passed"]]}
+        for case in cases if not case["passed"]
+    ]
+    assert report["unassisted_next_action"]["passed"] == 26, (
+        f"Unassisted next-action scenarios still failing: {failed_details}"
+    )
     assert report["unassisted_next_action"]["passed"] == sum(
         all(turn["passed"] for turn in case["turns"]) for case in cases
     )
     diagnostics = report["diagnostics"]
-    assert diagnostics["total_turns"] == len(turns) == 36
+    assert diagnostics["total_turns"] == len(turns) == 40
     assert diagnostics["correct_turns"] == sum(turn["passed"] for turn in turns)
     assert diagnostics["correct_authorities"] <= diagnostics["required_authorities"]
     assert diagnostics["supported_citations"] <= diagnostics["emitted_citations"]
@@ -217,7 +223,7 @@ def test_replay_withdraws_current_handoff_but_retains_the_historical_answer(monk
 
 def test_replay_withholds_scripted_reply_after_a_different_question(monkeypatch):
     report, saved = _replay(monkeypatch, "resume-pending-destination", opening="Hello")
-    opening, restore, reply = report["turns"]
+    opening, restore, reply = report["turns"][:3]
     assert opening["observed"]["fields"] == ("intent",) and opening["unnecessary_question"]
     assert restore["observed"]["blocked"] == reply["observed"]["blocked"] == "required_question_mismatch"
     assert not report["passed"] and saved.status == "waiting_for_information"

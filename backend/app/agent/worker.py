@@ -148,12 +148,19 @@ def run_worker_step(
                 raise CheckpointConflict("A clarification reply requires its recorded question")
             question = requested.question
         topic_changed = reply is not None and reply.disposition == "change_topic"
-        case_question = message.case_id is not None and question is not None and bool(question.case_choices)
+        case_question = message.case_id is not None and question is not None and len(question.case_choices) > 1
         resume_case = (
             message.case_id is not None and checkpoint.state.next_node == "choose_next_step"
             and checkpoint.state.intent == "resume_case"
         )
-        resolve_case = message.case_id is not None and not topic_changed and (case_question or resume_case)
+        # Resolve a case only for an explicit case-choice reply or a generic resume
+        # with no procedure candidates. A reply to an existing task clarification must
+        # continue that task even when its checkpoint no longer carries candidates.
+        resolve_case = message.case_id is not None and not topic_changed and (
+            case_question or (
+                resume_case and reply is None and not checkpoint.state.procedure_candidates
+            )
+        )
 
         case_context = None
         choosing_goal = checkpoint.state.next_node == "choose_next_step" and bool(checkpoint.state.goals)

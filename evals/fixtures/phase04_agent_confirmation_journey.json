@@ -1,6 +1,6 @@
 {
   "dataset_id": "phase04_agent_confirmation_journey_v2",
-  "base_dataset_sha256": "d0731ed19df3d5104282b404fbc7f3b57d8a9d424c11353ba6a21edc83359b75",
+  "base_dataset_sha256": "080d2497f99891ea2c7b464933e4a44f0ddb96b102e3617a8bf4cffecf191806",
   "case_id": "resume-pending-destination",
   "replace_from": "resume",
   "steps": [
@@ -8,11 +8,16 @@
       "id": "resume",
       "event": "reply",
       "question_step": "pause",
-      "text": {"en": "The destination is the municipality of Milan.", "it": "Il Comune di destinazione è Milano."},
+      "text": {
+        "en": "The destination is the municipality of Milan.",
+        "it": "Il Comune di destinazione è Milano."
+      },
       "expect": {
         "outcome": "needs_intake_confirmation",
         "next_action": "confirm_saved_intake",
-        "fields": ["intake_confirmation"],
+        "fields": [
+          "intake_confirmation"
+        ],
         "acceptance": "Offer the owned saved case so the user can confirm intake. Withhold the official channel and sources."
       }
     },
@@ -20,7 +25,9 @@
       "id": "confirm",
       "event": "confirm_intake",
       "after_step": "resume",
-      "facts": {"destination_municipality": "milano"},
+      "facts": {
+        "destination_municipality": "milano"
+      },
       "expect": {
         "outcome": "saved_intake_confirmed",
         "next_action": "saved_intake_confirmed",
@@ -38,8 +45,13 @@
       "expect": {
         "outcome": "verified_guidance",
         "next_action": "open_official_channel",
-        "authority_ids": ["milan_ufficio_anagrafe"],
-        "citation_refs": ["milan_receiving_office", "anpr_applicant_handoff"],
+        "authority_ids": [
+          "milan_ufficio_anagrafe"
+        ],
+        "citation_refs": [
+          "milan_receiving_office",
+          "anpr_applicant_handoff"
+        ],
         "acceptance": "Check the confirmed case and provide the same exact reviewed handoff required by v1."
       }
     }

@@ -2,7 +2,10 @@
   "schema_version": 1,
   "dataset_id": "phase04_agent_development_v1",
   "case_origin": "synthetic_from_phase2",
-  "languages": ["en", "it"],
+  "languages": [
+    "en",
+    "it"
+  ],
   "profiles": {
     "signed_milan_individual_renter": {
       "citizenship_class": "italian",
@@ -25,7 +28,9 @@
       "signed_evidence": {
         "source_id": "milano-italian-residence-change",
         "version_id": "e139e910-3a89-4994-b450-b5107d8db7dd",
-        "passage_ids": ["e139e910-3a89-4994-b450-b5107d8db7dd:0000"],
+        "passage_ids": [
+          "e139e910-3a89-4994-b450-b5107d8db7dd:0000"
+        ],
         "rule_id": "italian_change_anpr_guidance"
       }
     },
@@ -99,11 +104,18 @@
     {
       "id": "milan-confirmed-route",
       "opening_intent": "find_procedure",
-      "opening_procedure_ids": ["milan_residence_change"],
+      "opening_procedure_ids": [
+        "milan_residence_change"
+      ],
       "phase2_section": "phase-02-administrative-domains.md#map-everyday-phrasing-to-procedure-candidates",
-      "tags": ["supported_route"],
+      "tags": [
+        "supported_route"
+      ],
       "initial_profile": "signed_milan_individual_renter",
-      "reference_ids": ["milan_receiving_office", "anpr_applicant_handoff"],
+      "reference_ids": [
+        "milan_receiving_office",
+        "anpr_applicant_handoff"
+      ],
       "steps": [
         {
           "id": "ask",
@@ -113,10 +125,18 @@
             "it": "Ho cambiato casa e devo aggiornare il mio indirizzo a Milano. Dove invio la dichiarazione?"
           },
           "expect": {
-            "outcome": "verified_guidance", "next_action": "open_official_channel",
-            "procedure_ids": ["milan_residence_change"],
-            "authority_ids": ["milan_ufficio_anagrafe"],
-            "citation_refs": ["milan_receiving_office", "anpr_applicant_handoff"],
+            "outcome": "verified_guidance",
+            "next_action": "open_official_channel",
+            "procedure_ids": [
+              "milan_residence_change"
+            ],
+            "authority_ids": [
+              "milan_ufficio_anagrafe"
+            ],
+            "citation_refs": [
+              "milan_receiving_office",
+              "anpr_applicant_handoff"
+            ],
             "acceptance": "Identify the receiving office and the ANPR channel. The applicant controls submission."
           }
         }
@@ -125,11 +145,19 @@
     {
       "id": "milan-wrong-authority",
       "opening_intent": "find_procedure",
-      "opening_procedure_ids": ["milan_residence_change"],
+      "opening_procedure_ids": [
+        "milan_residence_change"
+      ],
       "phase2_section": "phase-02-administrative-domains.md#identify-the-responsible-authority",
-      "tags": ["wrong_authority"],
+      "tags": [
+        "wrong_authority"
+      ],
       "initial_profile": "signed_milan_individual_renter",
-      "reference_ids": ["milan_receiving_office", "anpr_applicant_handoff", "questura_direct_intake"],
+      "reference_ids": [
+        "milan_receiving_office",
+        "anpr_applicant_handoff",
+        "questura_direct_intake"
+      ],
       "steps": [
         {
           "id": "ask",
@@ -139,11 +167,21 @@
             "it": "Devo solo cambiare l'indirizzo all'anagrafe a Milano. Devo andare in Questura?"
           },
           "expect": {
-            "outcome": "verified_guidance", "next_action": "open_official_channel",
-            "procedure_ids": ["milan_residence_change"],
-            "authority_ids": ["milan_ufficio_anagrafe"],
-            "citation_refs": ["milan_receiving_office", "anpr_applicant_handoff"],
-            "excluded_refs": ["questura_direct_intake"],
+            "outcome": "verified_guidance",
+            "next_action": "open_official_channel",
+            "procedure_ids": [
+              "milan_residence_change"
+            ],
+            "authority_ids": [
+              "milan_ufficio_anagrafe"
+            ],
+            "citation_refs": [
+              "milan_receiving_office",
+              "anpr_applicant_handoff"
+            ],
+            "excluded_refs": [
+              "questura_direct_intake"
+            ],
             "acceptance": "Treat the office named in the question as a candidate. Route the saved Milan address change by destination and procedure."
           }
         }
@@ -152,10 +190,16 @@
     {
       "id": "destination-missing",
       "opening_intent": "find_procedure",
-      "opening_procedure_ids": ["milan_residence_change"],
+      "opening_procedure_ids": [
+        "milan_residence_change"
+      ],
       "phase2_section": "phase-02-administrative-domains.md#identify-the-responsible-authority",
-      "tags": ["missing_location"],
-      "reference_ids": ["milan_receiving_office"],
+      "tags": [
+        "missing_location"
+      ],
+      "reference_ids": [
+        "milan_receiving_office"
+      ],
       "steps": [
         {
           "id": "ask",
@@ -165,8 +209,14 @@
             "it": "Ho cambiato casa e devo aggiornare il mio indirizzo all'anagrafe. A quale Comune mi rivolgo?"
           },
           "expect": {
-            "outcome": "clarification", "next_action": "provide_information", "fields": ["destination_municipality"],
-            "excluded_refs": ["milan_receiving_office"],
+            "outcome": "clarification",
+            "next_action": "provide_information",
+            "fields": [
+              "destination_municipality"
+            ],
+            "excluded_refs": [
+              "milan_receiving_office"
+            ],
             "acceptance": "Ask for the destination municipality before presenting a local authority or channel."
           }
         }
@@ -175,19 +225,36 @@
     {
       "id": "milan-source-withdrawn",
       "opening_intent": "resume_case",
-      "opening_procedure_ids": ["milan_residence_change"],
+      "opening_procedure_ids": [
+        "milan_residence_change"
+      ],
       "phase2_section": "phase-02-user-research-and-scope.md#15-assemble-the-first-pilot-case-set",
-      "tags": ["stale_source"],
+      "tags": [
+        "stale_source"
+      ],
       "initial_profile": "signed_milan_individual_renter",
-      "reference_ids": ["milan_receiving_office", "anpr_applicant_handoff"],
+      "reference_ids": [
+        "milan_receiving_office",
+        "anpr_applicant_handoff"
+      ],
       "steps": [
         {
           "id": "open",
           "event": "message",
-          "text": {"en": "Open the filing step for my Milan case.", "it": "Apri il passaggio di invio della mia pratica di Milano."},
+          "text": {
+            "en": "Open the filing step for my Milan case.",
+            "it": "Apri il passaggio di invio della mia pratica di Milano."
+          },
           "expect": {
-            "outcome": "verified_guidance", "next_action": "open_official_channel",
-            "authority_ids": ["milan_ufficio_anagrafe"], "citation_refs": ["milan_receiving_office", "anpr_applicant_handoff"],
+            "outcome": "verified_guidance",
+            "next_action": "open_official_channel",
+            "authority_ids": [
+              "milan_ufficio_anagrafe"
+            ],
+            "citation_refs": [
+              "milan_receiving_office",
+              "anpr_applicant_handoff"
+            ],
             "acceptance": "Use the signed handoff while its sources are applicable and current in the fixture."
           }
         },
@@ -196,8 +263,11 @@
           "event": "source_change",
           "withdrawn_ref": "milan_receiving_office",
           "expect": {
-            "outcome": "source_gap", "next_action": "revalidate_sources",
-            "excluded_refs": ["milan_receiving_office"],
+            "outcome": "source_gap",
+            "next_action": "revalidate_sources",
+            "excluded_refs": [
+              "milan_receiving_office"
+            ],
             "acceptance": "Keep the previous citation in history. Withhold the dependent signed filing action and its withdrawn citation from current guidance."
           }
         }
@@ -208,9 +278,13 @@
       "opening_intent": "request_information",
       "opening_procedure_ids": [],
       "phase2_section": "phase-02-user-research-and-scope.md#15-assemble-the-first-pilot-case-set",
-      "tags": ["obsolete_form"],
+      "tags": [
+        "obsolete_form"
+      ],
       "initial_profile": "signed_milan_individual_renter",
-      "reference_ids": ["anpr_applicant_handoff"],
+      "reference_ids": [
+        "anpr_applicant_handoff"
+      ],
       "steps": [
         {
           "id": "ask",
@@ -220,8 +294,11 @@
             "it": "Una vecchia guida ANPR riporta un limite complessivo di caricamento. Quale limite esatto vale nel modulo di oggi?"
           },
           "expect": {
-            "outcome": "source_gap", "next_action": "check_current_form",
-            "excluded_refs": ["anpr_applicant_handoff"],
+            "outcome": "source_gap",
+            "next_action": "check_current_form",
+            "excluded_refs": [
+              "anpr_applicant_handoff"
+            ],
             "acceptance": "Leave the numeric limit unresolved and direct the applicant to the current form or ask the registry office."
           }
         }
@@ -230,30 +307,58 @@
     {
       "id": "destination-corrected",
       "opening_intent": "find_procedure",
-      "opening_procedure_ids": ["milan_residence_change"],
+      "opening_procedure_ids": [
+        "milan_residence_change"
+      ],
       "phase2_section": "phase-02-user-research-and-scope.md#15-assemble-the-first-pilot-case-set",
-      "tags": ["correction", "wrong_jurisdiction"],
+      "tags": [
+        "correction",
+        "wrong_jurisdiction"
+      ],
       "initial_profile": "signed_milan_individual_renter",
-      "reference_ids": ["milan_receiving_office", "anpr_applicant_handoff"],
+      "reference_ids": [
+        "milan_receiving_office",
+        "anpr_applicant_handoff"
+      ],
       "steps": [
         {
           "id": "open",
           "event": "message",
-          "text": {"en": "How do I file my saved address change in Milan?", "it": "Come invio il cambio di residenza salvato per Milano?"},
+          "text": {
+            "en": "How do I file my saved address change in Milan?",
+            "it": "Come invio il cambio di residenza salvato per Milano?"
+          },
           "expect": {
-            "outcome": "verified_guidance", "next_action": "open_official_channel",
-            "authority_ids": ["milan_ufficio_anagrafe"], "citation_refs": ["milan_receiving_office", "anpr_applicant_handoff"],
+            "outcome": "verified_guidance",
+            "next_action": "open_official_channel",
+            "authority_ids": [
+              "milan_ufficio_anagrafe"
+            ],
+            "citation_refs": [
+              "milan_receiving_office",
+              "anpr_applicant_handoff"
+            ],
             "acceptance": "Use the Milan scope of the existing case."
           }
         },
         {
           "id": "correct",
           "event": "message",
-          "text": {"en": "Correction: my destination is Torino. Milan is my previous municipality.", "it": "Correzione: il Comune di destinazione è Torino. Milano è il Comune precedente."},
-          "facts": {"destination_municipality": "torino", "previous_municipality": "milano"},
+          "text": {
+            "en": "Correction: my destination is Torino. Milan is my previous municipality.",
+            "it": "Correzione: il Comune di destinazione è Torino. Milano è il Comune precedente."
+          },
+          "facts": {
+            "destination_municipality": "torino",
+            "previous_municipality": "milano"
+          },
           "expect": {
-            "outcome": "source_gap", "next_action": "reassess_destination",
-            "excluded_refs": ["milan_receiving_office", "anpr_applicant_handoff"],
+            "outcome": "source_gap",
+            "next_action": "reassess_destination",
+            "excluded_refs": [
+              "milan_receiving_office",
+              "anpr_applicant_handoff"
+            ],
             "acceptance": "Reassess the case as a Torino address change. Leave the local channel unresolved pending reviewed residence-change evidence."
           }
         }
@@ -262,20 +367,41 @@
     {
       "id": "torino-banns-and-delegation",
       "opening_intent": "find_procedure",
-      "opening_procedure_ids": ["marriage_banns"],
+      "opening_procedure_ids": [
+        "marriage_banns"
+      ],
       "phase2_section": "phase-02-administrative-domains.md#synthetic-jurisdiction-examples",
-      "tags": ["wrong_authority", "cross_authority"],
-      "reference_ids": ["torino_receiving_office", "torino_delegation"],
+      "tags": [
+        "wrong_authority",
+        "cross_authority"
+      ],
+      "reference_ids": [
+        "torino_receiving_office",
+        "torino_delegation"
+      ],
       "steps": [
         {
           "id": "ask",
           "event": "message",
-          "text": {"en": "We both live in Torino but are marrying elsewhere. Should we ask the ceremony town to publish the banns?", "it": "Abitiamo entrambi a Torino ma ci sposiamo in un altro Comune. Le pubblicazioni vanno chieste al Comune della cerimonia?"},
-          "facts": {"residence_municipality": "torino"},
+          "text": {
+            "en": "We both live in Torino but are marrying elsewhere. Should we ask the ceremony town to publish the banns?",
+            "it": "Abitiamo entrambi a Torino ma ci sposiamo in un altro Comune. Le pubblicazioni vanno chieste al Comune della cerimonia?"
+          },
+          "facts": {
+            "residence_municipality": "torino"
+          },
           "expect": {
-            "outcome": "clarification", "next_action": "provide_information",
-            "procedure_ids": ["marriage_banns"], "fields": ["celebration_municipality"],
-            "candidate_authority_ids": ["torino_ufficio_pubblicazioni"],
+            "outcome": "clarification",
+            "next_action": "provide_information",
+            "procedure_ids": [
+              "marriage_banns"
+            ],
+            "fields": [
+              "celebration_municipality"
+            ],
+            "candidate_authority_ids": [
+              "torino_ufficio_pubblicazioni"
+            ],
             "acceptance": "Keep the receiving office and the delegation destination distinct. Ask where the ceremony will take place and keep the filing channel unverified."
           }
         }
@@ -284,18 +410,34 @@
     {
       "id": "permit-filing-route-missing",
       "opening_intent": "find_procedure",
-      "opening_procedure_ids": ["residence_permit_renewal"],
+      "opening_procedure_ids": [
+        "residence_permit_renewal"
+      ],
       "phase2_section": "phase-02-administrative-domains.md#identify-the-responsible-authority",
-      "tags": ["missing_context"],
-      "reference_ids": ["postal_permit_intake", "questura_direct_intake"],
+      "tags": [
+        "missing_context"
+      ],
+      "reference_ids": [
+        "postal_permit_intake",
+        "questura_direct_intake"
+      ],
       "steps": [
         {
           "id": "ask",
           "event": "message",
-          "text": {"en": "My residence permit expires soon. Do I renew it at a post office or at the Questura?", "it": "Il mio permesso di soggiorno scade tra poco. Lo rinnovo alle Poste o in Questura?"},
+          "text": {
+            "en": "My residence permit expires soon. Do I renew it at a post office or at the Questura?",
+            "it": "Il mio permesso di soggiorno scade tra poco. Lo rinnovo alle Poste o in Questura?"
+          },
           "expect": {
-            "outcome": "clarification", "next_action": "provide_information",
-            "procedure_ids": ["residence_permit_renewal"], "fields": ["permit_category"],
+            "outcome": "clarification",
+            "next_action": "provide_information",
+            "procedure_ids": [
+              "residence_permit_renewal"
+            ],
+            "fields": [
+              "permit_category"
+            ],
             "acceptance": "Identify the permit category before selecting a route. Leave the office and filing channel unresolved."
           }
         }
@@ -304,20 +446,43 @@
     {
       "id": "permit-postal-intake",
       "opening_intent": "find_procedure",
-      "opening_procedure_ids": ["residence_permit_renewal"],
+      "opening_procedure_ids": [
+        "residence_permit_renewal"
+      ],
       "phase2_section": "phase-02-administrative-domains.md#map-service-channels-by-step",
-      "tags": ["wrong_authority", "review_gap"],
-      "reference_ids": ["postal_permit_intake", "questura_direct_intake", "questura_postal_followup"],
+      "tags": [
+        "wrong_authority",
+        "review_gap"
+      ],
+      "reference_ids": [
+        "postal_permit_intake",
+        "questura_direct_intake",
+        "questura_postal_followup"
+      ],
       "steps": [
         {
           "id": "ask",
           "event": "message",
-          "text": {"en": "My notice says to renew by post, but can I deliver this envelope to the Questura instead?", "it": "L'avviso dice di rinnovare per via postale. Posso consegnare la busta in Questura?"},
-          "facts": {"filing_route": "postal"},
+          "text": {
+            "en": "My notice says to renew by post, but can I deliver this envelope to the Questura instead?",
+            "it": "L'avviso dice di rinnovare per via postale. Posso consegnare la busta in Questura?"
+          },
+          "facts": {
+            "filing_route": "postal"
+          },
           "expect": {
-            "outcome": "source_gap", "next_action": "verify_filing_channel",
-            "procedure_ids": ["residence_permit_renewal"], "candidate_authority_ids": ["poste_italiane_sportello_amico"],
-            "excluded_refs": ["questura_direct_intake", "questura_postal_followup"],
+            "outcome": "source_gap",
+            "next_action": "verify_filing_channel",
+            "procedure_ids": [
+              "residence_permit_renewal"
+            ],
+            "candidate_authority_ids": [
+              "poste_italiane_sportello_amico"
+            ],
+            "excluded_refs": [
+              "questura_direct_intake",
+              "questura_postal_followup"
+            ],
             "acceptance": "Keep the postal intake candidate tied to the known route. Withhold specific branch instructions until reviewed evidence applies."
           }
         }
@@ -326,20 +491,41 @@
     {
       "id": "permit-appointment-date-unreadable",
       "opening_intent": "explain_notice",
-      "opening_procedure_ids": ["residence_permit_renewal"],
+      "opening_procedure_ids": [
+        "residence_permit_renewal"
+      ],
       "phase2_section": "phase-02-user-case-sampling.md#synthetic-rehearsal",
-      "tags": ["unreadable_notice", "ongoing_case"],
-      "reference_ids": ["questura_postal_followup"],
+      "tags": [
+        "unreadable_notice",
+        "ongoing_case"
+      ],
+      "reference_ids": [
+        "questura_postal_followup"
+      ],
       "steps": [
         {
           "id": "ask",
           "event": "message",
-          "text": {"en": "I filed the renewal by post. The date on the Questura summons is smudged. When should I go?", "it": "Ho presentato il rinnovo alle Poste. La data della convocazione in Questura è illeggibile. Quando devo andare?"},
-          "facts": {"filing_route": "postal", "filing_stage": "user_reported_filed"},
+          "text": {
+            "en": "I filed the renewal by post. The date on the Questura summons is smudged. When should I go?",
+            "it": "Ho presentato il rinnovo alle Poste. La data della convocazione in Questura è illeggibile. Quando devo andare?"
+          },
+          "facts": {
+            "filing_route": "postal",
+            "filing_stage": "user_reported_filed"
+          },
           "expect": {
-            "outcome": "clarification", "next_action": "provide_redacted_excerpt",
-            "procedure_ids": ["residence_permit_renewal"], "fields": ["appointment_date"],
-            "candidate_authority_ids": ["competent_questura_immigration_office"],
+            "outcome": "clarification",
+            "next_action": "provide_redacted_excerpt",
+            "procedure_ids": [
+              "residence_permit_renewal"
+            ],
+            "fields": [
+              "appointment_date"
+            ],
+            "candidate_authority_ids": [
+              "competent_questura_immigration_office"
+            ],
             "acceptance": "Ask for the readable date section or a check with the issuing office. Leave the actual date and appointment details unresolved."
           }
         }
@@ -348,18 +534,37 @@
     {
       "id": "two-goals-different-authorities",
       "opening_intent": "plan_multiple_tasks",
-      "opening_procedure_ids": ["milan_residence_change", "marriage_banns"],
+      "opening_procedure_ids": [
+        "milan_residence_change",
+        "marriage_banns"
+      ],
       "phase2_section": "phase-02-administrative-domains.md#map-everyday-phrasing-to-procedure-candidates",
-      "tags": ["multiple_goals"],
-      "reference_ids": ["milan_receiving_office", "torino_receiving_office", "torino_delegation"],
+      "tags": [
+        "multiple_goals"
+      ],
+      "reference_ids": [
+        "milan_receiving_office",
+        "torino_receiving_office",
+        "torino_delegation"
+      ],
       "steps": [
         {
           "id": "separate",
           "event": "message",
-          "text": {"en": "I need a change of registered residence in Milan and marriage banns in Torino.", "it": "Devo fare il cambio di residenza a Milano e le pubblicazioni di matrimonio a Torino."},
+          "text": {
+            "en": "I need a change of registered residence in Milan and marriage banns in Torino.",
+            "it": "Devo fare il cambio di residenza a Milano e le pubblicazioni di matrimonio a Torino."
+          },
           "expect": {
-            "outcome": "choose_goal", "next_action": "choose_active_goal",
-            "procedure_ids": ["milan_residence_change", "marriage_banns"], "fields": ["active_goal"],
+            "outcome": "choose_goal",
+            "next_action": "choose_active_goal",
+            "procedure_ids": [
+              "milan_residence_change",
+              "marriage_banns"
+            ],
+            "fields": [
+              "active_goal"
+            ],
             "acceptance": "Keep the two procedures and their location roles separate. Ask which to handle first."
           }
         },
@@ -368,11 +573,23 @@
           "event": "reply",
           "question_step": "separate",
           "selected_procedure_id": "marriage_banns",
-          "text": {"en": "Start with the marriage banns.", "it": "Iniziamo dalle pubblicazioni di matrimonio."},
+          "text": {
+            "en": "Start with the marriage banns.",
+            "it": "Iniziamo dalle pubblicazioni di matrimonio."
+          },
           "expect": {
-            "outcome": "clarification", "next_action": "provide_information",
-            "procedure_ids": ["marriage_banns"], "fields": ["residence_municipality", "celebration_municipality"],
-            "excluded_refs": ["milan_receiving_office"],
+            "outcome": "clarification",
+            "next_action": "provide_information",
+            "procedure_ids": [
+              "marriage_banns"
+            ],
+            "fields": [
+              "residence_municipality",
+              "celebration_municipality"
+            ],
+            "excluded_refs": [
+              "milan_receiving_office"
+            ],
             "acceptance": "Apply the reply to the banns task. Confirm the residence and celebration roles within that task."
           }
         }
@@ -381,19 +598,36 @@
     {
       "id": "resume-pending-destination",
       "opening_intent": "resume_case",
-      "opening_procedure_ids": ["milan_residence_change"],
+      "opening_procedure_ids": [
+        "milan_residence_change"
+      ],
       "phase2_section": "phase-02-user-case-sampling.md#define-what-the-agent-can-do",
-      "tags": ["resumption", "missing_location"],
+      "tags": [
+        "resumption",
+        "missing_location"
+      ],
       "initial_profile": "signed_milan_individual_renter",
-      "initial_facts": {"destination_municipality": null},
-      "reference_ids": ["milan_receiving_office", "anpr_applicant_handoff"],
+      "initial_facts": {
+        "destination_municipality": null
+      },
+      "reference_ids": [
+        "milan_receiving_office",
+        "anpr_applicant_handoff"
+      ],
       "steps": [
         {
           "id": "pause",
           "event": "message",
-          "text": {"en": "Can we finish the address change I saved?", "it": "Possiamo finire il cambio di residenza che ho salvato?"},
+          "text": {
+            "en": "Can we finish the address change I saved?",
+            "it": "Possiamo finire il cambio di residenza che ho salvato?"
+          },
           "expect": {
-            "outcome": "clarification", "next_action": "provide_information", "fields": ["destination_municipality"],
+            "outcome": "clarification",
+            "next_action": "provide_information",
+            "fields": [
+              "destination_municipality"
+            ],
             "acceptance": "Pause the saved case and record the question about destination."
           }
         },
@@ -402,7 +636,11 @@
           "event": "reopen",
           "question_step": "pause",
           "expect": {
-            "outcome": "restore_question", "next_action": "provide_information", "fields": ["destination_municipality"],
+            "outcome": "restore_question",
+            "next_action": "provide_information",
+            "fields": [
+              "destination_municipality"
+            ],
             "acceptance": "Reopen the same case, run revision and pending question. Preserve the other confirmed facts."
           }
         },
@@ -410,12 +648,56 @@
           "id": "resume",
           "event": "reply",
           "question_step": "pause",
-          "text": {"en": "The destination is the municipality of Milan.", "it": "Il Comune di destinazione è Milano."},
-          "facts": {"destination_municipality": "milano"},
+          "text": {
+            "en": "The destination is the municipality of Milan.",
+            "it": "Il Comune di destinazione è Milano."
+          },
+          "facts": {
+            "destination_municipality": "milano"
+          },
           "expect": {
-            "outcome": "verified_guidance", "next_action": "open_official_channel",
-            "authority_ids": ["milan_ufficio_anagrafe"], "citation_refs": ["milan_receiving_office", "anpr_applicant_handoff"],
-            "acceptance": "Use the confirmed destination once and continue the restored case through the reviewed handoff."
+            "outcome": "intake_confirmation_required",
+            "next_action": "confirm_saved_intake",
+            "fields": [
+              "intake_confirmation"
+            ],
+            "acceptance": "A conversational destination reply does not write saved intake facts; request explicit owner confirmation before publication."
+          }
+        },
+        {
+          "id": "confirm",
+          "event": "confirm_intake",
+          "after_step": "resume",
+          "facts": {
+            "destination_municipality": "milano"
+          },
+          "expect": {
+            "outcome": "intake_confirmed",
+            "next_action": "saved_intake_confirmed",
+            "fields": [],
+            "acceptance": "Persist and confirm the destination only through the explicit saved-intake confirmation boundary."
+          }
+        },
+        {
+          "id": "continue",
+          "event": "message",
+          "after_step": "confirm",
+          "text": {
+            "en": "How do I file the residence change?",
+            "it": "Come presento la pratica di cambio di residenza?"
+          },
+          "expect": {
+            "outcome": "verified_guidance",
+            "next_action": "open_official_channel",
+            "fields": [],
+            "authority_ids": [
+              "milan_ufficio_anagrafe"
+            ],
+            "citation_refs": [
+              "milan_receiving_office",
+              "anpr_applicant_handoff"
+            ],
+            "acceptance": "After explicit intake confirmation, continue the saved case through the reviewed official handoff."
           }
         }
       ]
@@ -425,15 +707,25 @@
       "opening_intent": "explain_notice",
       "opening_procedure_ids": [],
       "phase2_section": "phase-02-user-case-sampling.md#synthetic-agent-work-rehearsal",
-      "tags": ["missing_attachment", "ongoing_case"],
+      "tags": [
+        "missing_attachment",
+        "ongoing_case"
+      ],
       "reference_ids": [],
       "steps": [
         {
           "id": "ask",
           "event": "message",
-          "text": {"en": "The notice says that I need another attachment, but the screenshot cuts off its name. Which file do I send?", "it": "L'avviso chiede un altro allegato, ma lo screenshot taglia il nome. Quale file devo inviare?"},
+          "text": {
+            "en": "The notice says that I need another attachment, but the screenshot cuts off its name. Which file do I send?",
+            "it": "L'avviso chiede un altro allegato, ma lo screenshot taglia il nome. Quale file devo inviare?"
+          },
           "expect": {
-            "outcome": "clarification", "next_action": "provide_redacted_excerpt", "fields": ["attachment_name"],
+            "outcome": "clarification",
+            "next_action": "provide_redacted_excerpt",
+            "fields": [
+              "attachment_name"
+            ],
             "acceptance": "Request only the redacted portion that names the attachment. Withhold document requirements and filing instructions until the notice and case match."
           }
         }

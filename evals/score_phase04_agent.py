@@ -48,7 +48,7 @@ ALIASES = {
     # the residence-change task. A generic address remains outside this alias.
     PROCEDURE: (
         "cambio di residenza", "registered address", "address change", "change of registered residence",
-        "indirizzo all’anagrafe",
+        "indirizzo all’anagrafe", "file the residence change", "file my residence change",
     ),
     "marriage_banns": ("pubblicazioni di matrimonio", "marriage banns"),
     "residence_permit_renewal": ("permesso di soggiorno", "residence permit"),
