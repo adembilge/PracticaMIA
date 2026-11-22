@@ -163,3 +163,24 @@ def test_named_authorities_need_applicable_current_evidence(trusted_passage_ids,
     assert decision.citations == []
     if authority_ids:
         assert "Registro Nord" in decision.explanation and "Registro Sud" in decision.explanation
+
+def test_ambiguous_authority_spelling_suggestion_does_not_prefer_exact_near_match():
+    competing_catalogue = [
+        *CATALOGUE,
+        reviewed_name("north-variant", "authority", "North Regstry"),
+    ]
+
+    match = match_catalogue_names(
+        "North Regstry", competing_catalogue, entity_type="authority",
+    )
+
+    assert match.status == "ambiguous"
+    assert match.selected_id is None
+    assert {
+        (candidate.catalogue_id, candidate.match_type)
+        for candidate in match.candidates
+    } == {
+        ("north-registry", "spelling_suggestion"),
+        ("north-variant", "exact"),
+    }
+

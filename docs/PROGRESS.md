@@ -324,3 +324,7 @@ Added English and Italian Task 34.5 worker-outcome regressions with two independ
 ### 22 November 2026 — Phase 4 authority-name spelling suggestions
 
 Extended the Task 34.6 synthetic matching matrix with English and Italian one-edit authority-name typos. A spelling suggestion must remain needs_confirmation with no selected catalogue ID, just like procedure and municipality suggestions. The change does not treat a near-match as proof of authority identity or competence. Fictional catalogue records only; no authority routing is approved. Phase 5 remains paused.
+
+### 22 November 2026 — Phase 4 ambiguous authority-name suggestion guard
+
+Extended Task 34.6 with a collision case where the user's authority spelling exactly matches one fictional catalogue record but is also a one-edit suggestion for a different authority. The matcher must return an ambiguous result with no selected ID rather than allowing the exact near-match to hide the competing identity. This is a synthetic identity-resolution regression only; it does not infer authority competence or enable routing. Phase 5 remains paused.
