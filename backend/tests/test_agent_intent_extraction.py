@@ -144,6 +144,23 @@ def test_confirmed_milan_case_does_not_supply_scope_for_another_or_ambiguous_req
     assert result.procedure_candidates == ()
 
 
+@pytest.mark.parametrize(("language", "text"), [
+    ("en", "I used to live in Como; my destination is Milan. How do I change my residence?"),
+    ("it", "Prima vivevo a Como; la destinazione è Milano. Come cambio la residenza?"),
+])
+def test_previous_municipality_does_not_satisfy_confirmed_milan_scope(language, text):
+    case_id = uuid4()
+    context = WorkerCaseContext(case_id, IntakeFacts(**SUPPORTED_FACTS), "review_checklist", ())
+    result = extract_intent(
+        StoredMessage(text, language, case_id, case_context=context),
+        catalogue_names=FIRST_ROUTE_NAMES,
+    )
+    assert result.intent == "find_procedure"
+    assert result.procedure_candidates == (PROCEDURE,)
+    assert result.missing_context == ("procedure_location",)
+    assert not result.uses_confirmed_case_scope
+
+
 def test_uses_reviewed_matches_preserves_authority_mentions_and_skips_nested_place():
     unreviewed = replace(reviewed_name("unreviewed", "procedure", "tax"), approved_for_search=False)
     no_evidence = replace(reviewed_name("candidate", "authority", "Ufficio Finto"), evidence_ref="")
