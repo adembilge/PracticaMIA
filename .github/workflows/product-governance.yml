@@ -30,7 +30,8 @@ permissions:
 
 jobs:
   validate:
-    name: Enforce single-chat product surface
+    # Keep the required GitHub check context stable while validating the current product contract.
+    name: Validate 94-task governance and negative controls
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:

@@ -2,7 +2,7 @@
 
 ## Current source-level acceptance
 
-The frontend test suite checks that:
+The frontend unit and HTTP suites check that:
 
 - the root route always renders the single-chat shell;
 - legacy customer routes and demo pages are absent;
@@ -11,7 +11,7 @@ The frontend test suite checks that:
 - the internal request-details card uses a conversation-scoped frontend endpoint;
 - production does not enable the isolated agent transport.
 
-The backend suite checks typed conversation contracts, ownership, resumption, approval revisions, source provenance and deterministic applicability. PostgreSQL-backed integration checks use disposable databases.
+The synthetic browser acceptance mounts the actual `SingleChatWorkspace`, sends a message through the real FastAPI conversation API, verifies persistence/resumption, and confirms a second signed synthetic owner receives no access. The backend suite checks typed conversation contracts, ownership, resumption, approval revisions, source provenance and deterministic applicability. PostgreSQL-backed integration checks use disposable databases.
 
 ## Environment boundaries
 

@@ -24,7 +24,7 @@ npm run typecheck
 npm run build
 ```
 
-The frontend CI workflow runs unit tests, TypeScript checks, a production build and a real localhost HTTP smoke test.
+Frontend CI runs unit tests, TypeScript checks, a production build and a real localhost HTTP smoke test. The separate Synthetic MVP Acceptance workflow mounts the actual chat component in Chromium against FastAPI and disposable PostgreSQL with short-lived synthetic RS256 identities.
 
 ## Structure
 
