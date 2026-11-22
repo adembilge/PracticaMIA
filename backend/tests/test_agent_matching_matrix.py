@@ -191,8 +191,9 @@ def test_ambiguous_authority_spelling_suggestion_does_not_prefer_exact_near_matc
     ("Registro Nrod", "springford"),
 ])
 def test_confirmed_location_does_not_resolve_authority_spelling_suggestion(typo, location_id):
+    display_name = "Registro Nord" if typo == "Registro Nrod" else "North Registry"
     authority = replace(
-        reviewed_name("north-registry", "authority", "North Registry"),
+        reviewed_name("north-registry", "authority", display_name),
         location_ids=(location_id,),
     )
 
