@@ -315,3 +315,7 @@ PR #238 was squash-merged as `5644f4ef0088701582b6ee254dd5a2ef10a89b57` after Ba
 ### 22 November 2026 — Phase 4 confirmed-date exclusion
 
 Added a bilingual Task 34.4 worker-outcome regression for an assignment whose confirmed filing date is outside its reviewed effective period while its activity location and housing basis remain unknown. The assignment must be excluded by the known date mismatch; the worker must not ask for location or circumstance details that cannot make the expired assignment applicable. The test uses a fictional assignment and does not add real authority coverage. Phase 5 remains paused.
+
+### 22 November 2026 — Phase 4 assistance-channel ambiguity
+
+Added English and Italian Task 34.5 worker-outcome regressions with two independently reviewed, applicable synthetic assistance contacts for the same procedure and confirmed destination. The worker must not arbitrarily choose one: it publishes no official channel, citations, channel claim or open-channel action. This protects the contract that assistance is offered only when exactly one separately reviewed contact applies. Fictional fixtures only; no real contact or authority is approved. Phase 5 remains paused.
