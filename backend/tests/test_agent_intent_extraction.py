@@ -95,6 +95,7 @@ FIRST_ROUTE_NAMES = (
     reviewed_name(JURISDICTION, "municipality", "Milan"),
     reviewed_name("municipality-como", "municipality", "Como"),
     reviewed_name(PROCEDURE, "procedure", "cambio di residenza"),
+    reviewed_name(PROCEDURE, "procedure", "change my residence"),
 )
 
 
@@ -142,6 +143,23 @@ def test_confirmed_milan_case_does_not_supply_scope_for_another_or_ambiguous_req
     result = extract_intent(StoredMessage(text, language, case_id, case_context=context), catalogue_names=FIRST_ROUTE_NAMES)
     assert not result.uses_confirmed_case_scope
     assert result.procedure_candidates == ()
+
+
+@pytest.mark.parametrize(("language", "text"), [
+    ("en", "How do I change my residence after living in Como, with Milan as my destination?"),
+    ("it", "Come comunico il cambio di residenza dopo aver vissuto a Como, con destinazione Milano?"),
+])
+def test_previous_municipality_does_not_satisfy_confirmed_milan_scope(language, text):
+    case_id = uuid4()
+    context = WorkerCaseContext(case_id, IntakeFacts(**SUPPORTED_FACTS), "review_checklist", ())
+    result = extract_intent(
+        StoredMessage(text, language, case_id, case_context=context),
+        catalogue_names=FIRST_ROUTE_NAMES,
+    )
+    assert result.intent == "find_procedure"
+    assert result.procedure_candidates == (PROCEDURE,)
+    assert result.missing_context == ("procedure_location",)
+    assert not result.uses_confirmed_case_scope
 
 
 def test_uses_reviewed_matches_preserves_authority_mentions_and_skips_nested_place():
