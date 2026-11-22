@@ -133,7 +133,7 @@ def run(port: int, assets: Path, *, private_documents: bool = False):
             "iat": now, "exp": now + timedelta(minutes=10),
         }, private_key, algorithm="RS256", headers={"kid": public_jwk["kid"]})
 
-    tokens = {subject: token(subject) for subject in ("alice", "bob")}
+    tokens = {subject: token(subject) for subject in ("alice", "bob", "charlie")}
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "PracticaMIA-Acceptance-Only"

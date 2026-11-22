@@ -19,16 +19,24 @@ async function pageFor(subject){
   return page;
 }
 try{
-  const alice=await pageFor('alice');
+  const alice=await pageFor('charlie');
   await alice.goto(origin+'/__acceptance/chat');
   await alice.getByRole('heading',{name:'How can I help?'}).waitFor({timeout:12000});
   const composer=alice.getByRole('textbox',{name:'Message PracticaMIA'});
   await composer.waitFor();
+  const initialRecent=await alice.request.get(origin+'/api/agent/conversations/recent');
+  const initialActive=await alice.request.get(origin+'/api/agent/runs/active');
+  assert.equal(initialRecent.status(),200,'fresh owner conversation list');
+  assert.equal(initialActive.status(),200,'fresh owner active-run list');
+  assert.equal((await initialRecent.json()).items.length,0,'synthetic owner must start without seeded conversations');
+  assert.equal((await initialActive.json()).items.length,0,'synthetic owner must start without seeded active runs');
   assert.equal(await alice.getByRole('link',{name:'Sign out'}).count(),1);
 
   const message='I need help with my residence registration in Milan.';
   await composer.fill(message);
-  await alice.getByRole('button',{name:'Send',exact:true}).click();
+  const send=alice.getByRole('button',{name:'Send',exact:true});
+  assert.equal(await send.isEnabled(),true,'fresh owner composer must be enabled');
+  await send.click();
   await alice.getByText(message,{exact:true}).waitFor({timeout:20000});
 
   let recent=null;
