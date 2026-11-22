@@ -378,12 +378,20 @@ def identify_intent_step(
     # Place mentions remain candidates, not confirmed case facts. They are
     # retained only so an explicit out-of-scope municipality can be rejected
     # before the Milan-only evidence retrieval path.
+    # Only reviewed search-variant municipality records are scope-routing
+    # candidates. Ordinary aliases (including synthetic catalogue fixtures)
+    # must not silently change the existing evidence-routing contract.
+    off_scope_municipality_ids = {
+        record.catalogue_id for record in catalogue_names
+        if record.entity_type == "municipality" and record.kind == "search_variant"
+    }
     locations = (
         [JURISDICTION]
         if result.uses_confirmed_case_scope and message.case_context is not None
         else list(dict.fromkeys(
             place_id for entity_type, place_id in _places(result.mentions)
-            if entity_type == "municipality"
+            if entity_type == "municipality" and place_id in off_scope_municipality_ids
+            and place_id != JURISDICTION
         ))
     )
     off_scope_location = len(locations) == 1 and locations[0] != JURISDICTION
