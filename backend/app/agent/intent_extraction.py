@@ -345,6 +345,12 @@ def extract_intent(
                 if move and _matches_confirmed_case(message, move["place"], routing_mentions, catalogue_names):
                     return IntentExtraction(intent, mentions, (PROCEDURE,), (), uses_confirmed_case_scope=True)
 
+    explicit_milan_destination = _places(routing_mentions) == (("municipality", JURISDICTION),)
+    uses_confirmed_case_scope = bool(
+        explicit_milan_destination
+        and _matches_confirmed_case(message, None, routing_mentions, catalogue_names)
+    )
+
     missing: list[MissingContext] = []
     if intent is None:
         missing.append("intent")
@@ -361,7 +367,10 @@ def extract_intent(
             missing.append("procedure_location")
     if intent == "resume_case" and message.case_context is None:
         missing.append("case_reference")
-    return IntentExtraction(intent, mentions, procedures, tuple(missing))
+    return IntentExtraction(
+        intent, mentions, procedures, tuple(missing),
+        uses_confirmed_case_scope=uses_confirmed_case_scope,
+    )
 
 
 def identify_intent_step(
