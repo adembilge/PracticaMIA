@@ -347,7 +347,9 @@ def extract_intent(
 
     explicit_milan_destination = _places(routing_mentions) == (("municipality", JURISDICTION),)
     uses_confirmed_case_scope = bool(
-        explicit_milan_destination
+        intent == "find_procedure"
+        and procedures == (PROCEDURE,)
+        and explicit_milan_destination
         and _matches_confirmed_case(message, None, routing_mentions, catalogue_names)
     )
 
