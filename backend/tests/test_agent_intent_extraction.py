@@ -176,7 +176,8 @@ def test_previous_municipality_blocks_milan_evidence_at_worker_checkpoint(langua
     assert state.next_node == "choose_next_step"
     assert state.intent == "find_procedure"
     assert state.procedure_candidates == [PROCEDURE]
-    assert state.location_candidates == ["municipality-como"]
+    # The previous municipality is intentionally excluded from destination candidates.
+    assert state.location_candidates == []
     assert state.missing_fields == ["procedure_location"]
     assert not state.uses_confirmed_case_scope
 
