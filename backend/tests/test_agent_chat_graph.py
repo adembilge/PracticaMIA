@@ -121,12 +121,12 @@ def _names():
         ),
         CatalogueName(
             catalogue_id="municipality-como", entity_type="municipality", display_name="Como",
-            name="Como", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            name="Como", kind="current_official", evidence_ref="synthetic-reviewed-alias",
             approved_for_search=True,
         ),
         CatalogueName(
             catalogue_id="municipality-torino", entity_type="municipality", display_name="Torino",
-            name="Torino", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            name="Torino", kind="current_official", evidence_ref="synthetic-reviewed-alias",
             approved_for_search=True,
         ),
     )
