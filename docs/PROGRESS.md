@@ -251,3 +251,11 @@ No Vercel build or deployment was run. The automatic Vercel status contexts repo
 PR #225 extends the case-free Milan reference lookup with four English and Italian natural-language variants. The aliases are bound to the same currently approved Milan passage and do not add legal claims, jurisdictions, official handoffs or source approvals. Four graph-level regressions verify that the phrases return reference-only material, with no claims or official channel. Backend CI, Frontend CI and Synthetic MVP Acceptance (Chromium + API) passed on exact head `22bc2d3211d45e22856d0d32d771b088bbc2bb34`; the PR was squash-merged as `d74e85400a0e66c4f8c34459dda9802158c3c5fc`.
 
 The checks are synthetic development evidence only. They do not establish live legal guidance, broader jurisdiction coverage, participant success, hosted single-chat migration or release readiness. No Vercel build or deployment was initiated. The binding customer UX remains one ChatGPT-style chat with a conversation-only sidebar and inline cards under D-010; the hosted frontend has not yet been migrated. Phase 5 remains paused.
+
+### 22 November 2026 — Phase 4 residence phrasing coverage (PR #226)
+
+PR #226 adds seven English and Italian natural-language search variants for changing or registering a registered residence. Each phrase maps only to the same currently approved Milan passage; the aliases do not establish legal applicability, add a procedure, expand jurisdiction, identify a new authority or enable an official handoff. Seven case-free graph regressions verify reference-only retrieval with no claims and no official channel.
+
+On exact PR head `4524c0cea9c5035c4a27e663c542e255ea8ad215`, Backend CI, Frontend CI, Synthetic MVP Acceptance (Chromium + API), and Roadmap governance all completed successfully. The PR was squash-merged as `d7f6461ad303a1bfe52a8121698b548eeb960115`.
+
+These results are synthetic development checks only. They do not establish participant success, live legal verification, reviewed coverage for Torino or Questura, hosted account-session acceptance, production readiness or release approval. The D-010 customer target remains one ChatGPT-style chat with conversation-only history and inline cards. Phase 5 remains paused. No Vercel build or deployment was initiated.
