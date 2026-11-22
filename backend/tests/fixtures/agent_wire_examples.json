@@ -1,0 +1,209 @@
+{
+  "message": {
+    "client_message_id": "50000000-0000-4000-8000-000000000004",
+    "case_id": "50000000-0000-4000-8000-000000000003",
+    "text": "Which office handles this synthetic case?",
+    "language": "en",
+    "expected_thread_revision": 1
+  },
+  "receipt": {
+    "run_id": "50000000-0000-4000-8000-000000000002",
+    "accepted_revision": 2
+  },
+  "active-runs": {
+    "items": [
+      {
+        "thread_id": "50000000-0000-4000-8000-000000000001",
+        "run_id": "50000000-0000-4000-8000-000000000002",
+        "case_id": "50000000-0000-4000-8000-000000000003",
+        "status": "waiting_for_information",
+        "accepted_at": "2026-11-20T09:00:00Z"
+      }
+    ],
+    "next_cursor": null
+  },
+  "pending-events": {
+    "thread_id": "50000000-0000-4000-8000-000000000001",
+    "run_id": "50000000-0000-4000-8000-000000000002",
+    "after_seq": 0,
+    "events": [
+      {
+        "schema_version": 1,
+        "thread_id": "50000000-0000-4000-8000-000000000001",
+        "run_id": "50000000-0000-4000-8000-000000000002",
+        "event_seq": 1,
+        "occurred_at": "2026-11-20T09:00:01Z",
+        "type": "run.started",
+        "client_message_id": "50000000-0000-4000-8000-000000000004"
+      },
+      {
+        "schema_version": 1,
+        "thread_id": "50000000-0000-4000-8000-000000000001",
+        "run_id": "50000000-0000-4000-8000-000000000002",
+        "event_seq": 2,
+        "occurred_at": "2026-11-20T09:00:02Z",
+        "type": "question.requested",
+        "question": {
+          "question_id": "50000000-0000-4000-8000-000000000005",
+          "text": "Which synthetic municipality applies?",
+          "answer_shape": "single_choice",
+          "options": [
+            "Fixture A",
+            "Fixture B"
+          ],
+          "missing_fields": [
+            "destination"
+          ]
+        }
+      }
+    ],
+    "last_event_seq": 2,
+    "has_more": false
+  },
+  "reply": {
+    "client_reply_id": "50000000-0000-4000-8000-000000000008",
+    "expected_run_revision": 3,
+    "disposition": "answer",
+    "text": "Fixture B"
+  },
+  "answer-events": {
+    "thread_id": "50000000-0000-4000-8000-000000000001",
+    "run_id": "50000000-0000-4000-8000-000000000002",
+    "after_seq": 2,
+    "events": [
+      {
+        "schema_version": 1,
+        "thread_id": "50000000-0000-4000-8000-000000000001",
+        "run_id": "50000000-0000-4000-8000-000000000002",
+        "event_seq": 3,
+        "occurred_at": "2026-11-20T09:00:05Z",
+        "type": "question.answered",
+        "question_id": "50000000-0000-4000-8000-000000000005",
+        "client_reply_id": "50000000-0000-4000-8000-000000000008",
+        "disposition": "answer",
+        "text": "Fixture B"
+      },
+      {
+        "schema_version": 1,
+        "thread_id": "50000000-0000-4000-8000-000000000001",
+        "run_id": "50000000-0000-4000-8000-000000000002",
+        "event_seq": 4,
+        "occurred_at": "2026-11-20T09:00:06Z",
+        "type": "answer.completed",
+        "result": {
+          "explanation": "The example service is the channel for this synthetic case.",
+          "verification_status": "verified",
+          "next_action": {
+            "label": "Open the official channel",
+            "operation": "open_official_channel"
+          },
+          "official_channel": {
+            "label": "Synthetic service",
+            "url": "https://example.invalid/service"
+          },
+          "claims": [
+            {
+              "kind": "channel",
+              "statement": "The example service is the channel for this synthetic case.",
+              "evidence_ids": [
+                "50000000-0000-4000-8000-000000000007:0003"
+              ]
+            }
+          ],
+          "citations": [
+            {
+              "citation_id": "50000000-0000-4000-8000-000000000007:0003",
+              "passage_id": "50000000-0000-4000-8000-000000000007:0003",
+              "source_version_id": "50000000-0000-4000-8000-000000000007",
+              "source_id": "synthetic-service",
+              "official_url": "https://example.invalid/source",
+              "publisher": "Synthetic publisher",
+              "reviewed_at": "2026-11-20T08:00:00Z",
+              "procedure_id": "synthetic-procedure",
+              "location_id": "synthetic-area"
+            }
+          ]
+        }
+      }
+    ],
+    "last_event_seq": 4,
+    "has_more": false
+  },
+  "source-card": {
+    "title": "Synthetic service guide",
+    "source_language": "it",
+    "explanation_language": "en",
+    "passage": {
+      "citation": {
+        "citation_id": "50000000-0000-4000-8000-000000000007:0003",
+        "passage_id": "50000000-0000-4000-8000-000000000007:0003",
+        "source_version_id": "50000000-0000-4000-8000-000000000007",
+        "source_id": "synthetic-service",
+        "official_url": "https://example.invalid/source",
+        "publisher": "Synthetic publisher",
+        "reviewed_at": "2026-11-20T08:00:00Z",
+        "procedure_id": "synthetic-procedure",
+        "location_id": "synthetic-area"
+      },
+      "source_revision": 1,
+      "section_path": "Servizio di esempio",
+      "content": "Passaggio sintetico sul cambio di residenza."
+    },
+    "terms": [
+      {
+        "term": "cambio di residenza",
+        "explanation": "Updating the address recorded for your registered residence."
+      }
+    ]
+  },
+  "approval-snapshot": {
+    "thread_id": "50000000-0000-4000-8000-000000000001",
+    "run_id": "50000000-0000-4000-8000-000000000009",
+    "status": "waiting_for_approval",
+    "last_event_seq": 2,
+    "run_revision": 3,
+    "pending_proposal": {
+      "proposal_id": "50000000-0000-4000-8000-000000000006",
+      "case_id": "50000000-0000-4000-8000-000000000003",
+      "field_id": "move_in_date",
+      "previous_value": "2026-11-15",
+      "proposed_value": "2026-11-16",
+      "rationale": "The user confirmed the corrected date in this synthetic example.",
+      "expected_case_revision": 7,
+      "expires_at": "2026-11-20T09:10:00Z",
+      "origin": "agent_proposal"
+    }
+  },
+  "approval": {
+    "decision": "accept",
+    "expected_run_revision": 3,
+    "expected_case_revision": 7,
+    "client_decision_id": "50000000-0000-4000-8000-000000000010"
+  },
+  "approval-decided": {
+    "schema_version": 1,
+    "thread_id": "50000000-0000-4000-8000-000000000001",
+    "run_id": "50000000-0000-4000-8000-000000000009",
+    "event_seq": 3,
+    "occurred_at": "2026-11-20T09:01:00Z",
+    "type": "approval.decided",
+    "proposal_id": "50000000-0000-4000-8000-000000000006",
+    "proposal_event_seq": 2,
+    "decision": {
+      "decision": "accept",
+      "expected_case_revision": 7,
+      "client_decision_id": "50000000-0000-4000-8000-000000000010"
+    }
+  },
+  "approval-applied": {
+    "schema_version": 1,
+    "thread_id": "50000000-0000-4000-8000-000000000001",
+    "run_id": "50000000-0000-4000-8000-000000000009",
+    "event_seq": 4,
+    "occurred_at": "2026-11-20T09:01:01Z",
+    "type": "approval.applied",
+    "proposal_id": "50000000-0000-4000-8000-000000000006",
+    "operation_id": "50000000-0000-4000-8000-000000000011",
+    "case_revision": 8
+  }
+}

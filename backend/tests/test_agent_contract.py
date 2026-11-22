@@ -1,8 +1,8 @@
 """Synthetic Phase 4 wire fixtures; no runtime, approval, or live source access."""
 
 from copy import deepcopy
+import json
 from pathlib import Path
-import re
 from uuid import UUID
 
 import pytest
@@ -63,18 +63,19 @@ def test_message_fixture_preserves_retry_identifier_and_body():
     # Persisted deduplication and changed-body conflict require the runtime.
 
 
-def test_phase5_handoff_examples_join_at_the_wire_boundaries():
+def test_conversation_wire_examples_join_at_the_wire_boundaries():
     root = Path(__file__).resolve().parents[2]
-    guide = (root / "planning/practicamia-2/phase-04-phase-05-handoff.md").read_text(encoding="utf-8")
-    snippets = re.findall(r"<!-- wire: ([a-z-]+) -->\n```json\n(.*?)\n```", guide, re.DOTALL)
+    examples = json.loads(
+        (root / "backend/tests/fixtures/agent_wire_examples.json").read_text(encoding="utf-8")
+    )
     models = {
         "message": CaseTaskMessage, "receipt": CaseTaskAccepted, "active-runs": ActiveRunPage,
         "pending-events": EventPage, "reply": ClarificationReply, "answer-events": EventPage,
         "source-card": RunSourceCard, "approval-snapshot": RunSnapshot, "approval": SubmitProposalDecision,
         "approval-decided": ApprovalDecided, "approval-applied": ApprovalApplied,
     }
-    assert len(snippets) == len(models) and {name for name, _ in snippets} == set(models)
-    checked = {name: models[name].model_validate_json(snippet) for name, snippet in snippets}
+    assert set(examples) == set(models)
+    checked = {name: models[name].model_validate(value) for name, value in examples.items()}
 
     message, receipt = checked["message"], checked["receipt"]
     assert receipt.accepted_revision == message.expected_thread_revision + 1

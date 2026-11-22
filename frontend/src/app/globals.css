@@ -276,3 +276,17 @@ a:hover { text-decoration: none; }
 .review-full-text h3 { margin: 0 0 .65rem; font-size: 1rem; }
 .review-full-text pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .9rem; font-family: inherit; line-height: 1.55; max-height: 55vh; overflow-y: auto; }
 .review-full-text p { color: var(--muted); font-size: .85rem; }
+
+
+/* Inline request details shown inside the conversation transcript. */
+.intake-sheet { border: 1px solid var(--line); background: var(--paper); border-radius: 10px; padding: 18px; margin-block: 14px; }
+.intake-sheet h3 { margin: 8px 0 10px; font-size: 1.15rem; }
+.intake-sheet > p { color: var(--muted); line-height: 1.6; }
+.intake-sheet .field-label { display: block; margin-bottom: 6px; color: var(--ink-2); font-size: .85rem; font-weight: 650; }
+.intake-sheet .input { width: 100%; min-height: 42px; border: 1px solid var(--line); border-radius: 7px; padding: 9px 11px; background: white; color: var(--ink); }
+.intake-sheet .button { min-height: 40px; border: 1px solid var(--line); border-radius: 7px; padding: 8px 12px; font-weight: 650; }
+.intake-sheet .button-primary { background: var(--blue-dark); border-color: var(--blue-dark); color: white; }
+.intake-sheet .button-outline { background: white; color: var(--ink-2); }
+.intake-sheet .message-box { border-radius: 7px; padding: 11px; font-size: .85rem; line-height: 1.55; }
+.intake-sheet .message-box.notice { background: var(--blue-pale); color: var(--blue-dark); }
+.intake-sheet .error-text { color: #a23b32; }

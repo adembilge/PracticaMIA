@@ -1,322 +1,70 @@
-/** Real localhost HTTP smoke tests against a built Next.js server.
-
-No external API tokens, government data, or Auth0 credentials. We deliberately
-request ENABLE_ASSISTANT_UI=1 under a production environment to check that the
-preview remains inaccessible; then test a preview with no auth configured.
-Run after `npm run build`.
-*/
+/** Production-mode HTTP smoke tests for the single-chat product shell. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn } from 'node:child_process';
-import { setTimeout as sleep } from 'node:timers/promises';
-import { createServer } from 'node:net';
-import { once } from 'node:events';
+import {spawn} from 'node:child_process';
+import {setTimeout as sleep} from 'node:timers/promises';
+import {createServer} from 'node:net';
+import {once} from 'node:events';
 
-async function freePort() {
-  const server = createServer();
-  server.listen(0, '127.0.0.1');
-  await once(server, 'listening');
-  const port = server.address().port;
-  await new Promise((resolve) => server.close(resolve));
+async function freePort(){
+  const server=createServer();
+  server.listen(0,'127.0.0.1');
+  await once(server,'listening');
+  const port=server.address().port;
+  await new Promise(resolve=>server.close(resolve));
   return port;
 }
 
-async function withServer(overrides, fn) {
-  const port = await freePort();
-  const origin = 'http://127.0.0.1:' + port;
-  const child = spawn(process.execPath, [
-    'node_modules/next/dist/bin/next', 'start', '-p', String(port),
-    '-H', '127.0.0.1',
-  ], {
-    cwd: process.cwd(),
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      VERCEL_ENV: 'production',
-      ENABLE_ASSISTANT_UI: '1',
-      ENABLE_REVIEW_UI: '1',
-      AUTH0_DOMAIN: '',
-      AUTH0_CLIENT_ID: '',
-      AUTH0_CLIENT_SECRET: '',
-      AUTH0_SECRET: '',
-      AUTH0_AUDIENCE: '',
-      BACKEND_API_URL: '',
-      ...overrides,
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
+async function withServer(overrides,fn){
+  const port=await freePort();
+  const origin='http://127.0.0.1:'+port;
+  const child=spawn(process.execPath,['node_modules/next/dist/bin/next','start','-p',String(port),'-H','127.0.0.1'],{
+    cwd:process.cwd(),
+    env:{...process.env,NODE_ENV:'production',VERCEL_ENV:'production',
+      AUTH0_DOMAIN:'',AUTH0_CLIENT_ID:'',AUTH0_CLIENT_SECRET:'',AUTH0_SECRET:'',
+      AUTH0_AUDIENCE:'',BACKEND_API_URL:'',...overrides},
+    stdio:['ignore','pipe','pipe'],
   });
-  let output = '';
-  for (const stream of [child.stdout, child.stderr]) {
-    stream.on('data', (chunk) => { output = (output + chunk.toString()).slice(-5000); });
-  }
-  try {
-    let started = false;
-    for (let n = 0; n < 100; n += 1) {
-      if (child.exitCode !== null) break;
-      try {
-        const response = await fetch(origin + '/', {
-          signal: AbortSignal.timeout(1200),
-        });
-        if (response.status === 200) {
-          started = true;
-          break;
-        }
-      } catch { /* Starting server. */ }
+  let output='';
+  for(const stream of [child.stdout,child.stderr]) stream.on('data',chunk=>{output=(output+chunk.toString()).slice(-5000)});
+  try{
+    let started=false;
+    for(let n=0;n<100;n++){
+      if(child.exitCode!==null)break;
+      try{const response=await fetch(origin+'/',{signal:AbortSignal.timeout(1200)});if(response.status===200){started=true;break;}}catch{}
       await sleep(180);
     }
-    assert.equal(started, true, 'Next.js failed to start: ' + output);
+    assert.equal(started,true,'Next.js failed to start: '+output);
     return await fn(origin);
-  } finally {
-    if (child.exitCode === null) {
-      const stopped = once(child, 'exit').catch(() => null);
+  }finally{
+    if(child.exitCode===null){
+      const stopped=once(child,'exit').catch(()=>null);
       child.kill('SIGTERM');
-      await Promise.race([stopped, sleep(2500)]);
-      if (child.exitCode === null) child.kill('SIGKILL');
+      await Promise.race([stopped,sleep(2500)]);
+      if(child.exitCode===null)child.kill('SIGKILL');
     }
   }
 }
 
-const SAMPLE_ID = '00000000-0000-0000-0000-000000000001';
-
-test('production-mode HTTP: public demo pages work and assistant stays hidden', {
-  timeout: 45000,
-}, async () => {
-  await withServer({}, async (origin) => {
-    for (const pathname of [
-      '/', '/account', '/cases/new', '/cases/demo', '/cases/saved',
-      '/cases/' + SAMPLE_ID,
-    ]) {
-      const response = await fetch(origin + pathname);
-      assert.equal(response.status, 200, pathname);
-      assert.match(response.headers.get('content-type') || '', /text\/html/);
-      assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
-      assert.equal(response.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
-      assert.equal(response.headers.get('x-frame-options'), 'DENY');
-      assert.match(response.headers.get('permissions-policy') || '', /geolocation=\(\)/);
+test('production HTTP serves one chat and removes legacy customer routes', {timeout:45000},async()=>{
+  await withServer({},async origin=>{
+    const root=await fetch(origin+'/');
+    assert.equal(root.status,200);
+    const html=await root.text();
+    assert.match(html,/How can I help\?/);
+    assert.match(html,/Message PracticaMIA/);
+    assert.doesNotMatch(html,/Prepare my case|Explore a fictional case|Saved cases|INTERACTIVE PROTOTYPE|Preview/);
+    for(const pathname of ['/cases/new','/cases/saved','/cases/demo','/demo/synthetic','/account']){
+      const response=await fetch(origin+pathname);
+      assert.equal(response.status,404,pathname);
     }
-    const hidden = await fetch(origin + '/cases/' + SAMPLE_ID + '/assistant');
-    assert.equal(hidden.status, 404, 'preview UI must not be available in production');
-    const hiddenApi = await fetch(
-      origin + '/api/cases/' + SAMPLE_ID + '/assistant/ask',
-      { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: 'residenza', language: 'it' }) },
-    );
-    assert.equal(hiddenApi.status, 404, 'preview proxy must remain disabled');
-
-    const hiddenReviewer = await fetch(origin + '/knowledge/review');
-    assert.equal(hiddenReviewer.status, 404, 'reviewer interface must stay hidden in production');
-    const hiddenReviewApi = await fetch(origin + '/api/knowledge/review/browser-queue');
-    assert.equal(hiddenReviewApi.status, 404, 'reviewer proxy must stay hidden in production');
-    const hiddenFullReview = await fetch(
-      origin + '/api/knowledge/review/versions/' + SAMPLE_ID,
-    );
-    assert.equal(hiddenFullReview.status, 404,
-      'full reviewer evidence must not be public in production');
-
-    const unauthenticated = await fetch(origin + '/api/cases');
-    assert.equal(unauthenticated.status, 503, 'API must fail closed without Auth0 config');
-    const csrf = await fetch(origin + '/api/cases', { method: 'POST' });
-    assert.equal(csrf.status, 403, 'missing Origin must fail the CSRF gate');
-    // Simulate a browser reaching "localhost" through the 127.0.0.1
-    // loopback socket. Host and Origin must be exactly consistent.
-    const browserOrigin = origin.replace('127.0.0.1', 'localhost');
-    const browserHost = new URL(browserOrigin).host;
-    const safeCreate = await fetch(origin + '/api/cases', {
-      method: 'POST', headers: {
-        Origin: browserOrigin, Host: browserHost,
-        'Content-Type': 'application/json',
-      },
-      body: '{}',
-    });
-    assert.equal(safeCreate.status, 503,
-      'a correctly matched Host and Origin must reach the auth fail-closed gate');
-  });
-});
-
-test('preview-mode HTTP: interface renders but input and authentication gates hold', {
-  timeout: 45000,
-}, async () => {
-  await withServer({ VERCEL_ENV: 'preview' }, async (origin) => {
-    const url = origin + '/cases/' + SAMPLE_ID + '/assistant';
-    const available = await fetch(url);
-    assert.equal(available.status, 200, 'preview UI should render for a valid demo case');
-    assert.match(await available.text(), /Evidence assistant preview|Anteprima assistente/);
-
-    const endpoint = origin + '/api/cases/' + SAMPLE_ID + '/assistant/ask';
-    const safePayload = JSON.stringify({ question: 'residenza', language: 'it' });
-    const crossOrigin = await fetch(endpoint, {
-      method: 'POST', headers: { Origin: 'https://untrusted.example',
-        'Content-Type': 'application/json' }, body: safePayload,
-    });
-    assert.equal(crossOrigin.status, 403, 'cross-origin request must fail');
-
-    const browserOrigin = origin.replace('127.0.0.1', 'localhost');
-    const browserHost = new URL(browserOrigin).host;
-    const sameOriginHeaders = {
-      Origin: browserOrigin, Host: browserHost,
-      'Content-Type': 'application/json',
-    };
-    const badPayload = await fetch(endpoint, {
-      method: 'POST', headers: sameOriginHeaders,
-      body: JSON.stringify({ question: 'residenza', language: 'it',
-        jurisdiction: 'IT-RM-ROMA' }),
-    });
-    assert.equal(badPayload.status, 422, 'client may not select a jurisdiction');
-
-    const unknown = await fetch(
-      origin + '/api/cases/not-a-uuid/assistant/ask', {
-        method: 'POST', headers: sameOriginHeaders,
-        body: safePayload,
-      },
-    );
-    assert.equal(unknown.status, 404, 'invalid case ID must fail');
-
-    const noAuth = await fetch(endpoint, {
-      method: 'POST', headers: sameOriginHeaders,
-      body: safePayload,
-    });
-    assert.equal(noAuth.status, 503, 'preview cannot bypass absent Auth0 configuration');
-
-    const reviewPage = await fetch(origin + '/knowledge/review');
-    assert.equal(reviewPage.status, 200, 'preview reviewer interface should render');
-    assert.match(await reviewPage.text(), /Official-source review/);
-    const queue = await fetch(origin + '/api/knowledge/review/browser-queue');
-    assert.equal(queue.status, 503, 'review queue cannot bypass absent Auth0');
-    const full = await fetch(
-      origin + '/api/knowledge/review/versions/' + SAMPLE_ID,
-    );
-    assert.equal(full.status, 503,
-      'entire article capture cannot bypass missing Auth0 configuration');
-    const pathTraversal = await fetch(
-      origin + '/api/knowledge/review/versions/not-a-uuid',
-    );
-    assert.equal(pathTraversal.status, 404,
-      'reviewer evidence proxy must reject invalid version IDs');
-    const approvalEndpoint = origin + '/api/knowledge/review/approve-browser-batch';
-    const reviewPayload = JSON.stringify({
-      items: [{
-        source_id: 'milano-residence-faq',
-        version_id: SAMPLE_ID,
-        expected_sha256: 'a'.repeat(64),
-      }],
-      review_note: 'Reviewed each captured official page and its applicability carefully.',
-      confirmed_source_review: true,
-    });
-    const denied = await fetch(approvalEndpoint, {
-      method: 'POST',
-      headers: { Origin: 'https://untrusted.example', 'Content-Type': 'application/json' },
-      body: reviewPayload,
-    });
-    assert.equal(denied.status, 403, 'review mutations reject cross-origin requests');
-    const malformed = await fetch(approvalEndpoint, {
-      method: 'POST', headers: sameOriginHeaders,
-      body: JSON.stringify({ status: 'approved', actor_subject: 'forged' }),
-    });
-    assert.equal(malformed.status, 422, 'reviewer cannot forge status or identity');
-    const unauthenticatedReview = await fetch(approvalEndpoint, {
-      method: 'POST', headers: sameOriginHeaders, body: reviewPayload,
-    });
-    assert.equal(unauthenticatedReview.status, 503,
-      'review approval must fail closed without Auth0 credentials');
-  });
-});
-
-test('isolated chat Preview: root has one composer, while agent API fails closed without auth', {
-  timeout: 45000,
-}, async () => {
-  await withServer({VERCEL_ENV: 'preview', ENABLE_SINGLE_CHAT_PREVIEW: '1'}, async origin => {
-    const root = await fetch(origin + '/');
-    assert.equal(root.status, 200);
-    const html = await root.text();
-    assert.match(html, /data-chat-only="true"/);
-    assert.match(html, /Message PracticaMIA/);
-    assert.doesNotMatch(html, /href="\/cases\/new"/);
-    const list = await fetch(origin + '/api/agent/conversations/recent');
-    assert.equal(list.status, 503, 'no tokenless agent API, even in Preview');
-    const privateList = await fetch(origin + '/api/agent/threads/' + SAMPLE_ID + '/cases');
-    assert.equal(privateList.status, 404, 'internal case picker must not be exposed through the chat proxy');
-    const denied = await fetch(origin + '/api/agent/conversations', {
-      method: 'POST', headers: {Origin:'https://untrusted.invalid','Content-Type':'application/json'},
-      body: JSON.stringify({client_message_id:SAMPLE_ID,language:'en',text:'Test'}),
-    });
-    assert.equal(denied.status, 403);
-    const browserOrigin = origin.replace('127.0.0.1','localhost');
-    const unavailable = await fetch(origin + '/api/agent/conversations', {
-      method:'POST',headers:{Host:new URL(browserOrigin).host,Origin:browserOrigin,
-        'Content-Type':'application/json'},
-      body:JSON.stringify({client_message_id:SAMPLE_ID,language:'en',text:'Test'}),
-    });
-    assert.equal(unavailable.status,503,'must not bypass missing Auth0 credentials');
-  });
-
-  await withServer({VERCEL_ENV:'production',ENABLE_SINGLE_CHAT_PREVIEW:'1'}, async origin=>{
-    const html=await (await fetch(origin+'/')).text();
-    assert.doesNotMatch(html,/data-chat-only="true"/,'production must not render the in-progress chat');
-    assert.equal((await fetch(origin+'/api/agent/conversations/recent')).status,404);
-  });
-});
-
-test('the enabled fictional document link opens directly at the sample', {
-  timeout: 45000,
-}, async () => {
-  await withServer({ ENABLE_PUBLIC_SYNTHETIC_DEMO: '1' }, async (origin) => {
-    const start = await fetch(origin + '/cases/new');
-    assert.equal(start.status, 200);
-    const html = await start.text();
-    assert.match(html, /<h1>Start a case<\/h1>/);
-    assert.match(html, /Explore a fictional case/);
-    assert.doesNotMatch(html, /NEW DEMO CASE|NEW DEMONSTRATION/);
-    const document = await fetch(origin + '/demo/synthetic?step=document');
-    assert.equal(document.status, 200);
-    assert.match(await document.text(), /Open sample document/);
-    const overview = await fetch(origin + '/demo/synthetic');
-    assert.equal(overview.status, 200);
-    assert.match(await overview.text(), /Choose a scenario/);
-  });
-});
-
-
-test('private-document production routes enforce release, origin, and session gates', {
-  timeout: 45000,
-}, async () => {
-  const base = '/api/cases/' + SAMPLE_ID + '/private-documents';
-  const document = base + '/' + SAMPLE_ID;
-  await withServer({ ENABLE_PRIVATE_DOCUMENT_UI: '0' }, async origin => {
-    assert.equal((await fetch(origin + base)).status, 404);
-  });
-  await withServer({
-    ENABLE_PRIVATE_DOCUMENT_UI: '1',
-    PRIVATE_DOCUMENT_PRIVACY_APPROVED: '1',
-    PRIVATE_DOCUMENT_CONTROLLER: 'Synthetic runtime smoke controller',
-    PRIVATE_DOCUMENT_CONTACT: 'privacy@example.invalid',
-  }, async origin => {
-    const crossOrigin = { Origin: 'https://wrong-origin.invalid' };
-    for (const [path, method] of [
-      [base, 'POST'], [document, 'DELETE'],
-      [document + '/intelligence/extract', 'POST'],
-      [document + '/intelligence/review', 'PUT'],
-    ]) {
-      const request = await fetch(origin + path, { method, headers: crossOrigin });
-      assert.equal(request.status, 403, method + ' ' + path);
+    for(const pathname of ['/api/cases','/api/demo/ai','/api/agent/conversations']){
+      const response=await fetch(origin+pathname);
+      assert.equal(response.status,404,pathname);
     }
-    assert.equal((await fetch(origin + base)).status, 503);
-    assert.equal((await fetch(origin + document + '/intelligence')).status, 503);
-    assert.equal((await fetch(origin + document)).status, 405);
-    const browserOrigin = origin.replace('127.0.0.1', 'localhost');
-    const sameOrigin = { Origin: browserOrigin, Host: new URL(browserOrigin).host };
-    const missingMultipart = await fetch(origin + base, {
-      method: 'POST', headers: sameOrigin,
-    });
-    assert.equal(missingMultipart.status, 413);
-    const validUpload = new FormData();
-    validUpload.set('category', 'housing_document');
-    validUpload.set('privacy_ack', 'true');
-    validUpload.set('consent_version', 'private-documents-2026-11-v1');
-    validUpload.set('file', new Blob(['%PDF-synthetic'], {type:'application/pdf'}), 'fictional.pdf');
-    const withoutSession = await fetch(origin + base, {
-      method: 'POST', headers: sameOrigin, body: validUpload,
-    });
-    assert.equal(withoutSession.status, 503, 'valid same-origin upload must stop at session/configuration');
-    assert.equal((await fetch(origin + document, {method:'DELETE', headers:sameOrigin})).status, 503);
+    const reviewer=await fetch(origin+'/knowledge/review');
+    assert.equal(reviewer.status,404);
+    const response=await fetch(origin+'/api/conversations/tasks/00000000-0000-0000-0000-000000000001/intake');
+    assert.equal(response.status,503,'internal task endpoint must fail closed without Auth0');
   });
 });

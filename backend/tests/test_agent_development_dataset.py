@@ -14,7 +14,7 @@ from app.rules.engine import JURISDICTION, PROCEDURE, evaluate_rules, load_catal
 
 
 ROOT = Path(__file__).resolve().parents[2]
-PLANNING = ROOT / "planning/practicamia-2"
+RESEARCH = ROOT / "docs/research/phase-02-03"
 REQUIREMENTS = ROOT / "requirements/milan-residence-change"
 DATA = json.loads((ROOT / "evals/fixtures/phase04_agent_development.json").read_text(encoding="utf-8"))
 REFERENCES = DATA["references"]
@@ -39,7 +39,7 @@ QUESTION_OUTCOMES = {"clarification", "choose_goal"}
 def _check_section(reference, prefix):
     filename, _, anchor = reference.partition("#")
     assert filename.startswith(prefix) and "/" not in filename and filename.endswith(".md")
-    contents = (PLANNING / filename).read_text(encoding="utf-8")
+    contents = (RESEARCH / filename).read_text(encoding="utf-8")
     if anchor:
         headings = re.findall(r"^#+ (.+)$", contents, flags=re.M)
         assert anchor in {re.sub(r"[^a-z0-9 -]", "", heading.lower()).replace(" ", "-") for heading in headings}

@@ -3,7 +3,7 @@
 import {useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent} from 'react';
 import {AgentSourceCards, type AgentCitation} from '@/components/AgentSourceCards';
 import {AgentOfficialHandoff, type OfficialHandoff} from '@/components/AgentOfficialHandoff';
-import {CaseIntakePanel} from '@/components/CaseIntakePanel';
+import {RequestDetailsCard} from '@/components/RequestDetailsCard';
 import styles from './SingleChatWorkspace.module.css';
 
 type Language = 'en' | 'it';
@@ -58,7 +58,7 @@ const i18n = {
     newChat:'New chat', history:'Conversations', older:'Older conversations',
     welcome:'How can I help?', intro:'Ask about Italian administrative procedures. We will clarify what is needed, with reviewed sources where available.',
     placeholder:'Message PracticaMIA', send:'Send', sending:'Sending…',
-    signIn:'Sign in', unavailable:'The conversational service is not available in this Preview environment.',
+    signIn:'Sign in', unavailable:'The conversational service is not available in this environment.',
     working:'Request received. Checking its status…', refresh:'Check status',
     stop:'Stop', noHistory:'No conversations yet', noAnswer:'No verified answer is available yet.',
     question:'A detail to clarify', reply:'Send answer', unknown:'I do not know', skip:'Skip for now',
@@ -68,7 +68,7 @@ const i18n = {
     accepted:'Decision recorded. No saved update is confirmed yet.',
     error:'Could not confirm the action. Review the conversation and retry.',
     disclosure:'Independent assistance, not an official government service. Never share passwords or identity documents in the message.',
-    account:'Account', signOut:'Sign out', empty:'Start with a question; there is no case to create.',
+    account:'Account', signOut:'Sign out', empty:'Start with a question.',
     doc:'Document upload will be available only after privacy review.',
     retry:'The conversation changed. Open its latest state before continuing.',
     stopped:'This attempt stopped. Previously confirmed updates remain recorded.',
@@ -80,7 +80,7 @@ const i18n = {
     newChat:'Nuova chat', history:'Conversazioni', older:'Conversazioni precedenti',
     welcome:'Come posso aiutarti?', intro:'Chiedi informazioni sulle procedure amministrative italiane. Chiariremo i dettagli e useremo le fonti revisionate disponibili.',
     placeholder:'Scrivi a PracticaMIA', send:'Invia', sending:'Invio…',
-    signIn:'Accedi', unavailable:'Il servizio conversazionale non è disponibile in questo ambiente Preview.',
+    signIn:'Accedi', unavailable:'Il servizio conversazionale non è disponibile in questo ambiente.',
     working:'Richiesta ricevuta. Verifica dello stato…', refresh:'Controlla lo stato',
     stop:'Interrompi', noHistory:'Nessuna conversazione', noAnswer:'Non è ancora disponibile una risposta verificata.',
     question:'Un dettaglio da chiarire', reply:'Invia risposta', unknown:'Non lo so', skip:'Salta per ora',
@@ -90,7 +90,7 @@ const i18n = {
     accepted:'Decisione registrata. Nessun salvataggio confermato.',
     error:'Impossibile confermare l’azione. Controlla la conversazione e riprova.',
     disclosure:'Assistenza indipendente, non è un servizio governativo. Non condividere password o documenti di identità nei messaggi.',
-    account:'Account', signOut:'Esci', empty:'Inizia con una domanda; non serve creare una pratica.',
+    account:'Account', signOut:'Esci', empty:'Inizia con una domanda.',
     doc:'Il caricamento dei documenti sarà disponibile dopo la revisione della privacy.',
     retry:'La conversazione è cambiata. Apri lo stato aggiornato per continuare.',
     stopped:'Tentativo interrotto. Le modifiche già confermate rimangono registrate.',
@@ -370,7 +370,7 @@ export function SingleChatWorkspace({signedIn,configured,displayName}:{
       <header className={styles.top}>
         <button type="button" className={styles.menu} onClick={()=>setDrawer(true)}
           aria-label={text.history}>☰</button>
-        <span className={styles.topTitle}>PracticaMIA <small>Preview</small></span>
+        <span className={styles.topTitle}>PracticaMIA</span>
         <div className={styles.tools}>
           <button type="button" className={styles.locale} onClick={()=>setLanguage(l=>l==='en'?'it':'en')}>
             {language.toUpperCase()}
@@ -468,15 +468,13 @@ export function SingleChatWorkspace({signedIn,configured,displayName}:{
                 <p role="status">{text.pendingReview}</p>}
               {view.snapshot.selected_case?.case_id&&view.snapshot.result?.next_action?.operation==='confirm_saved_intake'&&
                 <section className={styles.card} aria-label="In-chat information review">
-                  <CaseIntakePanel caseId={view.snapshot.selected_case.case_id}/>
+                  <RequestDetailsCard taskId={view.snapshot.selected_case.case_id} language={language}/>
                 </section>}
               {view.snapshot.handoff&&<div className={styles.card}>
                 <AgentOfficialHandoff handoff={view.snapshot.handoff}/></div>}
               {view.snapshot.result?.citations?.length&&<div className={styles.card}>
                 <AgentSourceCards runUrl={url(view.snapshot.thread_id,view.snapshot.run_id)}
                   citations={view.snapshot.result.citations} language={language}/></div>}
-              {view.snapshot.selected_case&&view.snapshot.result?.next_action?.operation!=='confirm_saved_intake'&&
-                <p className={styles.muted}>{text.current}: {view.snapshot.selected_case.label}</p>}
               {view&&(pending.has(currentStatus??'')||currentStatus==='waiting_for_information'
                 ||currentStatus==='waiting_for_approval')&&
                 <div className={styles.actions}>

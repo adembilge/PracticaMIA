@@ -1,54 +1,35 @@
-# Project documentation
+# Documentation
 
-Start with the [project overview](../README.md). **The binding customer-product architecture is the [single-chat product contract](SINGLE_CHAT_PRODUCT_CONTRACT.md) and [D-010](DECISIONS.md)**: one ChatGPT-like conversation UI, no user-facing cases or standalone workflows. The [complete original specification](../PracticaMIA_Complete_Project_Specification.md) preserves the historical 12-stage/94-task roadmap, but its earlier multi-screen descriptions are superseded. [Progress and blockers](PROGRESS.md) records which implementation claims have evidence, in which environment and revision.
+Start here:
 
-## Single-chat product architecture and migration
+- [Product specification](PRODUCT_SPECIFICATION.md) — scope, one-chat UX, agent behavior and safety.
+- [Active work](ACTIVE_WORK.md) — current Phase 4 task and boundaries.
+- [Progress](PROGRESS.md) — implementation and release status.
+- [Single-chat product contract](SINGLE_CHAT_PRODUCT_CONTRACT.md) — binding customer UI and data invariants.
+- [Single-chat gap audit](SINGLE_CHAT_GAP_AUDIT.md) — remaining implementation and release gaps.
+- [Acceptance status](ACCEPTANCE_TESTING.md) — what automated and live checks do and do not prove.
+- [Decision log](DECISIONS.md) — owner-approved product and deployment decisions.
 
-- [Binding one-chat/no-user-cases product contract](SINGLE_CHAT_PRODUCT_CONTRACT.md)
-- [Current implementation gap audit and migration gates](SINGLE_CHAT_GAP_AUDIT.md)
-- [Active Phase 4–10 chat-first plan](../planning/practicamia-2/phase-05-single-ui-and-chat-workspace.md)
+## Active Phase 4 references
 
-## Legacy case and document implementation (migration inventory)
+- [Phase 4 agent and conversation engine](phase-4/phase-04-agent-and-conversation-engine.md)
+- [Phase 4 API contract](phase-4/phase-04-agent-api-contract.md)
+- [Claim review handoff](phase-4/phase-04-claim-review-handoff.md)
+- [Pilot session guide](phase-4/phase-04-pilot-session-guide.md)
+- [Three-authority pilot](phase-4/phase-04-three-authority-pilot.md)
 
-| Topic | Reference |
-| --- | --- |
-| Saved case, typed intake, and review marks | [Case workflow](UNIFIED_CASE_WORKFLOW.md) · [Structured intake](STRUCTURED_CASE_INTAKE.md) |
-| Signed first-route rules and output | [Checklist](REVIEWED_CASE_CHECKLIST.md) · [Preparation PDF](CASE_PREPARATION_EXPORT.md) |
-| Optional AI explanation | [Case-aware AI guidance](CASE_AWARE_AI_GUIDANCE.md) |
-| Restricted private document handling | [Vault release controls](PRIVATE_DOCUMENT_VAULT_RELEASE.md) · [Document intelligence](PRIVATE_DOCUMENT_INTELLIGENCE.md) |
+## Architecture, security and operations
 
-## Knowledge and provenance
-
-| Topic | Reference |
-| --- | --- |
-| Candidates and acquisition | [Source registry](OFFICIAL_SOURCE_REGISTRY.md) · [Source intake](OFFICIAL_SOURCE_INTAKE.md) |
-| Capturing evidence | [HTML snapshots](CONTROLLED_SOURCE_SNAPSHOTS.md) · [PDF ingestion](PDF_SOURCE_INGESTION.md) · [Browser captures](BROWSER_CAPTURE_EVIDENCE.md) |
-| Authenticated review | [Review workflow](KNOWLEDGE_REVIEW_WORKFLOW.md) · [Mobile queue](MOBILE_BROWSER_SOURCE_REVIEW.md) |
-| Approved-only retrieval | [Lexical passage search](APPROVED_PASSAGE_SEARCH.md) · [Embedding indexing](APPROVED_EMBEDDING_INDEXING.md) · [Retrieval evaluation](RETRIEVAL_EVALUATION.md) |
-
-## Development and release
-
-- [Development and GitHub review workflow](DEVELOPMENT_WORKFLOW.md)
-- [Backend setup](../backend/README.md) and [frontend setup](../frontend/README.md)
-- [Auth0 integration](AUTHENTICATION_INTEGRATION.md)
+- [Backend setup](../backend/README.md)
+- [Frontend setup](../frontend/README.md)
+- [Authentication integration](AUTHENTICATION_INTEGRATION.md)
+- [Agent Preview API runbook](AGENT_PREVIEW_API_RUNBOOK.md)
 - [Vercel and Neon deployment](VERCEL_NEON_DEPLOYMENT.md)
-- [Browser acceptance and hosted observations](ACCEPTANCE_TESTING.md)
-- [Opt-in authenticated Preview runbook](AUTHENTICATED_PREVIEW_E2E_RUNBOOK.md)
-- [Isolated Phase 4 agent API mount and worker prerequisites](AGENT_PREVIEW_API_RUNBOOK.md)
-- [Milan pilot guide](MILAN_PILOT.md)
+- [Official-source review workflow](KNOWLEDGE_REVIEW_WORKFLOW.md)
+- [Approved passage search](APPROVED_PASSAGE_SEARCH.md)
+- [Private document release controls](PRIVATE_DOCUMENT_VAULT_RELEASE.md)
+- [Document intelligence safeguards](PRIVATE_DOCUMENT_INTELLIGENCE.md)
 
-## Planning and decisions
+## Research references
 
-- [Master plan](MASTER_PLAN.md), [task registry](TASKS.yaml), [progress and blockers](PROGRESS.md), and [decision log](DECISIONS.md)
-- [Repository agent instructions](../AGENTS.md)
-
-## Dated evidence
-
-The scope, source state and observations below refer to the dates and environments recorded in each document. Check active, reviewed versions for current use.
-
-| Date | Record |
-| --- | --- |
-| 5 Nov 2026 | [Milan source discovery](MILAN_OFFICIAL_SOURCE_ACQUISITION.md) · [HTTP access audit](OFFICIAL_HTML_ACCESS_AUDIT_2026_11_05.md) · [Browser observations](research/BROWSER_OBSERVED_MILANO_RESIDENCE_2026_11_05.md) · [Unapproved Allegato A import](ALLEGATO_A_STAGING_INGESTION.md) |
-| 6 Nov 2026 | [Independent system audit](audits/INDEPENDENT_SYSTEM_AUDIT_2026_11_06.md) |
-| 7 Nov 2026 | [ANPR uploaded-guide comparison](ANPR_PUBLIC_GUIDE_UPLOAD_REVIEW_2026_11_07.md) |
-| 8 Nov 2026 | [Owner review and first-route activation](MILAN_FIRST_ROUTE_OWNER_REVIEW_ACTIVATION_2026_11_08.md) |
+Phase 2/3 source research referenced by the offline development dataset is retained under [research/phase-02-03](research/phase-02-03/). These are provenance references, not active product screens or a delivery roadmap.

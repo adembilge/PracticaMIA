@@ -133,7 +133,7 @@ def run(port: int, assets: Path, *, private_documents: bool = False):
             "iat": now, "exp": now + timedelta(minutes=10),
         }, private_key, algorithm="RS256", headers={"kid": public_jwk["kid"]})
 
-    tokens = {subject: token(subject) for subject in ("alice", "bob")}
+    tokens = {subject: token(subject) for subject in ("alice", "bob", "charlie")}
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "PracticaMIA-Acceptance-Only"
@@ -211,14 +211,13 @@ def run(port: int, assets: Path, *, private_documents: bool = False):
                     css += b"\n" + compiled.read_bytes()
                 self.reply(200, css, "text/css; charset=utf-8")
                 return
-            if (path in {"/", "/cases/saved", "/demo/synthetic", "/__acceptance/agent"} or
-                (path.startswith("/cases/") and len(path) < 120)) and (
+            if path in {"/", "/__acceptance/chat"} and (
                 self.command == "GET"
             ):
                 self.reply(200, (assets / "index.html").read_bytes(),
                            "text/html; charset=utf-8")
                 return
-            if path.startswith(("/api/cases", "/api/knowledge", "/api/agent/")):
+            if path.startswith(("/api/knowledge", "/api/agent/", "/api/conversations/tasks/")):
                 self.forward_api()
                 return
             self.json_reply(404, {"error": "Local acceptance route not found"})
@@ -268,7 +267,9 @@ def run(port: int, assets: Path, *, private_documents: bool = False):
             self.json_reply(404, {"error": "Synthetic fixture not found"})
 
         def forward_api(self):
-            mapped = "/api/v1" + self.path[4:]
+            mapped = ("/api/v1/cases/" + self.path.removeprefix("/api/conversations/tasks/")
+                      if self.path.startswith("/api/conversations/tasks/")
+                      else "/api/v1" + self.path[4:])
             subject = self.subject()
             headers = {}
             if subject:
