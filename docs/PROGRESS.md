@@ -305,3 +305,6 @@ PR #235 was squash-merged as `3a481fffb57830649638d6778d59de88197fb484` after Ba
 
 
 PR #236 was squash-merged as `5eb77ac2881eb347b120be706bd108826b8b4159` after all required checks passed on its final head: Backend CI, Frontend CI, Synthetic MVP Acceptance, Roadmap governance CI, and Vercel Preview Comments. The next Task 34.4 regression protects territorial hierarchy: a province-level assignment for the activity location must match the confirmed province even when the municipality differs. The worker should then ask only for the still-missing filing date and housing basis. English and Italian cases remain synthetic and do not approve real routing. Phase 5 remains paused.
+
+
+PR #237 was squash-merged as `9330ec78a2317d513a452b23728249bee0544c91` after all required checks passed on its final head. The next Task 34.4 regression combines both location roles in one case: the destination matches a synthetic municipality assignment, but the separately confirmed activity location does not. An assignment explicitly scoped to the activity location must be excluded rather than falling back to the matching destination. The bilingual test adds no real authority routing. Phase 5 remains paused.
