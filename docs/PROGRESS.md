@@ -319,3 +319,8 @@ Added a bilingual Task 34.4 worker-outcome regression for an assignment whose co
 ### 22 November 2026 — Phase 4 assistance-channel ambiguity
 
 Added English and Italian Task 34.5 worker-outcome regressions with two independently reviewed, applicable synthetic assistance contacts for the same procedure and confirmed destination. The worker must not arbitrarily choose one: it publishes no official channel, citations, channel claim or open-channel action. This protects the contract that assistance is offered only when exactly one separately reviewed contact applies. Fictional fixtures only; no real contact or authority is approved. Phase 5 remains paused.
+
+
+### 22 November 2026 — Phase 4 authority-name spelling suggestions
+
+Extended the Task 34.6 synthetic matching matrix with English and Italian one-edit authority-name typos. A spelling suggestion must remain needs_confirmation with no selected catalogue ID, just like procedure and municipality suggestions. The change does not treat a near-match as proof of authority identity or competence. Fictional catalogue records only; no authority routing is approved. Phase 5 remains paused.
