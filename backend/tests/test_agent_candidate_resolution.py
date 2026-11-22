@@ -483,11 +483,11 @@ def test_multiple_independently_valid_assistance_channels_are_not_arbitrarily_se
             CONTACT.scope, assignment_id="assistance-2", authority_id="help-desk-2",
             evidence_ref=second_id,
         ),
-        citation=replace(
-            CONTACT.citation, citation_id=second_id, passage_id=second_id,
-            source_id="fictional-contact-2", official_url="https://example.invalid/help-2",
-            publisher="Second fictional assistance desk",
-        ),
+        citation=CONTACT.citation.model_copy(update={
+            "citation_id": second_id, "passage_id": second_id,
+            "source_id": "fictional-contact-2", "official_url": "https://example.invalid/help-2",
+            "publisher": "Second fictional assistance desk",
+        }),
     )
     result = choose(
         language=language, assignments=(),
