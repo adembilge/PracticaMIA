@@ -87,6 +87,8 @@ def test_message_gaps_and_routing_outcomes(language, text, missing_fields, quest
     ("Borgofotne", "municipality", "springford"),
     ("residnce change", "procedure", PROCEDURE),
     ("cambio di residenzza", "procedure", PROCEDURE),
+    ("North Regstry", "authority", "north-registry"),
+    ("Registro Nrod", "authority", "north-registry"),
 ])
 def test_standalone_catalogue_spelling_suggestions_require_confirmation(typo, entity_type, candidate_id):
     match = match_catalogue_names(typo, list(CATALOGUE), entity_type=entity_type)
