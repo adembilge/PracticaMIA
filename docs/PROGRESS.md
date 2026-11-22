@@ -272,3 +272,18 @@ A follow-up scope-guard regression now uses `current_official` municipality reco
 ### 22 November 2026 — Phase 4 municipality name-kind holdouts
 
 Expanded the case-free off-scope municipality regression matrix so each of the four bilingual Como and Torino requests runs against both `current_official` and `search_variant` catalogue records. This verifies both supported name kinds are rejected before Milan-only evidence retrieval. The implementation comment now describes both eligible record kinds. These remain synthetic scope-boundary checks; no non-Milan guidance is approved and no participant or legal validation is claimed. Phase 5 remains paused; no Vercel deployment was requested.
+
+
+### 22 November 2026 — Phase 4 previous and destination municipality separation
+
+PR #231 adds English and Italian extraction regressions for messages that mention a previous municipality and a distinct destination. The extraction must preserve the procedure intent while leaving the destination context unresolved; a previous municipality cannot satisfy the confirmed Milan scope shortcut. PR #232 extends the same boundary through `identify_intent_step` at the worker checkpoint: the previous municipality is excluded from destination candidates, the procedure candidate remains available, and the worker asks for the missing procedure location instead of retrieving Milan-only evidence.
+
+Both PRs passed Backend CI, Frontend CI and Synthetic MVP Acceptance (Chromium + API) on their final heads. PR #232 was squash-merged as `4e463e4f116653a4cf80c1c2a5bae07b65850ad4`.
+
+These are bilingual synthetic regression checks only. They do not approve Como guidance, broaden the Milan pilot, or establish participant, live legal, hosted-agent or release validation. Phase 5 remains paused; no Vercel deployment was requested.
+
+### 22 November 2026 — Phase 4 historical municipality role regression
+
+The next Task 34.4 follow-up covers the same previous-versus-destination distinction with municipality records of kind `current_official` and `search_variant`, rather than only generic reviewed aliases. A municipality named directly after a past-residence or origin phrase is treated as historical context. It must not override an explicitly stated Milan destination or become the worker's destination candidate.
+
+The new bilingual cases are synthetic catalogue regressions. They do not add any non-Milan route or approve new source material. CI is pending review; no participant or legal validation is claimed. Phase 5 remains paused.
