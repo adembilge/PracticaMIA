@@ -65,7 +65,7 @@ def test_message_fixture_preserves_retry_identifier_and_body():
 
 def test_phase5_handoff_examples_join_at_the_wire_boundaries():
     root = Path(__file__).resolve().parents[2]
-    guide = (root / "planning/practicamia-2/phase-04-phase-05-handoff.md").read_text(encoding="utf-8")
+    guide = (root / "docs/phase-4/phase-04-phase-05-handoff.md").read_text(encoding="utf-8")
     snippets = re.findall(r"<!-- wire: ([a-z-]+) -->\n```json\n(.*?)\n```", guide, re.DOTALL)
     models = {
         "message": CaseTaskMessage, "receipt": CaseTaskAccepted, "active-runs": ActiveRunPage,

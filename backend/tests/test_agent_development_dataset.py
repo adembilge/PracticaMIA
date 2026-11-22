@@ -14,7 +14,7 @@ from app.rules.engine import JURISDICTION, PROCEDURE, evaluate_rules, load_catal
 
 
 ROOT = Path(__file__).resolve().parents[2]
-PLANNING = ROOT / "planning/practicamia-2"
+PLANNING = ROOT / "docs/research/phase-02-03"
 REQUIREMENTS = ROOT / "requirements/milan-residence-change"
 DATA = json.loads((ROOT / "evals/fixtures/phase04_agent_development.json").read_text(encoding="utf-8"))
 REFERENCES = DATA["references"]

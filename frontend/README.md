@@ -1,10 +1,10 @@
-# PracticaMIA Frontend
+# PracticaMIA frontend
 
-The frontend is **Next.js 15 / React 19 / TypeScript**. Its **binding target is one ChatGPT-like customer chat at `/`**, one composer, conversation-only sidebar and inline document, source, checklist, approval, form and status cards. There is **no user-facing case/workspace/dashboard concept** in the target. **Current implementation remains legacy**: the landing page, `/cases/*` workflows, and the isolated agent-chat acceptance fixture have not been migrated to a full hosted single-chat product. Do not treat the existing pages as the target design. See [single-chat contract](../docs/SINGLE_CHAT_PRODUCT_CONTRACT.md) and D-010.
+Next.js 15, React 19 and TypeScript. The root route `/` is the single customer conversation interface. There are no separate customer task, document, demo or account workspaces.
 
 ## Development
 
-Requires Node.js 22 and npm.
+Requires Node.js 22.
 
 ```bash
 cd frontend
@@ -12,11 +12,11 @@ npm ci
 npm run dev
 ```
 
-Visit `http://localhost:3000`. The initial page can render without external credentials; protected case operations require Auth0 and an accessible FastAPI service.
+Open `http://localhost:3000`. The chat shell can render without credentials. Sending messages requires a configured Auth0 session and an accessible agent API. Agent transport remains restricted to isolated development/Preview infrastructure; production execution is disabled.
 
-Copy [`.env.example`](.env.example) to `.env.local` if you need local Auth0 and backend access, then supply the authorized development values. The frontend allows loopback HTTP for local APIs and uses HTTPS for remote APIs. Auth0 secrets and backend access tokens must stay server-side. Do not enable restricted document or administrative-review features without their corresponding backend safeguards.
+Store local configuration in ignored environment files. Auth0 secrets and backend access tokens must remain server-side.
 
-## Checks
+## Verification
 
 ```bash
 npm test
@@ -24,17 +24,17 @@ npm run typecheck
 npm run build
 ```
 
-The [frontend CI workflow](../.github/workflows/frontend-ci.yml) runs a built-server HTTP smoke test. The [browser acceptance suite](../docs/ACCEPTANCE_TESTING.md) uses a separate local harness.
+The frontend CI workflow runs unit tests, TypeScript checks, a production build and a real localhost HTTP smoke test.
 
-## Architecture
+## Structure
 
-- `src/app/` — currently includes legacy standalone screens and server-side proxies; target primary customer route is `/` only. Internal auth/reviewer and legal routes are distinct supporting surfaces.
-- `src/components/` — reusable case, document, assistant, and layout components.
-- `src/lib/` — authentication configuration, request validation, state helpers, and domain clients.
-- `src/app/globals.css` and `src/app/editorial.css` — shared styles and the editorial UI.
-- `src/lib/i18n.ts` — English and Italian interface copy.
-- `tests/` — unit and browser acceptance infrastructure.
-
-The Next.js server obtains authorized backend access tokens; the browser does not receive raw API bearer credentials. For backend setup and environmental safeguards, see [backend documentation](../backend/README.md) and [the project overview](../README.md).
+- `src/app/page.tsx` — single-chat entry route.
+- `src/app/api/agent/` — authenticated, allowlisted conversation proxy.
+- `src/app/api/conversations/tasks/` — private inline request-details adapter.
+- `src/components/SingleChatWorkspace.tsx` — chat transcript, composer and conversation history.
+- `src/components/AgentSourceCards.tsx` — inline approved-source citations.
+- `src/components/AgentOfficialHandoff.tsx` — verified external handoff.
+- `src/components/RequestDetailsCard.tsx` — inline confirmed-information review.
+- `src/app/knowledge/review/` — protected operator-only source review surface.
 
 PracticaMIA is independent of the Italian government and does not submit applications on a user's behalf.
