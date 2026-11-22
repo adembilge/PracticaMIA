@@ -182,6 +182,33 @@ def test_previous_municipality_blocks_milan_evidence_at_worker_checkpoint(langua
     assert not state.uses_confirmed_case_scope
 
 
+@pytest.mark.parametrize("name_kind", ["current_official", "search_variant"])
+@pytest.mark.parametrize(("language", "text"), [
+    ("en", "How do I change my residence after living in Como, with Milan as my destination?"),
+    ("it", "Come comunico il cambio di residenza dopo aver vissuto a Como, con destinazione Milano?"),
+])
+def test_previous_municipality_does_not_override_explicit_destination_in_reviewed_catalogue(
+    name_kind, language, text,
+):
+    names = tuple(
+        replace(name, kind=name_kind) if name.entity_type == "municipality" else name
+        for name in FIRST_ROUTE_NAMES
+    )
+    case_id = uuid4()
+    context = WorkerCaseContext(case_id, IntakeFacts(**SUPPORTED_FACTS), "review_checklist", ())
+    state = identify_intent_step(
+        StoredMessage(text, language, case_id, case_context=context),
+        CheckpointState(next_node="identify_intent"),
+        catalogue_names=names,
+    )
+    assert state.next_node == "find_evidence"
+    assert state.intent == "find_procedure"
+    assert state.procedure_candidates == [PROCEDURE]
+    assert state.location_candidates == [JURISDICTION]
+    assert state.missing_fields == []
+    assert state.uses_confirmed_case_scope
+
+
 
 def test_uses_reviewed_matches_preserves_authority_mentions_and_skips_nested_place():
     unreviewed = replace(reviewed_name("unreviewed", "procedure", "tax"), approved_for_search=False)
