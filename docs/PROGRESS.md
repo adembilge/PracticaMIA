@@ -308,3 +308,6 @@ PR #236 was squash-merged as `5eb77ac2881eb347b120be706bd108826b8b4159` after al
 
 
 PR #237 was squash-merged as `9330ec78a2317d513a452b23728249bee0544c91` after all required checks passed on its final head. The next Task 34.4 regression combines both location roles in one case: the destination matches a synthetic municipality assignment, but the separately confirmed activity location does not. An assignment explicitly scoped to the activity location must be excluded rather than falling back to the matching destination. The bilingual test adds no real authority routing. Phase 5 remains paused.
+
+
+PR #238 was squash-merged as `5644f4ef0088701582b6ee254dd5a2ef10a89b57` after Backend CI, Frontend CI, Synthetic MVP Acceptance, Roadmap governance CI, and Vercel Preview Comments all passed. The next Task 34.4 regression covers competing location roles: one destination-scoped authority matches the confirmed destination, while a second authority remains possible only if a missing activity location matches. The worker must ask for the activity location instead of selecting the partial destination match. English and Italian tests use synthetic assignments only. Phase 5 remains paused.
