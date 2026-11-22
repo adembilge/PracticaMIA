@@ -259,3 +259,9 @@ PR #226 adds seven English and Italian natural-language search variants for chan
 On exact PR head `4524c0cea9c5035c4a27e663c542e255ea8ad215`, Backend CI, Frontend CI, Synthetic MVP Acceptance (Chromium + API), and Roadmap governance all completed successfully. The PR was squash-merged as `d7f6461ad303a1bfe52a8121698b548eeb960115`.
 
 These results are synthetic development checks only. They do not establish participant success, live legal verification, reviewed coverage for Torino or Questura, hosted account-session acceptance, production readiness or release approval. The D-010 customer target remains one ChatGPT-style chat with conversation-only history and inline cards. Phase 5 remains paused. No Vercel build or deployment was initiated.
+
+### 22 November 2026 — Phase 4 off-scope municipality holdouts
+
+Added four independent bilingual case-free graph holdout scenarios for explicit Como and Torino residence-change requests. The synthetic registry deliberately contains an approved Milan passage, while the test catalogue resolves the named non-Milan municipalities. Each scenario must finish as `unsupported` with no citations, claims or official channel. This checks that broader phrase matching cannot leak the Milan-only evidence into another municipality.
+
+These are isolated synthetic regression checks, not reviewed guidance for Como or Torino and not participant evidence. The three-authority source review, participant sessions, hosted account-session acceptance and operational validation remain open. D-010 remains binding: one chat with conversation-only history and inline cards. Phase 5 remains paused. No Vercel build or deployment was initiated.
