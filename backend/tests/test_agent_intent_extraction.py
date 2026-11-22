@@ -95,6 +95,7 @@ FIRST_ROUTE_NAMES = (
     reviewed_name(JURISDICTION, "municipality", "Milan"),
     reviewed_name("municipality-como", "municipality", "Como"),
     reviewed_name(PROCEDURE, "procedure", "cambio di residenza"),
+    reviewed_name(PROCEDURE, "procedure", "change my residence"),
 )
 
 
@@ -145,8 +146,8 @@ def test_confirmed_milan_case_does_not_supply_scope_for_another_or_ambiguous_req
 
 
 @pytest.mark.parametrize(("language", "text"), [
-    ("en", "I used to live in Como; my destination is Milan. How do I change my residence?"),
-    ("it", "Prima vivevo a Como; la destinazione è Milano. Come cambio la residenza?"),
+    ("en", "How do I change my residence after living in Como, with Milan as my destination?"),
+    ("it", "Come comunico il cambio di residenza dopo aver vissuto a Como, con destinazione Milano?"),
 ])
 def test_previous_municipality_does_not_satisfy_confirmed_milan_scope(language, text):
     case_id = uuid4()
