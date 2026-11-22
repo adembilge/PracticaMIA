@@ -146,8 +146,8 @@ def test_confirmed_milan_case_does_not_supply_scope_for_another_or_ambiguous_req
 
 
 @pytest.mark.parametrize(("language", "text"), [
-    ("en", "How do I change my residence after living in Como, with Milan as my destination?"),
-    ("it", "Come comunico il cambio di residenza dopo aver vissuto a Como, con destinazione Milano?"),
+    ("en", "How do I change my residence after living in Como?"),
+    ("it", "Come comunico il cambio di residenza dopo aver vissuto a Como?"),
 ])
 def test_previous_municipality_does_not_satisfy_confirmed_milan_scope(language, text):
     case_id = uuid4()
@@ -162,8 +162,8 @@ def test_previous_municipality_does_not_satisfy_confirmed_milan_scope(language, 
     assert not result.uses_confirmed_case_scope
 
 @pytest.mark.parametrize(("language", "text"), [
-    ("en", "How do I change my residence after living in Como, with Milan as my destination?"),
-    ("it", "Come comunico il cambio di residenza dopo aver vissuto a Como, con destinazione Milano?"),
+    ("en", "How do I change my residence after living in Como?"),
+    ("it", "Come comunico il cambio di residenza dopo aver vissuto a Como?"),
 ])
 def test_previous_municipality_blocks_milan_evidence_at_worker_checkpoint(language, text):
     case_id = uuid4()
@@ -180,6 +180,46 @@ def test_previous_municipality_blocks_milan_evidence_at_worker_checkpoint(langua
     assert state.location_candidates == []
     assert state.missing_fields == ["procedure_location"]
     assert not state.uses_confirmed_case_scope
+
+
+@pytest.mark.parametrize("name_kind", ["current_official", "search_variant"])
+@pytest.mark.parametrize(("language", "text"), [
+    ("en", "How do I change my residence after living in Como, with Milan as my destination?"),
+    ("it", "Come comunico il cambio di residenza dopo aver vissuto a Como, con destinazione Milano?"),
+])
+def test_previous_municipality_does_not_override_explicit_destination_in_reviewed_catalogue(
+    name_kind, language, text,
+):
+    names = tuple(
+        replace(name, kind=name_kind) if name.entity_type == "municipality" else name
+        for name in FIRST_ROUTE_NAMES
+    )
+    case_id = uuid4()
+    context = WorkerCaseContext(case_id, IntakeFacts(**SUPPORTED_FACTS), "review_checklist", ())
+    state = identify_intent_step(
+        StoredMessage(text, language, case_id, case_context=context),
+        CheckpointState(next_node="identify_intent"),
+        catalogue_names=names,
+    )
+    assert state.next_node == "find_evidence"
+    assert state.intent == "find_procedure"
+    assert state.procedure_candidates == [PROCEDURE]
+    assert state.location_candidates == [JURISDICTION]
+    assert state.missing_fields == []
+    assert state.uses_confirmed_case_scope
+
+
+def test_confirmed_milan_case_scope_is_not_reused_for_another_procedure():
+    names = (*FIRST_ROUTE_NAMES, reviewed_name("tax-record", "procedure", "update my tax record"))
+    case_id = uuid4()
+    context = WorkerCaseContext(case_id, IntakeFacts(**SUPPORTED_FACTS), "review_checklist", ())
+    result = extract_intent(
+        StoredMessage("How do I update my tax record in Milan?", "en", case_id, case_context=context),
+        catalogue_names=names,
+    )
+    assert result.intent == "find_procedure"
+    assert result.procedure_candidates == ("tax-record",)
+    assert not result.uses_confirmed_case_scope
 
 
 
