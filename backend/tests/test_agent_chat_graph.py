@@ -22,7 +22,7 @@ from test_agent_run_requests import ALICE, KEY
 from test_knowledge_search import HTML, _approve, _create
 
 
-def _names():
+def _names(*, municipality_kind="current_official"):
     return (
         CatalogueName(
             catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
@@ -121,12 +121,12 @@ def _names():
         ),
         CatalogueName(
             catalogue_id="municipality-como", entity_type="municipality", display_name="Como",
-            name="Como", kind="current_official", evidence_ref="synthetic-reviewed-alias",
+            name="Como", kind=municipality_kind, evidence_ref="synthetic-reviewed-alias",
             approved_for_search=True,
         ),
         CatalogueName(
             catalogue_id="municipality-torino", entity_type="municipality", display_name="Torino",
-            name="Torino", kind="current_official", evidence_ref="synthetic-reviewed-alias",
+            name="Torino", kind=municipality_kind, evidence_ref="synthetic-reviewed-alias",
             approved_for_search=True,
         ),
     )
@@ -413,6 +413,7 @@ def test_case_free_model_is_not_invoked_without_approved_evidence(client):
 
 
 
+@pytest.mark.parametrize("municipality_kind", ["current_official", "search_variant"])
 @pytest.mark.parametrize(
     ("text", "language"),
     [
@@ -422,11 +423,13 @@ def test_case_free_model_is_not_invoked_without_approved_evidence(client):
         ("Come faccio il cambio di residenza a Como?", "it"),
     ],
 )
-def test_case_free_graph_keeps_unreviewed_municipalities_out_of_milan_guidance(client, text, language):
+def test_case_free_graph_keeps_unreviewed_municipalities_out_of_milan_guidance(
+    client, text, language, municipality_kind,
+):
     version, digest = _create(client, html=HTML)
     _approve(client, version, digest)
     factory = client.app.state.session_factory
-    execute = build_chat_executor(factory, catalogue_names=_names())
+    execute = build_chat_executor(factory, catalogue_names=_names(municipality_kind=municipality_kind))
     message = SendMessage(client_message_id=uuid4(), text=text, language=language)
     with factory.begin() as db:
         thread_id = create_thread(db, principal=ALICE)
