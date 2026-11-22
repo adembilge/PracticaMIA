@@ -328,3 +328,8 @@ Extended the Task 34.6 synthetic matching matrix with English and Italian one-ed
 ### 22 November 2026 — Phase 4 ambiguous authority-name suggestion guard
 
 Extended Task 34.6 with a collision case where the user's authority spelling exactly matches one fictional catalogue record but is also a one-edit suggestion for a different authority. The matcher must return an ambiguous result with no selected ID rather than allowing the exact near-match to hide the competing identity. This is a synthetic identity-resolution regression only; it does not infer authority competence or enable routing. Phase 5 remains paused.
+
+
+### 22 November 2026 — Phase 4 spelling confirmation with location context
+
+Extended the Task 34.6 synthetic matching matrix with English and Italian authority-name typos under both matching and conflicting confirmed-location context. A location may filter candidates, but it cannot convert a spelling suggestion into a resolved authority identity; a conflicting location leaves the candidate unresolved. The ambiguous exact-name-versus-near-match collision is also checked in both catalogue record orders. These are fictional identity-resolution tests only and do not establish authority competence or routing. Phase 5 remains paused.

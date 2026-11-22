@@ -184,3 +184,65 @@ def test_ambiguous_authority_spelling_suggestion_does_not_prefer_exact_near_matc
         ("north-variant", "exact"),
     }
 
+
+
+@pytest.mark.parametrize(("typo", "location_id"), [
+    ("North Regstry", "springford"),
+    ("Registro Nrod", "springford"),
+])
+def test_confirmed_location_does_not_resolve_authority_spelling_suggestion(typo, location_id):
+    display_name = "Registro Nord" if typo == "Registro Nrod" else "North Registry"
+    authority = replace(
+        reviewed_name("north-registry", "authority", display_name),
+        location_ids=(location_id,),
+    )
+
+    match = match_catalogue_names(
+        typo, [authority], entity_type="authority",
+        confirmed_location_id=location_id,
+    )
+
+    assert match.status == "needs_confirmation"
+    assert match.selected_id is None
+    assert [(candidate.catalogue_id, candidate.match_type) for candidate in match.candidates] == [
+        ("north-registry", "spelling_suggestion"),
+    ]
+
+
+def test_conflicting_location_does_not_resolve_authority_spelling_suggestion():
+    authority = replace(
+        reviewed_name("north-registry", "authority", "North Registry"),
+        location_ids=("springford",),
+    )
+
+    match = match_catalogue_names(
+        "North Regstry", [authority], entity_type="authority",
+        confirmed_location_id="elsewhere",
+    )
+
+    assert match.status == "unresolved"
+    assert match.selected_id is None
+    assert [candidate.catalogue_id for candidate in match.candidates] == ["north-registry"]
+
+
+def test_ambiguous_authority_spelling_result_is_independent_of_catalogue_order():
+    competing_catalogue = [
+        *CATALOGUE,
+        reviewed_name("north-variant", "authority", "North Regstry"),
+    ]
+    results = [
+        match_catalogue_names("North Regstry", records, entity_type="authority")
+        for records in (competing_catalogue, list(reversed(competing_catalogue)))
+    ]
+
+    assert [result.status for result in results] == ["ambiguous", "ambiguous"]
+    assert [result.selected_id for result in results] == [None, None]
+    assert [
+        {(candidate.catalogue_id, candidate.match_type) for candidate in result.candidates}
+        for result in results
+    ] == [
+        {
+            ("north-registry", "spelling_suggestion"),
+            ("north-variant", "exact"),
+        },
+    ] * 2
