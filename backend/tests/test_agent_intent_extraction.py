@@ -146,8 +146,8 @@ def test_confirmed_milan_case_does_not_supply_scope_for_another_or_ambiguous_req
 
 
 @pytest.mark.parametrize(("language", "text"), [
-    ("en", "How do I change my residence after living in Como, with Milan as my destination?"),
-    ("it", "Come comunico il cambio di residenza dopo aver vissuto a Como, con destinazione Milano?"),
+    ("en", "How do I change my residence after living in Como?"),
+    ("it", "Come comunico il cambio di residenza dopo aver vissuto a Como?"),
 ])
 def test_previous_municipality_does_not_satisfy_confirmed_milan_scope(language, text):
     case_id = uuid4()
@@ -162,8 +162,8 @@ def test_previous_municipality_does_not_satisfy_confirmed_milan_scope(language, 
     assert not result.uses_confirmed_case_scope
 
 @pytest.mark.parametrize(("language", "text"), [
-    ("en", "How do I change my residence after living in Como, with Milan as my destination?"),
-    ("it", "Come comunico il cambio di residenza dopo aver vissuto a Como, con destinazione Milano?"),
+    ("en", "How do I change my residence after living in Como?"),
+    ("it", "Come comunico il cambio di residenza dopo aver vissuto a Como?"),
 ])
 def test_previous_municipality_blocks_milan_evidence_at_worker_checkpoint(language, text):
     case_id = uuid4()
