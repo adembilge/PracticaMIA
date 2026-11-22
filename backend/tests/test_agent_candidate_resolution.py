@@ -474,3 +474,30 @@ def test_confirmed_filing_date_mismatch_excludes_candidate_without_irrelevant_qu
     assert result.official_channel is None
     assert result.citations == []
     assert result.claims == []
+
+@pytest.mark.parametrize("language", ["en", "it"])
+def test_multiple_independently_valid_assistance_channels_are_not_arbitrarily_selected(language):
+    second_id = f"{SOURCE_VERSION}:0002"
+    second = AssistanceContact(
+        scope=replace(
+            CONTACT.scope, assignment_id="assistance-2", authority_id="help-desk-2",
+            evidence_ref=second_id,
+        ),
+        citation=CONTACT.citation.model_copy(update={
+            "citation_id": second_id, "passage_id": second_id,
+            "source_id": "fictional-contact-2", "official_url": "https://example.invalid/help-2",
+            "publisher": "Second fictional assistance desk",
+        }),
+    )
+    result = choose(
+        language=language, assignments=(),
+        assistance_contacts=(CONTACT, second),
+        trusted_passage_ids=TRUSTED | {CONTACT_ID, second_id},
+    )
+
+    assert isinstance(result, AnswerResult)
+    assert result.verification_status == "insufficient_evidence"
+    assert result.official_channel is None
+    assert result.next_action is None
+    assert result.citations == []
+    assert result.claims == []
