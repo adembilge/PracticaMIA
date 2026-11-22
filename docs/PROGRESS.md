@@ -292,3 +292,10 @@ The new bilingual cases are synthetic catalogue regressions. They do not add any
 ### 22 November 2026 — Phase 4 persisted applicability clarification
 
 Added a worker-level Task 34.4 regression for a candidate that requires both a filing date and a housing circumstance. The worker first persists the grouped question, then receives the two labeled values in a clarification reply. The resumed worker must recover the reply from the journal, retain both normalized values in the checkpoint, and advance to evidence lookup only after the saved candidate becomes applicable. This is synthetic service-assignment coverage; it does not add an approved authority route or replace source and participant review. Phase 5 remains paused.
+
+
+### 22 November 2026 — Phase 4 location-role isolation
+
+PR #234 added a worker-level persisted clarification regression for a reviewed candidate requiring a filing date and housing circumstance. Its final head passed Backend CI, Frontend CI, Synthetic MVP Acceptance (Chromium + API), and Roadmap governance, then was squash-merged as `c66796700ca3d3701d5719854fef485ba90fdfca`.
+
+The next Task 34.4 regression checks a separate boundary: a confirmed destination municipality must not satisfy an assignment that requires the municipality where an activity takes place. The synthetic worker outcome must request the activity location together with the filing date and housing basis, in both English and Italian. This does not add any real authority route or expand approved source coverage. Phase 5 remains paused.
