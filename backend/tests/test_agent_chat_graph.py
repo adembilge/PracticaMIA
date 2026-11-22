@@ -2,6 +2,7 @@
 from uuid import uuid4
 import json
 
+import pytest
 from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnableLambda
 
@@ -54,6 +55,26 @@ def _names():
             approved_for_search=True,
         ),
         CatalogueName(
+            catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
+            name="register a new address", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
+        CatalogueName(
+            catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
+            name="register my new address", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
+        CatalogueName(
+            catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
+            name="comunicare il nuovo indirizzo", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
+        CatalogueName(
+            catalogue_id=PROCEDURE, entity_type="procedure", display_name="Cambio di residenza",
+            name="registrare il nuovo indirizzo", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
+        CatalogueName(
             catalogue_id=JURISDICTION, entity_type="municipality", display_name="Milano",
             name="Milan", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
             approved_for_search=True,
@@ -66,15 +87,24 @@ def _names():
     )
 
 
-def test_case_free_message_retrieves_only_active_approved_reference_and_reconnects(client):
+@pytest.mark.parametrize(
+    ("text", "language"),
+    [
+        ("How can I change my address in Milan?", "en"),
+        ("I need to register a new address in Milan.", "en"),
+        ("Devo comunicare il nuovo indirizzo a Milano.", "it"),
+        ("Devo registrare il nuovo indirizzo a Milano.", "it"),
+    ],
+)
+def test_case_free_natural_address_phrases_retrieve_only_approved_references(client, text, language):
     version, digest = _create(client, html=HTML)
     _approve(client, version, digest)
     factory = client.app.state.session_factory
     execute = build_chat_executor(factory, catalogue_names=_names())
     message = SendMessage(
         client_message_id=uuid4(),
-        text="How can I change my address in Milan?",
-        language="en",
+        text=text,
+        language=language,
     )
     with factory.begin() as db:
         thread_id = create_thread(db, principal=ALICE)
@@ -90,7 +120,8 @@ def test_case_free_message_retrieves_only_active_approved_reference_and_reconnec
     assert snapshot.result.citations
     assert snapshot.result.claims == []
     assert snapshot.result.official_channel is None
-    assert "reference material only" in snapshot.result.explanation
+    expected_phrase = "solo riferimenti" if language == "it" else "reference material only"
+    assert expected_phrase in snapshot.result.explanation
 
     citation = snapshot.result.citations[0]
     with factory() as db:
