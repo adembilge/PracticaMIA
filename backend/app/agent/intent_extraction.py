@@ -375,14 +375,9 @@ def identify_intent_step(
         procedures = []
         if "procedure" not in missing:
             missing.append("procedure")
-    evidence_ready = result.uses_confirmed_case_scope or (
-        not missing and len(procedures) == 1
-        and procedures[0] not in (MARRIAGE_BANNS, PERMIT_RENEWAL)
-        and result.intent in ("find_procedure", "request_information")
-    )
-    # A place mention in a free-form request is only a candidate: "a Milano"
-    # does not establish whether Milan is the previous or destination municipality.
-    # Keep unconfirmed place names out of the durable routing checkpoint.
+    # Place mentions remain candidates, not confirmed case facts. They are
+    # retained only so an explicit out-of-scope municipality can be rejected
+    # before the Milan-only evidence retrieval path.
     locations = (
         [JURISDICTION]
         if result.uses_confirmed_case_scope and message.case_context is not None
@@ -390,6 +385,12 @@ def identify_intent_step(
             place_id for entity_type, place_id in _places(result.mentions)
             if entity_type == "municipality"
         ))
+    )
+    off_scope_location = len(locations) == 1 and locations[0] != JURISDICTION
+    evidence_ready = result.uses_confirmed_case_scope or (
+        not off_scope_location and not missing and len(procedures) == 1
+        and procedures[0] not in (MARRIAGE_BANNS, PERMIT_RENEWAL)
+        and result.intent in ("find_procedure", "request_information")
     )
     return CheckpointState(
         next_node="find_evidence" if evidence_ready else "choose_next_step",
