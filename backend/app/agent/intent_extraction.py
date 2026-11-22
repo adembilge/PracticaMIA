@@ -383,7 +383,7 @@ def identify_intent_step(
     # must not silently change the existing evidence-routing contract.
     off_scope_municipality_ids = {
         record.catalogue_id for record in catalogue_names
-        if record.entity_type == "municipality" and record.kind == "search_variant"
+        if record.entity_type == "municipality" and record.kind in {"current_official", "search_variant"}
     }
     locations = (
         [JURISDICTION]
