@@ -227,6 +227,12 @@ def build_chat_graph(
             return {"result": available_names}
         available_names = tuple(available_names)
         checkpoint = apply_routing_reply(message, checkpoint, available_names)
+        if (
+            checkpoint.procedure_candidates == [PROCEDURE]
+            and len(checkpoint.location_candidates) == 1
+            and checkpoint.location_candidates[0] != JURISDICTION
+        ):
+            return {"result": _answer_without_evidence(message.language, unsupported=True)}
         if checkpoint.intent == "request_information" and not checkpoint.procedure_candidates:
             missing = list(checkpoint.missing_fields)
             if "procedure" not in missing:
