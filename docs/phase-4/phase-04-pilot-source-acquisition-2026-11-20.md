@@ -67,7 +67,7 @@ The command stores original bytes and extracted passages through the existing sn
 
 The extended 20 November import and repeat preserved the four baseline version IDs and produced five `pending_review` versions, 364 passages and eleven claim references. The integrity and foreign-key checks passed. The review audit contained zero approval events. The extended SQLite file's SHA-256 is `a539ddb3c1b1a34deb7c1001b095a0532342c517bd00f60e862d5056568d6b9a`.
 
-These IDs refer to the offline review copy. The [verified Preview mapping](#verified-preview-registration) links them to the hosted versions by original and passage hashes. The authorized reviewer can inspect the six pending claims against the published sources and record the scoped rationale using the [claim-specific process](phase-03-claim-evidence.md#claim-and-evidence-contract). [Authenticated approval](../../docs/OFFICIAL_SOURCE_INTAKE.md#5-human-evidence-review) remains pending.
+These IDs refer to the offline review copy. The [verified Preview mapping](#verified-preview-registration) links them to the hosted versions by original and passage hashes. The authorized reviewer can inspect the six pending claims against the published sources and record the scoped rationale using the [claim-specific process](../research/phase-02-03/phase-03-claim-evidence.md#claim-and-evidence-contract). [Authenticated approval](../../docs/OFFICIAL_SOURCE_INTAKE.md#5-human-evidence-review) remains pending.
 
 The [claim review worksheet](phase-04-claim-review-handoff.md) lists the exact claims, case boundaries and eleven pinned references in a read-only query. It also provides the fields for recording a human decision.
 

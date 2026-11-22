@@ -6,7 +6,7 @@ Use this guide with the [three-authority pilot scope](phase-04-three-authority-p
 
 - Record the exact isolated Preview build and language. Check that the agent can open and resume a synthetic task on that build.
 - Confirm the product owner's scope decision and the applicable reviewed sources for each participant case. Verify the approved IDs on the same build. For Torino and Questura, use the recorded scoped human decisions from the [claim review worksheet](phase-04-claim-review-handoff.md). If a required claim remains pending, keep that case in staff rehearsal and test that the application withholds unsupported guidance.
-- Use a dedicated Preview test account and fictional case data. Ask permission to record de-identified usability observations through the [existing consent process](phase-02-user-case-sampling.md#screening-and-intake). Keep consent records separately from the observations.
+- Use a dedicated Preview test account and fictional case data. Ask permission to record de-identified usability observations through the [existing consent process](../research/phase-02-03/phase-02-user-case-sampling.md#screening-and-intake). Keep consent records separately from the observations.
 
 ## Give the participant one brief
 

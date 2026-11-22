@@ -155,7 +155,7 @@ The Milan handoff expectations use the two exact source versions and three passa
 
 Read the sequence in one language at a time. Each step supplies an input or a state event and an observable expected outcome. The `facts` entries specify controlled evaluation context, with `null` for a missing fact. Saved case writes follow the existing owner approval flow. The `question_step` reference identifies the question to reopen or answer. For a goal reply, translate `selected_procedure_id` into the exact displayed option when replaying the API. A `source_change` invalidates the named reference before reopening current guidance. Previous events retain their history.
 
-From `backend/`, run `python -m pytest -q tests/test_agent_development_dataset.py` to verify the dataset links, both languages, question transitions, and the Milan outcomes against the signed rule engine with controlled passage availability. The check runs offline. The [Phase 2 collection record](phase-02-user-case-sampling.md#collection-status) records no enrolled cases, and the [Phase 3 closure checklist](phase-03-official-sources-and-catalog.md#phase-3-closure-checklist) still requires review of the broader catalogue. Participant evidence, a reviewed multi-authority pilot set and hidden holdout cases remain open.
+From `backend/`, run `python -m pytest -q tests/test_agent_development_dataset.py` to verify the dataset links, both languages, question transitions, and the Milan outcomes against the signed rule engine with controlled passage availability. The check runs offline. The [Phase 2 collection record](../research/phase-02-03/phase-02-user-case-sampling.md#collection-status) records no enrolled cases, and the [Phase 3 closure checklist](../research/phase-02-03/phase-03-official-sources-and-catalog.md#phase-3-closure-checklist) still requires review of the broader catalogue. Participant evidence, a reviewed multi-authority pilot set and hidden holdout cases remain open.
 
 ### Agent component measurement
 
@@ -240,7 +240,7 @@ The schema has no free-text or private identifier fields. Prompt, query, reply, 
 
 ### Bilingual intent follow-up
 
-The unchanged Task 40.1 messages and expected answers were replayed after extending the extractor's English and Italian filing and limit questions. The evaluation also added `indirizzo all’anagrafe` as a synthetic procedure alias using the civil-registration example in [Phase 2](phase-02-administrative-domains.md).
+The unchanged Task 40.1 messages and expected answers were replayed after extending the extractor's English and Italian filing and limit questions. The evaluation also added `indirizzo all’anagrafe` as a synthetic procedure alias using the civil-registration example in [Phase 2](../research/phase-02-03/phase-02-administrative-domains.md).
 
 | Measurement | Phase 4 baseline | New cues and original aliases | New cues and updated synthetic aliases |
 | --- | ---: | ---: | ---: |

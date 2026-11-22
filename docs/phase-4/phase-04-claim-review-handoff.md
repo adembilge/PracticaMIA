@@ -71,4 +71,4 @@ Use a private review copy. Record the outcome, exact approved wording and scope 
 | Q2 | Pending | | |
 | Q3 | Pending | | |
 
-For a hosted decision, record the Preview source version and passage IDs with the verified original and passage hashes. Use the [authenticated source approval workflow](../../docs/KNOWLEDGE_REVIEW_WORKFLOW.md#approval-invariants) for any activation. A claim also needs its own scoped review record under the [claim-evidence contract](phase-03-claim-evidence.md#claim-and-evidence-contract). The current reviewer API records source-version decisions. This worksheet prepares the separate claim review record.
+For a hosted decision, record the Preview source version and passage IDs with the verified original and passage hashes. Use the [authenticated source approval workflow](../../docs/KNOWLEDGE_REVIEW_WORKFLOW.md#approval-invariants) for any activation. A claim also needs its own scoped review record under the [claim-evidence contract](../research/phase-02-03/phase-03-claim-evidence.md#claim-and-evidence-contract). The current reviewer API records source-version decisions. This worksheet prepares the separate claim review record.

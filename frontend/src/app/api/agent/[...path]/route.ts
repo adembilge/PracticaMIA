@@ -1,6 +1,6 @@
 import {NextRequest} from 'next/server';
 import {backendError, proxyAuthenticatedRequest, rejectCrossOrigin} from '@/lib/backend-proxy';
-import {singleChatPreviewEnabled, allowedChatPath, allowedChatQuery} from '@/lib/single-chat-preview.js';
+import {chatTransportAvailable,allowedChatPath,allowedChatQuery} from '@/lib/chat-transport-guard.js';
 
 export const dynamic = 'force-dynamic';
 type Context = {params: Promise<{path: string[]}>};
@@ -14,14 +14,14 @@ function endpoint(path: string[], method: 'GET' | 'POST', request: NextRequest):
 }
 
 export async function GET(request: NextRequest, {params}: Context) {
-  if (!singleChatPreviewEnabled(process.env)) return backendError('Not found', 404);
+  if (!chatTransportAvailable(process.env)) return backendError('Not found', 404);
   const target = endpoint((await params).path, 'GET', request);
   return target ? proxyAuthenticatedRequest('GET', target, undefined, 12000)
     : backendError('Not found', 404);
 }
 
 export async function POST(request: NextRequest, {params}: Context) {
-  if (!singleChatPreviewEnabled(process.env)) return backendError('Not found', 404);
+  if (!chatTransportAvailable(process.env)) return backendError('Not found', 404);
   const error = rejectCrossOrigin(request);
   if (error) return error;
   const target = endpoint((await params).path, 'POST', request);
