@@ -337,3 +337,26 @@ def test_worker_resumes_applicability_after_persisted_date_and_housing_reply(que
     assert checkpoint.state.pending_question_id is None
     assert checkpoint.state.routing_corrections.filing_date == date(2026, 4, 1)
     assert checkpoint.state.routing_corrections.housing_basis == "owner"
+
+
+@pytest.mark.parametrize(("language", "location_phrase"), [
+    ("en", "In which municipality does the activity take place?"),
+    ("it", "In quale comune si svolge l’attività?"),
+])
+def test_destination_does_not_satisfy_a_distinct_activity_location_role(language, location_phrase):
+    assignment = replace(
+        SERVICE,
+        case_location_role="activity_location",
+        effective_period=EffectivePeriod("filing_date", effective_from=date(2026, 4, 1)),
+        required_circumstances=(("housing_basis", "owner"),),
+    )
+    result = choose(
+        language=language,
+        case_locations={"destination": DESTINATION},
+        assignments=(assignment,),
+    )
+
+    assert isinstance(result, RequestClarification)
+    assert set(result.question.missing_fields) == {"activity_location", "filing_date", "housing_basis"}
+    assert location_phrase in result.question.text
+    assert result.resume_state.next_node == "choose_next_step"
