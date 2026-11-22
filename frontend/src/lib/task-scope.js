@@ -1,5 +1,10 @@
-/** Validate an opaque internal task identifier before constructing a backend path. */
-export function isTaskId(id) {
-  return typeof id === 'string'
-    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+/** Validate UUID-shaped identifiers before constructing an authenticated backend path. */
+export function isUuid(value) {
+  return typeof value === 'string'
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+/** Internal task identifiers currently share the UUID wire format. */
+export function isTaskId(value) {
+  return isUuid(value);
 }

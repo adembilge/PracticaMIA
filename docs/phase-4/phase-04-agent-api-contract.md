@@ -191,7 +191,7 @@ Commit the queued request before acknowledging a message. The worker commits res
 
 ## Proposed versioned HTTP surface
 
-The [Phase 5 handoff](phase-04-phase-05-handoff.md) documents the implemented isolated transport and validated wire examples.
+The [Conversation wire examples](conversation-wire-examples.md) documents the implemented isolated transport and validated wire examples.
 
 All routes are authenticated and private, with `Cache-Control: private, no-store`. IDs are opaque; an inaccessible thread, case, run, or proposal returns the same unavailable result as an unknown ID. Request bodies reject unknown fields and have bounded lengths. The API returns typed errors with a safe `code`, `message`, and `request_id`, without raw tool output or personal data.
 

@@ -141,7 +141,7 @@ The [thread ownership service](../../backend/app/agent/threads.py) uses server-i
 - **40.4** [Simulate interrupted runs and client recovery](#interruption-and-recovery-scenarios) for catalogue outages, model timeouts, duplicate messages, and closing the application during approval.
 - **40.5** [Measure response time, calls and cost per conversation and task](#agent-performance-measurement). Set targets from pilot measurements.
 - **40.6** [Record failure metadata](#failure-monitoring-metadata) by intent, query type, tool, and source version. Verify that monitoring excludes conversation and document contents.
-- **40.7** [Hand off the message API, events, citations, questions, approvals and reconnection examples](phase-04-phase-05-handoff.md) to Phase 5.
+- **40.7** [Hand off the message API, events, citations, questions, approvals and reconnection examples](conversation-wire-examples.md) as a conversation API contract. This is not Phase 5 implementation.
 
 **Acceptance.** In a pilot set spanning at least three authorities, the agent finds a competent authority, applicable evidence, and a concrete next step. It clarifies missing or conflicting facts. Users can start without choosing a case, complete all supported in-app steps through one chat transcript, and close and reopen the same task without navigating to another PracticaMIA product page. A source or rule pending human review remains unavailable for verified guidance.
 

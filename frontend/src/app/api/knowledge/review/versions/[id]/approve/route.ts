@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { isCaseId } from '@/lib/case-scope.js';
+import { isUuid } from '@/lib/task-scope.js';
 import { isIndividualPdfReviewPayload, reviewerPreviewEnabled } from '@/lib/reviewer-preview.js';
 import { backendError, proxyAuthenticatedRequest, rejectCrossOrigin } from '@/lib/backend-proxy';
 
@@ -10,7 +10,7 @@ type Context = { params: Promise<{ id: string }> };
 export async function POST(request: NextRequest, { params }: Context) {
   if (!reviewerPreviewEnabled(process.env)) return backendError('Not found', 404);
   const { id } = await params;
-  if (!isCaseId(id)) return backendError('Version not found', 404);
+  if (!isUuid(id)) return backendError('Version not found', 404);
   const originError = rejectCrossOrigin(request);
   if (originError) return originError;
   if (Number(request.headers.get('content-length') || '0') > 2000) {
