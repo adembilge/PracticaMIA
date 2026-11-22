@@ -323,7 +323,7 @@ def test_worker_resumes_applicability_after_persisted_date_and_housing_reply(que
             db, **context, question_id=event.question.question_id,
             reply=ClarificationReply(
                 client_reply_id=uuid4(), expected_run_revision=paused.run_revision,
-                text="filing_date: 2026-04-01\\nhousing_basis: owner",
+                text="filing_date: 2026-04-01\nhousing_basis: owner",
             ),
         )
         assert answered is not None
