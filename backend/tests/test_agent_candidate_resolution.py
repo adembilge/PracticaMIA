@@ -432,3 +432,22 @@ def test_explicit_activity_location_takes_precedence_over_matching_destination(l
     assert result.missing_information == []
     assert result.official_channel is None
     assert result.citations == []
+
+
+@pytest.mark.parametrize("language", ["en", "it"])
+def test_matching_destination_does_not_resolve_competing_activity_location_authority(language):
+    activity_assignment = replace(
+        CONFLICT,
+        case_location_role="activity_location",
+        unit_ids=("municipality-c",),
+    )
+    result = choose(
+        language=language,
+        case_locations={"destination": DESTINATION},
+        assignments=(SERVICE, activity_assignment),
+    )
+
+    assert isinstance(result, RequestClarification)
+    assert result.question.missing_fields == ["activity_location"]
+    assert result.question.answer_shape == "free_text"
+    assert result.resume_state.next_node == "choose_next_step"
