@@ -286,4 +286,9 @@ These are bilingual synthetic regression checks only. They do not approve Como g
 
 The next Task 34.4 follow-up covers the same previous-versus-destination distinction with municipality records of kind `current_official` and `search_variant`, rather than only generic reviewed aliases. A municipality named directly after a past-residence or origin phrase is treated as historical context. It must not override an explicitly stated Milan destination or become the worker's destination candidate.
 
-The new bilingual cases are synthetic catalogue regressions. They do not add any non-Milan route or approve new source material. CI is pending review; no participant or legal validation is claimed. Phase 5 remains paused.
+The new bilingual cases are synthetic catalogue regressions. They do not add any non-Milan route or approve new source material. PR #233 passed Backend CI, Frontend CI and Synthetic MVP Acceptance on its final head and was squash-merged as `2e62151616a375e72b7fecce7ce4943fda81360c`. No participant or legal validation is claimed. Phase 5 remains paused.
+
+
+### 22 November 2026 — Phase 4 persisted applicability clarification
+
+Added a worker-level Task 34.4 regression for a candidate that requires both a filing date and a housing circumstance. The worker first persists the grouped question, then receives the two labeled values in a clarification reply. The resumed worker must recover the reply from the journal, retain both normalized values in the checkpoint, and advance to evidence lookup only after the saved candidate becomes applicable. This is synthetic service-assignment coverage; it does not add an approved authority route or replace source and participant review. Phase 5 remains paused.

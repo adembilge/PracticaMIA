@@ -300,3 +300,40 @@ def test_deferred_fields_remain_open_and_verified_assistance_is_preserved(
     assert result.official_channel.url == citation.official_url
     assert result.citations == [citation]
     assert result.claims[0].evidence_ids == [citation.passage_id]
+
+
+
+def test_worker_resumes_applicability_after_persisted_date_and_housing_reply(queued_run):
+    factory, context, _, _ = queued_run
+    assert run_worker_step(factory, **context, execute=lambda *_: STATE).status == "running"
+
+    dated = replace(
+        SERVICE,
+        effective_period=EffectivePeriod("filing_date", effective_from=date(2026, 4, 1)),
+        required_circumstances=(("housing_basis", "owner"),),
+    )
+    step = partial(choose_candidate_step, **(INPUTS | {"assignments": (dated,)}))
+    paused = run_worker_step(factory, **context, execute=step)
+    assert paused.status == "waiting_for_information"
+
+    with factory.begin() as db:
+        [event] = read_run_events(db, **context, after_seq=paused.last_event_seq - 1).events
+        assert event.question.missing_fields == ["filing_date", "housing_basis"]
+        answered = submit_clarification_reply(
+            db, **context, question_id=event.question.question_id,
+            reply=ClarificationReply(
+                client_reply_id=uuid4(), expected_run_revision=paused.run_revision,
+                text="filing_date: 2026-04-01\nhousing_basis: owner",
+            ),
+        )
+        assert answered is not None
+
+    resumed = run_worker_step(factory, **context, execute=step)
+    assert resumed.status == "running"
+    with factory() as db:
+        checkpoint = load_checkpoint(db, **context)
+    assert checkpoint is not None
+    assert checkpoint.state.next_node == "find_evidence"
+    assert checkpoint.state.pending_question_id is None
+    assert checkpoint.state.routing_corrections.filing_date == date(2026, 4, 1)
+    assert checkpoint.state.routing_corrections.housing_basis == "owner"
