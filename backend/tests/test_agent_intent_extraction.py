@@ -161,6 +161,27 @@ def test_previous_municipality_does_not_satisfy_confirmed_milan_scope(language, 
     assert result.missing_context == ("procedure_location",)
     assert not result.uses_confirmed_case_scope
 
+@pytest.mark.parametrize(("language", "text"), [
+    ("en", "How do I change my residence after living in Como, with Milan as my destination?"),
+    ("it", "Come comunico il cambio di residenza dopo aver vissuto a Como, con destinazione Milano?"),
+])
+def test_previous_municipality_blocks_milan_evidence_at_worker_checkpoint(language, text):
+    case_id = uuid4()
+    context = WorkerCaseContext(case_id, IntakeFacts(**SUPPORTED_FACTS), "review_checklist", ())
+    state = identify_intent_step(
+        StoredMessage(text, language, case_id, case_context=context),
+        CheckpointState(next_node="identify_intent"),
+        catalogue_names=FIRST_ROUTE_NAMES,
+    )
+    assert state.next_node == "choose_next_step"
+    assert state.intent == "find_procedure"
+    assert state.procedure_candidates == [PROCEDURE]
+    # The previous municipality is intentionally excluded from destination candidates.
+    assert state.location_candidates == []
+    assert state.missing_fields == ["procedure_location"]
+    assert not state.uses_confirmed_case_scope
+
+
 
 def test_uses_reviewed_matches_preserves_authority_mentions_and_skips_nested_place():
     unreviewed = replace(reviewed_name("unreviewed", "procedure", "tax"), approved_for_search=False)
