@@ -340,8 +340,8 @@ def test_worker_resumes_applicability_after_persisted_date_and_housing_reply(que
 
 
 @pytest.mark.parametrize(("language", "location_phrase"), [
-    ("en", "In which municipality does the activity take place?"),
-    ("it", "In quale comune si svolge l’attività?"),
+    ("en", "the municipality where the activity takes place"),
+    ("it", "il comune in cui si svolge l’attività"),
 ])
 def test_destination_does_not_satisfy_a_distinct_activity_location_role(language, location_phrase):
     assignment = replace(
