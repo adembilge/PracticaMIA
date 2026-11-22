@@ -236,3 +236,12 @@ The case-free LangGraph scenario-coverage PR adds the natural Italian phrase `ca
 
 The next Phase 4 implementation adds a **default-off, quota-controlled model reference selector** to the case-free LangGraph. Its privacy gates require explicit enablement and privacy approval on the isolated Preview branch. The model receives only a bounded topic category and already-approved public excerpts, never the raw user message or private case data, and may select only exact candidate passage IDs. The server validates the returned IDs; no model-generated prose, personalized claims, legal applicability or official channel is enabled. Provider failures, exhausted quotas and disabled gates retain deterministic reference-only behavior. The selector has not been enabled or called in any deployment; its regression tests and exact-head CI are pending review.
 For implementation details see [the documentation index](README.md).
+
+
+### 22 November 2026 — Phase 4 next-action reliability (PR #224)
+
+The Phase 4 next-action development replay now covers the explicit saved-intake confirmation boundary before a reopened Milan filing can publish its reviewed handoff. The bilingual development fixture records the destination reply, owner confirmation and fresh filing request as separate checkpoints. The English filing phrase is now included in the narrowly scoped procedure alias set; it does not expand the approved Milan evidence or jurisdiction scope.
+
+On PR #224 head `4324ba51d8218fe88e7a29e7b074dfc5fab656e4`, Backend CI passed with 884 tests passed, 22 skipped and 7 subtests passed; its PostgreSQL migration checks passed with 26 tests. Frontend CI and Synthetic MVP Acceptance (Chromium + API) also passed. The backend evaluation tests assert 26/26 scenario-language runs and 40/40 checkpoints for the confirmation journey. These are deterministic synthetic and isolated acceptance results, not participant outcomes, live legal verification, hosted agent validation or release approval.
+
+No Vercel build or deployment was run. The automatic Vercel status contexts reported a deployment-rate limit; under [D-009](DECISIONS.md#d-009--separate-phase-4-development-merges-from-vercel-deployment-checks-21-november-2026), that status is not an additional non-release Phase 4 development-merge gate when GitHub permits the merge. Phase 5 remains paused, and participant validation, hosted identity and operational evidence remain open.
