@@ -50,7 +50,7 @@ _FILE_DECLARATION = re.compile(
 # A municipality immediately governed by a past-residence or origin phrase is
 # historical context, not the destination for the requested procedure.
 _PREVIOUS_PLACE_PREFIX = re.compile(
-    r"(?:\bafter (?:having )?lived in|\bi lived in|\bpreviously lived in|\bfrom|"
+    r"(?:\bafter (?:having )?(?:lived|living) in|\bi lived in|\bpreviously lived in|\bfrom|"
     r"\bdopo aver vissuto (?:a|in)|\bho vissuto (?:a|in)|\bprima vivevo (?:a|in)|\bda)\s*$",
     re.I,
 )
