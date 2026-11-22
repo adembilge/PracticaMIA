@@ -47,6 +47,14 @@ _FILE_DECLARATION = re.compile(
     r"(?:dove|come) (?:invio|presento|consegno|deposito) (?:la|l) (?:dichiarazione|domanda))"
 )
 
+# A municipality immediately governed by a past-residence or origin phrase is
+# historical context, not the destination for the requested procedure.
+_PREVIOUS_PLACE_PREFIX = re.compile(
+    r"(?:\bafter (?:having )?lived in|\bi lived in|\bpreviously lived in|\bfrom|"
+    r"\bdopo aver vissuto (?:a|in)|\bho vissuto (?:a|in)|\bprima vivevo (?:a|in)|\bda)\s*$",
+    re.I,
+)
+
 # Narrow bilingual intent cues. Bare procedure names and reviewed variants
 # come from the supplied catalogue.
 _INTENT_CUES: tuple[tuple[AgentIntent, re.Pattern[str]], ...] = (
@@ -91,6 +99,12 @@ class CatalogueMention:
     match: NameMatchResult
     start: int
     end: int
+
+
+def _is_previous_place_mention(text: str, mention: CatalogueMention) -> bool:
+    if not any(candidate.entity_type in _PLACE_TYPES for candidate in mention.match.candidates):
+        return False
+    return bool(_PREVIOUS_PLACE_PREFIX.search(text[:mention.start]))
 
 
 @dataclass(frozen=True)
@@ -280,6 +294,9 @@ def extract_intent(
     text = unicodedata.normalize("NFC", message.text)
     goal_text, preferences = _starting_preferences(text)
     mentions = _catalogue_mentions(goal_text, catalogue_names)
+    mentions = tuple(
+        mention for mention in mentions if not _is_previous_place_mention(goal_text, mention)
+    )
     goals, routing_mentions = _separate_goals(goal_text, mentions)
     if 2 <= len(goals) <= MAX_MESSAGE_GOALS:
         missing = tuple(dict.fromkeys(field for goal in goals for field in goal.missing_fields))
