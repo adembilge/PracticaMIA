@@ -119,6 +119,16 @@ def _names():
             name="Milano", kind="current_official", evidence_ref="synthetic-reviewed-alias",
             approved_for_search=True,
         ),
+        CatalogueName(
+            catalogue_id="municipality-como", entity_type="municipality", display_name="Como",
+            name="Como", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
+        CatalogueName(
+            catalogue_id="municipality-torino", entity_type="municipality", display_name="Torino",
+            name="Torino", kind="search_variant", evidence_ref="synthetic-reviewed-alias",
+            approved_for_search=True,
+        ),
     )
 
 
@@ -401,3 +411,39 @@ def test_case_free_model_is_not_invoked_without_approved_evidence(client):
     assert snapshot.result.official_channel is None
     assert factory_calls == []
 
+
+
+@pytest.mark.parametrize(
+    ("text", "language"),
+    [
+        ("How can I change my address in Como?", "en"),
+        ("Come posso trasferire la residenza a Torino?", "it"),
+        ("How do I register my residence in Torino?", "en"),
+        ("Come faccio il cambio di residenza a Como?", "it"),
+    ],
+)
+def test_case_free_graph_keeps_unreviewed_municipalities_out_of_milan_guidance(client, text, language):
+    version, digest = _create(client, html=HTML)
+    _approve(client, version, digest)
+    factory = client.app.state.session_factory
+    execute = build_chat_executor(factory, catalogue_names=_names())
+    message = SendMessage(client_message_id=uuid4(), text=text, language=language)
+    with factory.begin() as db:
+        thread_id = create_thread(db, principal=ALICE)
+        accepted = accept_message(db, thread_id=thread_id, principal=ALICE, message=message, key=KEY)
+
+    snapshot = run_worker_step(
+        factory, thread_id=thread_id, run_id=accepted.run_id, principal=ALICE, key=KEY,
+        execute=execute,
+    )
+    while snapshot.status in {"queued", "running"}:
+        snapshot = run_worker_step(
+            factory, thread_id=thread_id, run_id=accepted.run_id, principal=ALICE, key=KEY,
+            execute=execute,
+        )
+
+    assert snapshot.status == "completed"
+    assert snapshot.result.verification_status == "unsupported"
+    assert snapshot.result.citations == []
+    assert snapshot.result.claims == []
+    assert snapshot.result.official_channel is None
