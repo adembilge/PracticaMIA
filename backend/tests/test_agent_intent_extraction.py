@@ -209,6 +209,19 @@ def test_previous_municipality_does_not_override_explicit_destination_in_reviewe
     assert state.uses_confirmed_case_scope
 
 
+def test_confirmed_milan_case_scope_is_not_reused_for_another_procedure():
+    names = (*FIRST_ROUTE_NAMES, reviewed_name("tax-record", "procedure", "update my tax record"))
+    case_id = uuid4()
+    context = WorkerCaseContext(case_id, IntakeFacts(**SUPPORTED_FACTS), "review_checklist", ())
+    result = extract_intent(
+        StoredMessage("How do I update my tax record in Milan?", "en", case_id, case_context=context),
+        catalogue_names=names,
+    )
+    assert result.intent == "find_procedure"
+    assert result.procedure_candidates == ("tax-record",)
+    assert not result.uses_confirmed_case_scope
+
+
 
 def test_uses_reviewed_matches_preserves_authority_mentions_and_skips_nested_place():
     unreviewed = replace(reviewed_name("unreviewed", "procedure", "tax"), approved_for_search=False)
