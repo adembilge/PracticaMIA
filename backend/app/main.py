@@ -125,7 +125,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # Canonical task contract. The former case paths remain runtime-only
         # compatibility aliases while internal callers are migrated incrementally.
         api.include_router(task_router, prefix="/api/v1/conversations/tasks")
-        api.include_router(task_router, prefix="/api/v1/cases", include_in_schema=False)
         from app.cases.intake_router import router as task_intake_router
         api.include_router(task_intake_router)
         if settings.enable_private_document_api:
