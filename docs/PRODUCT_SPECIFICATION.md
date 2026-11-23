@@ -37,7 +37,7 @@ If the evidence is missing, stale, contradictory or insufficient, the assistant 
 
 User statements, document extraction and agent suggestions have distinct provenance. Extracted values are not confirmed facts. A proposed change must show its meaning and remain unapplied until explicit user approval. Stale approvals and duplicate writes must be rejected.
 
-Internal task/workflow records may be used to preserve facts, permissions, revisions and resumption. They are private implementation state, not a customer-facing product entity. Existing database records must not be deleted or reassigned during UI cleanup.
+Internal task/workflow records preserve facts, permissions, revisions and resumption. They are private implementation state, not a customer-facing product entity. Some backend modules, routes and tables still use historical case terminology; their migration is tracked in [LEGACY_MIGRATION_PLAN.md](LEGACY_MIGRATION_PLAN.md). Existing database records must not be deleted or reassigned during UI cleanup.
 
 ## Documents and government actions
 

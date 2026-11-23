@@ -28,7 +28,7 @@ Historical storage identifiers and API adapters may remain temporarily while a v
 
 ## Current implementation status
 
-The root route renders the single-chat shell. Legacy customer pages and demo surfaces are being removed. The UI shell does not imply that the agent is production-ready: the authenticated agent transport and worker remain restricted to isolated development/Preview infrastructure, and production execution is disabled.
+The root route renders the single-chat shell. Legacy customer case, account and demo pages were removed in PR #245. Backend case-named API and storage compatibility remains under the staged migration described in [LEGACY_MIGRATION_PLAN.md](LEGACY_MIGRATION_PLAN.md). The UI shell does not imply that the agent is production-ready: the authenticated agent transport and worker remain restricted to isolated development/Preview infrastructure, and production execution is disabled.
 
 ## Acceptance
 

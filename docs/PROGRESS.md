@@ -1,10 +1,12 @@
 # Progress and release status
 
-**Last updated:** 22 November 2026
+**Last updated:** 23 November 2026
 
 ## Current product surface
 
-The customer root route is being consolidated into one chat shell. Legacy case and synthetic demo pages are being removed in the current cleanup PR. The intended customer navigation is conversation history only.
+The customer root route is the single-chat shell. Legacy customer case, account and synthetic demo pages were removed in merged PR #245. The customer navigation is conversation history only.
+
+The backend is not yet fully migrated: case-named API routes, internal model/service dependencies, feature flags and database tables remain. The cleanup is tracked in [the legacy migration plan](LEGACY_MIGRATION_PLAN.md); no production records or tables have been deleted.
 
 The conversation transport and worker are still restricted to isolated development/Preview infrastructure. Production chat execution is not enabled. No deployment, live Auth0 journey or production acceptance is claimed by the source cleanup.
 

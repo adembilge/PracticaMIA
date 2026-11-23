@@ -6,8 +6,8 @@ PracticaMIA is an independent English–Italian assistant. The customer experien
 
 ## Current status
 
-- The root route now renders the single-chat interface.
-- Legacy customer pages and synthetic demo screens are being removed.
+- The root route renders the single-chat interface; legacy customer case, account and demo pages have been removed.
+- The public product surface is single-chat only. Backend case-named storage and API compatibility are still under migration and are not considered cleaned up.
 - The conversation API and worker remain restricted to isolated development/Preview infrastructure. **Production chat execution is not enabled.**
 - Phase 4 agent and conversation-engine work remains active. Phase 5 is paused.
 - The initial reviewed scope is an individual residence-change scenario in Milano. Broader or unsupported requests must be handled with explicit scope boundaries.
@@ -52,7 +52,7 @@ PostgreSQL
   - audit and approval records
 ```
 
-Internal storage identifiers may retain historical names while a separately reviewed data migration is designed. They are not exposed as customer workflows. Existing records must not be deleted or reassigned as part of source-code cleanup.
+Internal storage identifiers and some backend routes still retain historical case terminology. They are technical debt under the migration plan in [LEGACY_MIGRATION_PLAN.md](docs/LEGACY_MIGRATION_PLAN.md), not customer-facing workflows. Existing records must not be deleted or reassigned as part of source-code cleanup.
 
 ## Repository
 

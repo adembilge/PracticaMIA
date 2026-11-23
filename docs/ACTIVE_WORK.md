@@ -8,9 +8,14 @@
 
 - Task 34.6 spelling confirmation and ambiguous authority-name collision protections are merged.
 - PR #244 was merged as `27f853507e9f48caea2ecb506cb42738382793d9`.
-- This cleanup PR moves the customer entry route to the single-chat shell and removes legacy customer case/demo pages.
+- PR #245 is merged: the customer entry route is the single-chat shell; legacy customer case, account and demo pages are removed.
+- Full backend migration is not complete. Case-named API routers, internal models, feature flags and database tables remain. See [legacy migration plan](LEGACY_MIGRATION_PLAN.md).
 - The agent API and worker remain isolated to the reviewed Preview environment. No production enablement is included.
 - Phase 5 is paused.
+
+## Current cleanup priority
+
+Complete the legacy case-to-conversation/task migration in bounded, reversible increments. Do not drop or rewrite stored records until a migration preserves owner isolation, encryption, event history, document retention and recovery. Keep Phase 5 paused during this work.
 
 ## Phase 4 priorities
 
