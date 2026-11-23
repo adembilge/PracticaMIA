@@ -24,7 +24,7 @@ from test_private_document_intelligence import FACTS, SCOPE
 
 
 def _scope(client, owner, case):
-    path = f"/api/v1/cases/{case}"
+    path = f"/api/v1/conversations/tasks/{case}"
     assert client.patch(path + "/scope", headers=owner, json={"answers": SCOPE}).status_code == 200
     return path
 
@@ -129,7 +129,7 @@ def test_worker_discards_routing_if_a_confirmed_source_is_archived_during_comput
     def archive_source(message, state):
         assert message.case_context.shared_citizenship_class == "italian"
         result = _choose(message, state)
-        changed = client.patch(f"/api/v1/cases/{source}/archive", headers=owner, json={"archived": True})
+        changed = client.patch(f"/api/v1/conversations/tasks/{source}/archive", headers=owner, json={"archived": True})
         assert changed.status_code == 200
         return result
 
