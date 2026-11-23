@@ -40,10 +40,10 @@ def sample_pdf(*lines):
 
 def prepare_case(client, headers):
     case_id=client.post("/api/v1/cases",json={},headers=headers).json()["id"]
-    response=client.patch(f"/api/v1/cases/{case_id}/scope",
+    response=client.patch(f"/api/v1/conversations/tasks/{case_id}/scope",
                           json={"answers":SCOPE},headers=headers)
     assert response.status_code==200
-    response=client.put(f"/api/v1/cases/{case_id}/intake",
+    response=client.put(f"/api/v1/conversations/tasks/{case_id}/intake",
                         json={"facts":FACTS,"confirm":True},headers=headers)
     assert response.status_code==200,response.text
     return case_id
@@ -51,7 +51,7 @@ def prepare_case(client, headers):
 
 def upload(client, headers, case_id, body,category="housing_document"):
     response=client.post(
-        f"/api/v1/cases/{case_id}/private-documents",
+        f"/api/v1/conversations/tasks/{case_id}/private-documents",
         headers=headers,
         data={
             "category":category,"privacy_ack":"true",
@@ -89,7 +89,10 @@ def test_private_housing_extraction_review_comparison_and_isolation(
         "Property address: Fictional Via 77 (must never be extracted)",
     )
     doc_id=upload(client,alice,case_id,source)
-    base=f"/api/v1/cases/{case_id}/private-documents/{doc_id}/intelligence"
+    paths=client.app.openapi()["paths"]
+    assert "/api/v1/conversations/tasks/{case_id}/private-documents/{document_id}/intelligence" in paths
+    assert "/api/v1/cases/{case_id}/private-documents/{document_id}/intelligence" not in paths
+    base=f"/api/v1/conversations/tasks/{case_id}/private-documents/{doc_id}/intelligence"
     assert client.get(base).status_code==401
     assert client.get(base,headers=bob).status_code==404
     assert client.post(base+"/extract",headers=bob).status_code==404
@@ -170,7 +173,7 @@ def test_private_housing_extraction_review_comparison_and_isolation(
                x["comparison"]=="match" for x in result["comparisons"])
 
     # Reviewing a document cannot silently replace confirmed case facts.
-    intake=client.get(f"/api/v1/cases/{case_id}/intake",headers=alice).json()
+    intake=client.get(f"/api/v1/conversations/tasks/{case_id}/intake",headers=alice).json()
     assert intake["facts"]==FACTS
     assert intake["confirmed"] is True
 
@@ -189,14 +192,14 @@ def test_private_housing_extraction_review_comparison_and_isolation(
     legacy = client.get(base, headers=alice).json()
     assert legacy["confirmed_field_provenance"] == provenance
     assert legacy["candidates"] == replay["candidates"]
-    assert client.put(f"/api/v1/cases/{case_id}/intake",
+    assert client.put(f"/api/v1/conversations/tasks/{case_id}/intake",
                       json={"facts":FACTS,"confirm":False},headers=alice).status_code==200
     missing=client.get(base,headers=alice).json()
     assert missing["status"]=="needs_confirmed_intake"
     assert all(c["comparison"]=="no_confirmed_case_fact"
                for c in missing["comparisons"])
 
-    assert client.delete(f"/api/v1/cases/{case_id}/private-documents/{doc_id}",
+    assert client.delete(f"/api/v1/conversations/tasks/{case_id}/private-documents/{doc_id}",
                          headers=alice).status_code==204
     assert client.get(base,headers=alice).status_code==404
 
@@ -208,7 +211,7 @@ def test_extraction_is_idempotent_without_duplicate_ocr(
     alice=auth_headers("alice")
     case_id=prepare_case(client,alice)
     doc_id=upload(client,alice,case_id,sample_pdf("Move-in date: 2026-11-05"))
-    url=f"/api/v1/cases/{case_id}/private-documents/{doc_id}/intelligence/extract"
+    url=f"/api/v1/conversations/tasks/{case_id}/private-documents/{doc_id}/intelligence/extract"
     calls=[]
     original=route.intel.new_review
     def tracked(*args,**kwargs):
@@ -227,7 +230,7 @@ def test_missing_fields_ambiguity_and_unsupported_categories(
     alice=auth_headers("alice")
     case_id=prepare_case(client,alice)
     unknown=upload(client,alice,case_id,sample_pdf("No supported label: fictional"))
-    base=f"/api/v1/cases/{case_id}/private-documents/{unknown}/intelligence"
+    base=f"/api/v1/conversations/tasks/{case_id}/private-documents/{unknown}/intelligence"
     assert client.post(base+"/extract",headers=alice).json()["status"]=="no_supported_fields"
     assert client.put(base+"/review",headers=alice,json={
         "extraction_digest":"a"*64,"confirm":True,
@@ -235,7 +238,7 @@ def test_missing_fields_ambiguity_and_unsupported_categories(
                        "confirmed_value":"2026-11-05"}],
     }).status_code==409
     identity=upload(client,alice,case_id,sample_pdf("Fake identity only"),"identity_document")
-    route_id=f"/api/v1/cases/{case_id}/private-documents/{identity}/intelligence"
+    route_id=f"/api/v1/conversations/tasks/{case_id}/private-documents/{identity}/intelligence"
     assert client.post(route_id+"/extract",headers=alice).status_code==422
     assert client.get(route_id,headers=alice).json()["status"]=="unsupported_category"
 
@@ -243,7 +246,7 @@ def test_missing_fields_ambiguity_and_unsupported_categories(
         "Housing basis: Owner",
         "Housing basis: Guest",
     ))
-    base=f"/api/v1/cases/{case_id}/private-documents/{document}/intelligence"
+    base=f"/api/v1/conversations/tasks/{case_id}/private-documents/{document}/intelligence"
     extracted=client.post(base+"/extract",headers=alice).json()
     assert extracted["ambiguous_fields"]==["housing_basis"]
     chosen={
@@ -264,7 +267,7 @@ def test_expiration_and_ciphertext_integrity_fail_closed(
     alice=auth_headers("alice")
     case_id=prepare_case(client,alice)
     doc_id=upload(client,alice,case_id,sample_pdf("Move-in date: 2026-11-05"))
-    base=f"/api/v1/cases/{case_id}/private-documents/{doc_id}/intelligence"
+    base=f"/api/v1/conversations/tasks/{case_id}/private-documents/{doc_id}/intelligence"
     with client.app.state.session_factory() as db:
         row=db.get(PrivateCaseDocument,doc_id)
         row.ciphertext=b"corrupted"+row.ciphertext
@@ -289,7 +292,7 @@ def test_italian_date_normalization_explicit_review_and_subsequent_correction(
         "Titolo di occupazione: Contratto di locazione registrato",
         "Data del trasferimento: 05/11/2026",
     ))
-    url = f"/api/v1/cases/{case_id}/private-documents/{doc_id}/intelligence"
+    url = f"/api/v1/conversations/tasks/{case_id}/private-documents/{doc_id}/intelligence"
     extracted = client.post(url + "/extract", headers=alice).json()
     suggestions = {c["field_name"]: c for c in extracted["candidates"]}
     assert suggestions["housing_basis"]["suggested_value"] == "registered_private_rental"
@@ -324,13 +327,13 @@ def test_reviewed_optional_move_date_needs_corresponding_case_fact(
     alice = auth_headers("alice")
     case_id = prepare_case(client, alice)
     # A confirmed first-route intake may omit this optional date.
-    updated = client.put(f"/api/v1/cases/{case_id}/intake",
+    updated = client.put(f"/api/v1/conversations/tasks/{case_id}/intake",
         headers=alice, json={"facts": {k: v for k, v in FACTS.items()
                                       if k != "move_in_date"}, "confirm": True})
     assert updated.status_code == 200, updated.text
     doc_id = upload(client, alice, case_id,
                     sample_pdf("Data del trasferimento: 05.11.2026"))
-    url = f"/api/v1/cases/{case_id}/private-documents/{doc_id}/intelligence"
+    url = f"/api/v1/conversations/tasks/{case_id}/private-documents/{doc_id}/intelligence"
     extracted = client.post(url + "/extract", headers=alice).json()
     assert extracted["candidates"][0]["suggested_value"] == "2026-11-05"
     reviewed = client.put(url + "/review", headers=alice,

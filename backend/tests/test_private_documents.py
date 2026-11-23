@@ -80,7 +80,7 @@ def upload(http, url, headers, *, consent=True):
 
 def test_default_off_and_require_all_release_gates():
     disabled = create_app(Settings(enable_demo_case_api=False))
-    assert "/api/v1/cases/{case_id}/private-documents" not in disabled.openapi()["paths"]
+    assert "/api/v1/conversations/tasks/{case_id}/private-documents" not in disabled.openapi()["paths"]
     with pytest.raises(ValueError, match="privacy review"):
         create_app(Settings(enable_demo_case_api=True, enable_private_document_api=True))
     assert len(validate_release_settings(enabled_settings())) == 32
@@ -96,6 +96,12 @@ def test_default_off_and_require_all_release_gates():
     ]:
         with pytest.raises(ValueError):
             validate_release_settings(replace(enabled_settings(), **bad))
+
+
+def test_document_vault_uses_canonical_task_route_and_hides_legacy_alias(document_client):
+    paths = document_client.app.openapi()["paths"]
+    assert "/api/v1/conversations/tasks/{case_id}/private-documents" in paths
+    assert "/api/v1/cases/{case_id}/private-documents" not in paths
 
 
 def test_hosted_fixture_mode_only_accepts_the_isolated_preview_configuration():
@@ -140,8 +146,8 @@ def test_hosted_fixture_restrictions_apply_before_scanner(
     alice, bob, outsider = (auth_headers(value) for value in ("alice", "bob", "other"))
     first = document_client.post("/api/v1/cases", json={}, headers=alice).json()["id"]
     other = document_client.post("/api/v1/cases", json={}, headers=outsider).json()["id"]
-    url = f"/api/v1/cases/{first}/private-documents"
-    other_url = f"/api/v1/cases/{other}/private-documents"
+    url = f"/api/v1/conversations/tasks/{first}/private-documents"
+    other_url = f"/api/v1/conversations/tasks/{other}/private-documents"
     assert document_client.get(other_url, headers=outsider).status_code == 404
     assert upload(document_client, other_url, outsider).status_code == 404
     assert document_client.get(url, headers=bob).status_code == 404
@@ -165,7 +171,7 @@ def test_document_upload_requires_consent_and_scanner_then_encrypts(document_cli
     http = document_client
     alice, bob = auth_headers("alice"), auth_headers("bob")
     case_id = http.post("/api/v1/cases", json={}, headers=alice).json()["id"]
-    url = f"/api/v1/cases/{case_id}/private-documents"
+    url = f"/api/v1/conversations/tasks/{case_id}/private-documents"
     assert http.get(url).status_code == 401
     assert http.get(url, headers=bob).status_code == 404
     assert http.post(url, headers=alice, data={"category": "housing_document"},
@@ -204,7 +210,7 @@ def test_scanner_failure_rejects_without_persisting(document_client, auth_header
     http = document_client
     alice = auth_headers("alice")
     case_id = http.post("/api/v1/cases", json={}, headers=alice).json()["id"]
-    url = f"/api/v1/cases/{case_id}/private-documents"
+    url = f"/api/v1/conversations/tasks/{case_id}/private-documents"
     def fail(*_args):
         raise ScanUnavailable("mocked scanner offline")
     monkeypatch.setattr(document_router, "scan_bytes", fail)
@@ -218,7 +224,7 @@ def test_expired_documents_are_hidden_and_purged_by_authorized_cron(document_cli
     http = document_client
     alice = auth_headers("alice")
     case_id = http.post("/api/v1/cases", json={}, headers=alice).json()["id"]
-    url = f"/api/v1/cases/{case_id}/private-documents"
+    url = f"/api/v1/conversations/tasks/{case_id}/private-documents"
     doc_id = upload(http, url, alice).json()["id"]
     with http.app.state.session_factory() as db:
         row = db.get(PrivateCaseDocument, doc_id)

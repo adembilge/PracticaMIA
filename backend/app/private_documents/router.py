@@ -26,7 +26,7 @@ from app.private_documents.security import (
 )
 
 router = APIRouter(
-    prefix="/api/v1/cases", tags=["private-documents"],
+    prefix="", tags=["private-documents"],
     dependencies=[Depends(require_vault_principal)],
 )
 retention_router = APIRouter(tags=["private-document-retention"])

@@ -123,7 +123,7 @@ def _english_retrieval_hints(question: str) -> tuple[str, ...]:
         if pattern.search(lowered)
     )
 router = APIRouter(
-    prefix="/api/v1/cases",
+    prefix="",
     tags=["assistant-preview"],
     dependencies=[Depends(get_principal)],
 )

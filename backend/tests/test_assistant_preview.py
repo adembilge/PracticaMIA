@@ -14,7 +14,7 @@ from app.knowledge.review_service import approve_version, revoke_version
 from app.knowledge.snapshots import ingest_snapshot
 from app.main import create_app
 
-ENDPOINT = "/api/v1/cases/{}/assistant/ask"
+ENDPOINT = "/api/v1/conversations/tasks/{}/assistant/ask"
 SYNTHETIC_HTML = (
     b"<html><body><p>Test sintetico: la parola residenza appare qui. "
     b"Questa non e una istruzione governativa.</p></body></html>"
@@ -66,6 +66,12 @@ def test_preview_route_is_disabled_by_default_and_rejected_in_production():
         create_app(Settings(enable_assistant_api=True))
     with pytest.raises(ValueError, match="cannot be enabled in production"):
         create_app(Settings(enable_assistant_api=True, deployment_environment="production"))
+
+
+def test_assistant_uses_canonical_task_route_and_hides_legacy_alias(assistant_client):
+    paths = assistant_client.app.openapi()["paths"]
+    assert "/api/v1/conversations/tasks/{case_id}/assistant/ask" in paths
+    assert "/api/v1/cases/{case_id}/assistant/ask" not in paths
 
 
 def test_case_bound_auth_and_cross_user_isolation(assistant_client, auth_headers):

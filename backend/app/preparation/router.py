@@ -35,7 +35,7 @@ from app.rules.catalog import current_catalog
 from app.rules.engine import JURISDICTION, PROCEDURE
 
 router = APIRouter(
-    prefix="/api/v1/cases", tags=["synthetic-preparation-preview"],
+    prefix="", tags=["synthetic-preparation-preview"],
     dependencies=[Depends(get_principal)],
 )
 CATEGORY_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
