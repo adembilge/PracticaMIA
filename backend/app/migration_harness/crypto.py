@@ -245,20 +245,22 @@ def stage_verified_record(
         raise MigrationQuarantine("invalid_source_ciphertext_digest")
     if aad_version != "v2":
         raise MigrationQuarantine("unsupported_destination_aad_version")
-    if not _verified(ciphertext, verify_existing):
-        raise MigrationQuarantine("target_payload_verification_failed")
-    target_digest = sha256(ciphertext).hexdigest()
     existing = connection.execute(
-        text(f"SELECT target_id, target_ciphertext_sha256, status FROM {ledger} WHERE source_id=:source_id"),
+        text(
+            f"SELECT target_id, source_ciphertext_sha256, target_ciphertext_sha256, aad_version, status "
+            f"FROM {ledger} WHERE source_id=:source_id"
+        ),
         {"source_id": source_id},
     ).mappings().one_or_none()
     if existing is not None:
         if (
             existing["status"] != "verified"
             or existing["target_id"] != target_id
-            or existing["target_ciphertext_sha256"] != target_digest
+            or existing["source_ciphertext_sha256"] != source_ciphertext_sha256
+            or existing["aad_version"] != aad_version
         ):
             raise MigrationQuarantine("ledger_reconciliation_required")
+        target_digest = existing["target_ciphertext_sha256"]
         row = connection.execute(
             text(f"SELECT ciphertext, content_sha256 FROM {target} WHERE id=:target_id"),
             {"target_id": target_id},
@@ -276,6 +278,9 @@ def stage_verified_record(
         )
         return "already_verified"
 
+    if not _verified(ciphertext, verify_existing):
+        raise MigrationQuarantine("target_payload_verification_failed")
+    target_digest = sha256(ciphertext).hexdigest()
     existing_target = connection.execute(
         text(f"SELECT id FROM {target} WHERE id=:target_id"),
         {"target_id": target_id},
