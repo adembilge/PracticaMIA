@@ -25,7 +25,7 @@ SYNTHETIC_HTML = (
 def assistant_client(tmp_path, token_factory):
     settings = Settings(
         database_url=f"sqlite+pysqlite:///{tmp_path / 'assistant.sqlite3'}",
-        enable_demo_case_api=True, enable_knowledge_catalog_api=True,
+        enable_task_api=True, enable_knowledge_catalog_api=True,
         enable_knowledge_search_api=True, enable_assistant_api=True,
         assistant_usage_hash_key="synthetic-test-daily-usage-hmac-key-32-chars",
         auth_issuer="https://identity.example.test/",
