@@ -123,8 +123,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 engine.dispose()
                 raise ValueError("Private documents require migrated 0013 schema")
         api.include_router(router)
-        from app.cases.intake_router import router as case_intake_router
-        api.include_router(case_intake_router)
+        from app.cases.intake_router import router as task_intake_router, legacy_router as legacy_case_intake_router
+        api.include_router(task_intake_router)
+        # Temporary, undocumented compatibility route for internal callers.
+        # The frontend BFF uses only the canonical conversation/task contract.
+        api.include_router(legacy_case_intake_router, include_in_schema=False)
         if settings.enable_private_document_api:
             from app.private_documents.router import router as private_router, retention_router
             api.include_router(private_router)

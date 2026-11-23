@@ -267,7 +267,7 @@ def run(port: int, assets: Path, *, private_documents: bool = False):
             self.json_reply(404, {"error": "Synthetic fixture not found"})
 
         def forward_api(self):
-            mapped = ("/api/v1/cases/" + self.path.removeprefix("/api/conversations/tasks/")
+            mapped = ("/api/v1/conversations/tasks/" + self.path.removeprefix("/api/conversations/tasks/")
                       if self.path.startswith("/api/conversations/tasks/")
                       else "/api/v1" + self.path[4:])
             subject = self.subject()
