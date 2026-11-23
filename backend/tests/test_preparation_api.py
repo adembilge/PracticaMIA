@@ -64,6 +64,12 @@ def preparation_client(tmp_path):
     api.state.engine.dispose()
 
 
+def test_preparation_uses_canonical_task_route_and_hides_legacy_alias(preparation_client):
+    paths = preparation_client.app.openapi()["paths"]
+    assert "/api/v1/conversations/tasks/{case_id}/preparation" in paths
+    assert "/api/v1/cases/{case_id}/preparation" not in paths
+
+
 def test_preparation_cannot_be_enabled_in_production():
     with pytest.raises(ValueError, match="production"):
         create_app(Settings(enable_preparation_api=True,
