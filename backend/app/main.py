@@ -122,8 +122,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if revision not in {"20261109_0013", "20261109_0014", "20261109_0015", "20261109_0016", "20261116_0017", "20261118_0018", "20261118_0019", "20261118_0020", "20261118_0021", "20261118_0022", "20261119_0023", "20261119_0024"}:
                 engine.dispose()
                 raise ValueError("Private documents require migrated 0013 schema")
-        # Canonical task contract. The former case paths remain runtime-only
-        # compatibility aliases while internal callers are migrated incrementally.
+        # Canonical task CRUD contract. Domain-specific legacy aliases remain
+        # mounted only until their own callers and tests have migrated.
         api.include_router(task_router, prefix="/api/v1/conversations/tasks")
         from app.cases.intake_router import router as task_intake_router
         api.include_router(task_intake_router)
