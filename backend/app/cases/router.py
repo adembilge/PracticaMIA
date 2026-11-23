@@ -136,6 +136,15 @@ def delete_case(
         CaseIntake.case_id == str(case_id),
         CaseIntake.owner_subject == principal.subject,
     ))
+    if request.app.state.settings.enable_private_document_api:
+        # Erase encrypted applicant files explicitly even in SQLite fixtures
+        # where foreign-key cascades may be disabled. PostgreSQL also enforces
+        # ON DELETE CASCADE for this owner-scoped table.
+        from app.private_documents.model import PrivateCaseDocument
+        db.execute(delete(PrivateCaseDocument).where(
+            PrivateCaseDocument.case_id == str(case_id),
+            PrivateCaseDocument.owner_subject == principal.subject,
+        ))
     if request.app.state.settings.enable_preparation_api:
         # Explicit cleanup also works in SQLite test fixtures with foreign
         # keys disabled; Postgres additionally enforces ON DELETE CASCADE.

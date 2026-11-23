@@ -213,6 +213,21 @@ def test_document_upload_requires_consent_and_scanner_then_encrypts(document_cli
     assert http.get(url, headers=alice).json() == []
 
 
+def test_deleting_task_purges_its_private_documents(document_client, auth_headers):
+    http = document_client
+    alice = auth_headers("alice")
+    case_id = http.post("/api/v1/conversations/tasks", json={}, headers=alice).json()["id"]
+    url = f"/api/v1/conversations/tasks/{case_id}/private-documents"
+    created = upload(http, url, alice)
+    assert created.status_code == 201, created.text
+    document_id = created.json()["id"]
+
+    deleted = http.delete(f"/api/v1/conversations/tasks/{case_id}", headers=alice)
+    assert deleted.status_code == 204
+    with http.app.state.session_factory() as db:
+        assert db.get(PrivateCaseDocument, document_id) is None
+
+
 def test_scanner_failure_rejects_without_persisting(document_client, auth_headers, monkeypatch):
     http = document_client
     alice = auth_headers("alice")
