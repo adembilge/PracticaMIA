@@ -17,7 +17,7 @@ from app.auth.tokens import Principal
 from app.cases.intake_model import CaseIntake
 from app.cases.intake_schemas import IntakeFacts, KnownCitizenship, describe_intake
 from app.cases.model import CaseRecord
-from app.cases.scope import DEMO_ANSWERS
+from app.cases.scope import FIRST_ROUTE_SCOPE_ANSWERS
 from app.cases.workflow_service import build_workflow
 from app.config import Settings
 from app.rules.engine import PROCEDURE
@@ -50,7 +50,7 @@ def _confirmed_facts(case: CaseRecord, intake: CaseIntake | None) -> IntakeFacts
     if (
         intake is None or intake.confirmed_at is None or case.archived_at is not None
         or case.status != "provisionally_in_scope"
-        or case.scope_answers != list(DEMO_ANSWERS)
+        or case.scope_answers != list(FIRST_ROUTE_SCOPE_ANSWERS)
     ):
         return None
     try:
@@ -79,7 +79,7 @@ def read_shared_citizenship(
     shared = None
     for case, intake in rows:
         if case.id == target_id:
-            if case.scope_answers != list(DEMO_ANSWERS):
+            if case.scope_answers != list(FIRST_ROUTE_SCOPE_ANSWERS):
                 return None
             try:
                 draft = IntakeFacts.model_validate(intake.facts) if intake is not None else IntakeFacts()
