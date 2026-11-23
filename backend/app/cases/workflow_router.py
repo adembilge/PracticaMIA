@@ -64,7 +64,9 @@ def mark_reviewed_checklist_item(
 ):
     # Serialize with intake changes and scope updates. The original case row
     # is locked first in all three paths, preventing stale cross-request marks.
-    case = _owned_case(db, case_id, principal.subject, lock=True)
+    case = _owned_case(
+        db, case_id, principal.subject, lock=True, require_active=True,
+    )
     intake = db.scalar(
         select(CaseIntake).where(
             CaseIntake.case_id == str(case_id),
