@@ -162,7 +162,7 @@ def test_saved_case_survives_new_app_instance(client, auth_headers):
 
 @pytest.mark.parametrize("missing_key", ["auth_issuer", "auth_audience", "auth_jwks_url"])
 def test_case_api_refuses_missing_auth_configuration(missing_key):
-    kwargs = dict(database_url="sqlite+pysqlite:///ignored.db", enable_demo_case_api=True,
+    kwargs = dict(database_url="sqlite+pysqlite:///ignored.db", enable_task_api=True,
                   auth_issuer=ISSUER, auth_audience=AUDIENCE, auth_jwks_url=JWKS_URL)
     kwargs[missing_key] = ""
     with pytest.raises(ValueError, match=missing_key.upper()):
@@ -171,7 +171,7 @@ def test_case_api_refuses_missing_auth_configuration(missing_key):
 
 def test_case_api_refuses_unencrypted_jwks_url():
     with pytest.raises(ValueError, match="HTTPS"):
-        create_app(Settings(database_url="sqlite+pysqlite:///ignored.db", enable_demo_case_api=True,
+        create_app(Settings(database_url="sqlite+pysqlite:///ignored.db", enable_task_api=True,
                             auth_issuer=ISSUER, auth_audience=AUDIENCE,
                             auth_jwks_url="http://untrusted.example.test/keys"))
 
