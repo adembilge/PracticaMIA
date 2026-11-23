@@ -119,7 +119,7 @@ def test_worker_checks_only_accessible_private_document_reviews(
     saved_facts = FACTS.copy()
     if scenario != "conflict":
         saved_facts.pop("move_in_date")
-        assert client.put(case_path + "/intake", headers=headers, json={
+        assert client.put(f"/api/v1/conversations/tasks/{case_id}/intake", headers=headers, json={
             "facts": saved_facts, "confirm": True,
         }).status_code == 200
 
