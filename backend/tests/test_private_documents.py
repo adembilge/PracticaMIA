@@ -204,7 +204,7 @@ def test_scanner_failure_rejects_without_persisting(document_client, auth_header
     http = document_client
     alice = auth_headers("alice")
     case_id = http.post("/api/v1/cases", json={}, headers=alice).json()["id"]
-    url = f"/api/v1/cases/{case_id}/private-documents"
+    url = f"/api/v1/conversations/tasks/{case_id}/private-documents"
     def fail(*_args):
         raise ScanUnavailable("mocked scanner offline")
     monkeypatch.setattr(document_router, "scan_bytes", fail)
@@ -218,7 +218,7 @@ def test_expired_documents_are_hidden_and_purged_by_authorized_cron(document_cli
     http = document_client
     alice = auth_headers("alice")
     case_id = http.post("/api/v1/cases", json={}, headers=alice).json()["id"]
-    url = f"/api/v1/cases/{case_id}/private-documents"
+    url = f"/api/v1/conversations/tasks/{case_id}/private-documents"
     doc_id = upload(http, url, alice).json()["id"]
     with http.app.state.session_factory() as db:
         row = db.get(PrivateCaseDocument, doc_id)
