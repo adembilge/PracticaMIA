@@ -89,6 +89,8 @@ def update_scope(
     ).with_for_update())
     if record is None:
         raise HTTPException(404, "Case not found")
+    if record.archived_at is not None:
+        raise HTTPException(409, "Restore the archived task before changing its scope")
     if record.scope_answers != list(payload.answers):
         # Scope edits invalidate and erase downstream confirmations.
         db.execute(delete(CaseIntake).where(
