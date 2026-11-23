@@ -55,7 +55,6 @@ def copy_table_rows(
         if not column.nullable
         and column.server_default is None
         and column.default is None
-        and not column.primary_key
         and not getattr(column, "identity", None)
         and column.name not in mapped_names
     }
