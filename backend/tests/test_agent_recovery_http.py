@@ -19,7 +19,7 @@ from test_agent_reconnect_http import KEY, OWNER, assert_private_error
 @pytest.fixture
 def conversation(client, auth_headers):
     owner = auth_headers()
-    case = client.post("/api/v1/cases", headers=owner, json={})
+    case = client.post("/api/v1/conversations/tasks", headers=owner, json={})
     assert case.status_code == 201
     case_id = UUID(case.json()["id"])
     factory = client.app.state.session_factory
