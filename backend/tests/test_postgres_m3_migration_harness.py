@@ -91,6 +91,10 @@ def test_postgres_stage_ledger_atomicity_retry_and_revalidation():
             assert connection.execute(text(
                 f'SELECT count(*) FROM "{schema}".migration_ledger'
             )).scalar_one() == 1
+            assert connection.execute(
+                text(f'SELECT attempt_count FROM "{schema}".migration_ledger WHERE source_id=:source_id'),
+                {"source_id": "source-1"},
+            ).scalar_one() == 2
 
         # A target row without a verified ledger is never silently adopted.
         with engine.begin() as connection:
