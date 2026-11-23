@@ -145,3 +145,121 @@ def test_source_aad_builders_match_the_legacy_authenticated_identity_contract():
     assert source_private_document_aad(
         case_id="task", owner_subject="owner", document_identity="doc:review",
     ) == b"practicamia:private-document:v1:task:owner:doc:review"
+
+
+@pytest.mark.parametrize(
+    ("payload_kind", "source_aad", "record_id", "purpose", "sequence", "revision", "watermark"),
+    [
+        (
+            "agent_message",
+            source_agent_message_aad(
+                owner_subject="owner-fixture", thread_id="thread-fixture",
+                run_id="run-fixture", client_message_id="message-fixture",
+                case_id=None, accepted_revision=4,
+            ),
+            "run-fixture", "accepted-message", None, 4, None,
+        ),
+        (
+            "agent_event",
+            source_agent_event_aad(
+                owner_subject="owner-fixture", thread_id="thread-fixture",
+                run_id="run-fixture", case_id="task-fixture", event_sequence=5,
+            ),
+            "run-fixture", "event", 5, None, None,
+        ),
+        (
+            "agent_checkpoint",
+            source_agent_checkpoint_aad(
+                owner_subject="owner-fixture", thread_id="thread-fixture",
+                run_id="run-fixture", case_id=None, revision=6, event_watermark=5,
+            ),
+            "run-fixture", "checkpoint", None, 6, 5,
+        ),
+        (
+            "preparation_facts",
+            source_preparation_aad(
+                case_id="task-fixture", owner_subject="owner-fixture",
+                record_identity="case-facts",
+            ),
+            "task-fixture", "facts", None, None, None,
+        ),
+        (
+            "preparation_document",
+            source_preparation_aad(
+                case_id="task-fixture", owner_subject="owner-fixture",
+                record_identity="document-fixture",
+            ),
+            "document-fixture", "body", None, None, None,
+        ),
+        (
+            "preparation_review",
+            source_preparation_aad(
+                case_id="task-fixture", owner_subject="owner-fixture",
+                record_identity="document-fixture:review",
+            ),
+            "document-fixture", "review", None, None, None,
+        ),
+        (
+            "guide_turn",
+            source_preparation_aad(
+                case_id="task-fixture", owner_subject="owner-fixture",
+                record_identity="turn-fixture",
+            ),
+            "turn-fixture", "guide-turn", None, None, None,
+        ),
+        (
+            "private_document",
+            source_private_document_aad(
+                case_id="task-fixture", owner_subject="owner-fixture",
+                document_identity="private-document-fixture",
+            ),
+            "private-document-fixture", "body", None, None, None,
+        ),
+        (
+            "private_document_review",
+            source_private_document_aad(
+                case_id="task-fixture", owner_subject="owner-fixture",
+                document_identity="private-document-fixture:review",
+            ),
+            "private-document-fixture", "review", None, None, None,
+        ),
+    ],
+)
+def test_all_encrypted_payload_families_round_trip_through_destination_aad_v2(
+    payload_kind, source_aad, record_id, purpose, sequence, revision, watermark,
+):
+    """Exercise every inventoried encrypted payload family with synthetic bytes."""
+    source_key = bytes(range(32))
+    destination_key = bytes(range(32, 64))
+    plaintext = b'{"synthetic_fixture":true}'
+    source_ciphertext = _source_blob(plaintext, source_key, source_aad)
+    destination_aad = destination_aad_v2(
+        payload_kind=payload_kind,
+        owner_subject="owner-fixture",
+        conversation_id="conversation-fixture",
+        task_id=None if payload_kind in {
+            "agent_message", "agent_checkpoint",
+        } else "task-fixture",
+        record_id=record_id,
+        purpose=purpose,
+        sequence=sequence,
+        revision=revision,
+        event_watermark=watermark,
+    )
+
+    migrated = reencrypt_payload(
+        source_ciphertext,
+        source_key=source_key,
+        destination_key=destination_key,
+        source_aad=source_aad,
+        destination_aad=destination_aad,
+    )
+
+    assert migrated is not None
+    assert AESGCM(destination_key).decrypt(
+        migrated.ciphertext[:12],
+        migrated.ciphertext[12:],
+        destination_aad,
+    ) == plaintext
+    assert migrated.source_ciphertext_sha256 == sha256(source_ciphertext).hexdigest()
+    assert migrated.destination_ciphertext_sha256 == sha256(migrated.ciphertext).hexdigest()
