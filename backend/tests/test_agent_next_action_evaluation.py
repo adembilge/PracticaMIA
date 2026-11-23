@@ -244,7 +244,7 @@ def test_saved_filing_rechecks_the_case_before_publishing_a_reviewed_channel(mon
     assert not report["passed"]
     if invalidate == "archive":
         # The commit-boundary archive guard discards the in-flight answer entirely.
-        assert saved.status == "running" and saved.result is None
+        assert saved is None
     else:
         assert saved.result.verification_status == "insufficient_evidence"
         assert saved.result.official_channel is None and saved.result.citations == []
