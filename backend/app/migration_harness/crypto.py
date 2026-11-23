@@ -359,3 +359,88 @@ def stage_verified_record(
         },
     )
     return "staged"
+
+
+def task_identity_source_aad_v1(
+    *,
+    payload_kind: str,
+    owner_subject: str,
+    conversation_id: str | None,
+    task_id: str | None,
+    record_id: str,
+    client_message_id: str | None = None,
+    sequence: int | None = None,
+    revision: int | None = None,
+    event_watermark: int | None = None,
+) -> bytes:
+    """Rebuild legacy v1 AAD from target names without changing identity bytes.
+
+    This is valid only for a schema migration that preserves every identifier,
+    owner value, nullable task link, sequence and revision byte-for-byte.
+    It does not create AAD v2 and must never be used after an identity changes.
+    """
+    if not owner_subject or not record_id:
+        raise ValueError("Owner and record identity must be non-empty")
+    if payload_kind in {"agent_message", "agent_event", "agent_checkpoint"}:
+        if not conversation_id:
+            raise ValueError("Agent payloads require their original conversation identity")
+        if payload_kind == "agent_message":
+            if not client_message_id or revision is None:
+                raise ValueError("Agent messages require message identity and accepted revision")
+            return source_agent_message_aad(
+                owner_subject=owner_subject,
+                thread_id=conversation_id,
+                run_id=record_id,
+                client_message_id=client_message_id,
+                case_id=task_id,
+                accepted_revision=revision,
+            )
+        if payload_kind == "agent_event":
+            if sequence is None:
+                raise ValueError("Agent events require their original event sequence")
+            return source_agent_event_aad(
+                owner_subject=owner_subject,
+                thread_id=conversation_id,
+                run_id=record_id,
+                case_id=task_id,
+                event_sequence=sequence,
+            )
+        if revision is None or event_watermark is None:
+            raise ValueError("Agent checkpoints require revision and event watermark")
+        return source_agent_checkpoint_aad(
+            owner_subject=owner_subject,
+            thread_id=conversation_id,
+            run_id=record_id,
+            case_id=task_id,
+            revision=revision,
+            event_watermark=event_watermark,
+        )
+
+    if not task_id:
+        raise ValueError("Task-owned payloads require a task identity")
+    if payload_kind == "preparation_facts":
+        return source_preparation_aad(
+            case_id=task_id, owner_subject=owner_subject, record_identity="case-facts",
+        )
+    if payload_kind == "preparation_document":
+        return source_preparation_aad(
+            case_id=task_id, owner_subject=owner_subject, record_identity=record_id,
+        )
+    if payload_kind == "preparation_review":
+        return source_preparation_aad(
+            case_id=task_id, owner_subject=owner_subject, record_identity=f"{record_id}:review",
+        )
+    if payload_kind == "guide_turn":
+        return source_preparation_aad(
+            case_id=task_id, owner_subject=owner_subject, record_identity=record_id,
+        )
+    if payload_kind == "private_document":
+        return source_private_document_aad(
+            case_id=task_id, owner_subject=owner_subject, document_identity=record_id,
+        )
+    if payload_kind == "private_document_review":
+        return source_private_document_aad(
+            case_id=task_id, owner_subject=owner_subject,
+            document_identity=f"{record_id}:review",
+        )
+    raise ValueError("Unsupported encrypted payload family")
