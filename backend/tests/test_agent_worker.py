@@ -282,7 +282,7 @@ def test_worker_reads_current_confirmed_facts_and_open_review_actions(client, au
         return CheckpointState(next_node="choose_next_step")
 
     assert run_worker_step(factory, **context, execute=check_confirmed).status == "running"
-    assert client.get(path + "/intake", headers=owner).json()["facts"]["housing_basis"] == FACTS["housing_basis"]
+    assert client.get(f"/api/v1/conversations/tasks/{case_id}/intake", headers=owner).json()["facts"]["housing_basis"] == FACTS["housing_basis"]
 
     current_review["date"] = "2026-11-09"
 
