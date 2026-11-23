@@ -368,7 +368,7 @@ def test_worker_does_not_claim_queued_run_for_archived_task(queued_run):
     # Drain the fixture's unlinked run so the only queued candidate is task-linked.
     assert run_worker_batch(
         factory, key=KEY, lease_for=LEASE_FOR, execute=lambda *_: ANSWER,
-        max_steps=1,
+        max_steps=5,
     ) == 1
     case_id = uuid4()
     with factory.begin() as db:
