@@ -144,8 +144,8 @@ def test_hosted_fixture_restrictions_apply_before_scanner(
     monkeypatch.setattr(document_router, "scan_bytes", lambda body, _: scanned.append(body))
 
     alice, bob, outsider = (auth_headers(value) for value in ("alice", "bob", "other"))
-    first = document_client.post("/api/v1/cases", json={}, headers=alice).json()["id"]
-    other = document_client.post("/api/v1/cases", json={}, headers=outsider).json()["id"]
+    first = document_client.post("/api/v1/conversations/tasks", json={}, headers=alice).json()["id"]
+    other = document_client.post("/api/v1/conversations/tasks", json={}, headers=outsider).json()["id"]
     url = f"/api/v1/conversations/tasks/{first}/private-documents"
     other_url = f"/api/v1/conversations/tasks/{other}/private-documents"
     assert document_client.get(other_url, headers=outsider).status_code == 404
@@ -170,7 +170,7 @@ def test_hosted_fixture_restrictions_apply_before_scanner(
 def test_document_upload_requires_consent_and_scanner_then_encrypts(document_client, auth_headers):
     http = document_client
     alice, bob = auth_headers("alice"), auth_headers("bob")
-    case_id = http.post("/api/v1/cases", json={}, headers=alice).json()["id"]
+    case_id = http.post("/api/v1/conversations/tasks", json={}, headers=alice).json()["id"]
     url = f"/api/v1/conversations/tasks/{case_id}/private-documents"
     assert http.get(url).status_code == 401
     assert http.get(url, headers=bob).status_code == 404
@@ -209,7 +209,7 @@ def test_document_upload_requires_consent_and_scanner_then_encrypts(document_cli
 def test_scanner_failure_rejects_without_persisting(document_client, auth_headers, monkeypatch):
     http = document_client
     alice = auth_headers("alice")
-    case_id = http.post("/api/v1/cases", json={}, headers=alice).json()["id"]
+    case_id = http.post("/api/v1/conversations/tasks", json={}, headers=alice).json()["id"]
     url = f"/api/v1/conversations/tasks/{case_id}/private-documents"
     def fail(*_args):
         raise ScanUnavailable("mocked scanner offline")
@@ -223,7 +223,7 @@ def test_scanner_failure_rejects_without_persisting(document_client, auth_header
 def test_expired_documents_are_hidden_and_purged_by_authorized_cron(document_client, auth_headers):
     http = document_client
     alice = auth_headers("alice")
-    case_id = http.post("/api/v1/cases", json={}, headers=alice).json()["id"]
+    case_id = http.post("/api/v1/conversations/tasks", json={}, headers=alice).json()["id"]
     url = f"/api/v1/conversations/tasks/{case_id}/private-documents"
     doc_id = upload(http, url, alice).json()["id"]
     with http.app.state.session_factory() as db:
