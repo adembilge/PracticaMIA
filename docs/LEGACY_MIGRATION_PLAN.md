@@ -45,6 +45,35 @@ The current SQLAlchemy models and migration history establish the following depe
 
 The regression test `backend/tests/test_case_domain_migration_invariants.py` locks the critical foreign-key edges and verifies that changing the case identity changes the associated-data context for agent messages, events, checkpoints, private documents and preparation payloads.
 
+### Current cardinality, ownership and deletion semantics (M2.1)
+
+The runtime models and Alembic constraints establish the following current shape. These are source facts to preserve or consciously replace—not an assumption that the target schema must use identical table names.
+
+| Record | Current cardinality and identity | Ownership source | Current deletion behavior |
+| --- | --- | --- | --- |
+| `cases` | One row per task-like record; `id` is the primary key | `owner_subject` is nullable to retain inaccessible legacy ownerless rows | Parent of the case-bound records below |
+| `case_intakes` | Zero or one per case; `case_id` is both PK and FK | Duplicated `owner_subject`; application must keep it equal to the parent | Case deletion cascades |
+| `case_preparations` | Zero or one per case; `case_id` is both PK and FK | Duplicated `owner_subject` | Case deletion cascades |
+| `private_case_documents`, `case_documents`, `case_agent_turns` | Zero or many per case; each row has its own `id` | Duplicated `owner_subject` | Case deletion cascades |
+| `agent_threads` | One row per conversation thread | Non-null `owner_subject` | Thread deletion cascades its association and runs |
+| `agent_thread_cases` | Many-to-many thread/case association; composite PK `(thread_id, case_id)` | No owner column; ownership is derived by joining both parents and checking the same principal | Either parent deletion cascades the link |
+| `agent_run_requests` | Many historical runs per thread; optional `case_id`; independent run `id` | Derived from `agent_threads.owner_subject` | Thread deletion cascades; linked runs also require the composite thread/case association |
+| `agent_run_events` | Zero or many ordered events per run; composite PK `(run_id, event_seq)` | Derived through the run and its thread | Run deletion cascades |
+| `agent_run_checkpoints` | Zero or one checkpoint per run; `run_id` is the PK | Derived through the run and its thread | Run deletion cascades |
+| `agent_case_operations` | Zero or many operation receipts per run/case, with uniqueness on run/client operation, run/proposal and case/revision | No owner column; bound through both run and case | Run or case deletion cascades |
+
+Important consequences:
+
+- `AgentRunRequest.case_id` is nullable: a conversation can have runs that are not linked to a task. A target model must preserve that distinction.
+- A thread can link multiple tasks, and a task can be linked to multiple threads. Do not silently collapse this to one-to-one.
+- `agent_run_requests` has a composite FK to the exact `(thread_id, case_id)` association. A simple FK to a task row does not preserve this invariant.
+- Owner equality across denormalized `owner_subject` columns is enforced by application queries/writes, not by the listed foreign keys. Migration validation must explicitly compare each child owner with its parent owner.
+- Legacy `cases.owner_subject IS NULL` rows must remain unassigned and inaccessible unless a separately authorized ownership-resolution process exists.
+- Cascades are destructive across multiple levels. A target design must explicitly choose whether task deletion is allowed, blocked, soft-deleted or retained; it must not inherit cascade behavior accidentally.
+- `agent_run_requests` status-specific unique indexes constrain concurrent active/foreground work. Their semantics must be preserved alongside the FK graph.
+
+The regression tests now assert current primary-key cardinalities and every case-bound cascade edge. They are a guard against accidental drift while the target ownership design is reviewed; they do not authorize a schema migration.
+
 ### Encryption and identity constraints
 
 - Agent request ciphertext associated data includes owner subject, thread ID, run ID, client message ID, case ID and accepted revision.
