@@ -18,7 +18,7 @@ def test_postgres_case_ownership_and_legacy_migration(token_factory, auth_header
     api = create_app(
         Settings(
             database_url=os.environ["DATABASE_URL"],
-            enable_demo_case_api=True,
+            enable_task_api=True,
             auth_issuer="https://identity.example.test/",
             auth_audience="https://api.practicamia.example.test",
             auth_jwks_url="https://identity.example.test/.well-known/jwks.json",

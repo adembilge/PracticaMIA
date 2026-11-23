@@ -101,7 +101,7 @@ def run(port: int, assets: Path, *, private_documents: bool = False):
     checklist_service.resolve_approved_passage = synthetic_evidence
 
     settings = Settings(
-        database_url=database_url, enable_demo_case_api=True,
+        database_url=database_url, enable_task_api=True,
         enable_knowledge_catalog_api=True,
         auth_issuer=ISSUER, auth_audience=AUDIENCE, auth_jwks_url=JWKS_URL,
     )

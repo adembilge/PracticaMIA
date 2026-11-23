@@ -52,7 +52,7 @@ def test_migration_includes_preparation_tables_and_real_cascading_delete(auth_he
         engine.dispose()
     app = create_app(Settings(
         database_url=database,
-        enable_demo_case_api=True,
+        enable_task_api=True,
         enable_knowledge_catalog_api=True,
         enable_preparation_api=True,
         enable_agent_history_api=True,

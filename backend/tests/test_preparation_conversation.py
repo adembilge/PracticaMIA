@@ -21,7 +21,7 @@ def history_client(tmp_path):
     url = f"sqlite+pysqlite:///{tmp_path / 'agent-history.sqlite3'}"
     settings = Settings(
         database_url=url,
-        enable_demo_case_api=True,
+        enable_task_api=True,
         enable_knowledge_catalog_api=True,
         enable_preparation_api=True,
         enable_agent_history_api=True,
@@ -45,7 +45,7 @@ def test_history_requires_preparation_preview():
 def test_disabled_history_endpoint_fails_closed(tmp_path, auth_headers):
     settings = Settings(
         database_url=f"sqlite+pysqlite:///{tmp_path / 'no-history.sqlite3'}",
-        enable_demo_case_api=True, enable_knowledge_catalog_api=True,
+        enable_task_api=True, enable_knowledge_catalog_api=True,
         enable_preparation_api=True, deployment_environment="preview",
         preparation_target="isolated_staging",
         preparation_document_key=base64.b64encode(bytes(range(32))).decode(),

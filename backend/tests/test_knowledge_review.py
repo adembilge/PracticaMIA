@@ -71,12 +71,12 @@ def test_review_disabled_unless_both_flag_and_allowlist_are_configured():
         create_app(Settings(enable_knowledge_review_api=True))
     with pytest.raises(ValueError, match="subject allowlist"):
         create_app(Settings(
-            enable_demo_case_api=True, enable_knowledge_catalog_api=True,
+            enable_task_api=True, enable_knowledge_catalog_api=True,
             enable_knowledge_review_api=True,
         ))
     with pytest.raises(ValueError, match="subject identifiers"):
         create_app(Settings(
-            enable_demo_case_api=True, enable_knowledge_catalog_api=True,
+            enable_task_api=True, enable_knowledge_catalog_api=True,
             enable_knowledge_review_api=True,
             knowledge_reviewer_subjects=frozenset({"x" * 256}),
         ))

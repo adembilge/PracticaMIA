@@ -33,7 +33,7 @@ QUOTE = "Test sintetico: la parola residenza appare qui."
 def rag_preparation_client(tmp_path):
     api = create_app(Settings(
         database_url=f"sqlite+pysqlite:///{tmp_path / 'agent-rag.sqlite3'}",
-        enable_demo_case_api=True,
+        enable_task_api=True,
         enable_knowledge_catalog_api=True,
         enable_knowledge_search_api=True,
         enable_preparation_api=True,

@@ -33,7 +33,7 @@ def test_gated_preview_mount_accepts_encrypted_first_message_and_rejects_foreign
     database = os.environ["DATABASE_URL"]
     settings = Settings(
         database_url=database,
-        enable_demo_case_api=True,
+        enable_task_api=True,
         enable_knowledge_catalog_api=True,
         enable_preparation_api=True,
         enable_agent_history_api=True,
