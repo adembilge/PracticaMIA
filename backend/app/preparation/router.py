@@ -81,8 +81,12 @@ def _key(request: Request) -> bytes:
     return request.app.state.preparation_document_key
 
 
-def _case(db: Session, case_id: UUID, principal: Principal):
-    case = get_case(db, case_id, principal.subject)
+def _case(
+    db: Session, case_id: UUID, principal: Principal, *, require_active: bool = False,
+):
+    case = get_case(
+        db, case_id, principal.subject, require_active=require_active, lock=require_active,
+    )
     if case.procedure != PROCEDURE:
         raise HTTPException(422, "Unsupported preparation procedure")
     return case
@@ -214,7 +218,7 @@ def read_preparation(case_id: UUID, request: Request,
 def replace_facts(case_id: UUID, payload: FactsUpdate, request: Request,
                   db: Session = Depends(get_session),
                   principal: Principal = Depends(get_principal)):
-    _case(db, case_id, principal)
+    _case(db, case_id, principal, require_active=True)
     values = payload.confirmed_facts
     if not validate_scope_facts(values) or any(
         not CATEGORY_RE.fullmatch(key) or
@@ -294,7 +298,7 @@ def guide_case_preview(
     Tool callbacks run with an authenticated owner and current source approvals.
     An LLM cannot write case facts, activate rules or invent an application.
     """
-    _case(db, case_id, principal)
+    _case(db, case_id, principal, require_active=True)
     settings = request.app.state.settings
     model = None
     if settings.enable_assistant_api and _fallback_action(payload.question) != "evidence":
@@ -409,7 +413,7 @@ async def upload_document(
     db: Session = Depends(get_session),
     principal: Principal = Depends(get_principal),
 ):
-    _case(db, case_id, principal)
+    _case(db, case_id, principal, require_active=True)
     if synthetic_ack != "YES":
         raise HTTPException(403, "Preview accepts synthetic fixture data only")
     if not CATEGORY_RE.fullmatch(document_type):
@@ -458,7 +462,7 @@ def extract_saved_document(
     db: Session = Depends(get_session),
     principal: Principal = Depends(get_principal),
 ):
-    _case(db, case_id, principal)
+    _case(db, case_id, principal, require_active=True)
     doc = _document(db, str(case_id), principal.subject, document_id)
     try:
         original = decrypt_blob(
@@ -494,7 +498,7 @@ def confirm_extracted_field(
     request: Request, db: Session = Depends(get_session),
     principal: Principal = Depends(get_principal),
 ):
-    _case(db, case_id, principal)
+    _case(db, case_id, principal, require_active=True)
     doc = _document(db, str(case_id), principal.subject, document_id)
     review = _review(request, doc)
     try:
@@ -522,7 +526,7 @@ def review_extracted_document(
     request: Request, db: Session = Depends(get_session),
     principal: Principal = Depends(get_principal),
 ):
-    _case(db, case_id, principal)
+    _case(db, case_id, principal, require_active=True)
     doc = _document(db, str(case_id), principal.subject, document_id)
     review = _review(request, doc)
     extraction = review.get("extraction", {})
@@ -551,7 +555,7 @@ def delete_document(
     db: Session = Depends(get_session),
     principal: Principal = Depends(get_principal),
 ):
-    _case(db, case_id, principal)
+    _case(db, case_id, principal, require_active=True)
     doc = _document(db, str(case_id), principal.subject, document_id)
     db.delete(doc)
     prep = _preparation(db, str(case_id), principal.subject)
@@ -581,7 +585,7 @@ def approve_reviewed_package(
     db: Session = Depends(get_session),
     principal: Principal = Depends(get_principal),
 ):
-    _case(db, case_id, principal)
+    _case(db, case_id, principal, require_active=True)
     result = _assessment(db, request, str(case_id), principal.subject)
     package = result["package"]
     if not package or package["review_digest"] != payload.review_digest:
