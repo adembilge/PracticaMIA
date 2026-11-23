@@ -63,6 +63,57 @@ def validate_key_families(keys: Mapping[str, bytes]) -> None:
             raise ValueError("Active key families must be pairwise distinct")
 
 
+def source_agent_message_aad(
+    *, owner_subject: str, thread_id: str, run_id: str,
+    client_message_id: str, case_id: str | None, accepted_revision: int,
+) -> bytes:
+    return json.dumps(
+        [
+            "practicamia-agent-request/v1", owner_subject, thread_id,
+            run_id, client_message_id, case_id, accepted_revision,
+        ],
+        separators=(",", ":"),
+    ).encode()
+
+
+def source_agent_event_aad(
+    *, owner_subject: str, thread_id: str, run_id: str,
+    case_id: str | None, event_sequence: int,
+) -> bytes:
+    return json.dumps(
+        [
+            "practicamia-agent-event/v1", owner_subject, thread_id,
+            run_id, case_id, event_sequence,
+        ],
+        separators=(",", ":"),
+    ).encode()
+
+
+def source_agent_checkpoint_aad(
+    *, owner_subject: str, thread_id: str, run_id: str,
+    case_id: str | None, revision: int, event_watermark: int,
+) -> bytes:
+    return json.dumps(
+        [
+            "practicamia-agent-checkpoint/v1", owner_subject, thread_id,
+            run_id, case_id, revision, event_watermark,
+        ],
+        separators=(",", ":"),
+    ).encode()
+
+
+def source_preparation_aad(*, case_id: str, owner_subject: str, record_identity: str) -> bytes:
+    return (
+        f"practicamia-preview-document/v1:{case_id}:{owner_subject}:{record_identity}"
+    ).encode("utf-8")
+
+
+def source_private_document_aad(*, case_id: str, owner_subject: str, document_identity: str) -> bytes:
+    return (
+        f"practicamia:private-document:v1:{case_id}:{owner_subject}:{document_identity}"
+    ).encode("utf-8")
+
+
 def destination_aad_v2(
     *,
     payload_kind: str,
