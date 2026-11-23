@@ -40,7 +40,7 @@ PDF_BYTES = fixture_pdf()
 def enabled_settings(database_url="sqlite+pysqlite:///:memory:"):
     return Settings(
         database_url=database_url,
-        enable_demo_case_api=True,
+        enable_task_api=True,
         enable_private_document_api=True,
         deployment_environment="production",
         private_document_key=base64.b64encode(bytes(range(32))).decode(),
@@ -79,10 +79,10 @@ def upload(http, url, headers, *, consent=True):
 
 
 def test_default_off_and_require_all_release_gates():
-    disabled = create_app(Settings(enable_demo_case_api=False))
+    disabled = create_app(Settings(enable_task_api=False))
     assert "/api/v1/conversations/tasks/{case_id}/private-documents" not in disabled.openapi()["paths"]
     with pytest.raises(ValueError, match="privacy review"):
-        create_app(Settings(enable_demo_case_api=True, enable_private_document_api=True))
+        create_app(Settings(enable_task_api=True, enable_private_document_api=True))
     assert len(validate_release_settings(enabled_settings())) == 32
     for bad in [
         {"private_document_scan_url": "http://scanner.example.test/check"},
