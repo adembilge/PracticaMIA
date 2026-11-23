@@ -176,7 +176,7 @@ def test_reopened_case_confirms_through_owned_intake_before_fresh_verified_hando
     assert verified["handoff"]["next_action"]["operation"] == "open_official_channel"
     assert set(verified["handoff"]["evidence_ids"]) == {item.citation.passage_id for item in replay.channel_passages}
     assert client.get(run_url, headers=owner).json()["handoff"] is None
-    archived = client.patch(f"/api/v1/cases/{replay.case_id}/archive", headers=owner, json={"archived": True})
+    archived = client.patch(f"/api/v1/conversations/tasks/{replay.case_id}/archive", headers=owner, json={"archived": True})
     assert archived.status_code == 200
     assert client.get(run_url, headers=owner).json()["selected_case"] is None
 
