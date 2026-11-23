@@ -1,6 +1,6 @@
 # Cleanup and legacy migration plan
 
-**Status:** Active — M3 disposable harness merged; full migration blocked on M2.5 approvals and key-custody evidence, 23 November 2026  
+**Status:** Active — M2.5 deferred by project owner; M3 disposable harness and synthetic payload coverage implemented; live migration not authorized, 23 November 2026  
 **Current phase:** Phase 4; Phase 5 remains paused  
 **Primary reference:** [Legacy case-to-conversation/task migration](LEGACY_MIGRATION_PLAN.md)  
 **Product contract:** one customer-facing conversation at `/`; internal task/workflow persistence is not a customer-facing task feature.
