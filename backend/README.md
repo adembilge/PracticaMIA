@@ -1,6 +1,6 @@
 # PracticaMIA Backend
 
-The Python backend provides the authenticated case-management and administrative-preparation services for PracticaMIA. It uses **FastAPI, SQLAlchemy, PostgreSQL, Alembic, LangGraph, and source-grounded retrieval**.
+The Python backend provides authenticated conversation/task services and controlled administrative preparation for PracticaMIA. It uses **FastAPI, SQLAlchemy, PostgreSQL, Alembic, LangGraph, and source-grounded retrieval**.
 
 ## Responsibilities
 
@@ -36,7 +36,7 @@ export DATABASE_URL='postgresql+psycopg://practicamia:local_development_only@127
 python -m alembic -c alembic.ini upgrade head
 ```
 
-Wait for PostgreSQL readiness before migrating. To run authenticated APIs, export the case flag and trusted OIDC settings from [`.env.example`](.env.example) and start the API in the configured shell.
+Wait for PostgreSQL readiness before migrating. To run authenticated task APIs, set `ENABLE_TASK_API=1` and configure the trusted OIDC settings from [`.env.example`](.env.example), then start the API in the configured shell.
 
 Use `docker stop practicamia-local-db` when you no longer need the disposable database. Keep credentials, identity documents and private signing keys out of Git.
 
