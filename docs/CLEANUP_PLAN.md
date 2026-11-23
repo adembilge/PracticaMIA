@@ -41,7 +41,7 @@ Completed does not mean the underlying case-named database domain has been migra
 
 ### M2.4 — Define the target conversation/task ownership model
 
-**Status:** Next
+**Status:** Draft prepared; engineering/product review pending. See [target data model draft](TASK_CONVERSATION_TARGET_MODEL.md).
 
 Deliverables:
 1. Define target entities and responsibilities for conversation, task scope, confirmed intake facts, documents, preparation/review state, agent runs, events, checkpoints and approval/idempotency receipts.
