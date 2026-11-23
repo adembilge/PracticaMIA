@@ -183,3 +183,12 @@ The next disposable rehearsal adds explicit relational copy primitives:
 - Exercise conversation/task association constraints, nullable unlinked runs, and ownerless legacy tasks using synthetic PostgreSQL fixtures.
 
 The rehearsal is not connected to application tables. It does not add Alembic production revisions, perform a write fence, access configured keys, or authorize source-table deletion. It is intended to expose mapping and integrity defects before any separately approved cutover plan.
+
+
+## Full case-domain disposable mapping rehearsal (in progress)
+
+The disposable PostgreSQL test `backend/tests/test_postgres_case_domain_mapping_rehearsal.py` models all twelve source-to-target table pairs in the M2.4 mapping: cases/tasks, threads/conversations, associations, intake, runs, events, checkpoints, operation receipts, private vault documents, preparations, preparation documents and guide turns.
+
+The fixture exercises nullable chat-run linkage, ownerless task preservation, composite conversation/task run linkage, event sequence identity, lease null-pair consistency, operation idempotency/revision constraints, document consent/expiry metadata, and byte-for-byte copying of encrypted payload columns. It also checks denormalized child-owner equality and quarantines a mismatch rather than repairing it.
+
+This remains a synthetic relational rehearsal. The test does not execute the real production migration chain against application tables, access encryption keys, prove all source AAD builders against every live record, establish a write fence, or authorize live cutover/source deletion. CI must pass before this test is treated as validated.
