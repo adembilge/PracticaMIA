@@ -33,6 +33,7 @@ PAYLOAD_KINDS = frozenset({
     "private_document_review",
 })
 _IDENTIFIER = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)?$")
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
 class MigrationQuarantine(ValueError):
