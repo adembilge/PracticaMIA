@@ -214,6 +214,13 @@ def _qualified_table(value: str) -> str:
     return ".".join(f'"{part}"' for part in value.split("."))
 
 
+def _verified(ciphertext: bytes, verifier: Callable[[bytes], bool]) -> bool:
+    try:
+        return verifier(ciphertext) is True
+    except Exception:
+        return False
+
+
 def stage_verified_record(
     connection: Connection,
     *,
@@ -238,7 +245,7 @@ def stage_verified_record(
         raise MigrationQuarantine("invalid_source_ciphertext_digest")
     if aad_version != "v2":
         raise MigrationQuarantine("unsupported_destination_aad_version")
-    if not verify_existing(ciphertext):
+    if not _verified(ciphertext, verify_existing):
         raise MigrationQuarantine("target_payload_verification_failed")
     target_digest = sha256(ciphertext).hexdigest()
     existing = connection.execute(
@@ -260,7 +267,7 @@ def stage_verified_record(
             row is None
             or row["content_sha256"] != target_digest
             or not hmac.compare_digest(sha256(row["ciphertext"]).hexdigest(), target_digest)
-            or not verify_existing(row["ciphertext"])
+            or not _verified(row["ciphertext"], verify_existing)
         ):
             raise MigrationQuarantine("verified_target_revalidation_failed")
         connection.execute(
