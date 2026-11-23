@@ -103,6 +103,8 @@ async def add_private_document(
     ).with_for_update())
     if locked is None:
         raise HTTPException(404, "Case not found")
+    if locked.archived_at is not None:
+        raise HTTPException(409, "Restore the archived task before adding documents")
     # Expired documents cannot count against the per-case limit.
     db.execute(delete(PrivateCaseDocument).where(
         PrivateCaseDocument.case_id == case_str,
