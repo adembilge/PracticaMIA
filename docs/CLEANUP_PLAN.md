@@ -13,7 +13,7 @@ This is a code and data-architecture migration plan. It does not authorize produ
 
 ## 2. Current baseline
 
-- PRs #246–#269 are merged; PR #265 contains the latest runtime change, PR #266 consolidated the cleanup plan, PR #267 completed M2.4, PR #268 completed the M2.5 encrypted-payload design baseline and PR #269 implemented the disposable M3 migration harness.
+- PRs #246–#271 are merged; PR #265 contains the latest runtime change, PR #266 consolidated the cleanup plan, PR #267 completed M2.4, PR #268 documented the M2.5 encrypted-payload strategy, PR #269 implemented the disposable M3 migration harness and PR #271 completed synthetic coverage for all nine encrypted payload families.
 - Public legacy case API aliases and customer-facing case/task/demo navigation have been removed in earlier increments.
 - Canonical task operations are routed under `/api/v1/conversations/tasks`.
 - `ENABLE_TASK_API` is the only supported task-route activation flag and remains disabled by default.
@@ -75,12 +75,12 @@ Acceptance:
 
 ### M3 — Build and validate the reversible data migration
 
-**Status:** Disposable harness merged in PR #269; nine-family synthetic payload coverage is in PR #271. Live source-to-target migration, Alembic target schema and non-disposable execution are not authorized and remain unexecuted. M2.5 is deferred; no operational evidence or migration approval is implied.
+**Status:** Safe disposable M3 implementation complete (PRs #269 and #271): cryptographic primitives, PostgreSQL staging/ledger harness, and synthetic round-trip tests for all nine encrypted payload families. Live source-to-target migration, Alembic target schema and non-disposable execution are deferred and unauthorized because M2.5 was deferred. No production or staging data or keys were accessed. M3 is complete only for the disposable implementation scope; live data migration is not complete.
 
 Deliverables:
 - Freeze exact source-to-target mapping, migration ordering, destination AAD v2, staging ledger and recovery boundaries.
 - Implement fail-closed cryptographic and relationship primitives plus disposable PostgreSQL staging/retry/rollback tests.
-- After approvals, implement the reviewed Alembic target schema and full table-level source-to-target runner in the same M3 workstream.
+- Live schema and source-to-target runner are not in the current authorized scope. Reopen only with a separately approved migration and recovery plan; until then, preserve all legacy tables and runtime domain code.
 - Disposable PostgreSQL snapshot migration tests.
 - Before/after row counts, FK integrity, owner consistency, ciphertext authentication/decryptability and resume/approval journey checks.
 - Quarantine path for owner mismatches, orphaned records and undecryptable payloads.

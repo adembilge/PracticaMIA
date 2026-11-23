@@ -26,10 +26,10 @@ The conversation transport and worker are still restricted to isolated developme
 
 - PR #267 merged: M2.4 target conversation/task ownership model completed.
 - PR #268 merged: M2.5 encrypted-payload migration strategy and consistency baseline completed.
-- PR #269 merged the coordinated M3 disposable migration harness; PR #271 adds synthetic round-trip coverage for all nine encrypted payload families (pending CI/merge).
+- PR #269 merged the coordinated M3 disposable migration harness; PR #271 merged synthetic round-trip coverage for all nine encrypted payload families. The safe disposable M3 implementation scope is complete.
 - Added isolated crypto primitives for key-family preflight, canonical destination AAD v2, authenticated decrypt/validate/re-encrypt/verify, owner/link validation and retention checks.
 - Added disposable PostgreSQL staging/ledger tests for atomic writes, retry revalidation, orphan-target rejection and rollback; wired into backend CI.
-- Live source-table migration, target Alembic schema and non-disposable execution are not authorized and remain unexecuted. M2.5 review work is deferred by project-owner decision. No production or staging data/key access or mutation has occurred.
+- Live source-table migration, target Alembic schema and non-disposable execution are deferred and unauthorized following the project-owner decision to defer M2.5. They remain unexecuted. No production or staging data/key access or mutation has occurred.
 
 ## Verification boundaries
 

@@ -1,8 +1,8 @@
 # Active work
 
 **Current phase:** M3 — conversation/task data migration  
-**Current task:** Complete synthetic M3 validation; live migration remains out of scope without operational authorization  
-**Next task:** Complete and validate the single M3 workstream; do not begin Phase 5.
+**Current task:** M3 disposable implementation and synthetic validation complete; live migration deferred and unauthorized  
+**Next task:** No further M3 work is authorized while M2.5 remains deferred; do not begin M4 destructive cleanup or Phase 5.
 
 ## Current state
 
@@ -15,14 +15,14 @@
 
 ## Current cleanup priority
 
-M2.5 is deferred by project-owner decision; no further M2.5 review work is planned. PR #269 delivered the disposable M3 harness; PR #271 adds synthetic coverage for all nine encrypted payload families. Live source-to-target migration, target application schema and cutover remain unexecuted and unauthorized. Do not drop or rewrite stored records. Phase 5 remains paused.
+M2.5 is deferred by project-owner decision. PR #269 delivered the disposable M3 harness and PR #271 merged synthetic round-trip coverage for all nine encrypted payload families. The safe, disposable M3 implementation is complete. Live source-to-target migration, target application schema and cutover remain unexecuted and unauthorized; no production or staging data or keys were accessed. Do not drop or rewrite stored records. Phase 5 remains paused.
 
 ## Cleanup milestone status
 
 - M2.4 target conversation/task ownership model: complete; see `TASK_CONVERSATION_TARGET_MODEL.md`.
 - M2.5 encrypted-payload strategy: design baseline retained; work deferred by project owner.
 - M3 disposable harness: complete and merged in PR #269; see `M3_MIGRATION_IMPLEMENTATION.md`.
-- M3 disposable implementation and synthetic payload-family validation: in progress pending PR #271 CI and merge. Live migration and cutover: not authorized; not part of the current executable work.
+- M3 disposable implementation and synthetic payload-family validation: complete (PRs #269 and #271). Live migration and cutover: deferred because M2.5 was deferred; not authorized or executed.
 - M4 runtime removal remains blocked on successful M3 migration and recovery approval.
 
 ## Phase 4 priorities
