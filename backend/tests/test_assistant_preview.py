@@ -14,7 +14,7 @@ from app.knowledge.review_service import approve_version, revoke_version
 from app.knowledge.snapshots import ingest_snapshot
 from app.main import create_app
 
-ENDPOINT = "/api/v1/cases/{}/assistant/ask"
+ENDPOINT = "/api/v1/conversations/tasks/{}/assistant/ask"
 SYNTHETIC_HTML = (
     b"<html><body><p>Test sintetico: la parola residenza appare qui. "
     b"Questa non e una istruzione governativa.</p></body></html>"
