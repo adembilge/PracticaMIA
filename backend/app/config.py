@@ -1,4 +1,4 @@
-"""Environment settings: case endpoints are disabled unless explicitly enabled."""
+"""Environment settings: task endpoints are disabled unless explicitly enabled."""
 from dataclasses import dataclass
 from os import environ
 
@@ -6,7 +6,9 @@ from os import environ
 @dataclass(frozen=True)
 class Settings:
     database_url: str = ""
-    enable_demo_case_api: bool = False
+    enable_task_api: bool = False
+    # Temporary constructor compatibility for existing tests/integrations.
+    enable_demo_case_api: bool | None = None
     enable_knowledge_catalog_api: bool = False
     enable_knowledge_review_api: bool = False
     enable_knowledge_search_api: bool = False
@@ -45,12 +47,20 @@ class Settings:
     auth_audience: str = ""
     auth_jwks_url: str = ""
 
+    def __post_init__(self) -> None:
+        if self.enable_demo_case_api is not None:
+            if self.enable_task_api and not self.enable_demo_case_api:
+                raise ValueError("Conflicting task API feature flags")
+            object.__setattr__(self, "enable_task_api", self.enable_demo_case_api)
+
     @classmethod
     def from_env(cls) -> "Settings":
         return cls(
             database_url=environ.get("DATABASE_URL", ""),
-            enable_demo_case_api=environ.get("ENABLE_DEMO_CASE_API", "").lower()
-            in {"1", "true", "yes"},
+            enable_task_api=(
+                environ.get("ENABLE_TASK_API", environ.get("ENABLE_DEMO_CASE_API", "")).lower()
+                in {"1", "true", "yes"}
+            ),
             enable_knowledge_catalog_api=environ.get("ENABLE_KNOWLEDGE_CATALOG_API", "").lower()
             in {"1", "true", "yes"},
             enable_knowledge_review_api=environ.get("ENABLE_KNOWLEDGE_REVIEW_API", "").lower()
