@@ -19,15 +19,15 @@ def test_health_available_with_case_api_disabled():
             "status": "ok",
             "service": "practicamia-backend",
         }
-        assert http.post("/api/v1/cases", json={}).status_code == 404
+        assert http.post("/api/v1/conversations/tasks", json={}).status_code == 404
 
 
 @pytest.mark.parametrize("endpoint,method", [
-    ("/api/v1/cases", "POST"),
-    ("/api/v1/cases", "GET"),
-    (f"/api/v1/cases/{uuid4()}", "GET"),
-    (f"/api/v1/cases/{uuid4()}/scope", "PATCH"),
-    (f"/api/v1/cases/{uuid4()}", "DELETE"),
+    ("/api/v1/conversations/tasks", "POST"),
+    ("/api/v1/conversations/tasks", "GET"),
+    (f"/api/v1/conversations/tasks/{uuid4()}", "GET"),
+    (f"/api/v1/conversations/tasks/{uuid4()}/scope", "PATCH"),
+    (f"/api/v1/conversations/tasks/{uuid4()}", "DELETE"),
 ])
 def test_all_case_routes_require_bearer_token(client, endpoint, method):
     response = client.request(method, endpoint, headers={"X-User-Id": "alice"})
@@ -37,7 +37,7 @@ def test_all_case_routes_require_bearer_token(client, endpoint, method):
 
 def test_create_read_update_delete_and_list_owned_case(client, auth_headers):
     alice = auth_headers("alice")
-    created = client.post("/api/v1/cases", json={}, headers=alice)
+    created = client.post("/api/v1/conversations/tasks", json={}, headers=alice)
     assert created.status_code == 201, created.text
     case = created.json()
     case_id = case["id"]
@@ -45,13 +45,13 @@ def test_create_read_update_delete_and_list_owned_case(client, auth_headers):
     assert case["scope_answers"] == []
     assert "owner_subject" not in case
 
-    cases = client.get("/api/v1/cases", headers=alice)
+    cases = client.get("/api/v1/conversations/tasks", headers=alice)
     assert cases.status_code == 200
     assert [item["id"] for item in cases.json()] == [case_id]
 
-    assert client.get(f"/api/v1/cases/{case_id}", headers=alice).status_code == 200
+    assert client.get(f"/api/v1/conversations/tasks/{case_id}", headers=alice).status_code == 200
     update = client.patch(
-        f"/api/v1/cases/{case_id}/scope",
+        f"/api/v1/conversations/tasks/{case_id}/scope",
         json={"answers": ["yes", "yes", "yes", "no", "yes"]},
         headers=alice,
     )
@@ -59,33 +59,33 @@ def test_create_read_update_delete_and_list_owned_case(client, auth_headers):
     assert update.json()["status"] == "provisionally_in_scope"
 
     partial = client.patch(
-        f"/api/v1/cases/{case_id}/scope",
+        f"/api/v1/conversations/tasks/{case_id}/scope",
         json={"answers": ["unsure"]},
         headers=alice,
     )
     assert partial.status_code == 200
     assert partial.json()["status"] == "needs_information"
 
-    assert client.delete(f"/api/v1/cases/{case_id}", headers=alice).status_code == 204
-    assert client.get(f"/api/v1/cases/{case_id}", headers=alice).status_code == 404
-    assert client.get("/api/v1/cases", headers=alice).json() == []
+    assert client.delete(f"/api/v1/conversations/tasks/{case_id}", headers=alice).status_code == 204
+    assert client.get(f"/api/v1/conversations/tasks/{case_id}", headers=alice).status_code == 404
+    assert client.get("/api/v1/conversations/tasks", headers=alice).json() == []
 
 
 def test_cases_are_strictly_isolated_between_users(client, auth_headers):
     alice = auth_headers("alice")
     bob = auth_headers("bob")
-    case_id = client.post("/api/v1/cases", json={}, headers=alice).json()["id"]
+    case_id = client.post("/api/v1/conversations/tasks", json={}, headers=alice).json()["id"]
 
-    assert client.get("/api/v1/cases", headers=bob).json() == []
-    assert client.get(f"/api/v1/cases/{case_id}", headers=bob).status_code == 404
+    assert client.get("/api/v1/conversations/tasks", headers=bob).json() == []
+    assert client.get(f"/api/v1/conversations/tasks/{case_id}", headers=bob).status_code == 404
     assert client.patch(
-        f"/api/v1/cases/{case_id}/scope",
+        f"/api/v1/conversations/tasks/{case_id}/scope",
         json={"answers": ["yes", "yes", "yes", "no", "yes"]},
         headers=bob,
     ).status_code == 404
-    assert client.delete(f"/api/v1/cases/{case_id}", headers=bob).status_code == 404
-    assert client.get(f"/api/v1/cases/{case_id}", headers=alice).status_code == 200
-    assert client.delete(f"/api/v1/cases/{case_id}", headers=alice).status_code == 204
+    assert client.delete(f"/api/v1/conversations/tasks/{case_id}", headers=bob).status_code == 404
+    assert client.get(f"/api/v1/conversations/tasks/{case_id}", headers=alice).status_code == 200
+    assert client.delete(f"/api/v1/conversations/tasks/{case_id}", headers=alice).status_code == 204
 
 
 @pytest.mark.parametrize("overrides", [
@@ -98,7 +98,7 @@ def test_cases_are_strictly_isolated_between_users(client, auth_headers):
 ])
 def test_invalid_claims_are_rejected(client, token_factory, overrides):
     token = token_factory("alice", overrides)
-    response = client.post("/api/v1/cases", json={}, headers={"Authorization": f"Bearer {token}"})
+    response = client.post("/api/v1/conversations/tasks", json={}, headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 401
 
 
@@ -106,7 +106,7 @@ def test_invalid_signature_and_disallowed_algorithm_are_rejected(client, token_f
     invalid_signer = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     wrong_signature = token_factory("alice", signing_key=invalid_signer)
     assert client.post(
-        "/api/v1/cases", json={}, headers={"Authorization": f"Bearer {wrong_signature}"}
+        "/api/v1/conversations/tasks", json={}, headers={"Authorization": f"Bearer {wrong_signature}"}
     ).status_code == 401
 
     unsigned = jwt.encode(
@@ -116,16 +116,16 @@ def test_invalid_signature_and_disallowed_algorithm_are_rejected(client, token_f
         headers={"kid": "unit-test-rsa-key"},
     )
     assert client.post(
-        "/api/v1/cases", json={}, headers={"Authorization": f"Bearer {unsigned}"}
+        "/api/v1/conversations/tasks", json={}, headers={"Authorization": f"Bearer {unsigned}"}
     ).status_code == 401
 
 
 def test_strict_payload_validation(client, auth_headers):
     alice = auth_headers()
     assert client.post(
-        "/api/v1/cases", json={"address": "Do not store this"}, headers=alice
+        "/api/v1/conversations/tasks", json={"address": "Do not store this"}, headers=alice
     ).status_code == 422
-    case_id = client.post("/api/v1/cases", json={}, headers=alice).json()["id"]
+    case_id = client.post("/api/v1/conversations/tasks", json={}, headers=alice).json()["id"]
     for payload in (
         {"answers": []},
         {"answers": ["yes"] * 6},
@@ -133,9 +133,9 @@ def test_strict_payload_validation(client, auth_headers):
         {"answers": ["yes"], "applicant_name": "Private Person"},
     ):
         assert client.patch(
-            f"/api/v1/cases/{case_id}/scope", json=payload, headers=alice
+            f"/api/v1/conversations/tasks/{case_id}/scope", json=payload, headers=alice
         ).status_code == 422
-    assert client.get(f"/api/v1/cases/{case_id}", headers=alice).json()["scope_answers"] == []
+    assert client.get(f"/api/v1/conversations/tasks/{case_id}", headers=alice).json()["scope_answers"] == []
 
 
 def test_missing_and_legacy_ownerless_cases_are_not_visible(client, auth_headers):
@@ -145,19 +145,19 @@ def test_missing_and_legacy_ownerless_cases_are_not_visible(client, auth_headers
         db.add(CaseRecord(id=case_id, owner_subject=None))
         db.commit()
 
-    assert client.get("/api/v1/cases", headers=alice).json() == []
-    assert client.get(f"/api/v1/cases/{case_id}", headers=alice).status_code == 404
-    assert client.delete(f"/api/v1/cases/{case_id}", headers=alice).status_code == 404
-    assert client.get(f"/api/v1/cases/{uuid4()}", headers=alice).status_code == 404
+    assert client.get("/api/v1/conversations/tasks", headers=alice).json() == []
+    assert client.get(f"/api/v1/conversations/tasks/{case_id}", headers=alice).status_code == 404
+    assert client.delete(f"/api/v1/conversations/tasks/{case_id}", headers=alice).status_code == 404
+    assert client.get(f"/api/v1/conversations/tasks/{uuid4()}", headers=alice).status_code == 404
 
 
 def test_saved_case_survives_new_app_instance(client, auth_headers):
     alice = auth_headers()
-    case_id = client.post("/api/v1/cases", json={}, headers=alice).json()["id"]
+    case_id = client.post("/api/v1/conversations/tasks", json={}, headers=alice).json()["id"]
     settings = client.app.state.settings
     with TestClient(create_app(settings)) as fresh_client:
-        assert fresh_client.get(f"/api/v1/cases/{case_id}", headers=alice).status_code == 200
-        assert fresh_client.get(f"/api/v1/cases/{case_id}", headers=auth_headers("bob")).status_code == 404
+        assert fresh_client.get(f"/api/v1/conversations/tasks/{case_id}", headers=alice).status_code == 200
+        assert fresh_client.get(f"/api/v1/conversations/tasks/{case_id}", headers=auth_headers("bob")).status_code == 404
 
 
 @pytest.mark.parametrize("missing_key", ["auth_issuer", "auth_audience", "auth_jwks_url"])
@@ -178,7 +178,7 @@ def test_case_api_refuses_unencrypted_jwks_url():
 
 def test_case_archive_is_reversible_private_and_idempotent(client, auth_headers):
     alice, bob = auth_headers("alice"), auth_headers("bob")
-    base = "/api/v1/cases"
+    base = "/api/v1/conversations/tasks"
     created = client.post(base, json={}, headers=alice).json()
     url = f"{base}/{created['id']}"
     assert created["archived_at"] is None
@@ -225,5 +225,5 @@ def test_canonical_conversation_task_crud_and_hidden_legacy_alias(client, auth_h
     assert client.delete(f"/api/v1/conversations/tasks/{task_id}", headers=owner).status_code == 204
 
     # Compatibility is available to old callers but deliberately absent from OpenAPI.
-    legacy = client.post("/api/v1/cases", json={}, headers=owner)
+    legacy = client.post("/api/v1/conversations/tasks", json={}, headers=owner)
     assert legacy.status_code == 201, legacy.text
