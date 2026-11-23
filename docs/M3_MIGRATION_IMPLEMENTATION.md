@@ -132,7 +132,7 @@ This is a disposable harness contract, not an approved production ledger schema.
 - After target writers resume, source is stale; a configuration flip is not rollback. A separately approved reverse migration/replay or target recovery is required.
 - Logical deletion does not imply immediate expiry from database backups/PITR.
 
-The current PostgreSQL harness exercises atomic target+ledger writes, retry revalidation, orphan-target rejection and transaction rollback. Full worker-drain, retention-purge race, backup restore and post-cutover recovery drills remain unexecuted.
+The current PostgreSQL harness exercises atomic target+ledger writes, retry revalidation, orphan-target rejection and transaction rollback. Synthetic round-trip tests cover all nine encrypted payload families in PR #271. Full worker-drain, retention-purge race, backup restore and post-cutover recovery drills remain unexecuted.
 
 ## 8. Implemented tests and remaining acceptance evidence
 
@@ -163,4 +163,4 @@ Once prerequisites are approved, a separately reviewed Alembic revision may crea
 
 M3 is not complete for live data until every source row is either verified in target or explicitly quarantined/excluded under approved policy, all relationship and encrypted payload checks pass, and recovery evidence is accepted. Any unexplained count difference, owner mismatch, undecryptable payload, missing key version, invalid digest, event gap, checkpoint watermark mismatch, expired-document resurrection or unverified approval receipt is a hard stop.
 
-**Current result:** the safe disposable cryptographic and transaction harness is implemented in this branch. The full data migration, application schema migration and cutover remain blocked by the outstanding M2.5 engineering/security/operator approval and key-custody evidence. No production or staging data has been accessed or changed.
+**Current result:** the safe disposable cryptographic and transaction harness plus synthetic round-trip coverage for all nine encrypted payload families are implemented. Live data migration, application schema migration and cutover are not authorized and have not been executed. M2.5 review work is deferred by project-owner decision. No production or staging data or keys have been accessed or changed.
