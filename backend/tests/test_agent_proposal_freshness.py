@@ -75,7 +75,7 @@ def test_case_edit_with_unchanged_reported_revision_requires_a_new_review(
 
     def edit_case():
         response = client.put(
-            url + "/intake", headers=headers,
+            f"/api/v1/conversations/tasks/{proposal.case_id}/intake", headers=headers,
             json={"facts": {"move_in_date": "2026-11-15"}, "confirm": False},
         )
         assert response.status_code == 200
