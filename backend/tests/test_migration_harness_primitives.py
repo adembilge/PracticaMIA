@@ -10,6 +10,11 @@ from app.migration_harness.crypto import (
     destination_aad_v2,
     is_expired,
     reencrypt_payload,
+    source_agent_checkpoint_aad,
+    source_agent_event_aad,
+    source_agent_message_aad,
+    source_preparation_aad,
+    source_private_document_aad,
     validate_conversation_task_owner,
     validate_key_families,
     validate_run_task_link,
@@ -118,3 +123,25 @@ def test_retention_deadline_is_never_extended_by_harness():
     now = datetime(2026, 11, 23, tzinfo=timezone.utc)
     assert is_expired(expires_at=now - timedelta(seconds=1), now=now)
     assert not is_expired(expires_at=now + timedelta(days=1), now=now)
+
+
+
+def test_source_aad_builders_match_the_legacy_authenticated_identity_contract():
+    assert source_agent_message_aad(
+        owner_subject="owner", thread_id="thread", run_id="run",
+        client_message_id="message", case_id=None, accepted_revision=4,
+    ) == b'["practicamia-agent-request/v1","owner","thread","run","message",null,4]'
+    assert source_agent_event_aad(
+        owner_subject="owner", thread_id="thread", run_id="run",
+        case_id="task", event_sequence=5,
+    ) == b'["practicamia-agent-event/v1","owner","thread","run","task",5]'
+    assert source_agent_checkpoint_aad(
+        owner_subject="owner", thread_id="thread", run_id="run",
+        case_id=None, revision=6, event_watermark=5,
+    ) == b'["practicamia-agent-checkpoint/v1","owner","thread","run",null,6,5]'
+    assert source_preparation_aad(
+        case_id="task", owner_subject="owner", record_identity="doc:review",
+    ) == b"practicamia-preview-document/v1:task:owner:doc:review"
+    assert source_private_document_aad(
+        case_id="task", owner_subject="owner", document_identity="doc:review",
+    ) == b"practicamia:private-document:v1:task:owner:doc:review"
