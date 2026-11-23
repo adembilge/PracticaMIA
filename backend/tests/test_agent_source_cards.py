@@ -145,7 +145,7 @@ def test_live_handoff_follows_current_case_scope_and_retains_submission_uncertai
 def test_handoff_uses_the_owned_linked_case_and_withholds_action_after_archiving(client, auth_headers, proposal):
     answer, scope = proposal
     owner = auth_headers("alice")
-    created = client.post("/api/v1/cases", headers=owner, json={})
+    created = client.post("/api/v1/conversations/tasks", headers=owner, json={})
     assert created.status_code == 201
     owned_case_id = UUID(created.json()["id"])
     current_reads = []
@@ -158,7 +158,7 @@ def test_handoff_uses_the_owned_linked_case_and_withholds_action_after_archiving
     base = _publish(client, answer, scope, "it", case_id=owned_case_id, read_evidence_scope=read_scope)
     assert client.get(base, headers=owner).json()["handoff"]["status"] == "verified_channel"
     assert current_reads == [owned_case_id]
-    archived = client.patch(f"/api/v1/cases/{owned_case_id}/archive", headers=owner, json={"archived": True})
+    archived = client.patch(f"/api/v1/conversations/tasks/{owned_case_id}/archive", headers=owner, json={"archived": True})
     assert archived.status_code == 200
     after = client.get(base, headers=owner).json()["handoff"]
     assert after["status"] == "verification_required"
