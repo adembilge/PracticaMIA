@@ -28,12 +28,12 @@ def validate_agent_preview_settings(settings: Settings) -> bytes | None:
     if settings.deployment_git_branch != REVIEWED_PREVIEW_BRANCH:
         raise ValueError("Agent transport requires the isolated reviewed Preview branch")
     if not all((
-        settings.enable_demo_case_api,
+        settings.enable_task_api,
         settings.enable_knowledge_catalog_api,
         settings.enable_preparation_api,
         settings.enable_agent_history_api,
     )):
-        raise ValueError("Agent transport requires authenticated staging cases, catalogue, preparation and history")
+        raise ValueError("Agent transport requires authenticated staging task API, catalogue, preparation and history")
     if settings.preparation_target != "isolated_staging":
         raise ValueError("Agent transport requires isolated staging")
     if not all((settings.auth_issuer, settings.auth_audience, settings.auth_jwks_url)):
