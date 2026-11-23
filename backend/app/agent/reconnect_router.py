@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session
 
 from app.agent.answer_evidence import AnswerEvidenceScopeReader
 from app.agent.approval_resume import ApprovedCaseUpdates, resume_approved_case_update
-from app.agent.case_selection import ThreadCaseTasks, list_thread_case_tasks
 from app.agent.checkpoints import CheckpointConflict, RunRevisionConflict, stop_run, submit_clarification_reply
 from app.agent.contract import (
     ActiveRunCursor, ActiveRunCursorTime, ActiveRunPage, ApprovalDecided, ClarificationReply, ContractModel,
@@ -195,19 +194,6 @@ def build_reconnect_router(
             if accepted.outcome != "accepted":
                 raise ConversationBusy()
         return ConversationAccepted(thread_id=thread_id, run_id=accepted.run_id, accepted_revision=accepted.accepted_revision)
-
-    @router.get(THREAD_PATH + "/cases", include_in_schema=False)
-    @router.get(THREAD_PATH + "/tasks")
-    def case_tasks(
-        thread_id: UUID, principal: AuthenticatedOwner, db: DatabaseSession,
-        language: Language = "en", after_case_id: UUID | None = None,
-    ) -> ThreadCaseTasks:
-        tasks = list_thread_case_tasks(
-            db, thread_id=thread_id, principal=principal, language=language, after_case_id=after_case_id,
-        )
-        if tasks is None:
-            raise HTTPException(404)
-        return tasks
 
     @router.post(THREAD_PATH + "/messages", status_code=202, responses={409: {"model": AgentHttpError}})
     def continue_thread(
