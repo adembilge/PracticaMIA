@@ -43,7 +43,7 @@ ADDRESS = "Synthetic Via 10 Milano"
 def agent_journey_client(tmp_path, monkeypatch):
     settings = Settings(
         database_url=f"sqlite+pysqlite:///{tmp_path / 'agent-mvp-e2e.sqlite3'}",
-        enable_demo_case_api=True,
+        enable_task_api=True,
         enable_knowledge_catalog_api=True,
         enable_knowledge_search_api=True,
         enable_preparation_api=True,
