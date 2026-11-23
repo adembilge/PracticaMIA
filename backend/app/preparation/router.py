@@ -555,7 +555,8 @@ def delete_document(
     db: Session = Depends(get_session),
     principal: Principal = Depends(get_principal),
 ):
-    _case(db, case_id, principal, require_active=True)
+    # Explicit user deletion remains available while archived for privacy control.
+    _case(db, case_id, principal)
     doc = _document(db, str(case_id), principal.subject, document_id)
     db.delete(doc)
     prep = _preparation(db, str(case_id), principal.subject)
