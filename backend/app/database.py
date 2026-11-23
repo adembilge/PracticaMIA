@@ -12,7 +12,7 @@ class Base(DeclarativeBase):
 
 def configure_database(database_url: str):
     if not database_url:
-        raise ValueError("DATABASE_URL is required when the demo case API is enabled")
+        raise ValueError("DATABASE_URL is required to configure the database")
     args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
     engine = create_engine(database_url, pool_pre_ping=True, connect_args=args)
     factory = sessionmaker(bind=engine, expire_on_commit=False)
