@@ -268,7 +268,7 @@ def test_corrupted_private_review_fails_closed(
     case_id = create_case(client, alice)
     confirmed_intake(client, alice, case_id)
     document = client.post(
-        f"{ROOT}/{case_id}/private-documents", headers=alice,
+        f"{VAULT_ROOT}/{case_id}/private-documents", headers=alice,
         data={"category": "housing_document", "privacy_ack": "true",
               "consent_version": "private-documents-2026-11-v1"},
         files={"file": ("synthetic.pdf", fixture_pdf("Move-in date: 2026-11-05"),
@@ -329,7 +329,7 @@ def test_reviewed_document_missing_case_fact_blocks_pdf(
     case_id = create_case(client, alice)
     confirmed_intake(client, alice, case_id, facts=FACTS)
     base = f"{ROOT}/{case_id}"
-    result = client.post(base + "/private-documents", headers=alice,
+    result = client.post(f"{VAULT_ROOT}/{case_id}/private-documents", headers=alice,
         data={"category": "housing_document", "privacy_ack": "true",
               "consent_version": "private-documents-2026-11-v1"},
         files={"file": ("housing.pdf", fixture_pdf(
