@@ -1,8 +1,8 @@
 # Active work
 
-**Current phase:** Phase 4 — agent and conversation engine  
-**Current task:** 35.1 — clarification context check  
-**Next task:** reuse already confirmed information and accessible document results before asking a clarification. Do not repeat a question when the required information is already available.
+**Current phase:** M3 — conversation/task data migration  
+**Current task:** Consolidated M3 implementation and disposable migration harness  
+**Next task:** Complete and validate the single M3 workstream; do not begin Phase 5.
 
 ## Current state
 
@@ -15,13 +15,15 @@
 
 ## Current cleanup priority
 
-Continue the legacy case-to-conversation/task migration in bounded, reversible increments. M2.4 target ownership/lifecycle model and M2.5 encrypted-payload migration/consistency design baselines are complete. M2.5 review and operator key-custody evidence are pending; M3 remains blocked. Do not drop or rewrite stored records until a migration preserves owner isolation, encryption, event history, document retention and recovery. Keep Phase 5 paused during this work.
+Continue the legacy case-to-conversation/task migration in bounded, reversible increments. M2.4 and the M2.5 design baseline are complete. The consolidated M3 workstream is underway on `feat/m3-conversation-task-migration-harness`; disposable crypto/ownership primitives and PostgreSQL ledger tests are being added. Full table migration and non-disposable execution remain blocked on M2.5 engineering/security/operator review and key-custody evidence. Do not drop or rewrite stored records until a migration preserves owner isolation, encryption, event history, document retention and recovery. Keep Phase 5 paused during this work.
 
 ## Cleanup milestone status
 
 - M2.4 target conversation/task ownership model: complete; see `TASK_CONVERSATION_TARGET_MODEL.md`.
 - M2.5 encrypted-payload migration and consistency strategy: design baseline complete; engineering/security/operator approval and key-custody evidence pending.
-- M3 data migration and M4 runtime removal remain blocked on M2.5 approval, disposable dry-run and recovery evidence.
+- M3 disposable harness: implementation in progress; see `M3_MIGRATION_IMPLEMENTATION.md`.
+- M3 full source-to-target migration and cutover: blocked on approvals, operator key-custody evidence and complete dry-run/recovery evidence.
+- M4 runtime removal remains blocked on successful M3 migration and recovery approval.
 
 ## Phase 4 priorities
 
