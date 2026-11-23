@@ -221,7 +221,7 @@ def test_query_validation_and_injection_cannot_expand_search(client, auth_header
     assert client.get(SEARCH_URL, headers=user, params={"query": "residenza"}).status_code == 422
     assert client.get(CITATION_ROOT + "invalid", params=SCOPE, headers=user).status_code == 422
     # The other parts of the authenticated API remain unaffected.
-    assert client.get("/api/v1/cases", headers=user).status_code == 200
+    assert client.get("/api/v1/conversations/tasks", headers=user).status_code == 200
 
 
 def _thread_context(client, case_id, subject):
@@ -385,7 +385,7 @@ def test_phase4_evidence_hides_foreign_or_unlinked_thread_context(client, auth_h
 
 def test_phase4_case_evidence_reloads_confirmation_and_scope(client, auth_headers):
     user = auth_headers("alice")
-    case_id = UUID(client.post("/api/v1/cases", json={}, headers=user).json()["id"])
+    case_id = UUID(client.post("/api/v1/conversations/tasks", json={}, headers=user).json()["id"])
     root = f"/api/v1/conversations/tasks/{case_id}"
     context = _thread_context(client, case_id, "alice")
     version, digest = _create(client)
