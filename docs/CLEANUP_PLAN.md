@@ -1,6 +1,6 @@
 # Cleanup and legacy migration plan
 
-**Status:** Active — M3 disposable harness merged; full migration blocked on M2.5 approvals and key-custody evidence, 23 November 2026  
+**Status:** Active — M2.5 deferred by project owner; M3 disposable harness and synthetic payload coverage implemented; live migration not authorized, 23 November 2026  
 **Current phase:** Phase 4; Phase 5 remains paused  
 **Primary reference:** [Legacy case-to-conversation/task migration](LEGACY_MIGRATION_PLAN.md)  
 **Product contract:** one customer-facing conversation at `/`; internal task/workflow persistence is not a customer-facing task feature.
@@ -59,7 +59,7 @@ Acceptance:
 
 ### M2.5 — Specify encrypted-payload migration and consistency strategy
 
-**Status:** Design baseline complete; engineering/security/operator review pending. See [encrypted payload migration strategy](ENCRYPTED_PAYLOAD_MIGRATION_STRATEGY.md). No key access, schema change, data mutation, re-encryption or deployment change was made.
+**Status:** Deferred by project owner; no further M2.5 review work planned. The design baseline is retained. This deferral does not authorize key access, schema changes, data mutation, re-encryption or deployment changes.
 
 Deliverables:
 - Inventory source key configuration and AAD dimensions for each encrypted record class; obtain actual deployed key versions/custody evidence from the authorized operator.
@@ -75,7 +75,7 @@ Acceptance:
 
 ### M3 — Build and validate the reversible data migration
 
-**Status:** Disposable harness implemented and merged in PR #269. Full source-to-target table migration, Alembic target schema and any non-disposable execution remain blocked in `docs/M3_MIGRATION_IMPLEMENTATION.md` and `backend/app/migration_harness/`. Full source-to-target table migration, Alembic target schema and any non-disposable execution remain blocked on M2.5 engineering/security/operator approval and key-custody evidence.
+**Status:** Disposable harness merged in PR #269; nine-family synthetic payload coverage is in PR #271. Live source-to-target migration, Alembic target schema and non-disposable execution are not authorized and remain unexecuted. M2.5 is deferred; no operational evidence or migration approval is implied.
 
 Deliverables:
 - Freeze exact source-to-target mapping, migration ordering, destination AAD v2, staging ledger and recovery boundaries.

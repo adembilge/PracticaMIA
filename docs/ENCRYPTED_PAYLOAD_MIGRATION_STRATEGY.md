@@ -1,6 +1,6 @@
 # Encrypted payload migration and consistency strategy — M2.5
 
-**Status:** Complete design baseline; implementation and production migration are not authorized  
+**Status:** Deferred by project owner; design baseline retained, no further M2.5 review work planned  
 **Date:** 23 November 2026  
 **Source baseline:** main after M2.4 merge, commit 49abd8ee60be3423516ae2b783d531a0fb6a35eb  
 **Depends on:** TASK_CONVERSATION_TARGET_MODEL.md  

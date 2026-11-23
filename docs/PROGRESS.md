@@ -20,16 +20,16 @@ The conversation transport and worker are still restricted to isolated developme
 
 - PR #266 merged: consolidated cleanup execution plan and target model draft.
 - M2.4 completed: source-to-target mapping, ownership/cardinality, conversation/task deletion, retention, AAD versioning and runtime uniqueness/receipt constraints are documented in `TASK_CONVERSATION_TARGET_MODEL.md`.
-- M2.5 is the next cleanup design item. No schema, data, encryption, deployment or production execution changes are authorized by M2.4.
+- M2.5 encrypted-payload strategy is documented and now deferred by project-owner decision; no further review work is planned. This does not authorize live key access, schema changes or data migration.
 
 ## Legacy cleanup milestone
 
 - PR #267 merged: M2.4 target conversation/task ownership model completed.
 - PR #268 merged: M2.5 encrypted-payload migration strategy and consistency baseline completed.
-- PR #269 merged the coordinated M3 disposable migration harness.
+- PR #269 merged the coordinated M3 disposable migration harness; PR #271 adds synthetic round-trip coverage for all nine encrypted payload families (pending CI/merge).
 - Added isolated crypto primitives for key-family preflight, canonical destination AAD v2, authenticated decrypt/validate/re-encrypt/verify, owner/link validation and retention checks.
 - Added disposable PostgreSQL staging/ledger tests for atomic writes, retry revalidation, orphan-target rejection and rollback; wired into backend CI.
-- Full source-table migration, target Alembic schema and non-disposable execution remain blocked pending engineering/security/operator approval and deployed key-custody evidence. No production or staging data/key access or mutation has occurred.
+- Live source-table migration, target Alembic schema and non-disposable execution are not authorized and remain unexecuted. M2.5 review work is deferred by project-owner decision. No production or staging data/key access or mutation has occurred.
 
 ## Verification boundaries
 
