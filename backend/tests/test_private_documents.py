@@ -98,6 +98,12 @@ def test_default_off_and_require_all_release_gates():
             validate_release_settings(replace(enabled_settings(), **bad))
 
 
+def test_document_vault_uses_canonical_task_route_and_hides_legacy_alias(document_client):
+    paths = document_client.app.openapi()["paths"]
+    assert "/api/v1/conversations/tasks/{case_id}/private-documents" in paths
+    assert "/api/v1/cases/{case_id}/private-documents" not in paths
+
+
 def test_hosted_fixture_mode_only_accepts_the_isolated_preview_configuration():
     fixture = replace(
         enabled_settings("postgresql://staging.example.test/test"),
