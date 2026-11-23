@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from app.cases.intake_model import CaseIntake
 from app.cases.intake_schemas import IntakeFacts, REQUIRED_FIELDS, SUPPORTED_FACTS
+from app.cases.scope import FIRST_ROUTE_SCOPE_ANSWERS
 from app.knowledge.search import resolve_approved_passage
 from app.rules.approval import has_valid_human_review_signature
 from app.rules.catalog import CATALOG_PATH
@@ -94,9 +95,7 @@ def build_case_checklist(db: Session, *, case_status: str,
     Only the owning authenticated route may supply these server-side inputs.
     The original scope stage and this intake must both remain confirmed.
     """
-    if case_status != "provisionally_in_scope" or scope_answers != [
-        "yes", "yes", "yes", "no", "yes"
-    ]:
+    if case_status != "provisionally_in_scope" or scope_answers != list(FIRST_ROUTE_SCOPE_ANSWERS):
         return _state("needs_scope")
     if intake is None or intake.confirmed_at is None:
         return _state("needs_confirmation")
