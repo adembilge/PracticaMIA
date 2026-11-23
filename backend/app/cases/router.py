@@ -135,7 +135,8 @@ def delete_case(
     db: Session = Depends(get_session),
     principal: Principal = Depends(get_principal),
 ):
-    record = get_case(db, case_id, principal.subject)
+    # Lock the task before cascading into runs/documents; workers use the same order.
+    record = get_case(db, case_id, principal.subject, lock=True)
     # Explicit cleanup also works with SQLite fixtures without FK enforcement.
     db.execute(delete(CaseIntake).where(
         CaseIntake.case_id == str(case_id),
