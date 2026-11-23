@@ -428,3 +428,37 @@ def test_inflight_worker_discards_result_if_task_is_archived_during_execution(qu
         lease = claim_next_run(db, lease_for=LEASE_FOR)
         assert lease is not None
         assert lease.run_id == accepted.run_id
+
+
+def test_inflight_worker_discards_result_if_task_is_deleted_during_execution(queued_run):
+    factory, _, _, _ = queued_run
+    assert run_worker_batch(
+        factory, key=KEY, lease_for=LEASE_FOR, execute=lambda *_: ANSWER,
+        max_steps=5,
+    ) == 1
+    case_id = uuid4()
+    with factory.begin() as db:
+        db.add(CaseRecord(
+            id=str(case_id), procedure="milan_residence_change", owner_subject=ALICE.subject,
+        ))
+        thread_id = create_thread(db, principal=ALICE)
+        db.add(AgentThreadCase(thread_id=str(thread_id), case_id=str(case_id)))
+        db.flush()
+        accepted = accept_message(
+            db, thread_id=thread_id, principal=ALICE, key=KEY,
+            message=request(case_id=case_id),
+        )
+        assert accepted.outcome == "accepted"
+
+    def delete_during_execution(_, state):
+        with factory.begin() as db:
+            db.delete(db.get(CaseRecord, str(case_id)))
+        return ANSWER
+
+    discarded = run_worker_step(
+        factory, thread_id=thread_id, run_id=accepted.run_id,
+        principal=ALICE, key=KEY, execute=delete_during_execution,
+    )
+    assert discarded is None
+    with factory.begin() as db:
+        assert claim_next_run(db, lease_for=LEASE_FOR) is None
