@@ -28,14 +28,14 @@ def test_postgres_case_ownership_and_legacy_migration(token_factory, auth_header
     bob = auth_headers("bob")
     try:
         with TestClient(api) as client:
-            created = client.post("/api/v1/cases", json={}, headers=alice)
+            created = client.post("/api/v1/conversations/tasks", json={}, headers=alice)
             assert created.status_code == 201, created.text
             case_id = created.json()["id"]
             assert UUID(case_id)
-            assert client.get(f"/api/v1/cases/{case_id}", headers=bob).status_code == 404
-            assert client.get(f"/api/v1/cases/{case_id}", headers=alice).status_code == 200
+            assert client.get(f"/api/v1/conversations/tasks/{case_id}", headers=bob).status_code == 404
+            assert client.get(f"/api/v1/conversations/tasks/{case_id}", headers=alice).status_code == 200
             updated = client.patch(
-                f"/api/v1/cases/{case_id}/scope",
+                f"/api/v1/conversations/tasks/{case_id}/scope",
                 json={"answers": ["yes", "yes", "yes", "no", "yes"]},
                 headers=alice,
             )
@@ -43,8 +43,8 @@ def test_postgres_case_ownership_and_legacy_migration(token_factory, auth_header
             assert updated.json()["status"] == "provisionally_in_scope"
             # A pre-authentication case was seeded by the CI migration step.
             orphan = "00000000-0000-0000-0000-000000000001"
-            assert client.get(f"/api/v1/cases/{orphan}", headers=alice).status_code == 404
-            assert client.delete(f"/api/v1/cases/{orphan}", headers=alice).status_code == 404
-            assert client.delete(f"/api/v1/cases/{case_id}", headers=alice).status_code == 204
+            assert client.get(f"/api/v1/conversations/tasks/{orphan}", headers=alice).status_code == 404
+            assert client.delete(f"/api/v1/conversations/tasks/{orphan}", headers=alice).status_code == 404
+            assert client.delete(f"/api/v1/conversations/tasks/{case_id}", headers=alice).status_code == 204
     finally:
         api.state.engine.dispose()

@@ -26,7 +26,7 @@ SCOPE = CatalogueScope(procedure_id=PROCEDURE, location_id=JURISDICTION)
 
 
 def _case(client, headers):
-    response = client.post("/api/v1/cases", headers=headers, json={})
+    response = client.post("/api/v1/conversations/tasks", headers=headers, json={})
     assert response.status_code == 201
     return UUID(response.json()["id"])
 
@@ -97,7 +97,7 @@ def test_all_tool_calls_require_the_acting_owner_and_exact_run_scope(client, aut
             with pytest.raises(ToolAccessDenied):
                 authorize_tool_call(db, **context, principal=principal, call=calls[2])
 
-    assert client.delete(f"/api/v1/cases/{case_id}", headers=auth_headers("bob")).status_code == 204
+    assert client.delete(f"/api/v1/conversations/tasks/{case_id}", headers=auth_headers("bob")).status_code == 204
     with factory() as db, pytest.raises(ToolAccessDenied):
         authorize_tool_call(db, **context, principal=ALICE, call=discovery)
 

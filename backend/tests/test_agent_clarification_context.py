@@ -115,7 +115,7 @@ def test_worker_checks_only_accessible_private_document_reviews(
     client = document_client
     headers = auth_headers("alice")
     case_id = prepare_case(client, headers)
-    case_path = f"/api/v1/cases/{case_id}"
+    case_path = f"/api/v1/conversations/tasks/{case_id}"
     saved_facts = FACTS.copy()
     if scenario != "conflict":
         saved_facts.pop("move_in_date")
@@ -125,7 +125,7 @@ def test_worker_checks_only_accessible_private_document_reviews(
 
     document_case = prepare_case(client, headers) if scenario == "other-case" else case_id
     document_id = upload(client, headers, document_case, sample_pdf("Move-in date: 2026-11-06"))
-    path = f"/api/v1/cases/{document_case}/private-documents/{document_id}/intelligence"
+    path = f"/api/v1/conversations/tasks/{document_case}/private-documents/{document_id}/intelligence"
     response = client.post(path + "/extract", headers=headers)
     assert response.status_code == 200
     if scenario not in {"pending", "removed"}:
@@ -220,7 +220,7 @@ def test_failure_log_excludes_document_and_conversation_content(document_client,
     document_text = f"Move-in date: {date_canary}"
     document_id = upload(client, headers, str(case_id), sample_pdf(document_text))
     extract = client.post(
-        f"/api/v1/cases/{case_id}/private-documents/{document_id}/intelligence/extract", headers=headers,
+        f"/api/v1/conversations/tasks/{case_id}/private-documents/{document_id}/intelligence/extract", headers=headers,
     )
     assert extract.status_code == 200
     assert date_canary in extract.text

@@ -36,7 +36,7 @@ def test_notice_question_reconnects_and_keeps_the_reply_unverified(
     client, auth_headers, language, opening, field, prompt, hint, reply,
 ):
     headers = auth_headers()
-    created = client.post("/api/v1/cases", headers=headers, json={})
+    created = client.post("/api/v1/conversations/tasks", headers=headers, json={})
     assert created.status_code == 201
     case_id = UUID(created.json()["id"])
     sessions = client.app.state.session_factory

@@ -40,7 +40,7 @@ def assistant_client(tmp_path, token_factory):
 
 
 def case_id(http, headers):
-    response = http.post("/api/v1/cases", json={}, headers=headers)
+    response = http.post("/api/v1/conversations/tasks", json={}, headers=headers)
     assert response.status_code == 201, response.text
     return response.json()["id"]
 

@@ -21,8 +21,8 @@ FACTS = {
 
 
 def create_scoped_case(client, headers):
-    case_id = client.post("/api/v1/cases", json={}, headers=headers).json()["id"]
-    response = client.patch(f"/api/v1/cases/{case_id}/scope",
+    case_id = client.post("/api/v1/conversations/tasks", json={}, headers=headers).json()["id"]
+    response = client.patch(f"/api/v1/conversations/tasks/{case_id}/scope",
                             json={"answers": SCOPE}, headers=headers)
     assert response.status_code == 200
     return case_id
@@ -30,7 +30,7 @@ def create_scoped_case(client, headers):
 
 def test_intake_requires_auth_and_completed_scope(client, auth_headers):
     a, b = auth_headers("alice"), auth_headers("bob")
-    case_id = client.post("/api/v1/cases", json={}, headers=a).json()["id"]
+    case_id = client.post("/api/v1/conversations/tasks", json={}, headers=a).json()["id"]
     path = f"/api/v1/conversations/tasks/{case_id}/intake"
     assert client.get(path).status_code == 401
     assert client.get(path, headers=b).status_code == 404
@@ -133,7 +133,7 @@ def test_scope_edit_invalidates_and_erases_confirmed_intake(client, auth_headers
     case_id = create_scoped_case(client, headers)
     path = f"/api/v1/conversations/tasks/{case_id}/intake"
     assert client.put(path, json={"facts": FACTS, "confirm": True}, headers=headers).status_code == 200
-    response = client.patch(f"/api/v1/cases/{case_id}/scope",
+    response = client.patch(f"/api/v1/conversations/tasks/{case_id}/scope",
                             json={"answers": ["yes", "no"]}, headers=headers)
     assert response.status_code == 200
     got = client.get(path, headers=headers).json()
@@ -141,7 +141,7 @@ def test_scope_edit_invalidates_and_erases_confirmed_intake(client, auth_headers
     assert not got["confirmed"]
     assert client.put(path, json={"facts": FACTS, "confirm": True}, headers=headers).status_code == 409
     # Re-answering permits a fresh intake, never revives old data.
-    assert client.patch(f"/api/v1/cases/{case_id}/scope",
+    assert client.patch(f"/api/v1/conversations/tasks/{case_id}/scope",
                         json={"answers": SCOPE}, headers=headers).status_code == 200
     assert client.get(path, headers=headers).json()["facts"] == {}
 
@@ -151,7 +151,7 @@ def test_archived_case_blocks_stale_chat_intake_writes_until_restored(client, au
     owner, other = auth_headers("alice"), auth_headers("bob")
     case_id = create_scoped_case(client, owner)
     path = f"/api/v1/conversations/tasks/{case_id}/intake"
-    archive = f"/api/v1/cases/{case_id}/archive"
+    archive = f"/api/v1/conversations/tasks/{case_id}/archive"
     payload = {"facts": FACTS, "confirm": True}
     assert client.put(path, json=payload, headers=owner).status_code == 200
     original = client.get(path, headers=owner).json()
@@ -194,7 +194,7 @@ def test_delete_intake_and_delete_case_remove_owner_rows(client, auth_headers):
     assert client.delete(path, headers=headers).status_code == 204
     assert client.get(path, headers=headers).json()["facts"] == {}
     client.put(path, json={"facts": FACTS, "confirm": True}, headers=headers)
-    assert client.delete(f"/api/v1/cases/{case_id}", headers=headers).status_code == 204
+    assert client.delete(f"/api/v1/conversations/tasks/{case_id}", headers=headers).status_code == 204
     with client.app.state.session_factory() as db:
         assert db.get(CaseIntake, case_id) is None
     assert client.get(path, headers=headers).status_code == 404
@@ -202,7 +202,7 @@ def test_delete_intake_and_delete_case_remove_owner_rows(client, auth_headers):
 
 def test_canonical_conversation_task_intake_route_and_removed_legacy_alias(client, auth_headers):
     owner, stranger = auth_headers("alice"), auth_headers("bob")
-    task_id = client.post("/api/v1/cases", json={}, headers=owner).json()["id"]
+    task_id = client.post("/api/v1/conversations/tasks", json={}, headers=owner).json()["id"]
     canonical = f"/api/v1/conversations/tasks/{task_id}/intake"
     legacy = f"/api/v1/cases/{task_id}/intake"
 

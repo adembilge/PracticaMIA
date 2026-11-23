@@ -39,7 +39,7 @@ def test_scope_matrix(client, auth_headers, monkeypatch, item):
         cid = create_case(client, headers, scoped=False)
         scope = ["yes", "yes", "no"] if item == "MIL-10" else ["yes", "no"]
         reply = client.patch(
-            f"/api/v1/cases/{cid}/scope", json={"answers": scope}, headers=headers,
+            f"/api/v1/conversations/tasks/{cid}/scope", json={"answers": scope}, headers=headers,
         )
         assert reply.status_code == 200
         assert reply.json()["status"] == "unsupported"
@@ -47,7 +47,7 @@ def test_scope_matrix(client, auth_headers, monkeypatch, item):
         cid = create_case(client, headers)
         if item == "MIL-08":
             confirmed_intake(client, headers, cid)
-            state = client.get(f"/api/v1/cases/{cid}/workflow", headers=headers).json()
+            state = client.get(f"/api/v1/conversations/tasks/{cid}/workflow", headers=headers).json()
             assert state["checklist"]["total"] == 5
             assert state["official_submission"] is False
             return
@@ -57,7 +57,7 @@ def test_scope_matrix(client, auth_headers, monkeypatch, item):
         )
         assert draft.status_code == 200
         assert draft.json()["missing_fields"] == ["housing_basis"]
-    assert client.get(f"/api/v1/cases/{cid}/package/pdf", headers=headers).status_code == 409
+    assert client.get(f"/api/v1/conversations/tasks/{cid}/package/pdf", headers=headers).status_code == 409
 
 
 def resolve_topic_passage(db, *, citation_id, **kwargs):
@@ -106,7 +106,7 @@ def test_assistant_failure_matrix(
     if item == "MIL-12":
         assert response.json()["sources"] == []
     if item == "MIL-14":
-        assert assistant_client.get(f"/api/v1/cases/{cid}/workflow", headers=headers).status_code == 200
+        assert assistant_client.get(f"/api/v1/conversations/tasks/{cid}/workflow", headers=headers).status_code == 200
 
 
 @pytest.mark.parametrize(("selection", "expected_status"), [

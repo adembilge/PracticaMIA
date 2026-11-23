@@ -201,7 +201,7 @@ def test_reopened_destination_question_rechecks_saved_intake_before_retrieving(
     if saved_state != "draft":
         assert client.put(intake_url, headers=owner, json={"facts": FACTS, "confirm": True}).status_code == 200
     if saved_state == "archived":
-        archive_url = f"/api/v1/cases/{case_id}/archive"
+        archive_url = f"/api/v1/conversations/tasks/{case_id}/archive"
         assert client.patch(archive_url, headers=owner, json={"archived": True}).status_code == 200
     if saved_state != "confirmed":
         monkeypatch.setattr(

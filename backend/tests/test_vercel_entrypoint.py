@@ -14,4 +14,4 @@ def test_vercel_entrypoint_has_health_endpoint(monkeypatch):
             "status": "ok",
             "service": "practicamia-backend",
         }
-        assert client.post("/api/v1/cases", json={}).status_code == 404
+        assert client.post("/api/v1/conversations/tasks", json={}).status_code == 404

@@ -89,14 +89,14 @@ def use_model(client, *, claim="valid"):
 
 
 def make_case(client, headers):
-    case = client.post("/api/v1/cases", json={}, headers=headers)
+    case = client.post("/api/v1/conversations/tasks", json={}, headers=headers)
     assert case.status_code == 201, case.text
     return case.json()["id"]
 
 
 def ask(client, case_id, headers, *, language="it", question="residenza"):
     return client.post(
-        f"/api/v1/cases/{case_id}/preparation/guide",
+        f"/api/v1/conversations/tasks/{case_id}/preparation/guide",
         json={"question": question, "language": language},
         headers=headers,
     )
@@ -127,7 +127,7 @@ def test_approved_source_quote_in_unified_agent_and_saved_history(
     assert calls == {"selector": 0, "rag": 1}
 
     old = client.get(
-        f"/api/v1/cases/{case_id}/preparation/conversation", headers=alice,
+        f"/api/v1/conversations/tasks/{case_id}/preparation/conversation", headers=alice,
     )
     assert old.status_code == 200
     assert old.json()["historical_only"] is True
@@ -143,9 +143,9 @@ def test_approved_source_quote_in_unified_agent_and_saved_history(
         stored = db.scalars(select(CaseAgentTurn)).one()
         assert QUOTE.encode() not in stored.content_ciphertext
     assert client.get(
-        f"/api/v1/cases/{case_id}/preparation/conversation", headers=bob,
+        f"/api/v1/conversations/tasks/{case_id}/preparation/conversation", headers=bob,
     ).status_code == 404
-    history_url = f"/api/v1/cases/{case_id}/preparation/conversation"
+    history_url = f"/api/v1/conversations/tasks/{case_id}/preparation/conversation"
     route = "/api/v1/knowledge/passages/" + imported.version_id + ":0000"
     scope = {"jurisdiction": "IT-MI-MILANO", "procedure_id": "milan_residence_change", "language": "it"}
 
@@ -212,7 +212,7 @@ def test_unapproved_and_revoked_sources_never_generate_quotes(
     assert revoked.json()["references"] == []
     assert calls["rag"] == prior_calls
     history = client.get(
-        f"/api/v1/cases/{case_id}/preparation/conversation", headers=alice,
+        f"/api/v1/conversations/tasks/{case_id}/preparation/conversation", headers=alice,
     ).json()["turns"]
     assert history[1]["citations"][0]["status"] == "historical"
     assert QUOTE not in history[1]["answer"]

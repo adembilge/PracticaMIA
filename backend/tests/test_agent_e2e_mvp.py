@@ -131,10 +131,10 @@ def test_full_agent_path_intake_rag_document_review_resume_and_handoff(
 ):
     client, settings, counts, version = agent_journey_client
     owner, stranger = auth_headers("alice"), auth_headers("bob")
-    created = client.post("/api/v1/cases", json={}, headers=owner)
+    created = client.post("/api/v1/conversations/tasks", json={}, headers=owner)
     assert created.status_code == 201, created.text
     case_id = created.json()["id"]
-    base = f"/api/v1/cases/{case_id}/preparation"
+    base = f"/api/v1/conversations/tasks/{case_id}/preparation"
 
     # Agent asks only the first unanswered, server-defined scope question.
     assert client.get(base, headers=stranger).status_code == 404
@@ -266,7 +266,7 @@ def test_full_agent_path_intake_rag_document_review_resume_and_handoff(
     ).status_code == 409
     assert client.get(base + "/package", headers=owner).json()["package"] is None
 
-    assert client.delete(f"/api/v1/cases/{case_id}",
+    assert client.delete(f"/api/v1/conversations/tasks/{case_id}",
                          headers=owner).status_code == 204
     with client.app.state.session_factory() as db:
         assert db.scalars(select(CaseAgentTurn).where(
@@ -284,9 +284,9 @@ def test_agent_stops_out_of_scope_without_preparation_or_submission(
 ):
     client, _, _, _ = agent_journey_client
     owner = auth_headers("alice")
-    case_id = client.post("/api/v1/cases", json={},
+    case_id = client.post("/api/v1/conversations/tasks", json={},
                           headers=owner).json()["id"]
-    base = f"/api/v1/cases/{case_id}/preparation"
+    base = f"/api/v1/conversations/tasks/{case_id}/preparation"
     facts = {item["field"]: item["expected"] for item in QUESTIONS}
     facts[field] = value
     saved = client.put(base + "/facts", headers=owner,

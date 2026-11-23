@@ -123,7 +123,7 @@ def _finish(*_):
 
 def test_topic_change_keeps_the_original_question_open_and_fences_old_thread_context(client, auth_headers):
     factory = client.app.state.session_factory
-    case_id = UUID(client.post("/api/v1/cases", headers=auth_headers(), json={}).json()["id"])
+    case_id = UUID(client.post("/api/v1/conversations/tasks", headers=auth_headers(), json={}).json()["id"])
     with factory.begin() as db:
         thread_id = create_thread(db, principal=ALICE)
         assert link_case_to_thread(db, thread_id=thread_id, case_id=case_id, principal=ALICE)
@@ -174,8 +174,8 @@ def test_topic_change_keeps_the_original_question_open_and_fences_old_thread_con
 
 
 def test_worker_history_is_bounded_to_prior_completed_messages_for_this_thread_and_case(client, auth_headers):
-    case_a = UUID(client.post("/api/v1/cases", headers=auth_headers(), json={}).json()["id"])
-    case_b = UUID(client.post("/api/v1/cases", headers=auth_headers(), json={}).json()["id"])
+    case_a = UUID(client.post("/api/v1/conversations/tasks", headers=auth_headers(), json={}).json()["id"])
+    case_b = UUID(client.post("/api/v1/conversations/tasks", headers=auth_headers(), json={}).json()["id"])
     factory = client.app.state.session_factory
     with factory.begin() as db:
         main_thread = create_thread(db, principal=ALICE)
@@ -248,7 +248,7 @@ def test_worker_reads_current_confirmed_facts_and_open_review_actions(client, au
     monkeypatch.setattr(checklist, "resolve_approved_passage", resolve)
     owner = auth_headers()
     case_id = UUID(create_case(client, owner))
-    path = f"/api/v1/cases/{case_id}"
+    path = f"/api/v1/conversations/tasks/{case_id}"
     assert client.put(f"/api/v1/conversations/tasks/{case_id}/intake", headers=owner, json={"facts": FACTS, "confirm": False}).status_code == 200
     factory = client.app.state.session_factory
     with factory.begin() as db:
