@@ -15,14 +15,14 @@
 
 ## Current cleanup priority
 
-Continue the legacy case-to-conversation/task migration in bounded, reversible increments. M2.4 and the M2.5 design baseline are complete. PR #269 merged the consolidated M3 disposable harness, crypto/ownership primitives and PostgreSQL ledger tests. Full table migration and non-disposable execution remain blocked on M2.5 engineering/security/operator review and key-custody evidence. Do not drop or rewrite stored records until a migration preserves owner isolation, encryption, event history, document retention and recovery. Keep Phase 5 paused during this work.
+M2.5 is deferred by project-owner decision; no further M2.5 review work is planned. PR #269 delivered the disposable M3 harness; PR #271 adds synthetic coverage for all nine encrypted payload families. Live source-to-target migration, target application schema and cutover remain unexecuted and unauthorized. Do not drop or rewrite stored records. Phase 5 remains paused.
 
 ## Cleanup milestone status
 
 - M2.4 target conversation/task ownership model: complete; see `TASK_CONVERSATION_TARGET_MODEL.md`.
-- M2.5 encrypted-payload migration and consistency strategy: design baseline complete; engineering/security/operator approval and key-custody evidence pending.
+- M2.5 encrypted-payload strategy: design baseline retained; work deferred by project owner.
 - M3 disposable harness: complete and merged in PR #269; see `M3_MIGRATION_IMPLEMENTATION.md`.
-- M3 full source-to-target migration and cutover: blocked on approvals, operator key-custody evidence and complete dry-run/recovery evidence.
+- M3 disposable implementation and synthetic payload-family validation: in progress pending PR #271 CI and merge. Live migration and cutover: not authorized; not part of the current executable work.
 - M4 runtime removal remains blocked on successful M3 migration and recovery approval.
 
 ## Phase 4 priorities
