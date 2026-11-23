@@ -67,6 +67,7 @@ def test_checklist_read_requires_owner_and_current_confirmed_intake(client, auth
     alice, bob = auth_headers("alice"), auth_headers("bob")
     case_id = create_case(client, alice, scoped=False)
     path = f"{FIRST}/{case_id}/checklist"
+    assert client.get(f"/api/v1/cases/{case_id}/checklist", headers=alice).status_code == 404
     assert client.get(path).status_code == 401
     assert client.get(path, headers=bob).status_code == 404
 

@@ -60,6 +60,8 @@ def test_owner_can_download_a_cited_reviewable_draft(client, auth_headers, appro
         **FACTS, "move_in_date": "2026-11-05",
     })
     base = f"{ROOT}/{case_id}/package"
+    assert client.get(f"/api/v1/cases/{case_id}/package", headers=alice).status_code == 404
+    assert client.get(f"/api/v1/cases/{case_id}/package/pdf", headers=alice).status_code == 404
     assert client.get(base).status_code == 401
     assert client.get(base, headers=bob).status_code == 404
     assert client.get(base + "/pdf", headers=bob).status_code == 404

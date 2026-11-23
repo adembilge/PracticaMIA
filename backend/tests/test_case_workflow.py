@@ -32,6 +32,9 @@ def test_unified_case_journey_and_owner_scoped_progress(client, auth_headers, mo
     case_id = create_case(client, alice, scoped=False)
     path=f"{ROOT}/{case_id}/workflow"
     write=path+"/checklist"
+    assert client.get(f"/api/v1/cases/{case_id}/workflow", headers=alice).status_code == 404
+    assert client.patch(f"/api/v1/cases/{case_id}/workflow/checklist", headers=alice,
+                        json={"item_id":"x","reviewed":True,"fingerprint":"0"*64}).status_code == 404
     assert client.get(path).status_code == 401
     assert client.get(path, headers=bob).status_code == 404
     initial=client.get(path, headers=alice)
