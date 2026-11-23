@@ -1,4 +1,4 @@
-"""Environment settings: task endpoints are disabled unless explicitly enabled."""
+"""Environment settings; ENABLE_TASK_API is the sole task-route activation flag."""
 from dataclasses import dataclass
 from os import environ
 
