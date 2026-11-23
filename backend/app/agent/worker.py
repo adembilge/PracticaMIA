@@ -269,28 +269,31 @@ def run_worker_step(
             result = failure
     diagnostic = None
     with sessions.begin() as db:
+        # Lock the task before the run, matching archive and delete lock order.
+        # This avoids a task-delete cascade waiting on a run that is waiting on
+        # the same task row.
+        active_case_id = None
+        if message.case_id is not None:
+            active_case_id = db.scalar(
+                select(CaseRecord.id).where(
+                    CaseRecord.id == str(message.case_id),
+                    CaseRecord.owner_subject == principal.subject,
+                    CaseRecord.archived_at.is_(None),
+                ).with_for_update()
+            )
         run = db.scalar(_owned_run(thread_id, run_id, principal).with_for_update(
             of=AgentRunRequest,
         ))
         if run is None:
             return None
         require_worker_lease(db, run, lease)
-        if run.case_id is not None:
-            # Revalidate the task under a row lock at the commit boundary. If
-            # archive won the race while model/tool work was running, discard
-            # the stale computation and release its lease for a later restore.
-            active_case_id = db.scalar(
-                select(CaseRecord.id).where(
-                    CaseRecord.id == run.case_id,
-                    CaseRecord.owner_subject == principal.subject,
-                    CaseRecord.archived_at.is_(None),
-                ).with_for_update()
-            )
-            if active_case_id is None:
-                if lease is not None:
-                    run.lease_token = None
-                    run.lease_expires_at = None
-                return None
+        if message.case_id is not None and active_case_id is None:
+            # Archive/delete won the race while model/tool work was running.
+            # Discard the stale computation and release its lease for restore.
+            if lease is not None:
+                run.lease_token = None
+                run.lease_expires_at = None
+            return None
         if (
             case_context is not None and case_context.shared_citizenship_class is not None
             and read_shared_citizenship(
