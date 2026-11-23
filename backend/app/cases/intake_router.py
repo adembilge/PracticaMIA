@@ -94,7 +94,8 @@ def write_intake(case_id: UUID, payload: IntakeUpdate,
 @router.delete("/{case_id}/intake", status_code=204)
 def erase_intake(case_id: UUID, db: Session = Depends(get_session),
                  principal: Principal = Depends(get_principal)):
-    _owned_case(db, case_id, principal.subject, lock=True, require_active=True)
+    # Explicit erasure remains available while archived; archive is not a retention lock.
+    _owned_case(db, case_id, principal.subject, lock=True)
     db.execute(delete(CaseIntake).where(
         CaseIntake.case_id == str(case_id), CaseIntake.owner_subject == principal.subject
     ))
