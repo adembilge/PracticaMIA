@@ -146,7 +146,7 @@ def test_reopened_destination_question_rechecks_saved_intake_before_retrieving(
 ):
     owner = auth_headers("bob")
     case_id = UUID(create_scoped_case(client, owner))
-    intake_url = f"/api/v1/cases/{case_id}/intake"
+    intake_url = f"/api/v1/conversations/tasks/{case_id}/intake"
     draft = {key: value for key, value in FACTS.items() if key != "destination_municipality"}
     assert client.put(intake_url, headers=owner, json={"facts": draft}).status_code == 200
 
@@ -251,7 +251,7 @@ def test_corrected_date_rechecks_routing_and_fresh_evidence_across_worker_restar
 ):
     owner = auth_headers("bob")
     case_id = UUID(create_scoped_case(client, owner))
-    intake_url = f"/api/v1/cases/{case_id}/intake"
+    intake_url = f"/api/v1/conversations/tasks/{case_id}/intake"
     facts = FACTS | {"move_in_date": "2026-03-31"}
     assert client.put(intake_url, headers=owner, json={"facts": facts, "confirm": True}).status_code == 200
     old_version, old_digest = _create(client)
