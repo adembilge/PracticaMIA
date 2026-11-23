@@ -74,7 +74,7 @@ def test_two_pending_cases_keep_documents_replies_and_citations_separate(documen
     owner, other_account = auth_headers("alice"), auth_headers("bob")
     factory, settings = client.app.state.session_factory, client.app.state.settings
     milan_case = prepare_case(client, owner)
-    como_case = client.post("/api/v1/cases", json={}, headers=owner).json()["id"]
+    como_case = client.post("/api/v1/conversations/tasks", json={}, headers=owner).json()["id"]
     case_ids = (milan_case, como_case)
     municipalities = (JURISDICTION, COMO_FIXTURE)
     labels = ("Milano", "Como")
@@ -84,14 +84,14 @@ def test_two_pending_cases_keep_documents_replies_and_citations_separate(documen
     assert client.put(f"/api/v1/conversations/tasks/{milan_case}/intake", headers=owner, json={
         "facts": milan_facts, "confirm": True,
     }).status_code == 200
-    unsuited = client.patch(f"/api/v1/cases/{como_case}/scope", headers=owner, json={"answers": ["yes", "no"]})
+    unsuited = client.patch(f"/api/v1/conversations/tasks/{como_case}/scope", headers=owner, json={"answers": ["yes", "no"]})
     assert unsuited.status_code == 200 and unsuited.json()["status"] == "unsupported"
 
     # The signed vault helper sends the same original filename for both distinct PDFs.
     document_ids, intelligence_urls = [], []
     for case_id, move_date in zip(case_ids, dates, strict=True):
         doc_id = upload(client, owner, case_id, sample_pdf(f"Move-in date: {move_date.isoformat()}"))
-        path = f"/api/v1/cases/{case_id}/private-documents"
+        path = f"/api/v1/conversations/tasks/{case_id}/private-documents"
         assert [row["id"] for row in client.get(path, headers=owner).json()] == [doc_id]
         doc_url = f"{path}/{doc_id}/intelligence"
         extracted = client.post(doc_url + "/extract", headers=owner)
@@ -103,7 +103,7 @@ def test_two_pending_cases_keep_documents_replies_and_citations_separate(documen
         intelligence_urls.append(doc_url)
     assert document_ids[0] != document_ids[1]
     for index, case_id in enumerate(case_ids):
-        wrong = f"/api/v1/cases/{case_id}/private-documents/{document_ids[1 - index]}/intelligence"
+        wrong = f"/api/v1/conversations/tasks/{case_id}/private-documents/{document_ids[1 - index]}/intelligence"
         assert client.get(wrong, headers=owner).status_code == 404
         assert client.get(intelligence_urls[index], headers=other_account).status_code == 404
 
