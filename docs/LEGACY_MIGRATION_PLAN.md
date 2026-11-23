@@ -1,6 +1,6 @@
 # Legacy case-to-conversation/task migration
 
-**Status:** In progress — inventory and sequencing established 23 November 2026.  
+**Status:** M3 disposable harness implemented and merged; full source-to-target migration remains blocked on M2.5 review and operator key-custody evidence (23 November 2026).  
 **Product boundary:** one customer-facing conversation at `/`.  
 **Data boundary:** preserve existing owner data; no production table or record deletion is authorized by this plan.
 
@@ -132,6 +132,8 @@ Before changing a model, foreign key or table name:
 The new invariant test is a guardrail, not proof that a data migration is ready. It protects known constraints while the complete source-to-target mapping and operational plan are developed.
 
 ### M3 — Data migration
+
+**Status:** Disposable migration harness and cryptographic staging primitives implemented and merged in PR #269. This completes the authorized, non-production harness portion only; it does not complete the actual source-to-target migration.
 
 - Design Alembic migrations for task tables and all dependent foreign keys only after the M2 exit gate is reviewed.
 - Preserve primary identifiers, owner subjects, timestamps, encrypted payloads, event sequences, checkpoint revisions, retention deadlines and audit history.
