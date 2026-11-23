@@ -1,7 +1,7 @@
 # Active work
 
 **Current phase:** M3 — conversation/task data migration  
-**Current task:** M3 harness merged; resolve M2.5 review and operator key-custody prerequisites  
+**Current task:** Complete synthetic M3 validation; live migration remains out of scope without operational authorization  
 **Next task:** Complete and validate the single M3 workstream; do not begin Phase 5.
 
 ## Current state
