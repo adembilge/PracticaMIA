@@ -4,12 +4,12 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 
 
-def test_task_api_flag_prefers_canonical_and_supports_legacy(monkeypatch):
+def test_task_api_flag_uses_only_canonical_environment_variable(monkeypatch):
     monkeypatch.setenv("ENABLE_DEMO_CASE_API", "1")
-    monkeypatch.setenv("ENABLE_TASK_API", "0")
+    monkeypatch.delenv("ENABLE_TASK_API", raising=False)
     assert Settings.from_env().enable_task_api is False
 
-    monkeypatch.delenv("ENABLE_TASK_API")
+    monkeypatch.setenv("ENABLE_TASK_API", "1")
     assert Settings.from_env().enable_task_api is True
 
 
