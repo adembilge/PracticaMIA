@@ -18,7 +18,7 @@ The goal is to remove the old case-management architectureâ€”not merely hide itâ
 - Intake API: `backend/app/cases/intake_router.py`; the frontend `/api/conversations/tasks/{id}/intake` adapter still proxies to `/api/v1/cases/{id}/intake`.
 - Checklist, workflow and package endpoints: `checklist_router.py`, `workflow_router.py`, `package_router.py`.
 - Private-document and preparation endpoints still carry case identifiers and case-oriented paths.
-- Agent reconnect transport still contains case-linked request/response models and a thread-to-case link endpoint. The frontend proxy intentionally does not forward the legacy link endpoint.
+- Agent reconnect transport still contains case-linked request/response models and internal thread-to-case link persistence. The former thread task-picker endpoint has been removed; no customer-facing picker is permitted.
 
 ### Domain and persistence layer
 
@@ -52,6 +52,7 @@ The goal is to remove the old case-management architectureâ€”not merely hide itâ
 
 ### M2 â€” Internal domain rename
 
+- Removed the unused `/threads/{thread_id}/tasks` listing and its undocumented `/cases` alias; deleted the list-only projection. Internal owner-scoped case binding and resume logic remain because agent execution and approval records still depend on them.
 - Replace customer-domain terminology in runtime code with private task/workflow terminology.
 - Separate task scope and confirmed user facts from document preparation and agent execution.
 - Remove case-selection and thread-to-case linking behavior where the single-chat contract no longer needs it.
