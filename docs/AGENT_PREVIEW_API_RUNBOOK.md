@@ -10,7 +10,7 @@ The ordinary FastAPI application now *can* mount the existing encrypted `/api/v1
 
 - API deployment: `VERCEL_ENV=preview`, on `VERCEL_GIT_COMMIT_REF=preview/auth-review-isolated` only. Do **not** set these flags on production, on PR branches, or on unrelated previews.
 - Set `ENABLE_AGENT_PREVIEW_API=1` only for the reviewed isolated API Preview.
-- Also enable existing staging flags: `ENABLE_DEMO_CASE_API=1`, `ENABLE_KNOWLEDGE_CATALOG_API=1`, `ENABLE_PREPARATION_API=1`, `ENABLE_AGENT_HISTORY_API=1`, and `PREPARATION_TARGET=isolated_staging`.
+- Also enable existing staging flags: `ENABLE_TASK_API=1`, `ENABLE_KNOWLEDGE_CATALOG_API=1`, `ENABLE_PREPARATION_API=1`, `ENABLE_AGENT_HISTORY_API=1`, and `PREPARATION_TARGET=isolated_staging`.
 - `DATABASE_URL` must point to reviewed isolated PostgreSQL (never production, pooler redirection or SQLite). `PREPARATION_DATABASE_FINGERPRINT` must equal SHA-256 of the **exact connection URL**, already inspected for direct Preview target and credentials, without printing or committing the URL.
 - `AGENT_PREVIEW_JOURNAL_KEY`: a dedicated, random 32-byte key encoded as standard base64. Generate in an approved secret-management environment. It **must differ** from `PREPARATION_DOCUMENT_KEY`. Do not rotate either key while existing encrypted test conversations need to remain recoverable; plan and verify re-encryption/retention first.
 - Valid Auth0 issuer, audience and JWKS configuration. Verify both reviewer and ordinary test accounts under the intended Preview tenant.

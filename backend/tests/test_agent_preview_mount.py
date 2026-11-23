@@ -18,7 +18,7 @@ JOURNAL_KEY = base64.b64encode(bytes(range(32, 64))).decode()
 def preview_settings() -> Settings:
     return Settings(
         database_url=DATABASE,
-        enable_demo_case_api=True,
+        enable_task_api=True,
         enable_knowledge_catalog_api=True,
         enable_preparation_api=True,
         enable_agent_history_api=True,
@@ -53,7 +53,7 @@ def test_only_reviewed_preview_target_with_separate_encryption_key_can_mount():
     ("deployment_git_branch", ""),
     ("deployment_git_branch", "main"),
     ("deployment_git_branch", "preview/other"),
-    ("enable_demo_case_api", False),
+    ("enable_task_api", False),
     ("enable_knowledge_catalog_api", False),
     ("enable_preparation_api", False),
     ("enable_agent_history_api", False),

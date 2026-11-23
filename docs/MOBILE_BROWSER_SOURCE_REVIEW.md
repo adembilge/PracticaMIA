@@ -32,7 +32,7 @@ reviewer who cannot conveniently approve 12 source versions one at a time.
 1. Point the Preview backend to **isolated Neon staging** at the reviewed deployment’s schema. See [deployment configuration](VERCEL_NEON_DEPLOYMENT.md#isolated-preview).
 2. Configure existing Auth0 verification variables:
    `AUTH_ISSUER`, `AUTH_AUDIENCE`, `AUTH_JWKS_URL`.
-3. Set backend preview `ENABLE_DEMO_CASE_API=1`,
+3. Set backend preview `ENABLE_TASK_API=1`,
    `ENABLE_KNOWLEDGE_CATALOG_API=1`,
    `ENABLE_KNOWLEDGE_REVIEW_API=1` and
    `KNOWLEDGE_REVIEWER_SUBJECTS=<verified Auth0 subject(s)>`.

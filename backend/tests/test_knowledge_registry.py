@@ -245,7 +245,7 @@ def test_feature_stays_disabled_by_default():
 
 
 def test_feature_requires_authenticated_backend():
-    with pytest.raises(ValueError, match="authenticated case API"):
+    with pytest.raises(ValueError, match="authenticated task API"):
         create_app(Settings(enable_knowledge_catalog_api=True))
 
 

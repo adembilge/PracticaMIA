@@ -12,7 +12,7 @@ Only a **trusted JWT principal whose exact subject ID is configured server-side*
 
 Review API configuration is fail-closed:
 
-- `ENABLE_DEMO_CASE_API=1` (existing signed-JWT case API)
+- `ENABLE_TASK_API=1` (existing signed-JWT task API)
 - `ENABLE_KNOWLEDGE_CATALOG_API=1`
 - `ENABLE_KNOWLEDGE_REVIEW_API=1` — defaults to **disabled**
 - `KNOWLEDGE_REVIEWER_SUBJECTS` — comma-separated, verified Auth0 `sub` identifiers; a non-empty allowlist is required to start the review API

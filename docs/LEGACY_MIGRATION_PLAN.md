@@ -30,7 +30,7 @@ The goal is to remove the old case-management architectureâ€”not merely hide itâ
 
 ### Configuration and documentation
 
-- `ENABLE_DEMO_CASE_API` and `enable_demo_case_api` are still used as backend feature gates and prerequisites for knowledge, preparation and agent features.
+- `ENABLE_TASK_API` is now the canonical backend feature gate for task routes and their knowledge, preparation and agent prerequisites. `ENABLE_DEMO_CASE_API` remains a temporary environment-variable fallback, and `enable_demo_case_api` remains a constructor compatibility alias; remove both only after deployment and test callers have migrated.
 - Several runbooks and older research documents retain case-oriented API names. Historical research may remain as provenance, but active product and operational documentation must describe the current chat/task contract.
 
 ## Migration sequence

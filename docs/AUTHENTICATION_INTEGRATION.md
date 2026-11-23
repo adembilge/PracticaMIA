@@ -38,9 +38,9 @@ Auth0, the Next.js server-side API proxy and PostgreSQL persistence support auth
 - `AUTH_ISSUER=https://<AUTH0_DOMAIN>/` (include the final slash).
 - `AUTH_JWKS_URL=https://<AUTH0_DOMAIN>/.well-known/jwks.json`.
 - `AUTH_AUDIENCE=<AUTH0_AUDIENCE>`.
-- `DATABASE_URL` for persistent PostgreSQL. The current backend still uses the legacy `ENABLE_DEMO_CASE_API` feature flag; this is migration debt, not a product feature. Do not enable it outside the reviewed isolated environment.
+- `DATABASE_URL` for persistent PostgreSQL. The current backend still uses the `ENABLE_TASK_API` feature flag; this is migration debt, not a product feature. Do not enable it outside the reviewed isolated environment.
 
-**A signed-in browser session alone does not prove that the backend is operational.** The account page reports configuration state; verify authenticated case CRUD and database persistence separately.
+**A signed-in browser session alone does not prove that the backend is operational.** The account page reports configuration state; verify authenticated task CRUD and database persistence separately.
 
 ## Current product and API surface
 
