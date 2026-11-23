@@ -207,7 +207,7 @@ def test_case_archive_is_reversible_private_and_idempotent(client, auth_headers)
 
 
 
-def test_canonical_conversation_task_crud_and_hidden_legacy_alias(client, auth_headers):
+def test_canonical_conversation_task_crud_and_removed_legacy_alias(client, auth_headers):
     owner = auth_headers("alice")
     paths = client.app.openapi()["paths"]
     assert "/api/v1/conversations/tasks" in paths
@@ -224,6 +224,6 @@ def test_canonical_conversation_task_crud_and_hidden_legacy_alias(client, auth_h
     assert client.get(f"/api/v1/conversations/tasks/{task_id}", headers=auth_headers("bob")).status_code == 404
     assert client.delete(f"/api/v1/conversations/tasks/{task_id}", headers=owner).status_code == 204
 
-    # Compatibility is available to old callers but deliberately absent from OpenAPI.
-    legacy = client.post("/api/v1/conversations/tasks", json={}, headers=owner)
-    assert legacy.status_code == 201, legacy.text
+    # The former case CRUD alias is removed, not merely hidden from OpenAPI.
+    legacy = client.post("/api/v1/cases", json={}, headers=owner)
+    assert legacy.status_code == 404
