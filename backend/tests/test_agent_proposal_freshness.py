@@ -70,7 +70,7 @@ def test_case_edit_with_unchanged_reported_revision_requires_a_new_review(
 ):
     factory, context, proposal = worker_change
     headers = auth_headers("alice")
-    url = f"/api/v1/cases/{proposal.case_id}"
+    url = f"/api/v1/conversations/tasks/{proposal.case_id}"
     assert client.patch(url + "/scope", json={"answers": SCOPE}, headers=headers).status_code == 200
 
     def edit_case():
