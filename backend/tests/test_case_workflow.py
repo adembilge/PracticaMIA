@@ -174,3 +174,37 @@ def test_all_five_marks_mean_read_only_and_can_be_unmarked(
     assert client.get(f"{ROOT}/{case_id}/package",headers=alice).json()[
         "official_acceptance"
     ] is False
+
+
+def test_archived_task_rejects_checklist_progress_mutation(
+    client, auth_headers, monkeypatch,
+):
+    monkeypatch.setattr(
+        svc, "resolve_approved_passage",
+        lambda _db, *, citation_id, **_: evidence(citation_id),
+    )
+    owner = auth_headers("alice")
+    case_id = create_case(client, owner)
+    confirmed_intake(client, owner, case_id)
+    path = f"{ROOT}/{case_id}/workflow"
+    checklist = client.get(path, headers=owner).json()["checklist"]
+    item_id = checklist["items"][0]["id"]
+    payload = {
+        "item_id": item_id,
+        "reviewed": True,
+        "fingerprint": checklist["fingerprint"],
+    }
+
+    archived = client.patch(
+        f"{ROOT}/{case_id}/archive", json={"archived": True}, headers=owner,
+    )
+    assert archived.status_code == 200
+    blocked = client.patch(path + "/checklist", json=payload, headers=owner)
+    assert blocked.status_code == 409
+
+    with client.app.state.session_factory() as db:
+        from app.cases.intake_model import CaseIntake
+        row = db.get(CaseIntake, case_id)
+        assert row is not None
+        assert row.checklist_progress == {}
+        assert row.progress_fingerprint is None
