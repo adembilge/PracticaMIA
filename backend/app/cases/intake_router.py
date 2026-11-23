@@ -14,6 +14,7 @@ from app.auth.tokens import Principal, get_principal
 from app.cases.model import CaseRecord
 from app.cases.intake_model import CaseIntake
 from app.cases.intake_schemas import IntakeUpdate, REQUIRED_FIELDS, describe_intake
+from app.cases.scope import FIRST_ROUTE_SCOPE_ANSWERS
 from app.database import get_session
 
 router = APIRouter(prefix="/api/v1/conversations/tasks", tags=["conversation-task-intake"],
@@ -66,9 +67,7 @@ def write_intake(case_id: UUID, payload: IntakeUpdate,
                  db: Session = Depends(get_session),
                  principal: Principal = Depends(get_principal)):
     case = _owned_case(db, case_id, principal.subject, lock=True, require_active=True)
-    if case.status != "provisionally_in_scope" or case.scope_answers != [
-        "yes", "yes", "yes", "no", "yes"
-    ]:
+    if case.status != "provisionally_in_scope" or case.scope_answers != list(FIRST_ROUTE_SCOPE_ANSWERS):
         raise HTTPException(409, "Complete the supported product scope questions first")
 
     facts = payload.facts.model_dump(exclude_none=True)
