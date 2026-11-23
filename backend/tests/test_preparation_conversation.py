@@ -54,12 +54,12 @@ def test_disabled_history_endpoint_fails_closed(tmp_path, auth_headers):
     app = create_app(settings)
     Base.metadata.create_all(app.state.engine)
     with TestClient(app) as client:
-        case = client.post("/api/v1/cases", json={}, headers=auth_headers()).json()
-        response = client.get(f"/api/v1/cases/{case['id']}/preparation/conversation",
+        case = client.post("/api/v1/conversations/tasks", json={}, headers=auth_headers()).json()
+        response = client.get(f"/api/v1/conversations/tasks/{case['id']}/preparation/conversation",
                               headers=auth_headers())
         assert response.status_code == 404
         guide = client.post(
-            f"/api/v1/cases/{case['id']}/preparation/guide",
+            f"/api/v1/conversations/tasks/{case['id']}/preparation/guide",
             json={"question": "What is next?"}, headers=auth_headers(),
         )
         assert guide.status_code == 200
@@ -74,10 +74,10 @@ def test_encrypted_case_owned_turns_survive_reopen_and_delete(
 ):
     http = history_client
     alice, bob = auth_headers("alice"), auth_headers("bob")
-    created = http.post("/api/v1/cases", json={}, headers=alice)
+    created = http.post("/api/v1/conversations/tasks", json={}, headers=alice)
     assert created.status_code == 201
     case_id = created.json()["id"]
-    base = f"/api/v1/cases/{case_id}/preparation"
+    base = f"/api/v1/conversations/tasks/{case_id}/preparation"
     history_url = base + "/conversation"
     guide_url = base + "/guide"
 
@@ -128,8 +128,8 @@ def test_encrypted_case_owned_turns_survive_reopen_and_delete(
     finally:
         reopened.state.engine.dispose()
 
-    assert http.delete(f"/api/v1/cases/{case_id}", headers=bob).status_code == 404
-    assert http.delete(f"/api/v1/cases/{case_id}", headers=alice).status_code == 204
+    assert http.delete(f"/api/v1/conversations/tasks/{case_id}", headers=bob).status_code == 404
+    assert http.delete(f"/api/v1/conversations/tasks/{case_id}", headers=alice).status_code == 204
     with http.app.state.session_factory() as db:
         assert db.scalars(select(CaseAgentTurn).where(
             CaseAgentTurn.case_id == case_id,
@@ -140,8 +140,8 @@ def test_history_is_bounded_and_does_not_confirm_case_facts(
     history_client, auth_headers,
 ):
     http, headers = history_client, auth_headers()
-    case_id = http.post("/api/v1/cases", json={}, headers=headers).json()["id"]
-    base = f"/api/v1/cases/{case_id}/preparation"
+    case_id = http.post("/api/v1/conversations/tasks", json={}, headers=headers).json()["id"]
+    base = f"/api/v1/conversations/tasks/{case_id}/preparation"
     for i in range(25):
         answer = http.post(
             base + "/guide", json={"question": f"What is next step {i}?"},
@@ -159,7 +159,7 @@ def test_history_is_bounded_and_does_not_confirm_case_facts(
 
 def test_legacy_quote_has_unknown_provenance(history_client, auth_headers):
     http, headers = history_client, auth_headers("alice")
-    case_id = http.post("/api/v1/cases", json={}, headers=headers).json()["id"]
+    case_id = http.post("/api/v1/conversations/tasks", json={}, headers=headers).json()["id"]
     turn_id = str(uuid4())
     raw = json.dumps({
         "question": "What did the source say?", "language": "en",
@@ -176,7 +176,7 @@ def test_legacy_quote_has_unknown_provenance(history_client, auth_headers):
                 document_id=f"agent-turn:{turn_id}",
             ),
         ))
-    response = http.get(f"/api/v1/cases/{case_id}/preparation/conversation", headers=headers)
+    response = http.get(f"/api/v1/conversations/tasks/{case_id}/preparation/conversation", headers=headers)
     assert response.status_code == 200
     turn = response.json()["turns"][0]
     assert turn["citation_status"] == "unknown"
