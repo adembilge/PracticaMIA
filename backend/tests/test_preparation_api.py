@@ -88,7 +88,7 @@ def test_synthetic_private_journey_and_cross_user_protections(
     created = http.post("/api/v1/cases", json={}, headers=alice)
     assert created.status_code == 201, created.text
     case_id = created.json()["id"]
-    base = f"/api/v1/cases/{case_id}/preparation"
+    base = f"/api/v1/conversations/tasks/{case_id}/preparation"
 
     assert http.get(base).status_code == 401
     assert http.get(base, headers=bob).status_code == 404
@@ -240,7 +240,7 @@ def test_guided_intake_is_owner_scoped_and_does_not_activate_real_rules(
     owner, other = auth_headers("alice"), auth_headers("bob")
     created = http.post("/api/v1/cases", json={}, headers=owner)
     assert created.status_code == 201
-    base = f"/api/v1/cases/{created.json()['id']}/preparation"
+    base = f"/api/v1/conversations/tasks/{created.json()['id']}/preparation"
     first = http.get(base, headers=owner).json()
     assert first["intake"]["next_question"]["field"] == "citizenship_class"
     assert first["intake"]["is_legal_assessment"] is False
@@ -286,7 +286,7 @@ def test_reference_passages_only_show_currently_approved_owner_scoped_evidence(
     owner, other = auth_headers("alice"), auth_headers("bob")
     case = http.post("/api/v1/cases", json={}, headers=owner)
     assert case.status_code == 201
-    base = f"/api/v1/cases/{case.json()['id']}/preparation"
+    base = f"/api/v1/conversations/tasks/{case.json()['id']}/preparation"
 
     assert http.get(base + "/reference-evidence", headers=other).status_code == 404
     empty = http.get(base + "/reference-evidence", headers=owner)
@@ -329,7 +329,7 @@ def test_preview_case_guide_is_owner_scoped_and_never_approves_a_case(
     owner, other = auth_headers("alice"), auth_headers("bob")
     case = http.post("/api/v1/cases", json={}, headers=owner)
     assert case.status_code == 201
-    base = f"/api/v1/cases/{case.json()['id']}/preparation/guide"
+    base = f"/api/v1/conversations/tasks/{case.json()['id']}/preparation/guide"
 
     assert http.post(base, json={"question": "What comes next?"},
                      headers=other).status_code == 404
@@ -381,7 +381,7 @@ def test_pending_municipal_rules_still_report_confirmed_document_discrepancy(
     owner = auth_headers("alice")
     created = http.post("/api/v1/cases", json={}, headers=owner)
     assert created.status_code == 201
-    base = f"/api/v1/cases/{created.json()['id']}/preparation"
+    base = f"/api/v1/conversations/tasks/{created.json()['id']}/preparation"
     assert http.put(base + "/facts", json={"confirmed_facts": {
         "property_address": "Synthetic Via 10 Milano",
     }}, headers=owner).status_code == 200
