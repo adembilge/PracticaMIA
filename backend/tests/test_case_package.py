@@ -18,7 +18,7 @@ from app.private_documents.model import PrivateCaseDocument
 from test_case_checklist import create_case, confirmed_intake, FACTS
 from test_private_documents import enabled_settings
 
-ROOT = "/api/v1/cases"
+ROOT = "/api/v1/conversations/tasks"
 
 
 def fake_evidence(citation_id):
