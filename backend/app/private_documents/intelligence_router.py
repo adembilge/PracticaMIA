@@ -51,9 +51,11 @@ class ConfirmReview(BaseModel):
     confirm: bool
 
 
-def _document(db: Session, case_id: UUID, document_id: UUID, owner: str,
-              *, lock: bool = False) -> PrivateCaseDocument:
-    get_case(db, case_id, owner)
+def _document(
+    db: Session, case_id: UUID, document_id: UUID, owner: str,
+    *, lock: bool = False,
+) -> PrivateCaseDocument:
+    get_case(db, case_id, owner, require_active=lock, lock=lock)
     statement = select(PrivateCaseDocument).where(
         PrivateCaseDocument.id == str(document_id),
         PrivateCaseDocument.case_id == str(case_id),
