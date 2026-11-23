@@ -169,3 +169,17 @@ The migration is complete only when:
 - Old tables are removed only after verified migration and an approved recovery process.
 - Active docs and tests describe the single-chat product; historical research is clearly marked as historical.
 - Repository-wide scans show no active legacy UI/API/runtime references. Historical Alembic migration names and audit evidence may remain where required for reproducibility.
+
+
+## Disposable relational migration rehearsal (PR #274)
+
+PR #273 was merged after the required code checks passed. It proves that source AES-GCM ciphertext remains readable when the migration preserves every authenticated identity dimension byte-for-byte. This is a compatibility proof, not a production migration.
+
+The next disposable rehearsal adds explicit relational copy primitives:
+- Copy source rows to separately named target tables using an explicit column map.
+- Refuse non-empty targets, incomplete/ambiguous mappings and required target columns that are not supplied.
+- Copy ciphertext bytes unchanged; the relational layer never decrypts or rewrites payloads.
+- Validate task-child owner equality and quarantine mismatches without repairing ownership.
+- Exercise conversation/task association constraints, nullable unlinked runs, and ownerless legacy tasks using synthetic PostgreSQL fixtures.
+
+The rehearsal is not connected to application tables. It does not add Alembic production revisions, perform a write fence, access configured keys, or authorize source-table deletion. It is intended to expose mapping and integrity defects before any separately approved cutover plan.
