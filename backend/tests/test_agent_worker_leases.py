@@ -361,3 +361,29 @@ def test_stopping_an_inflight_run_discards_the_late_worker_result(queued_run):
         page = read_run_events(db, **context, after_seq=0)
         assert [event.type for event in page.events] == ["run.started", "run.stopped"]
         assert page.events[-1].committed_operation_ids == []
+
+
+def test_worker_does_not_claim_queued_run_for_archived_task(queued_run):
+    factory, unlinked_context, _, _ = queued_run
+    # Drain the fixture's unlinked run so the only queued candidate is task-linked.
+    assert run_worker_batch(
+        factory, key=KEY, lease_for=LEASE_FOR, execute=lambda *_: ANSWER,
+        max_steps=1,
+    ) == 1
+    case_id = uuid4()
+    with factory.begin() as db:
+        case = CaseRecord(
+            id=str(case_id), procedure="milan_residence_change", owner_subject=ALICE.subject,
+        )
+        db.add(case)
+        thread_id = create_thread(db, principal=ALICE)
+        db.add(AgentThreadCase(thread_id=str(thread_id), case_id=str(case_id)))
+        db.flush()
+        accepted = accept_message(
+            db, thread_id=thread_id, principal=ALICE, key=KEY,
+            message=request(case_id=case_id),
+        )
+        assert accepted.outcome == "accepted"
+        case.archived_at = datetime.now(timezone.utc)
+    with factory.begin() as db:
+        assert claim_next_run(db, lease_for=LEASE_FOR) is None
