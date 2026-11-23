@@ -66,7 +66,7 @@ def client(tmp_path, token_factory):
     api = create_app(
         Settings(
             database_url=db_url,
-            enable_demo_case_api=True,
+            enable_task_api=True,
             enable_knowledge_catalog_api=True,
             enable_knowledge_review_api=True,
             enable_knowledge_search_api=True,
