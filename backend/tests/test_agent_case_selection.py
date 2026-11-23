@@ -109,7 +109,7 @@ def test_case_archive_between_offer_and_reply_is_rejected_and_live_selection_is_
     owner = auth_headers("alice")
     _resume_case(factory, context)
     snapshot, question = _read_question(client, url, owner)
-    archive = client.patch(f"/api/v1/cases/{other}/archive", headers=owner, json={"archived": True})
+    archive = client.patch(f"/api/v1/conversations/tasks/{other}/archive", headers=owner, json={"archived": True})
     assert archive.status_code == 200
     _, _, stale = _select(client, url, owner, snapshot, question, other)
     assert stale.status_code == 409
@@ -117,7 +117,7 @@ def test_case_archive_between_offer_and_reply_is_rejected_and_live_selection_is_
     assert fresh.status_code == 200
     run_worker_step(factory, **context, execute=_no_routing)
     assert client.get(url, headers=owner).json()["selected_case"]["case_id"] == str(second_other)
-    assert client.patch(f"/api/v1/cases/{second_other}/archive", headers=owner, json={"archived": True}).status_code == 200
+    assert client.patch(f"/api/v1/conversations/tasks/{second_other}/archive", headers=owner, json={"archived": True}).status_code == 200
     reopened = client.get(url, headers=owner).json()
     assert reopened["selected_case"] is None and reopened["result"]["selected_case"] is None
 
@@ -166,7 +166,7 @@ def test_worker_reasks_when_a_case_is_archived_after_an_accepted_reply(client, a
     snapshot, question = _read_question(client, url, owner)
     _, _, reply = _select(client, url, owner, snapshot, question, other)
     assert reply.status_code == 200
-    assert client.patch(f"/api/v1/cases/{other}/archive", headers=owner, json={"archived": True}).status_code == 200
+    assert client.patch(f"/api/v1/conversations/tasks/{other}/archive", headers=owner, json={"archived": True}).status_code == 200
     assert run_worker_step(factory, **context, execute=_no_routing).status == "waiting_for_information"
     _, refreshed = _read_question(client, url, owner)
     assert refreshed["question_id"] != question["question_id"]
