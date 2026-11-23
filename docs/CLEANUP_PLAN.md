@@ -1,0 +1,145 @@
+# Cleanup and legacy migration plan
+
+**Status:** Active — consolidated 23 November 2026  
+**Current phase:** Phase 4; Phase 5 remains paused  
+**Primary reference:** [Legacy case-to-conversation/task migration](LEGACY_MIGRATION_PLAN.md)  
+**Product contract:** one customer-facing conversation at `/`; internal task/workflow persistence is not a customer-facing task feature.
+
+## 1. Purpose
+
+This document is the execution checklist for removing the remaining legacy case architecture without losing the useful workflow capabilities currently stored behind it. It consolidates completed work, remaining tasks, dependencies, verification gates and explicit non-goals.
+
+This is a code and data-architecture migration plan. It does not authorize production data mutation, table deletion, ownership reassignment, deployment changes or broader product scope.
+
+## 2. Current baseline
+
+- PRs #246–#264 are merged; PR #265 is merged as `82a277c23cca89f655b5bc1e4e11f7089c315c70`.
+- Public legacy case API aliases and customer-facing case/task/demo navigation have been removed in earlier increments.
+- Canonical task operations are routed under `/api/v1/conversations/tasks`.
+- `ENABLE_TASK_API` is the only supported task-route activation flag and remains disabled by default.
+- Case-named internal models, tables, foreign keys and encrypted payload dependencies remain.
+- Ownership/cardinality/cascade invariants are covered by tests; archived-task write and worker race boundaries are covered by PR #265.
+- No production table or record has been deleted as part of this cleanup.
+- Agent execution remains restricted to the reviewed Preview environment; production execution is not enabled.
+- Vercel quota/settings and release configuration are outside this plan.
+
+## 3. Completed work
+
+| Work item | Result |
+|---|---|
+| M0 — dependency inventory and truthful migration plan | Completed; see `LEGACY_MIGRATION_PLAN.md` |
+| M1 — canonical conversation/task API surface | Completed; legacy case API aliases removed |
+| M2.1 — cardinality and cascade invariants | Completed; PR #264 |
+| M2.2 — ownership consistency audit | Completed; no runtime defect found; mismatches must be quarantined, not reassigned |
+| M2.3 — archived-task access and write boundaries | Completed; PR #265 merged |
+| Case/demo customer surface cleanup | Completed in earlier merged PRs |
+| Legacy demo API setting removal | Completed in PR #257 |
+
+Completed does not mean the underlying case-named database domain has been migrated.
+
+## 4. Remaining work
+
+### M2.4 — Define the target conversation/task ownership model
+
+**Status:** Draft prepared; engineering/product review pending. See [target data model draft](TASK_CONVERSATION_TARGET_MODEL.md).
+
+Deliverables:
+1. Define target entities and responsibilities for conversation, task scope, confirmed intake facts, documents, preparation/review state, agent runs, events, checkpoints and approval/idempotency receipts.
+2. Specify cardinality and lifecycle semantics for every relationship, including multiple conversations per task, multiple tasks per conversation if still required, and runs with no task link.
+3. Define ownership derivation and enforcement for every target record. Preserve inaccessible ownerless legacy rows as unassigned; never infer or auto-assign an owner.
+4. Specify archive, restore, explicit deletion, retention and cascade behavior for each entity.
+5. Map every current source table/column to a target entity or an explicitly retained historical record.
+6. Record unresolved design decisions and obtain review before schema changes.
+
+Acceptance:
+- Every current FK edge and runtime read/write dependency has a target mapping.
+- Owner isolation, nullable task links, run history, approval receipts and resume semantics are explicit.
+- No schema or runtime behavior changes are included in this design task.
+
+### M2.5 — Specify encrypted-payload migration and consistency strategy
+
+**Status:** Blocked on M2.4 review
+
+Deliverables:
+- Inventory key sources, key versions and AAD dimensions for each encrypted record class.
+- Define authenticated decrypt → validate → re-encrypt flow for the destination identity/AAD.
+- Define write-fence or a fully specified dual-write/replay strategy; do not assume dual-write is safe.
+- Define idempotency, conflict handling, retry, quarantine and no-plaintext logging behavior.
+- Define dry-run evidence, rollback and recovery window.
+
+Acceptance:
+- Every encrypted payload class has a verified migration procedure and failure mode.
+- Key unavailability or authentication failure stops migration safely.
+- No plaintext payloads are written to logs or audit output.
+
+### M3 — Build and validate the reversible data migration
+
+**Status:** Blocked on M2.4 and M2.5 approval
+
+Deliverables:
+- Alembic upgrade and downgrade/recovery strategy for the approved target model.
+- Disposable PostgreSQL snapshot migration tests.
+- Before/after row counts, FK integrity, owner consistency, ciphertext authentication/decryptability and resume/approval journey checks.
+- Quarantine path for owner mismatches, orphaned records and undecryptable payloads.
+- Explicit cutover, recovery window and rollback runbook.
+
+Acceptance:
+- Upgrade and recovery are repeatable on disposable snapshots.
+- Source records remain intact until the recovery window is approved and complete.
+- No production migration runs without separate explicit authorization.
+
+### M4 — Remove obsolete runtime code and perform final audit
+
+**Status:** Blocked on successful M3 migration and recovery approval
+
+Deliverables:
+- Remove superseded case-domain runtime modules, imports, compatibility code, dead tests and obsolete active runbooks.
+- Repository-wide scan of case/demo routes, names, environment variables, imports, customer copy and migration references.
+- Classify historical Alembic migrations and research records as retained provenance, not active runtime dependencies.
+- Run backend, frontend, browser, PostgreSQL migration, owner-isolation, negative-route, encryption and recovery suites.
+
+Acceptance:
+- No active runtime dependency on the old case domain remains.
+- Frontend calls only the canonical conversation/task contract.
+- Historical migration records remain where required for reproducibility.
+- Active documentation and tests accurately describe the final model.
+
+## 5. Verified source dependencies to preserve
+
+The current dependency inventory is maintained in `LEGACY_MIGRATION_PLAN.md`. The critical groups are:
+
+- Task-like case record and confirmed intake facts.
+- Thread-to-task association and owner-scoped reconnect/resume.
+- Agent run requests, encrypted events and checkpoints.
+- Operation/proposal/approval receipts and idempotency/revision constraints.
+- Private document vault records, consent, expiry and encrypted metadata.
+- Preparation, document review and bounded guide-history records.
+- Worker leases, queued-run claim rules and archive/delete race boundaries.
+
+The current `AgentRunRequest.case_id` may be null. Thread/task association is many-to-many. These are required semantics to evaluate explicitly in M2.4, not incidental implementation details.
+
+## 6. Non-negotiable safeguards
+
+1. Do not drop tables, delete production records, run destructive SQL or rewrite live ownership as part of code-only cleanup.
+2. Do not auto-assign ownerless records or repair owner mismatches by copying another row's owner.
+3. Do not change encryption keys, AAD, ciphertext identity or retention behavior without a verified migration and recovery plan.
+4. Preserve run history, event order, checkpoints, approval receipts, idempotency, revisions and audit provenance.
+5. Preserve archive/restore behavior, explicit deletion semantics and worker/task lock ordering.
+6. Do not weaken authentication, owner isolation, source review, user confirmation, privacy or production execution gates.
+7. Do not change Vercel settings, quotas, billing, permissions or production aliases.
+8. Do not start Phase 5.
+
+## 7. Working protocol
+
+For each bounded item:
+1. Inspect current `main`, open PRs, exact branch heads and required CI.
+2. Work on an isolated branch and open a focused PR.
+3. Keep code changes separate from schema/data migration unless the task explicitly authorizes both.
+4. Verify relevant backend, frontend, PostgreSQL and browser checks; report skipped checks honestly.
+5. Before merge, re-fetch the PR and use its latest exact head SHA as the merge precondition.
+6. After merge, verify the PR state and `main` ref.
+7. Update this plan and `ACTIVE_WORK.md`/`PROGRESS.md` when the active task or completion status changes.
+
+## 8. Definition of cleanup completion
+
+Cleanup is complete only when M2.4, M2.5, M3 and M4 have passed their acceptance criteria, all remaining case-named artifacts are classified as either intentionally retained historical provenance or removed active dependencies, and the repository's required tests prove ownership, encryption, retention, recovery and conversation/task behavior. A clean search result alone is not sufficient.
