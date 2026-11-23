@@ -21,7 +21,7 @@ ACTIVE_RUNS_URL = "/api/v1/agent/runs/active"
 
 
 def pause_for_question(client, auth_headers, question, *, language="en"):
-    case = client.post("/api/v1/cases", headers=auth_headers(), json={})
+    case = client.post("/api/v1/conversations/tasks", headers=auth_headers(), json={})
     assert case.status_code == 201
     case_id = UUID(case.json()["id"])
     factory = client.app.state.session_factory
@@ -397,12 +397,12 @@ def test_switch_between_owned_cases_without_exposing_a_case_picker(client, auth_
     first_url = run_url(first)
     factory = client.app.state.session_factory
     second_case, archived, unlinked = [
-        UUID(client.post("/api/v1/cases", headers=owner, json={}).json()["id"]) for _ in range(3)
+        UUID(client.post("/api/v1/conversations/tasks", headers=owner, json={}).json()["id"]) for _ in range(3)
     ]
     with factory.begin() as db:
         for case in (second_case, archived):
             assert link_case_to_thread(db, principal=OWNER, thread_id=first["thread_id"], case_id=case)
-    assert client.patch(f"/api/v1/cases/{archived}/archive", json={"archived": True}, headers=owner).status_code == 200
+    assert client.patch(f"/api/v1/conversations/tasks/{archived}/archive", json={"archived": True}, headers=owner).status_code == 200
     client.app.include_router(build_reconnect_router(key=KEY))
 
     # Saved-record selection stays inside the conversation agent; no task/case picker API is exposed.
@@ -467,7 +467,7 @@ def test_switch_between_owned_cases_without_exposing_a_case_picker(client, auth_
 
 def test_pending_proposal_replays_the_exact_read_only_preview(client, auth_headers):
     owner = auth_headers()
-    case = client.post("/api/v1/cases", headers=owner, json={})
+    case = client.post("/api/v1/conversations/tasks", headers=owner, json={})
     assert case.status_code == 201
     case_id = UUID(case.json()["id"])
     intake = f"/api/v1/conversations/tasks/{case_id}/intake"
@@ -697,7 +697,7 @@ def test_private_errors_hide_payloads_and_foreign_or_deleted_runs(client, auth_h
         client.post(reply_url, headers=owner, json={**reply, "expected_run_revision": 2}), 409, "stale_question",
     )
     assert client.get(url, headers=owner).json()["status"] == "waiting_for_information"
-    assert client.delete(f"/api/v1/cases/{case_id}", headers=owner).status_code == 204
+    assert client.delete(f"/api/v1/conversations/tasks/{case_id}", headers=owner).status_code == 204
     assert client.get(ACTIVE_RUNS_URL, headers=owner).json() == {"items": [], "next_cursor": None}
     assert_private_error(client.get(url, headers=owner), 404, "unavailable")
     assert_private_error(client.post(reply_url, headers=owner, json=reply), 404, "unavailable")
