@@ -196,7 +196,8 @@ def build_reconnect_router(
                 raise ConversationBusy()
         return ConversationAccepted(thread_id=thread_id, run_id=accepted.run_id, accepted_revision=accepted.accepted_revision)
 
-    @router.get(THREAD_PATH + "/cases")
+    @router.get(THREAD_PATH + "/cases", include_in_schema=False)
+    @router.get(THREAD_PATH + "/tasks")
     def case_tasks(
         thread_id: UUID, principal: AuthenticatedOwner, db: DatabaseSession,
         language: Language = "en", after_case_id: UUID | None = None,

@@ -405,8 +405,9 @@ def test_switch_between_owned_cases_and_reopen_the_original_question(client, aut
     assert client.patch(f"/api/v1/cases/{archived}/archive", json={"archived": True}, headers=owner).status_code == 200
     client.app.include_router(build_reconnect_router(key=KEY))
 
-    path = thread_url + "/cases"
+    path = thread_url + "/tasks"
     tasks = client.get(path, headers=owner)
+    assert tasks.status_code == 200
     assert tasks.headers["Cache-Control"] == "private, no-store"
     assert {UUID(item["case_id"]): item["run_id"] for item in tasks.json()["items"]} == {
         first_case: str(first["run_id"]), second_case: None,
@@ -415,6 +416,13 @@ def test_switch_between_owned_cases_and_reopen_the_original_question(client, aut
     assert [item["case_id"] for item in client.get(
         path, headers=owner, params={"after_case_id": str(ordered[0]), "language": "it"},
     ).json()["items"]] == [str(ordered[1])]
+    # The former path remains available only as an undocumented compatibility alias.
+    legacy = client.get(thread_url + "/cases", headers=owner)
+    assert legacy.status_code == 200
+    assert legacy.json() == tasks.json()
+    schema_paths = client.app.openapi()["paths"]
+    assert "/api/v1/agent/threads/{thread_id}/tasks" in schema_paths
+    assert "/api/v1/agent/threads/{thread_id}/cases" not in schema_paths
     assert_private_error(client.get(path, headers=auth_headers("bob")), 404, "unavailable")
 
     message = {"client_message_id": str(uuid4()), "case_id": str(second_case), "text": "Second task", "language": "en"}
