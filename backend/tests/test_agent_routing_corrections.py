@@ -216,6 +216,11 @@ def test_reopened_destination_question_rechecks_saved_intake_before_retrieving(
             next_state = load_checkpoint(db, **context).state
             assert next_state.next_node == "verify_and_respond"
             assert next_state.evidence_ids and all(item.startswith(version + ":") for item in next_state.evidence_ids)
+    elif saved_state == "archived":
+        # The archive transition wins the race: no stale result or handoff is committed.
+        assert result is None
+        current = client.get(run_url, headers=owner).json()
+        assert current["status"] == "running" and current["result"] is None
     else:
         assert result.status == "completed"
         assert result.result.verification_status == "insufficient_evidence"
