@@ -20,16 +20,19 @@ router = APIRouter(
 )
 
 
-def get_case(db: Session, case_id: UUID, owner: str) -> CaseRecord:
-    record = db.scalar(
-        select(CaseRecord).where(
-            CaseRecord.id == str(case_id),
-            CaseRecord.owner_subject == owner,
-        )
+def get_case(
+    db: Session, case_id: UUID, owner: str, *, require_active: bool = False, lock: bool = False,
+) -> CaseRecord:
+    statement = select(CaseRecord).where(
+        CaseRecord.id == str(case_id),
+        CaseRecord.owner_subject == owner,
     )
+    record = db.scalar(statement.with_for_update() if lock else statement)
     if record is None:
         # Do not reveal existence of another user's (or ownerless) case.
         raise HTTPException(status_code=404, detail="Case not found")
+    if require_active and record.archived_at is not None:
+        raise HTTPException(status_code=409, detail="Restore the archived task before changing it")
     return record
 
 
