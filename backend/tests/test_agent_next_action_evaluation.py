@@ -120,7 +120,7 @@ def test_reopened_case_confirms_through_owned_intake_before_fresh_verified_hando
         key=replay.context["key"], read_evidence_scope=replay.read_scope,
     ))
     thread_url = f"/api/v1/agent/threads/{replay.context['thread_id']}"
-    intake_url = f"/api/v1/cases/{replay.case_id}/intake"
+    intake_url = f"/api/v1/conversations/tasks/{replay.case_id}/intake"
 
     def send(step):
         response = client.post(thread_url + "/messages", headers=owner, json={
