@@ -52,14 +52,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise ValueError("Preparation preview must never be enabled in production")
         if settings.preparation_target != "isolated_staging":
             raise ValueError("Preparation requires explicit isolated staging target")
-        if not (settings.enable_demo_case_api and settings.enable_knowledge_catalog_api):
-            raise ValueError("Preparation requires authenticated cases and source registry")
+        if not (settings.enable_task_api and settings.enable_knowledge_catalog_api):
+            raise ValueError("Preparation requires authenticated task API and source registry")
         from app.preparation.crypto import decode_key
         api.state.preparation_document_key = decode_key(settings.preparation_document_key)
-    if settings.enable_knowledge_catalog_api and not settings.enable_demo_case_api:
-        raise ValueError("Knowledge catalog requires the authenticated case API")
+    if settings.enable_knowledge_catalog_api and not settings.enable_task_api:
+        raise ValueError("Knowledge catalog requires the authenticated task API")
     if settings.enable_knowledge_search_api and not (
-        settings.enable_demo_case_api and settings.enable_knowledge_catalog_api
+        settings.enable_task_api and settings.enable_knowledge_catalog_api
     ):
         raise ValueError("Knowledge search requires the authenticated knowledge catalog")
     if settings.enable_assistant_api:
@@ -69,11 +69,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise ValueError("Assistant requires a dedicated usage HMAC key")
         if not 1 <= settings.assistant_daily_limit <= 50:
             raise ValueError("Assistant daily limit must be between 1 and 50")
-        if not (settings.enable_demo_case_api and settings.enable_knowledge_catalog_api
+        if not (settings.enable_task_api and settings.enable_knowledge_catalog_api
                 and settings.enable_knowledge_search_api):
-            raise ValueError("Assistant requires authenticated case and knowledge search APIs")
+            raise ValueError("Assistant requires authenticated task and knowledge search APIs")
     if settings.enable_knowledge_review_api:
-        if not settings.enable_knowledge_catalog_api or not settings.enable_demo_case_api:
+        if not settings.enable_knowledge_catalog_api or not settings.enable_task_api:
             raise ValueError("Knowledge review requires the authenticated knowledge catalog")
         if not settings.knowledge_reviewer_subjects:
             raise ValueError("Knowledge review requires an explicit reviewer subject allowlist")
@@ -85,7 +85,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok", "service": "practicamia-backend"}
 
-    if settings.enable_demo_case_api:
+    if settings.enable_task_api:
         # Fail closed at startup rather than exposing anonymous case routes.
         from app.auth.tokens import TokenVerifier
         from app.cases.router import router as task_router
