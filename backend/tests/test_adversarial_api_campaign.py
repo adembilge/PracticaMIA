@@ -11,7 +11,7 @@ import pytest
 
 from app.cases.scope import classify_scope
 
-SCOPE_PATH = "/api/v1/cases"
+SCOPE_PATH = "/api/v1/conversations/tasks"
 CANDIDATES = ["yes", "no", "unsure"]
 
 
