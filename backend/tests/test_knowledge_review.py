@@ -230,8 +230,8 @@ def test_corrupted_snapshot_and_changed_url_fail_closed(client, auth_headers):
 
 def test_case_routes_still_operate_when_review_enabled(client, auth_headers):
     owner = auth_headers("alice")
-    created = client.post("/api/v1/cases", json={}, headers=owner)
+    created = client.post("/api/v1/conversations/tasks", json={}, headers=owner)
     assert created.status_code == 201
-    assert client.get("/api/v1/cases", headers=owner).status_code == 200
-    assert client.delete("/api/v1/cases/" + created.json()["id"],
+    assert client.get("/api/v1/conversations/tasks", headers=owner).status_code == 200
+    assert client.delete("/api/v1/conversations/tasks/" + created.json()["id"],
                          headers=owner).status_code == 204
