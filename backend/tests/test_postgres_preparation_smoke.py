@@ -65,12 +65,12 @@ def test_migration_includes_preparation_tables_and_real_cascading_delete(auth_he
     alice = auth_headers("alice")
     try:
         with TestClient(app) as client:
-            case = client.post("/api/v1/cases", json={}, headers=alice)
+            case = client.post("/api/v1/conversations/tasks", json={}, headers=alice)
             assert case.status_code == 201, case.text
             case_id = case.json()["id"]
             try:
                 facts = client.put(
-                    f"/api/v1/cases/{case_id}/preparation/facts",
+                    f"/api/v1/conversations/tasks/{case_id}/preparation/facts",
                     json={"confirmed_facts": {"synthetic_eligibility": "yes"}},
                     headers=alice,
                 )
@@ -80,7 +80,7 @@ def test_migration_includes_preparation_tables_and_real_cascading_delete(auth_he
                     assert row is not None
                     assert b"synthetic_eligibility" not in row.facts_ciphertext
                 guide = client.post(
-                    f"/api/v1/cases/{case_id}/preparation/guide",
+                    f"/api/v1/conversations/tasks/{case_id}/preparation/guide",
                     json={"question": "What comes next?"}, headers=alice,
                 )
                 assert guide.status_code == 200, guide.text
@@ -93,7 +93,7 @@ def test_migration_includes_preparation_tables_and_real_cascading_delete(auth_he
                     assert b"What comes next?" not in turns[0].content_ciphertext
             finally:
                 # Explicit case deletion also exercises database FK behavior.
-                assert client.delete(f"/api/v1/cases/{case_id}", headers=alice).status_code == 204
+                assert client.delete(f"/api/v1/conversations/tasks/{case_id}", headers=alice).status_code == 204
             with app.state.session_factory() as db:
                 assert db.get(CasePreparation, case_id) is None
                 assert db.scalars(select(CaseDocument).where(
