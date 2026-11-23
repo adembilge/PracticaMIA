@@ -77,8 +77,8 @@ def require_vault_principal(
 
 def validate_release_settings(settings) -> bytes:
     """Reject incomplete configurations before mounting any private-file routes."""
-    if not settings.enable_demo_case_api:
-        raise ValueError("Private documents require authenticated cases")
+    if not settings.enable_task_api:
+        raise ValueError("Private documents require the authenticated task API")
     if settings.private_document_fixture_mode:
         if not (
             settings.deployment_environment == "preview"
