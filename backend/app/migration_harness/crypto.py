@@ -80,9 +80,13 @@ def destination_aad_v2(
         raise ValueError("Unsupported payload kind")
     if not owner_subject or not conversation_id or not record_id or not purpose:
         raise ValueError("AAD identity fields must be non-empty")
+    if task_id is not None and not task_id:
+        raise ValueError("A non-null task identity must be non-empty")
     for value in (sequence, revision, event_watermark):
         if value is not None and (type(value) is not int or value < 0):
             raise ValueError("AAD sequence and revision fields must be non-negative integers")
+    if payload_kind == "agent_message" and revision is None:
+        raise ValueError("Agent messages require an accepted revision")
     if payload_kind == "agent_event" and sequence is None:
         raise ValueError("Agent events require an event sequence")
     if payload_kind == "agent_checkpoint" and (revision is None or event_watermark is None):
@@ -230,6 +234,12 @@ def stage_verified_record(
     """
     target = _qualified_table(target_table)
     ledger = _qualified_table(ledger_table)
+    if not _SHA256.fullmatch(source_ciphertext_sha256):
+        raise MigrationQuarantine("invalid_source_ciphertext_digest")
+    if aad_version != "v2":
+        raise MigrationQuarantine("unsupported_destination_aad_version")
+    if not verify_existing(ciphertext):
+        raise MigrationQuarantine("target_payload_verification_failed")
     target_digest = sha256(ciphertext).hexdigest()
     existing = connection.execute(
         text(f"SELECT target_id, target_ciphertext_sha256, status FROM {ledger} WHERE source_id=:source_id"),
@@ -253,6 +263,10 @@ def stage_verified_record(
             or not verify_existing(row["ciphertext"])
         ):
             raise MigrationQuarantine("verified_target_revalidation_failed")
+        connection.execute(
+            text(f"UPDATE {ledger} SET attempt_count=attempt_count+1 WHERE source_id=:source_id"),
+            {"source_id": source_id},
+        )
         return "already_verified"
 
     existing_target = connection.execute(
