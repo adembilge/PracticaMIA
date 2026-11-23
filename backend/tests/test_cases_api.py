@@ -10,7 +10,13 @@ from fastapi.testclient import TestClient
 from app.cases.model import CaseRecord
 from app.config import Settings
 from app.main import create_app
+from app.database import configure_database
 from conftest import AUDIENCE, ISSUER, JWKS_URL
+
+
+def test_database_configuration_requires_a_database_url():
+    with pytest.raises(ValueError, match="DATABASE_URL is required to configure the database"):
+        configure_database("")
 
 
 def test_health_available_with_case_api_disabled():

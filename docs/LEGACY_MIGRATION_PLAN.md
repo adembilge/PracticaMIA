@@ -25,12 +25,14 @@ The goal is to remove the old case-management architectureâ€”not merely hide itâ
 
 - `CaseRecord` and `CaseIntake` are still the source of internal task scope and confirmed categorical facts.
 - Private-document, preparation, checklist-progress and proposal records reference case IDs.
-- `AgentThreadCase` and case-linked agent operations preserve historical links.
+- `AgentThreadCase` is still read by case-context projection, worker lease ownership checks, run acceptance and approved catalogue evidence. `agent_run_requests` has a composite foreign key to `(agent_thread_cases.thread_id, agent_thread_cases.case_id)`; `agent_case_operations` references both run and case records. These links cannot be removed as dead code.
+- `AgentRunRequest.case_id` is included in AES-GCM associated data for encrypted user messages, run events and checkpoints. Renaming or reparenting those records requires an explicit decrypt/re-encrypt migration with key-availability and integrity verification; a column-only rename is insufficient.
+- `private_case_documents` ciphertext is bound by associated data containing case ID, owner subject and document ID. `case_preparations` and `case_documents` contain encrypted payloads; deletion or reassignment would invalidate recovery or retention guarantees.
 - Alembic history contains case-named tables, constraints and foreign keys. Existing records may include encrypted content and audit-relevant state.
 
 ### Configuration and documentation
 
-- `ENABLE_TASK_API` is now the canonical backend feature gate for task routes and their knowledge, preparation and agent prerequisites. `ENABLE_DEMO_CASE_API` remains a temporary environment-variable fallback, and `enable_demo_case_api` remains a constructor compatibility alias; remove both only after deployment and test callers have migrated.
+- PR #257 removed the `ENABLE_DEMO_CASE_API` fallback and `enable_demo_case_api` constructor alias. `ENABLE_TASK_API` is the sole supported task-route activation flag and remains disabled by default.
 - Several runbooks and older research documents retain case-oriented API names. Historical research may remain as provenance, but active product and operational documentation must describe the current chat/task contract.
 
 ## Migration sequence
@@ -56,7 +58,7 @@ The goal is to remove the old case-management architectureâ€”not merely hide itâ
 - Removed the unused `/threads/{thread_id}/tasks` listing and its undocumented `/cases` alias; deleted the list-only projection. Internal owner-scoped case binding and resume logic remain because agent execution and approval records still depend on them.
 - Replace customer-domain terminology in runtime code with private task/workflow terminology.
 - Separate task scope and confirmed user facts from document preparation and agent execution.
-- Remove case-selection and thread-to-case linking behavior where the single-chat contract no longer needs it.
+- Remove case-selection and thread-to-case linking only after the current run, resume, shared-fact and evidence-scope dependencies have been replaced and regression-tested. The existing links are still operational dependencies, not dead code.
 - Keep evidence, proposal, approval and owner authorization invariants intact.
 - Retain compatibility adapters only where a verified migration still requires them; do not expose them publicly.
 
