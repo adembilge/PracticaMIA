@@ -15,7 +15,7 @@ The goal is to remove the old case-management architectureâ€”not merely hide itâ
 ### HTTP/API layer
 
 - FastAPI case CRUD router: `backend/app/cases/router.py`, mounted by `backend/app/main.py`.
-- Intake API: `backend/app/cases/intake_router.py`; the frontend `/api/conversations/tasks/{id}/intake` adapter still proxies to `/api/v1/cases/{id}/intake`.
+- Intake API: `backend/app/cases/intake_router.py`, mounted only at `/api/v1/conversations/tasks/{id}/intake`. The legacy `/api/v1/cases/{id}/intake` alias has been removed; the frontend adapter already uses the canonical route.
 - Checklist, workflow and package endpoints: `checklist_router.py`, `workflow_router.py`, `package_router.py`.
 - Private-document and preparation endpoints still carry case identifiers and case-oriented paths.
 - Agent reconnect transport still contains case-linked request/response models and internal thread-to-case link persistence. The former thread task-picker endpoint has been removed; no customer-facing picker is permitted.
@@ -44,7 +44,7 @@ The goal is to remove the old case-management architectureâ€”not merely hide itâ
 ### M1 â€” Canonical conversation/task API
 
 - Define typed task resource contracts under conversation/task routes.
-- Move intake, checklist, workflow and preparation operations behind those routes.
+- Move intake, checklist, workflow and preparation operations behind those routes. Intake is complete: the frontend and backend use only the canonical task route, and the old intake alias is removed.
 - Update the frontend BFF to call only the canonical routes.
 - Add owner-isolation, CSRF/origin, validation, idempotency and old-route-negative tests.
 - Remove the old public case CRUD and route aliases only after all supported callers and tests have moved.
