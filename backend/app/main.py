@@ -151,9 +151,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             api.include_router(knowledge_router)
             for task_router_part in (checklist_router, package_router, workflow_router):
                 api.include_router(task_router_part, prefix="/api/v1/conversations/tasks")
-                api.include_router(
-                    task_router_part, prefix="/api/v1/cases", include_in_schema=False
-                )
             if settings.enable_knowledge_search_api:
                 from app.knowledge.search_router import router as search_router
                 api.include_router(search_router)
