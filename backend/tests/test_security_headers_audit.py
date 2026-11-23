@@ -12,7 +12,7 @@ HEADERS = {
 @pytest.mark.parametrize("path,expected_status", [
     ("/health", 200),
     ("/not-a-route", 404),
-    ("/api/v1/cases", 401),
+    ("/api/v1/conversations/tasks", 401),
     ("/api/v1/knowledge/review/queue", 401),
 ])
 def test_basic_security_headers_are_applied_on_all_api_responses(
