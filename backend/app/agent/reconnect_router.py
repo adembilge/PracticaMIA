@@ -15,7 +15,7 @@ from app.agent.approval_resume import ApprovedCaseUpdates, resume_approved_case_
 from app.agent.checkpoints import CheckpointConflict, RunRevisionConflict, stop_run, submit_clarification_reply
 from app.agent.contract import (
     ActiveRunCursor, ActiveRunCursorTime, ActiveRunPage, ApprovalDecided, ClarificationReply, ContractModel,
-    EventPage, Language, PassageId, PositiveInt, QuestionAnswered, RunSnapshot, SendMessage, StopRun,
+    EventPage, PassageId, PositiveInt, QuestionAnswered, RunSnapshot, SendMessage, StopRun,
     SubmitProposalDecision,
 )
 from app.agent.proposal_decisions import InvalidProposalValue, ProposalDecisionConflict, submit_proposal_decision
