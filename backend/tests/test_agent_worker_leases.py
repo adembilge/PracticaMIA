@@ -361,3 +361,104 @@ def test_stopping_an_inflight_run_discards_the_late_worker_result(queued_run):
         page = read_run_events(db, **context, after_seq=0)
         assert [event.type for event in page.events] == ["run.started", "run.stopped"]
         assert page.events[-1].committed_operation_ids == []
+
+
+def test_worker_does_not_claim_queued_run_for_archived_task(queued_run):
+    factory, unlinked_context, _, _ = queued_run
+    # Drain the fixture's unlinked run so the only queued candidate is task-linked.
+    assert run_worker_batch(
+        factory, key=KEY, lease_for=LEASE_FOR, execute=lambda *_: ANSWER,
+        max_steps=5,
+    ) == 1
+    case_id = uuid4()
+    with factory.begin() as db:
+        case = CaseRecord(
+            id=str(case_id), procedure="milan_residence_change", owner_subject=ALICE.subject,
+        )
+        db.add(case)
+        thread_id = create_thread(db, principal=ALICE)
+        db.add(AgentThreadCase(thread_id=str(thread_id), case_id=str(case_id)))
+        db.flush()
+        accepted = accept_message(
+            db, thread_id=thread_id, principal=ALICE, key=KEY,
+            message=request(case_id=case_id),
+        )
+        assert accepted.outcome == "accepted"
+        case.archived_at = datetime.now(timezone.utc)
+    with factory.begin() as db:
+        assert claim_next_run(db, lease_for=LEASE_FOR) is None
+
+
+def test_inflight_worker_discards_result_if_task_is_archived_during_execution(queued_run):
+    factory, _, _, _ = queued_run
+    # Drain the fixture's unrelated unlinked run.
+    assert run_worker_batch(
+        factory, key=KEY, lease_for=LEASE_FOR, execute=lambda *_: ANSWER,
+        max_steps=5,
+    ) == 1
+    case_id = uuid4()
+    with factory.begin() as db:
+        case = CaseRecord(
+            id=str(case_id), procedure="milan_residence_change", owner_subject=ALICE.subject,
+        )
+        db.add(case)
+        thread_id = create_thread(db, principal=ALICE)
+        db.add(AgentThreadCase(thread_id=str(thread_id), case_id=str(case_id)))
+        db.flush()
+        accepted = accept_message(
+            db, thread_id=thread_id, principal=ALICE, key=KEY,
+            message=request(case_id=case_id),
+        )
+        assert accepted.outcome == "accepted"
+
+    def archive_during_execution(_, state):
+        with factory.begin() as db:
+            db.get(CaseRecord, str(case_id)).archived_at = datetime.now(timezone.utc)
+        return ANSWER
+
+    discarded = run_worker_step(
+        factory, thread_id=thread_id, run_id=accepted.run_id,
+        principal=ALICE, key=KEY, execute=archive_during_execution,
+    )
+    assert discarded is None
+    with factory.begin() as db:
+        assert claim_next_run(db, lease_for=LEASE_FOR) is None
+        db.get(CaseRecord, str(case_id)).archived_at = None
+    with factory.begin() as db:
+        lease = claim_next_run(db, lease_for=LEASE_FOR)
+        assert lease is not None
+        assert lease.run_id == accepted.run_id
+
+
+def test_inflight_worker_discards_result_if_task_is_deleted_during_execution(queued_run):
+    factory, _, _, _ = queued_run
+    assert run_worker_batch(
+        factory, key=KEY, lease_for=LEASE_FOR, execute=lambda *_: ANSWER,
+        max_steps=5,
+    ) == 1
+    case_id = uuid4()
+    with factory.begin() as db:
+        db.add(CaseRecord(
+            id=str(case_id), procedure="milan_residence_change", owner_subject=ALICE.subject,
+        ))
+        thread_id = create_thread(db, principal=ALICE)
+        db.add(AgentThreadCase(thread_id=str(thread_id), case_id=str(case_id)))
+        db.flush()
+        accepted = accept_message(
+            db, thread_id=thread_id, principal=ALICE, key=KEY,
+            message=request(case_id=case_id),
+        )
+        assert accepted.outcome == "accepted"
+
+    def delete_during_execution(_, state):
+        with factory.begin() as db:
+            db.delete(db.get(CaseRecord, str(case_id)))
+        return ANSWER
+
+    discarded = run_worker_step(
+        factory, thread_id=thread_id, run_id=accepted.run_id,
+        principal=ALICE, key=KEY, execute=delete_during_execution,
+    )
+    assert discarded is None
+    with factory.begin() as db:
+        assert claim_next_run(db, lease_for=LEASE_FOR) is None

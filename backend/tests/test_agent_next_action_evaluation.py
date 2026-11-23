@@ -242,9 +242,13 @@ def test_saved_filing_rechecks_the_case_before_publishing_a_reviewed_channel(mon
         invalidate_case=invalidate_case,
     )
     assert not report["passed"]
-    assert saved.result.verification_status == "insufficient_evidence"
-    assert saved.result.official_channel is None and saved.result.citations == []
-    assert saved.result.next_action.operation == "provide_information"
+    if invalidate == "archive":
+        # The commit-boundary archive guard discards the in-flight answer entirely.
+        assert saved is None
+    else:
+        assert saved.result.verification_status == "insufficient_evidence"
+        assert saved.result.official_channel is None and saved.result.citations == []
+        assert saved.result.next_action.operation == "provide_information"
 
 
 def test_outdated_upload_limit_gives_a_form_check_without_reusing_the_number(monkeypatch):

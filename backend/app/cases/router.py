@@ -20,16 +20,19 @@ router = APIRouter(
 )
 
 
-def get_case(db: Session, case_id: UUID, owner: str) -> CaseRecord:
-    record = db.scalar(
-        select(CaseRecord).where(
-            CaseRecord.id == str(case_id),
-            CaseRecord.owner_subject == owner,
-        )
+def get_case(
+    db: Session, case_id: UUID, owner: str, *, require_active: bool = False, lock: bool = False,
+) -> CaseRecord:
+    statement = select(CaseRecord).where(
+        CaseRecord.id == str(case_id),
+        CaseRecord.owner_subject == owner,
     )
+    record = db.scalar(statement.with_for_update() if lock else statement)
     if record is None:
         # Do not reveal existence of another user's (or ownerless) case.
         raise HTTPException(status_code=404, detail="Case not found")
+    if require_active and record.archived_at is not None:
+        raise HTTPException(status_code=409, detail="Restore the archived task before changing it")
     return record
 
 
@@ -89,6 +92,8 @@ def update_scope(
     ).with_for_update())
     if record is None:
         raise HTTPException(404, "Case not found")
+    if record.archived_at is not None:
+        raise HTTPException(409, "Restore the archived task before changing its scope")
     if record.scope_answers != list(payload.answers):
         # Scope edits invalidate and erase downstream confirmations.
         db.execute(delete(CaseIntake).where(
@@ -130,7 +135,8 @@ def delete_case(
     db: Session = Depends(get_session),
     principal: Principal = Depends(get_principal),
 ):
-    record = get_case(db, case_id, principal.subject)
+    # Lock the task before cascading into runs/documents; workers use the same order.
+    record = get_case(db, case_id, principal.subject, lock=True)
     # Explicit cleanup also works with SQLite fixtures without FK enforcement.
     db.execute(delete(CaseIntake).where(
         CaseIntake.case_id == str(case_id),

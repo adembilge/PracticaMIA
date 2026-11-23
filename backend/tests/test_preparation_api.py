@@ -443,3 +443,26 @@ def test_pending_municipal_rules_still_report_confirmed_document_discrepancy(
     assert after["status"] == "blocked"
     assert after["package"] is None
     assert http.get(base + "/handoff", headers=owner).status_code == 409
+
+
+def test_archived_task_keeps_reads_but_rejects_preparation_writes(preparation_client, auth_headers):
+    http = preparation_client
+    owner = auth_headers("alice")
+    created = http.post("/api/v1/conversations/tasks", json={}, headers=owner)
+    assert created.status_code == 201
+    case_id = created.json()["id"]
+    base = f"/api/v1/conversations/tasks/{case_id}/preparation"
+
+    archived = http.patch(
+        f"/api/v1/conversations/tasks/{case_id}/archive",
+        json={"archived": True}, headers=owner,
+    )
+    assert archived.status_code == 200
+    assert http.get(base, headers=owner).status_code == 200
+    blocked = http.put(
+        base + "/facts",
+        json={"confirmed_facts": {"housing_arrangement": "fictional_rental"}},
+        headers=owner,
+    )
+    assert blocked.status_code == 409
+    assert http.get(base, headers=owner).json()["confirmed_facts"] == {}

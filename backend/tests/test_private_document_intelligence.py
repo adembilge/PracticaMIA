@@ -360,3 +360,23 @@ def test_date_formats_for_the_same_day_are_not_ambiguous():
     assert len(sample["candidates"]) == 2
     assert sample["ambiguous_fields"] == []
     assert {item["suggested_value"] for item in sample["candidates"]} == {"2026-11-05"}
+
+
+def test_archived_task_blocks_private_document_extraction_and_review(document_client, auth_headers):
+    client = document_client
+    owner = auth_headers("alice")
+    case_id = prepare_case(client, owner)
+    document_id = upload(
+        client, owner, case_id,
+        sample_pdf("Housing arrangement: Registered private rental agreement"),
+    )
+    archived = client.patch(
+        f"/api/v1/conversations/tasks/{case_id}/archive",
+        json={"archived": True}, headers=owner,
+    )
+    assert archived.status_code == 200
+    response = client.post(
+        f"/api/v1/conversations/tasks/{case_id}/private-documents/{document_id}/intelligence/extract",
+        headers=owner,
+    )
+    assert response.status_code == 409

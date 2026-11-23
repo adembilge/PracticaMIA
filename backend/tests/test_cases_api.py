@@ -198,6 +198,11 @@ def test_case_archive_is_reversible_private_and_idempotent(client, auth_headers)
     assert archived["archived_at"]
     assert archived["scope_answers"] == saved["scope_answers"]
     assert archived["status"] == saved["status"]
+    blocked_scope = client.patch(
+        url + "/scope", json={"answers": ["yes", "yes", "yes", "no", "yes"]}, headers=alice,
+    )
+    assert blocked_scope.status_code == 409
+    assert client.get(url, headers=alice).json()["scope_answers"] == saved["scope_answers"]
     repeat = client.patch(url + "/archive", json={"archived": True}, headers=alice).json()
     assert repeat["archived_at"] == archived["archived_at"]
     assert client.get(base, headers=alice).json() == []
