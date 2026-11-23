@@ -15,13 +15,13 @@
 
 ## Current cleanup priority
 
-Continue the legacy case-to-conversation/task migration in bounded, reversible increments. M2.4 target ownership and lifecycle model is complete; M2.5 encrypted-payload migration/consistency design is the next cleanup item. Do not drop or rewrite stored records until a migration preserves owner isolation, encryption, event history, document retention and recovery. Keep Phase 5 paused during this work.
+Continue the legacy case-to-conversation/task migration in bounded, reversible increments. M2.4 target ownership/lifecycle model and M2.5 encrypted-payload migration/consistency design baselines are complete. M2.5 review and operator key-custody evidence are pending; M3 remains blocked. Do not drop or rewrite stored records until a migration preserves owner isolation, encryption, event history, document retention and recovery. Keep Phase 5 paused during this work.
 
 ## Cleanup milestone status
 
 - M2.4 target conversation/task ownership model: complete; see `TASK_CONVERSATION_TARGET_MODEL.md`.
-- M2.5 encrypted-payload migration and consistency strategy: next; design-only until separately reviewed.
-- M3 data migration and M4 runtime removal remain blocked on M2.5 approval and recovery evidence.
+- M2.5 encrypted-payload migration and consistency strategy: design baseline complete; engineering/security/operator approval and key-custody evidence pending.
+- M3 data migration and M4 runtime removal remain blocked on M2.5 approval, disposable dry-run and recovery evidence.
 
 ## Phase 4 priorities
 
