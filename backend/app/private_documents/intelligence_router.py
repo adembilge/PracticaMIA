@@ -32,7 +32,7 @@ def _now():
 
 
 router = APIRouter(
-    prefix="/api/v1/cases", tags=["private-document-intelligence"],
+    prefix="", tags=["private-document-intelligence"],
     dependencies=[Depends(require_vault_principal)],
 )
 
