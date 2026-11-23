@@ -39,7 +39,7 @@ def sample_pdf(*lines):
 
 
 def prepare_case(client, headers):
-    case_id=client.post("/api/v1/cases",json={},headers=headers).json()["id"]
+    case_id=client.post("/api/v1/conversations/tasks",json={},headers=headers).json()["id"]
     response=client.patch(f"/api/v1/conversations/tasks/{case_id}/scope",
                           json={"answers":SCOPE},headers=headers)
     assert response.status_code==200
