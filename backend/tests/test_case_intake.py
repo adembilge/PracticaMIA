@@ -206,9 +206,10 @@ def test_canonical_conversation_task_intake_route_and_hidden_legacy_alias(client
     canonical = f"/api/v1/conversations/tasks/{task_id}/intake"
     legacy = f"/api/v1/cases/{task_id}/intake"
 
+    # OpenAPI paths use the route template, not the concrete task UUID.
     paths = client.app.openapi()["paths"]
-    assert canonical in paths
-    assert legacy not in paths
+    assert "/api/v1/conversations/tasks/{case_id}/intake" in paths
+    assert "/api/v1/cases/{case_id}/intake" not in paths
     assert client.get(canonical).status_code == 401
     assert client.get(canonical, headers=stranger).status_code == 404
     assert client.get(canonical, headers=owner).status_code == 200
