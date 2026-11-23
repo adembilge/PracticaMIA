@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from app.cases import checklist_service as svc
 from test_case_checklist import create_case, confirmed_intake, FACTS, SCOPE
 
-ROOT="/api/v1/cases"
+ROOT="/api/v1/conversations/tasks"
 
 
 def evidence(ref, reviewed="2026-11-08"):

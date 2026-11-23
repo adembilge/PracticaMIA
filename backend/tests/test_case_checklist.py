@@ -20,7 +20,7 @@ FACTS = {
     "household_scope": "individual_no_aggregation",
     "housing_basis": "registered_private_rental",
 }
-FIRST = "/api/v1/cases"
+FIRST = "/api/v1/conversations/tasks"
 
 
 def create_case(client, headers, *, scoped=True):

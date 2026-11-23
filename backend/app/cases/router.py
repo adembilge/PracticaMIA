@@ -1,4 +1,4 @@
-"""Authenticated, owner-scoped synthetic-demo case routes."""
+"""Authenticated, owner-scoped conversation task routes."""
 from datetime import datetime, timezone
 from typing import Literal
 from uuid import UUID, uuid4
@@ -15,8 +15,7 @@ from app.cases.scope import classify_scope
 from app.database import get_session
 
 router = APIRouter(
-    prefix="/api/v1/cases",
-    tags=["demo-cases"],
+    tags=["conversation-tasks"],
     dependencies=[Depends(get_principal)],
 )
 
