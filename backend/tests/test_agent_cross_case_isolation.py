@@ -5,12 +5,14 @@ from datetime import date
 from uuid import UUID, uuid4
 
 import pytest
+from sqlalchemy import select
 
 from app.agent.answer_evidence import AnswerEvidenceScope, ClaimPassageSupport, ReviewedClaimSupport
 from app.agent.candidate_resolution import choose_candidate_step
 from app.agent.catalogue_evidence import catalogue_passage
 from app.agent.contract import AnswerResult, EvidenceLinkedClaim
 from app.agent.reconnect_router import build_reconnect_router
+from app.agent.run_requests import AgentRunRequest
 from app.agent.run_events import read_run_events
 from app.agent.threads import create_thread, link_case_to_thread
 from app.agent.worker import run_worker_step
@@ -162,10 +164,17 @@ def test_two_pending_cases_keep_documents_replies_and_citations_separate(documen
         waiting.append(client.get(url, headers=owner).json())
 
     assert questions[0]["question_id"] != questions[1]["question_id"]
-    tasks = client.get(thread_url + "/cases", headers=owner).json()["items"]
-    assert {item["case_id"]: item["run_id"] for item in tasks} == {
+    # Verify per-case active run binding directly; the customer task-picker endpoint is removed.
+    with factory() as db:
+        active_runs = db.scalars(select(AgentRunRequest).where(
+            AgentRunRequest.thread_id == str(thread_id),
+            AgentRunRequest.case_id.in_([str(case_id) for case_id in case_ids]),
+        )).all()
+    assert {run.case_id: run.id for run in active_runs} == {
         case_id: str(context["run_id"]) for case_id, context in zip(case_ids, contexts, strict=True)
     }
+    assert client.get(thread_url + "/cases", headers=owner).status_code == 404
+    assert client.get(thread_url + "/tasks", headers=owner).status_code == 404
     for index, sibling in (order, order[::-1]):
         sibling_before = client.get(urls[sibling] + "/events", headers=owner).json()
         reply = {

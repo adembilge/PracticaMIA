@@ -390,7 +390,7 @@ def test_owned_completed_chat_history_paginates_without_cross_account_access(cli
         assert reopened.get(recent_url, headers=other).json()["items"] == []
 
 
-def test_switch_between_owned_cases_and_reopen_the_original_question(client, auth_headers, paused_run):
+def test_switch_between_owned_cases_without_exposing_a_case_picker(client, auth_headers, paused_run):
     first, question, first_case = paused_run
     owner = auth_headers()
     thread_url = f"/api/v1/agent/threads/{first['thread_id']}"
@@ -405,25 +405,12 @@ def test_switch_between_owned_cases_and_reopen_the_original_question(client, aut
     assert client.patch(f"/api/v1/cases/{archived}/archive", json={"archived": True}, headers=owner).status_code == 200
     client.app.include_router(build_reconnect_router(key=KEY))
 
-    path = thread_url + "/tasks"
-    tasks = client.get(path, headers=owner)
-    assert tasks.status_code == 200
-    assert tasks.headers["Cache-Control"] == "private, no-store"
-    assert {UUID(item["case_id"]): item["run_id"] for item in tasks.json()["items"]} == {
-        first_case: str(first["run_id"]), second_case: None,
-    }
-    ordered = sorted([first_case, second_case])
-    assert [item["case_id"] for item in client.get(
-        path, headers=owner, params={"after_case_id": str(ordered[0]), "language": "it"},
-    ).json()["items"]] == [str(ordered[1])]
-    # The former path remains available only as an undocumented compatibility alias.
-    legacy = client.get(thread_url + "/cases", headers=owner)
-    assert legacy.status_code == 200
-    assert legacy.json() == tasks.json()
+    # Saved-record selection stays inside the conversation agent; no task/case picker API is exposed.
+    for path in (thread_url + "/tasks", thread_url + "/cases"):
+        assert client.get(path, headers=owner).status_code == 404
     schema_paths = client.app.openapi()["paths"]
-    assert "/api/v1/agent/threads/{thread_id}/tasks" in schema_paths
+    assert "/api/v1/agent/threads/{thread_id}/tasks" not in schema_paths
     assert "/api/v1/agent/threads/{thread_id}/cases" not in schema_paths
-    assert_private_error(client.get(path, headers=auth_headers("bob")), 404, "unavailable")
 
     message = {"client_message_id": str(uuid4()), "case_id": str(second_case), "text": "Second task", "language": "en"}
     send_url = thread_url + "/messages"
@@ -454,9 +441,7 @@ def test_switch_between_owned_cases_and_reopen_the_original_question(client, aut
         second_question, CheckpointState(next_node="find_evidence"),
     ))
     assert second_pause.status == "waiting_for_information"
-    assert {item["run_id"] for item in client.get(path, headers=owner).json()["items"]} == {
-        str(first["run_id"]), str(second["run_id"]),
-    }
+    assert client.get(thread_url + "/tasks", headers=owner).status_code == 404
     assert client.get(first_url + "/events", headers=owner).json()["events"][-1]["question"] == (
         question.model_dump(mode="json")
     )
