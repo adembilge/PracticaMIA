@@ -13,7 +13,7 @@ This is a code and data-architecture migration plan. It does not authorize produ
 
 ## 2. Current baseline
 
-- PRs #246–#266 are merged; PR #265 contains the latest runtime change and PR #266 consolidated the cleanup plan.
+- PRs #246–#267 are merged; PR #265 contains the latest runtime change, PR #266 consolidated the cleanup plan and PR #267 completed M2.4.
 - Public legacy case API aliases and customer-facing case/task/demo navigation have been removed in earlier increments.
 - Canonical task operations are routed under `/api/v1/conversations/tasks`.
 - `ENABLE_TASK_API` is the only supported task-route activation flag and remains disabled by default.
@@ -59,14 +59,14 @@ Acceptance:
 
 ### M2.5 — Specify encrypted-payload migration and consistency strategy
 
-**Status:** Next cleanup item — M2.4 is complete; M2.5 requires its own design and approval before any migration.
+**Status:** Design baseline complete; engineering/security/operator review pending. See [encrypted payload migration strategy](ENCRYPTED_PAYLOAD_MIGRATION_STRATEGY.md). No key access, schema change, data mutation, re-encryption or deployment change was made.
 
 Deliverables:
-- Inventory key sources, key versions and AAD dimensions for each encrypted record class.
-- Define authenticated decrypt → validate → re-encrypt flow for the destination identity/AAD.
-- Define write-fence or a fully specified dual-write/replay strategy; do not assume dual-write is safe.
+- Inventory source key configuration and AAD dimensions for each encrypted record class; obtain actual deployed key versions/custody evidence from the authorized operator.
+- Define authenticated decrypt → validate → re-encrypt → destination decrypt verification for the destination identity/AAD.
+- Use a bounded write fence and staged idempotent ledger; do not dual-write without a separately proven replay/conflict protocol.
 - Define idempotency, conflict handling, retry, quarantine and no-plaintext logging behavior.
-- Define dry-run evidence, rollback and recovery window.
+- Define dry-run evidence, retention race handling, pre-cutover rollback and post-cutover recovery boundary.
 
 Acceptance:
 - Every encrypted payload class has a verified migration procedure and failure mode.
@@ -75,7 +75,7 @@ Acceptance:
 
 ### M3 — Build and validate the reversible data migration
 
-**Status:** Blocked on M2.4 and M2.5 approval
+**Status:** Blocked on M2.4 and M2.5 engineering/security/operator approval and key-custody evidence
 
 Deliverables:
 - Alembic upgrade and downgrade/recovery strategy for the approved target model.
