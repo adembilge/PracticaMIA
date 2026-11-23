@@ -88,7 +88,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if settings.enable_demo_case_api:
         # Fail closed at startup rather than exposing anonymous case routes.
         from app.auth.tokens import TokenVerifier
-        from app.cases.router import router
+        from app.cases.router import router as task_router
 
         api.state.token_verifier = TokenVerifier(settings)
         engine, session_factory = configure_database(settings.database_url)
@@ -122,7 +122,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             if revision not in {"20261109_0013", "20261109_0014", "20261109_0015", "20261109_0016", "20261116_0017", "20261118_0018", "20261118_0019", "20261118_0020", "20261118_0021", "20261118_0022", "20261119_0023", "20261119_0024"}:
                 engine.dispose()
                 raise ValueError("Private documents require migrated 0013 schema")
-        api.include_router(router)
+        # Canonical task contract. The former case paths remain runtime-only
+        # compatibility aliases while internal callers are migrated incrementally.
+        api.include_router(task_router, prefix="/api/v1/conversations/tasks")
+        api.include_router(task_router, prefix="/api/v1/cases", include_in_schema=False)
         from app.cases.intake_router import router as task_intake_router, legacy_router as legacy_case_intake_router
         api.include_router(task_intake_router)
         # Temporary, undocumented compatibility route for internal callers.
@@ -147,9 +150,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             from app.cases.package_router import router as package_router
             from app.cases.workflow_router import router as workflow_router
             api.include_router(knowledge_router)
-            api.include_router(checklist_router)
-            api.include_router(package_router)
-            api.include_router(workflow_router)
+            for task_router_part in (checklist_router, package_router, workflow_router):
+                api.include_router(task_router_part, prefix="/api/v1/conversations/tasks")
+                api.include_router(
+                    task_router_part, prefix="/api/v1/cases", include_in_schema=False
+                )
             if settings.enable_knowledge_search_api:
                 from app.knowledge.search_router import router as search_router
                 api.include_router(search_router)

@@ -11,7 +11,7 @@ from app.cases.router import get_case
 from app.cases.checklist_service import build_case_checklist
 from app.database import get_session
 
-router = APIRouter(prefix="/api/v1/cases", tags=["reviewed-checklist"],
+router = APIRouter(tags=["reviewed-checklist"],
                    dependencies=[Depends(get_principal)])
 
 

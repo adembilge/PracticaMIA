@@ -20,7 +20,7 @@ from app.cases.workflow_service import build_workflow
 from app.database import get_session
 
 router = APIRouter(
-    prefix="/api/v1/cases", tags=["unified-case-workflow"],
+    tags=["unified-task-workflow"],
     dependencies=[Depends(get_principal)],
 )
 

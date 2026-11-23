@@ -19,7 +19,7 @@ from app.cases.package_pdf import render_preparation_pdf
 from app.database import get_session
 
 router = APIRouter(
-    prefix="/api/v1/cases", tags=["preparation-export"],
+    tags=["task-preparation-export"],
     dependencies=[Depends(get_principal)],
 )
 

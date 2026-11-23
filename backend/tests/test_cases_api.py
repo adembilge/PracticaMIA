@@ -204,3 +204,26 @@ def test_case_archive_is_reversible_private_and_idempotent(client, auth_headers)
     assert restored["scope_answers"] == saved["scope_answers"]
     assert [case["id"] for case in client.get(base, headers=alice).json()] == [created["id"]]
     assert client.get(base + "?view=archived", headers=alice).json() == []
+
+
+
+def test_canonical_conversation_task_crud_and_hidden_legacy_alias(client, auth_headers):
+    owner = auth_headers("alice")
+    paths = client.app.openapi()["paths"]
+    assert "/api/v1/conversations/tasks" in paths
+    assert "/api/v1/conversations/tasks/{case_id}" in paths
+    assert "/api/v1/conversations/tasks/{case_id}/scope" in paths
+    assert "/api/v1/conversations/tasks/{case_id}/archive" in paths
+    assert "/api/v1/cases" not in paths
+    assert "/api/v1/cases/{case_id}" not in paths
+
+    created = client.post("/api/v1/conversations/tasks", json={}, headers=owner)
+    assert created.status_code == 201, created.text
+    task_id = created.json()["id"]
+    assert client.get(f"/api/v1/conversations/tasks/{task_id}", headers=owner).status_code == 200
+    assert client.get(f"/api/v1/conversations/tasks/{task_id}", headers=auth_headers("bob")).status_code == 404
+    assert client.delete(f"/api/v1/conversations/tasks/{task_id}", headers=owner).status_code == 204
+
+    # Compatibility is available to old callers but deliberately absent from OpenAPI.
+    legacy = client.post("/api/v1/cases", json={}, headers=owner)
+    assert legacy.status_code == 201, legacy.text
