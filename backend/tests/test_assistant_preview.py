@@ -68,10 +68,16 @@ def test_preview_route_is_disabled_by_default_and_rejected_in_production():
         create_app(Settings(enable_assistant_api=True, deployment_environment="production"))
 
 
-def test_assistant_uses_canonical_task_route_and_hides_legacy_alias(assistant_client):
+def test_assistant_uses_canonical_task_route_and_removes_legacy_alias(assistant_client, auth_headers):
     paths = assistant_client.app.openapi()["paths"]
     assert "/api/v1/conversations/tasks/{case_id}/assistant/ask" in paths
     assert "/api/v1/cases/{case_id}/assistant/ask" not in paths
+    owner = auth_headers("alice")
+    owned = case_id(assistant_client, owner)
+    assert assistant_client.post(
+        f"/api/v1/cases/{owned}/assistant/ask",
+        json={"question": "residenza", "language": "it"}, headers=owner,
+    ).status_code == 404
 
 
 def test_case_bound_auth_and_cross_user_isolation(assistant_client, auth_headers):

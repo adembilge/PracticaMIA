@@ -98,10 +98,17 @@ def test_default_off_and_require_all_release_gates():
             validate_release_settings(replace(enabled_settings(), **bad))
 
 
-def test_document_vault_uses_canonical_task_route_and_hides_legacy_alias(document_client):
+def test_document_vault_uses_canonical_task_route_and_removes_legacy_alias(document_client, auth_headers):
     paths = document_client.app.openapi()["paths"]
     assert "/api/v1/conversations/tasks/{case_id}/private-documents" in paths
     assert "/api/v1/cases/{case_id}/private-documents" not in paths
+    owner = auth_headers("alice")
+    task = document_client.post("/api/v1/conversations/tasks", json={}, headers=owner)
+    assert task.status_code == 201
+    case_id = task.json()["id"]
+    assert document_client.get(
+        f"/api/v1/cases/{case_id}/private-documents", headers=owner,
+    ).status_code == 404
 
 
 def test_hosted_fixture_mode_only_accepts_the_isolated_preview_configuration():

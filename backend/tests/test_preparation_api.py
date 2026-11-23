@@ -64,10 +64,17 @@ def preparation_client(tmp_path):
     api.state.engine.dispose()
 
 
-def test_preparation_uses_canonical_task_route_and_hides_legacy_alias(preparation_client):
+def test_preparation_uses_canonical_task_route_and_removes_legacy_alias(preparation_client, auth_headers):
     paths = preparation_client.app.openapi()["paths"]
     assert "/api/v1/conversations/tasks/{case_id}/preparation" in paths
     assert "/api/v1/cases/{case_id}/preparation" not in paths
+    owner = auth_headers("alice")
+    task = preparation_client.post("/api/v1/conversations/tasks", json={}, headers=owner)
+    assert task.status_code == 201
+    case_id = task.json()["id"]
+    assert preparation_client.get(
+        f"/api/v1/cases/{case_id}/preparation", headers=owner,
+    ).status_code == 404
 
 
 def test_preparation_cannot_be_enabled_in_production():

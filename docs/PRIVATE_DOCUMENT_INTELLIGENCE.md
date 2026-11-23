@@ -37,7 +37,7 @@ unsupported and unreadable documents never silently pass.
 
 ## Routes
 
-- `GET /api/v1/cases/{case_id}/private-documents/{document_id}/intelligence`
+- `GET /api/v1/conversations/tasks/{case_id}/private-documents/{document_id}/intelligence`
 - `POST .../intelligence/extract` — idempotent after first extraction.
 - `PUT .../intelligence/review` — requires exactly mapped candidate IDs,
   bounded typed corrections, unchanged extraction digest and explicit `confirm`.

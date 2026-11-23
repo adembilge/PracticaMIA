@@ -92,6 +92,9 @@ def test_private_housing_extraction_review_comparison_and_isolation(
     paths=client.app.openapi()["paths"]
     assert "/api/v1/conversations/tasks/{case_id}/private-documents/{document_id}/intelligence" in paths
     assert "/api/v1/cases/{case_id}/private-documents/{document_id}/intelligence" not in paths
+    legacy = f"/api/v1/cases/{case_id}/private-documents/{doc_id}/intelligence"
+    assert client.get(legacy, headers=alice).status_code == 404
+    assert client.post(legacy + "/extract", headers=alice).status_code == 404
     base=f"/api/v1/conversations/tasks/{case_id}/private-documents/{doc_id}/intelligence"
     assert client.get(base).status_code==401
     assert client.get(base,headers=bob).status_code==404
