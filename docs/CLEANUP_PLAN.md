@@ -1,6 +1,6 @@
 # Cleanup and legacy migration plan
 
-**Status:** Active — consolidated 23 November 2026  
+**Status:** Active — M3 disposable harness implementation in progress, 23 November 2026  
 **Current phase:** Phase 4; Phase 5 remains paused  
 **Primary reference:** [Legacy case-to-conversation/task migration](LEGACY_MIGRATION_PLAN.md)  
 **Product contract:** one customer-facing conversation at `/`; internal task/workflow persistence is not a customer-facing task feature.
@@ -13,7 +13,7 @@ This is a code and data-architecture migration plan. It does not authorize produ
 
 ## 2. Current baseline
 
-- PRs #246–#267 are merged; PR #265 contains the latest runtime change, PR #266 consolidated the cleanup plan and PR #267 completed M2.4.
+- PRs #246–#268 are merged; PR #265 contains the latest runtime change, PR #266 consolidated the cleanup plan, PR #267 completed M2.4 and PR #268 completed the M2.5 encrypted-payload design baseline.
 - Public legacy case API aliases and customer-facing case/task/demo navigation have been removed in earlier increments.
 - Canonical task operations are routed under `/api/v1/conversations/tasks`.
 - `ENABLE_TASK_API` is the only supported task-route activation flag and remains disabled by default.
@@ -75,10 +75,12 @@ Acceptance:
 
 ### M3 — Build and validate the reversible data migration
 
-**Status:** Blocked on M2.4 and M2.5 engineering/security/operator approval and key-custody evidence
+**Status:** One coordinated workstream in progress. Disposable crypto primitives, owner/link checks and a PostgreSQL staging/ledger harness are implemented in `docs/M3_MIGRATION_IMPLEMENTATION.md` and `backend/app/migration_harness/`. Full source-to-target table migration, Alembic target schema and any non-disposable execution remain blocked on M2.5 engineering/security/operator approval and key-custody evidence.
 
 Deliverables:
-- Alembic upgrade and downgrade/recovery strategy for the approved target model.
+- Freeze exact source-to-target mapping, migration ordering, destination AAD v2, staging ledger and recovery boundaries.
+- Implement fail-closed cryptographic and relationship primitives plus disposable PostgreSQL staging/retry/rollback tests.
+- After approvals, implement the reviewed Alembic target schema and full table-level source-to-target runner in the same M3 workstream.
 - Disposable PostgreSQL snapshot migration tests.
 - Before/after row counts, FK integrity, owner consistency, ciphertext authentication/decryptability and resume/approval journey checks.
 - Quarantine path for owner mismatches, orphaned records and undecryptable payloads.
@@ -86,8 +88,9 @@ Deliverables:
 
 Acceptance:
 - Upgrade and recovery are repeatable on disposable snapshots.
+- Every source row reconciles to verified target, quarantine or approved retention exclusion.
 - Source records remain intact until the recovery window is approved and complete.
-- No production migration runs without separate explicit authorization.
+- No production/staging migration runs without separate explicit authorization.
 
 ### M4 — Remove obsolete runtime code and perform final audit
 
