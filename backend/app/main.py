@@ -133,17 +133,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         api.include_router(legacy_case_intake_router, include_in_schema=False)
         if settings.enable_private_document_api:
             from app.private_documents.router import router as private_router, retention_router
-            api.include_router(private_router)
+            api.include_router(private_router, prefix="/api/v1/conversations/tasks")
+            api.include_router(private_router, prefix="/api/v1/cases", include_in_schema=False)
             api.include_router(retention_router)
             if engine.dialect.name == "postgresql":
                 if revision not in {"20261109_0015", "20261109_0016", "20261116_0017", "20261118_0018", "20261118_0019", "20261118_0020", "20261118_0021", "20261118_0022", "20261119_0023", "20261119_0024"}:
                     engine.dispose()
                     raise ValueError("Document intelligence requires schema revision 0015")
             from app.private_documents.intelligence_router import router as intelligence_router
-            api.include_router(intelligence_router)
+            api.include_router(intelligence_router, prefix="/api/v1/conversations/tasks")
+            api.include_router(intelligence_router, prefix="/api/v1/cases", include_in_schema=False)
         if settings.enable_preparation_api:
             from app.preparation.router import router as preparation_router
-            api.include_router(preparation_router)
+            api.include_router(preparation_router, prefix="/api/v1/conversations/tasks")
+            api.include_router(preparation_router, prefix="/api/v1/cases", include_in_schema=False)
         if settings.enable_knowledge_catalog_api:
             from app.knowledge.router import router as knowledge_router
             from app.cases.checklist_router import router as checklist_router
@@ -160,7 +163,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 api.include_router(search_router)
             if settings.enable_assistant_api:
                 from app.knowledge.assistant_router import router as assistant_router
-                api.include_router(assistant_router)
+                api.include_router(assistant_router, prefix="/api/v1/conversations/tasks")
+                api.include_router(assistant_router, prefix="/api/v1/cases", include_in_schema=False)
             if settings.enable_knowledge_review_api:
                 from app.knowledge.review_router import router as review_router
                 api.include_router(review_router)
