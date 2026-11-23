@@ -25,8 +25,11 @@ The conversation transport and worker are still restricted to isolated developme
 ## Legacy cleanup milestone
 
 - PR #267 merged: M2.4 target conversation/task ownership model completed.
-- M2.5 design baseline completed in `ENCRYPTED_PAYLOAD_MIGRATION_STRATEGY.md`: encrypted payload inventory, source AAD, key configuration, write-fence strategy, retention races, idempotent ledger, dry-run gates and recovery boundaries are documented.
-- M2.5 engineering/security/operator review and deployed key-custody evidence remain pending. M3 is blocked; no schema, data, key or ciphertext changes were made.
+- PR #268 merged: M2.5 encrypted-payload migration strategy and consistency baseline completed.
+- M3 is being implemented as one coordinated workstream on `feat/m3-conversation-task-migration-harness`.
+- Added isolated crypto primitives for key-family preflight, canonical destination AAD v2, authenticated decrypt/validate/re-encrypt/verify, owner/link validation and retention checks.
+- Added disposable PostgreSQL staging/ledger tests for atomic writes, retry revalidation, orphan-target rejection and rollback; wired into backend CI.
+- Full source-table migration, target Alembic schema and non-disposable execution remain blocked pending engineering/security/operator approval and deployed key-custody evidence. No production or staging data/key access or mutation has occurred.
 
 ## Verification boundaries
 
