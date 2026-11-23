@@ -24,6 +24,12 @@ OTHER_CASE_CUE = re.compile(
 )
 
 
+def _label(case: CaseRecord, language: str) -> str:
+    title = "Previous request" if language == "en" else "Richiesta precedente"
+    # The private database case ID is never a user-facing identifier.
+    return f"{title} · {case.created_at.date().isoformat()}"
+
+
 def resolve_saved_case(
     db: Session, *, thread_id: UUID, principal: Principal, message: StoredMessage,
     answer: AnswerResult, resume_case: bool,
