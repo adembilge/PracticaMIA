@@ -1,7 +1,7 @@
 # Active work
 
 **Current phase:** M3 — conversation/task data migration  
-**Current task:** Consolidated M3 implementation and disposable migration harness  
+**Current task:** M3 harness merged; resolve M2.5 review and operator key-custody prerequisites  
 **Next task:** Complete and validate the single M3 workstream; do not begin Phase 5.
 
 ## Current state
@@ -15,13 +15,13 @@
 
 ## Current cleanup priority
 
-Continue the legacy case-to-conversation/task migration in bounded, reversible increments. M2.4 and the M2.5 design baseline are complete. The consolidated M3 workstream is underway on `feat/m3-conversation-task-migration-harness`; disposable crypto/ownership primitives and PostgreSQL ledger tests are being added. Full table migration and non-disposable execution remain blocked on M2.5 engineering/security/operator review and key-custody evidence. Do not drop or rewrite stored records until a migration preserves owner isolation, encryption, event history, document retention and recovery. Keep Phase 5 paused during this work.
+Continue the legacy case-to-conversation/task migration in bounded, reversible increments. M2.4 and the M2.5 design baseline are complete. PR #269 merged the consolidated M3 disposable harness, crypto/ownership primitives and PostgreSQL ledger tests. Full table migration and non-disposable execution remain blocked on M2.5 engineering/security/operator review and key-custody evidence. Do not drop or rewrite stored records until a migration preserves owner isolation, encryption, event history, document retention and recovery. Keep Phase 5 paused during this work.
 
 ## Cleanup milestone status
 
 - M2.4 target conversation/task ownership model: complete; see `TASK_CONVERSATION_TARGET_MODEL.md`.
 - M2.5 encrypted-payload migration and consistency strategy: design baseline complete; engineering/security/operator approval and key-custody evidence pending.
-- M3 disposable harness: implementation in progress; see `M3_MIGRATION_IMPLEMENTATION.md`.
+- M3 disposable harness: complete and merged in PR #269; see `M3_MIGRATION_IMPLEMENTATION.md`.
 - M3 full source-to-target migration and cutover: blocked on approvals, operator key-custody evidence and complete dry-run/recovery evidence.
 - M4 runtime removal remains blocked on successful M3 migration and recovery approval.
 
