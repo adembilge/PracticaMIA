@@ -49,7 +49,7 @@ def preparation_client(tmp_path):
     url = f"sqlite+pysqlite:///{tmp_path / 'preparation.sqlite3'}"
     settings = Settings(
         database_url=url,
-        enable_demo_case_api=True,
+        enable_task_api=True,
         enable_knowledge_catalog_api=True,
         enable_preparation_api=True,
         deployment_environment="preview",
@@ -86,7 +86,7 @@ def test_preparation_cannot_be_enabled_in_production():
 def test_preparation_fails_closed_without_key():
     with pytest.raises(ValueError, match="256-bit"):
         create_app(Settings(
-            enable_preparation_api=True, enable_demo_case_api=True,
+            enable_preparation_api=True, enable_task_api=True,
             enable_knowledge_catalog_api=True,
             deployment_environment="preview",
             preparation_target="isolated_staging",
