@@ -1,6 +1,6 @@
 # M3 — conversation/task migration implementation and recovery plan
 
-**Status:** Disposable migration primitives and PostgreSQL staging harness implemented; full source-to-target migration and any non-disposable execution remain blocked pending M2.5 review and operator evidence.  
+**Status:** Disposable migration primitives, PostgreSQL staging harness and synthetic coverage for all nine encrypted payload families implemented; live source-to-target migration is not authorized and remains unexecuted.  
 **Date:** 23 November 2026  
 **Base:** `main` after M2.5 PR #268 merge, `146a31f7376d8b5e9cd74106e252f9f14c8f2675`  
 **Scope:** One coordinated M3 workstream. This document and the harness do not authorize application-schema changes, production/staging access, secret retrieval, data mutation, key rotation, cutover or Phase 5.
