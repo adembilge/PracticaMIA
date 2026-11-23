@@ -5,6 +5,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.agent.answer_evidence import AnswerEvidenceScopeReader, revalidate_answer_evidence
@@ -33,6 +34,7 @@ from app.agent.tool_execution import check_tool_execution
 from app.agent.worker_leases import WorkerLease, WorkerLeaseConflict, claim_next_run, require_worker_lease
 from app.auth.tokens import Principal
 from app.cases.intake_schemas import IntakeFacts
+from app.cases.model import CaseRecord
 from app.config import Settings
 from app.rules.engine import JURISDICTION, PROCEDURE
 
@@ -273,6 +275,22 @@ def run_worker_step(
         if run is None:
             return None
         require_worker_lease(db, run, lease)
+        if run.case_id is not None:
+            # Revalidate the task under a row lock at the commit boundary. If
+            # archive won the race while model/tool work was running, discard
+            # the stale computation and release its lease for a later restore.
+            active_case_id = db.scalar(
+                select(CaseRecord.id).where(
+                    CaseRecord.id == run.case_id,
+                    CaseRecord.owner_subject == principal.subject,
+                    CaseRecord.archived_at.is_(None),
+                ).with_for_update()
+            )
+            if active_case_id is None:
+                if lease is not None:
+                    run.lease_token = None
+                    run.lease_expires_at = None
+                return None
         if (
             case_context is not None and case_context.shared_citizenship_class is not None
             and read_shared_citizenship(
