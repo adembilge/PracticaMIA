@@ -1,11 +1,11 @@
-"""Prototype-only scope classification; NOT government eligibility decisions."""
+"""First-route scope classification; NOT government eligibility decisions."""
 
-DEMO_ANSWERS = ("yes", "yes", "yes", "no", "yes")
+FIRST_ROUTE_SCOPE_ANSWERS = ("yes", "yes", "yes", "no", "yes")
 
 
 def classify_scope(answers: list[str]) -> str:
     """Mirror frontend/src/lib/flow.js, including prefix/uncertain behavior."""
-    for index, expected in enumerate(DEMO_ANSWERS):
+    for index, expected in enumerate(FIRST_ROUTE_SCOPE_ANSWERS):
         if index >= len(answers):
             return "incomplete"
         if answers[index] == "unsure":

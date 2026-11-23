@@ -25,7 +25,7 @@ from app.auth.tokens import Principal
 from app.cases.intake_model import CaseIntake
 from app.cases.intake_schemas import IntakeFacts, describe_intake
 from app.cases.model import CaseRecord
-from app.cases.scope import DEMO_ANSWERS, classify_scope
+from app.cases.scope import FIRST_ROUTE_SCOPE_ANSWERS, classify_scope
 from app.knowledge.entity_matching import normalize_name
 from app.knowledge.search import (
     EvidencePassage, normalize_query, resolve_approved_passage, search_approved_passages,
@@ -105,7 +105,7 @@ def _case_evidence_gap(
         return CatalogueEvidence(status="needs_information", missing_fields=("scope_answers",))
     if classify_scope(scope_answers) == "unsupported":
         return CatalogueEvidence(status="unsupported_scope")
-    if status != "provisionally_in_scope" or tuple(scope_answers) != DEMO_ANSWERS:
+    if status != "provisionally_in_scope" or tuple(scope_answers) != FIRST_ROUTE_SCOPE_ANSWERS:
         return CatalogueEvidence(status="needs_information", missing_fields=("scope_answers",))
 
     if confirmed_at is None:

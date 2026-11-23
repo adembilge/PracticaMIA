@@ -30,7 +30,7 @@ from app.cases.intake_model import CaseIntake
 from app.cases.intake_router import read_intake, write_intake
 from app.cases.intake_schemas import IntakeFacts, IntakeUpdate, describe_intake
 from app.cases.model import CaseRecord
-from app.cases.scope import DEMO_ANSWERS
+from app.cases.scope import FIRST_ROUTE_SCOPE_ANSWERS
 from app.database import Base
 from app.knowledge.review_service import revoke_version
 from app.knowledge.search import resolve_approved_passage
@@ -79,7 +79,7 @@ class ScenarioReplay:
                 owner = self.context["principal"].subject
                 db.add(CaseRecord(
                     id=str(self.case_id), owner_subject=owner, procedure=PROCEDURE,
-                    status="provisionally_in_scope", scope_answers=list(DEMO_ANSWERS),
+                    status="provisionally_in_scope", scope_answers=list(FIRST_ROUTE_SCOPE_ANSWERS),
                 ))
                 db.flush()
                 intake = IntakeFacts.model_validate({
