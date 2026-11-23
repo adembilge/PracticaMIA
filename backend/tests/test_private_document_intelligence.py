@@ -89,6 +89,9 @@ def test_private_housing_extraction_review_comparison_and_isolation(
         "Property address: Fictional Via 77 (must never be extracted)",
     )
     doc_id=upload(client,alice,case_id,source)
+    paths=client.app.openapi()["paths"]
+    assert "/api/v1/conversations/tasks/{case_id}/private-documents/{document_id}/intelligence" in paths
+    assert "/api/v1/cases/{case_id}/private-documents/{document_id}/intelligence" not in paths
     base=f"/api/v1/conversations/tasks/{case_id}/private-documents/{doc_id}/intelligence"
     assert client.get(base).status_code==401
     assert client.get(base,headers=bob).status_code==404
