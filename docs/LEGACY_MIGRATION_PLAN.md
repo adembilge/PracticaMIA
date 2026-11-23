@@ -14,7 +14,7 @@ The goal is to remove the old case-management architectureâ€”not merely hide itâ
 
 ### HTTP/API layer
 
-- FastAPI case CRUD router: `backend/app/cases/router.py`, mounted by `backend/app/main.py`.
+- FastAPI task CRUD router: `backend/app/cases/router.py`, mounted only at `/api/v1/conversations/tasks`. The legacy `/api/v1/cases` CRUD alias has been removed; create/list/read/scope/archive/delete callers and tests use the canonical path.
 - Intake API: `backend/app/cases/intake_router.py`, mounted only at `/api/v1/conversations/tasks/{id}/intake`. The legacy `/api/v1/cases/{id}/intake` alias has been removed; the frontend adapter already uses the canonical route.
 - Checklist, workflow and package endpoints: `checklist_router.py`, `workflow_router.py`, `package_router.py`.
 - Private-document and preparation endpoints still carry case identifiers and case-oriented paths.
@@ -47,7 +47,7 @@ The goal is to remove the old case-management architectureâ€”not merely hide itâ
 - Move intake, checklist, workflow and preparation operations behind those routes. Intake is complete: the frontend and backend use only the canonical task route, and the old intake alias is removed.
 - Update the frontend BFF to call only the canonical routes.
 - Add owner-isolation, CSRF/origin, validation, idempotency and old-route-negative tests.
-- Remove the old public case CRUD and route aliases only after all supported callers and tests have moved.
+- Case CRUD alias removal is complete: the canonical task router is the only CRUD mount, and authenticated requests to the old `/api/v1/cases` paths return 404. Other domain-specific compatibility mounts remain separately tracked.
 - Do not change storage table names in this step.
 
 ### M2 â€” Internal domain rename
