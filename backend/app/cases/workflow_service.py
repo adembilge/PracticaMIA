@@ -12,6 +12,7 @@ from hashlib import sha256
 import json
 
 from app.cases.package_service import build_package_manifest
+from app.cases.scope import FIRST_ROUTE_SCOPE_ANSWERS
 
 STEP_ORDER = ("scope", "intake", "guidance", "checklist", "documents", "package", "handoff")
 SIGNED_ACTION_IDS = frozenset({
@@ -80,7 +81,7 @@ def assemble_workflow(*, case, intake, manifest: dict,
     }
     count = len(reviewed)
     scope_complete = (case.status == "provisionally_in_scope"
-                      and case.scope_answers == ["yes", "yes", "yes", "no", "yes"])
+                      and case.scope_answers == list(FIRST_ROUTE_SCOPE_ANSWERS))
     intake_confirmed = bool(intake is not None and intake.confirmed_at)
     checklist_ready = fingerprint is not None
     issues = manifest["outstanding_issues"]
