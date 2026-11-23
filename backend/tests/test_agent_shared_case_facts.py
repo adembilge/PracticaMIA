@@ -80,7 +80,7 @@ def test_selected_case_run_reuses_citizenship_but_asks_for_its_own_date_and_hous
     assert question["missing_fields"] == ["move_in_date", "housing_basis"]
     assert FACTS["move_in_date"] not in question["text"]
     assert client.get(target_url + "/events", headers=auth_headers("bob")).status_code == 404
-    intake = client.get(target_path + "/intake", headers=owner).json()
+    intake = client.get(f"/api/v1/conversations/tasks/{target}/intake", headers=owner).json()
     assert not intake["confirmed"] and not intake["facts"]
 
 
