@@ -29,7 +29,7 @@ export default function DocumentPrivacyPage() {
       <h2>Limits / Limiti</h2>
       <p>Stored files are not legally validated and do not prove eligibility, required attachments, government filing, or municipal acceptance. The operator must publish its legal basis, processors, recipients, international transfers, rights procedures and full privacy terms before real-user activation. A checkbox confirms that the user has read this notice; it does not itself establish the GDPR legal basis.</p>
       <p>I documenti non sono convalidati giuridicamente e il caricamento non costituisce presentazione ufficiale. Le informazioni complete sul trattamento devono essere pubblicate prima dell’attivazione.</p>
-      <p><Link href="/cases/saved" className="inline-link">Return to saved cases / Torna alle pratiche</Link></p>
+      <p><Link href="/" className="inline-link">Return to conversation / Torna alla conversazione</Link></p>
     </div>
   </main>;
 }

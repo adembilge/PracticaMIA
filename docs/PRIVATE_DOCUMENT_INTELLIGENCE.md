@@ -58,7 +58,7 @@ active storage per the provider's own retention period.
 
 ## Verification and activation
 
-The [isolated acceptance suite](ACCEPTANCE_TESTING.md) exercises housing PDF text extraction, PNG/JPEG/scanned-PDF OCR, stale review rejection, corrections, expiry and account isolation. Hosted OCR and scanner acceptance remain open. Follow the [vault release controls](PRIVATE_DOCUMENT_VAULT_RELEASE.md) before enabling any real upload or processing. The [draft package](CASE_PREPARATION_EXPORT.md) uses bounded review information and explicit blockers.
+The [isolated acceptance suite](ACCEPTANCE_TESTING.md) exercises housing PDF text extraction, PNG/JPEG/scanned-PDF OCR, stale review rejection, corrections, expiry and account isolation. Hosted OCR and scanner acceptance remain open. Follow the [vault release controls](PRIVATE_DOCUMENT_VAULT_RELEASE.md) before enabling any real upload or processing. The internal preparation draft uses bounded review information and explicit blockers; it is not a separate customer-facing workspace.
 
 ## Review corrections and document-type boundaries
 

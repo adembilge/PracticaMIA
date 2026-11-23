@@ -1,6 +1,6 @@
-# PracticaMIA — Auth0 Login and Server-side Case Bridge
+# PracticaMIA — Auth0 authentication and server-side conversation bridge
 
-Auth0, the Next.js server-side case bridge and Neon persistence support the signed-in fictional saved-case journey. See [hosted acceptance](ACCEPTANCE_TESTING.md) for production and staging observations.
+Auth0, the Next.js server-side API proxy and PostgreSQL persistence support authenticated conversation and internal workflow operations. The public product is the single chat at `/`. See [acceptance status](ACCEPTANCE_TESTING.md) for the exact scope of automated evidence.
 
 ## Chosen architecture
 
@@ -9,7 +9,7 @@ Auth0, the Next.js server-side case bridge and Neon persistence support the sign
 - **API tokens:** Requested from Auth0 for the configured API audience. The FastAPI verifier checks a signed RS256 access token, issuer, audience, expiration and user identity.
 - **Browser-to-backend:** Browser communicates only with its same-origin Next.js server. The Next.js route retrieves a token server-side and forwards it to the configured FastAPI origin.
 - **Not exposed:** No access tokens in localStorage, sessionStorage, React props, browser JSON, or public environment variables. The SDK's optional browser access-token endpoint is disabled.
-- **Proxy boundaries:** Remote backend origins use HTTPS. Local development may use loopback HTTP. Case mutations require the same origin and a validated payload. FastAPI independently checks credentials and case ownership.
+- **Proxy boundaries:** Remote backend origins use HTTPS. Local development may use loopback HTTP. State-changing requests require same-origin protection and validated payloads. FastAPI independently checks credentials and owner-scoped access.
 
 ## Before enabling login
 
@@ -31,45 +31,35 @@ Auth0, the Next.js server-side case bridge and Neon persistence support the sign
 | `AUTH0_SECRET` | Random 64-character hexadecimal secret for encrypted session cookies |
 | `AUTH0_AUDIENCE` | Custom Auth0 API identifier; must exactly match FastAPI `AUTH_AUDIENCE` |
 | `APP_BASE_URL` | Frontend canonical origin; set for stable production and local URLs |
-| `BACKEND_API_URL` | Server-only FastAPI origin required for case operations |
+| `BACKEND_API_URL` | Server-only FastAPI origin for authenticated backend operations |
 
 ## Required FastAPI variables
 
 - `AUTH_ISSUER=https://<AUTH0_DOMAIN>/` (include the final slash).
 - `AUTH_JWKS_URL=https://<AUTH0_DOMAIN>/.well-known/jwks.json`.
 - `AUTH_AUDIENCE=<AUTH0_AUDIENCE>`.
-- `DATABASE_URL` for persistent PostgreSQL and `ENABLE_DEMO_CASE_API=1` only after confirming JWT validation and backend network boundaries.
+- `DATABASE_URL` for persistent PostgreSQL. The current backend still uses the legacy `ENABLE_DEMO_CASE_API` feature flag; this is migration debt, not a product feature. Do not enable it outside the reviewed isolated environment.
 
 **A signed-in browser session alone does not prove that the backend is operational.** The account page reports configuration state; verify authenticated case CRUD and database persistence separately.
 
-## User-visible pages
+## Current product and API surface
 
-| Path | Behavior |
-| --- | --- |
-| `/account` | Offers sign-in, registration and the public demo when signed out, or account controls when signed in. The shared header shows the account display name when available. |
-| `/cases/saved` | Lists synthetic cases, creates a case, and opens a saved case workspace |
-| `/cases/{id}` | Owner-scoped scope, typed intake, checklist acknowledgement, package export and official handoff for supported fictional cases |
-| `/api/cases` | Same-origin BFF GET and CSRF-protected POST. Returns 503 if unconfigured and 401 if signed out; never exposes access tokens |
-| `/api/cases/{id}` | GET an owner-scoped case or DELETE it with Origin protection |
-| `/api/cases/{id}/scope` | Origin-protected PATCH for a validated prefix of synthetic scope answers |
-| `/cases/new` and `/cases/demo` | Public example flow |
+The customer-facing application is the single chat at `/`. The old `/account`, `/cases/*`, `/demo/*` and case-workspace customer pages are removed. The frontend exposes the authenticated conversation proxy under `/api/agent/*` and inline request-intake adapter under `/api/conversations/tasks/{id}/intake`.
 
-Auth0 routes `/auth/login`, `/auth/logout`, and `/auth/callback` are mounted by SDK middleware only when configured. Browser navigation to login/logout uses normal anchors, not client-side prefetch.
-
-The app's account entry uses PracticaMIA's design and passes the selected `en` or `it` locale to Auth0. Registration also passes `screen_hint=signup`. Auth0 Universal Login renders the credential form and applies its tenant's branding and enabled languages.
+**Migration status:** the intake adapter still forwards to the legacy FastAPI `/api/v1/cases/{id}/intake` route. Backend case CRUD, checklist, workflow, package, private-document and preparation routes still use case-named paths or models. These are not customer navigation surfaces, but they are real backend dependencies scheduled for migration in [LEGACY_MIGRATION_PLAN.md](LEGACY_MIGRATION_PLAN.md). Do not describe the backend as case-free until the API and storage migration is complete.
 
 ## Verification
 
 - `cd frontend && npm ci && npm test && npm run typecheck && npm run build`.
 - Tests cover missing/partial server configuration, backend URL allowlisting, and POST Origin validation.
 - GitHub Actions and Vercel check the unconfigured build, ensuring the anonymous demo remains available.
-- **Verified in production (November 2026):** Auth0 login and custom API token issuance; Next.js server proxy, FastAPI case creation/listing, Neon persistence for synthetic records.
-- **Live boundaries exercised:** manual two-account checks covered case and draft download read isolation in production and selected scope/PDF operations in staging. Refresh-token lifecycle, full delete/resume coverage, and live reviewer authorization need separate evidence.
+- **Verified in production (November 2026):** Auth0 login and custom API token issuance; Next.js server proxy, authenticated internal workflow operations and PostgreSQL persistence.
+- **Live boundaries exercised:** manual two-account checks covered owner-scoped internal workflow and draft-download isolation in production and selected scope/PDF operations in staging. Refresh-token lifecycle, full delete/resume coverage, and live reviewer authorization need separate evidence.
 
 ## Security and deployment limitations
 
 - Use fictional data for the hosted case flow. The structured intake permits categorical facts and an optional move date. Real documents have separate [vault release controls](PRIVATE_DOCUMENT_VAULT_RELEASE.md).
-- The backend is publicly reachable but all case routes require verified bearer tokens; keep strict JWT validation, ownership checks, rate limiting and network boundaries.
+- The backend must require verified bearer tokens and enforce owner-scoped authorization for every private operation; keep strict JWT validation, rate limiting and network boundaries.
 - Add API rate limiting, monitoring and non-sensitive audit events, retention/deletion rules, secure networking, and end-to-end tests before handling real records.
 - Once FastAPI is deployed, do not assume browser CORS is the only authorization layer: verify JWTs and per-user owner checks on every backend request.
 
