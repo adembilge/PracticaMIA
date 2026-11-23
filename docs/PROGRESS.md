@@ -16,6 +16,12 @@ The conversation transport and worker are still restricted to isolated developme
 - Next: Task 35.1 clarification context check.
 - Phase 5 remains paused.
 
+## Legacy cleanup milestone
+
+- PR #266 merged: consolidated cleanup execution plan and target model draft.
+- M2.4 completed: source-to-target mapping, ownership/cardinality, conversation/task deletion, retention, AAD versioning and runtime uniqueness/receipt constraints are documented in `TASK_CONVERSATION_TARGET_MODEL.md`.
+- M2.5 is the next cleanup design item. No schema, data, encryption, deployment or production execution changes are authorized by M2.4.
+
 ## Verification boundaries
 
 Backend and frontend CI results apply to their tested revisions and environments. Synthetic fixtures do not establish participant evidence, live legal validation, broad municipal coverage or production readiness. Real personal-document upload remains disabled pending independent privacy and operational reviews.

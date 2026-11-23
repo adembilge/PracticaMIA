@@ -13,7 +13,7 @@ This is a code and data-architecture migration plan. It does not authorize produ
 
 ## 2. Current baseline
 
-- PRs #246–#264 are merged; PR #265 is merged as `82a277c23cca89f655b5bc1e4e11f7089c315c70`.
+- PRs #246–#266 are merged; PR #265 contains the latest runtime change and PR #266 consolidated the cleanup plan.
 - Public legacy case API aliases and customer-facing case/task/demo navigation have been removed in earlier increments.
 - Canonical task operations are routed under `/api/v1/conversations/tasks`.
 - `ENABLE_TASK_API` is the only supported task-route activation flag and remains disabled by default.
@@ -32,6 +32,7 @@ This is a code and data-architecture migration plan. It does not authorize produ
 | M2.1 — cardinality and cascade invariants | Completed; PR #264 |
 | M2.2 — ownership consistency audit | Completed; no runtime defect found; mismatches must be quarantined, not reassigned |
 | M2.3 — archived-task access and write boundaries | Completed; PR #265 merged |
+| M2.4 — target conversation/task ownership model | Completed; target contract and compatibility decisions recorded in `TASK_CONVERSATION_TARGET_MODEL.md` |
 | Case/demo customer surface cleanup | Completed in earlier merged PRs |
 | Legacy demo API setting removal | Completed in PR #257 |
 
@@ -41,7 +42,7 @@ Completed does not mean the underlying case-named database domain has been migra
 
 ### M2.4 — Define the target conversation/task ownership model
 
-**Status:** Draft prepared; engineering/product review pending. See [target data model draft](TASK_CONVERSATION_TARGET_MODEL.md).
+**Status:** Complete — target model and compatibility decisions recorded in [target data model](TASK_CONVERSATION_TARGET_MODEL.md). No schema or runtime change was made.
 
 Deliverables:
 1. Define target entities and responsibilities for conversation, task scope, confirmed intake facts, documents, preparation/review state, agent runs, events, checkpoints and approval/idempotency receipts.
@@ -49,7 +50,7 @@ Deliverables:
 3. Define ownership derivation and enforcement for every target record. Preserve inaccessible ownerless legacy rows as unassigned; never infer or auto-assign an owner.
 4. Specify archive, restore, explicit deletion, retention and cascade behavior for each entity.
 5. Map every current source table/column to a target entity or an explicitly retained historical record.
-6. Record unresolved design decisions and obtain review before schema changes.
+6. Record compatibility decisions and explicit constraints that must be revalidated before schema changes.
 
 Acceptance:
 - Every current FK edge and runtime read/write dependency has a target mapping.
@@ -58,7 +59,7 @@ Acceptance:
 
 ### M2.5 — Specify encrypted-payload migration and consistency strategy
 
-**Status:** Blocked on M2.4 review
+**Status:** Next cleanup item — M2.4 is complete; M2.5 requires its own design and approval before any migration.
 
 Deliverables:
 - Inventory key sources, key versions and AAD dimensions for each encrypted record class.
@@ -116,7 +117,7 @@ The current dependency inventory is maintained in `LEGACY_MIGRATION_PLAN.md`. Th
 - Preparation, document review and bounded guide-history records.
 - Worker leases, queued-run claim rules and archive/delete race boundaries.
 
-The current `AgentRunRequest.case_id` may be null. Thread/task association is many-to-many. These are required semantics to evaluate explicitly in M2.4, not incidental implementation details.
+The current `AgentRunRequest.case_id` may be null. Thread/task association is many-to-many. M2.4 preserves both behaviors in the target contract.
 
 ## 6. Non-negotiable safeguards
 
