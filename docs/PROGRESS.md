@@ -22,6 +22,12 @@ The conversation transport and worker are still restricted to isolated developme
 - M2.4 completed: source-to-target mapping, ownership/cardinality, conversation/task deletion, retention, AAD versioning and runtime uniqueness/receipt constraints are documented in `TASK_CONVERSATION_TARGET_MODEL.md`.
 - M2.5 is the next cleanup design item. No schema, data, encryption, deployment or production execution changes are authorized by M2.4.
 
+## Legacy cleanup milestone
+
+- PR #267 merged: M2.4 target conversation/task ownership model completed.
+- M2.5 design baseline completed in `ENCRYPTED_PAYLOAD_MIGRATION_STRATEGY.md`: encrypted payload inventory, source AAD, key configuration, write-fence strategy, retention races, idempotent ledger, dry-run gates and recovery boundaries are documented.
+- M2.5 engineering/security/operator review and deployed key-custody evidence remain pending. M3 is blocked; no schema, data, key or ciphertext changes were made.
+
 ## Verification boundaries
 
 Backend and frontend CI results apply to their tested revisions and environments. Synthetic fixtures do not establish participant evidence, live legal validation, broad municipal coverage or production readiness. Real personal-document upload remains disabled pending independent privacy and operational reviews.
