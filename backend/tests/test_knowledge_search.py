@@ -386,7 +386,7 @@ def test_phase4_evidence_hides_foreign_or_unlinked_thread_context(client, auth_h
 def test_phase4_case_evidence_reloads_confirmation_and_scope(client, auth_headers):
     user = auth_headers("alice")
     case_id = UUID(client.post("/api/v1/cases", json={}, headers=user).json()["id"])
-    root = f"/api/v1/cases/{case_id}"
+    root = f"/api/v1/conversations/tasks/{case_id}"
     context = _thread_context(client, case_id, "alice")
     version, digest = _create(client)
     _approve(client, version, digest)
