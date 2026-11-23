@@ -296,3 +296,23 @@ def test_scan_verdict_must_be_clean_and_match_digest(monkeypatch):
     monkeypatch.setattr(security.httpx, "Client", lambda **_: FakeHTTP({"status": "unknown", "sha256": digest}))
     with pytest.raises(ScanUnavailable):
         scan_bytes(body, enabled_settings())
+
+
+def test_archived_task_rejects_new_vault_upload_but_keeps_existing_document_readable(
+    document_client, auth_headers,
+):
+    owner = auth_headers("alice")
+    task = document_client.post("/api/v1/conversations/tasks", json={}, headers=owner)
+    case_id = task.json()["id"]
+    base = f"/api/v1/conversations/tasks/{case_id}/private-documents"
+    saved = upload(document_client, base, owner)
+    assert saved.status_code == 201, saved.text
+
+    archived = document_client.patch(
+        f"/api/v1/conversations/tasks/{case_id}/archive",
+        json={"archived": True}, headers=owner,
+    )
+    assert archived.status_code == 200
+    assert document_client.get(base, headers=owner).json()[0]["id"] == saved.json()["id"]
+    blocked = upload(document_client, base, owner)
+    assert blocked.status_code == 409
