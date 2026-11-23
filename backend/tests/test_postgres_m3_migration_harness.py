@@ -58,11 +58,17 @@ def test_postgres_stage_ledger_atomicity_retry_and_revalidation():
                 "aad_version TEXT NOT NULL, status TEXT NOT NULL, attempt_count INTEGER NOT NULL)"
             ))
 
+        retry_payload = reencrypt_payload(
+            source_ciphertext, source_key=source_key, destination_key=destination_key,
+            source_aad=source_aad, destination_aad=destination_aad,
+            expected_plaintext_sha256=sha256(plaintext).hexdigest(),
+        )
+        assert retry_payload is not None and retry_payload.ciphertext != migrated.ciphertext
         with engine.begin() as connection:
             outcome = stage_verified_record(
                 connection, target_table=f"{schema}.target_payloads",
                 ledger_table=f"{schema}.migration_ledger", source_id="source-1",
-                target_id="target-1", ciphertext=migrated.ciphertext,
+                target_id="target-1", ciphertext=retry_payload.ciphertext,
                 source_ciphertext_sha256=migrated.source_ciphertext_sha256,
                 aad_version="v2",
                 verify_existing=lambda value: AESGCM(destination_key).decrypt(
