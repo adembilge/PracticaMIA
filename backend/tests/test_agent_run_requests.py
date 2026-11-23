@@ -69,8 +69,8 @@ def test_accepted_message_resumes_after_session_restart_and_replays_exactly(clie
 
 
 def test_case_ownership_link_and_thread_are_required_on_writer_and_reader(client, auth_headers):
-    first_case = UUID(client.post("/api/v1/cases", headers=auth_headers("alice"), json={}).json()["id"])
-    second_case = UUID(client.post("/api/v1/cases", headers=auth_headers("alice"), json={}).json()["id"])
+    first_case = UUID(client.post("/api/v1/conversations/tasks", headers=auth_headers("alice"), json={}).json()["id"])
+    second_case = UUID(client.post("/api/v1/conversations/tasks", headers=auth_headers("alice"), json={}).json()["id"])
     factory = client.app.state.session_factory
     with factory.begin() as db:
         thread_id = create_thread(db, principal=ALICE)
@@ -93,7 +93,7 @@ def test_case_ownership_link_and_thread_are_required_on_writer_and_reader(client
             db, thread_id=unlinked_thread, principal=ALICE, run_id=accepted.run_id, key=KEY,
         ) is None
 
-    assert client.delete(f"/api/v1/cases/{first_case}", headers=auth_headers("alice")).status_code == 204
+    assert client.delete(f"/api/v1/conversations/tasks/{first_case}", headers=auth_headers("alice")).status_code == 204
     with factory.begin() as db:
         assert read_run_message(db, **context, run_id=accepted.run_id) is None
         assert accept_message(db, **context, message=message).outcome == "unavailable"
