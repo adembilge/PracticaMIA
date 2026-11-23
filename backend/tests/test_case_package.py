@@ -19,6 +19,7 @@ from test_case_checklist import create_case, confirmed_intake, FACTS
 from test_private_documents import enabled_settings
 
 ROOT = "/api/v1/conversations/tasks"
+VAULT_ROOT = "/api/v1/cases"
 
 
 def fake_evidence(citation_id):
@@ -203,7 +204,7 @@ def test_uploaded_document_blocks_until_review_and_matching_facts(
     base = f"{ROOT}/{case_id}/package"
     assert client.get(base, headers=alice).json()["download_allowed"]
     doc_response = client.post(
-        f"{ROOT}/{case_id}/private-documents", headers=alice,
+        f"{VAULT_ROOT}/{case_id}/private-documents", headers=alice,
         data={"category": "housing_document", "privacy_ack": "true",
               "consent_version": "private-documents-2026-11-v1"},
         files={"file": (
@@ -219,7 +220,7 @@ def test_uploaded_document_blocks_until_review_and_matching_facts(
     assert client.get(base, headers=alice).json()["status"] == "blocked"
     assert client.get(base + "/pdf", headers=alice).status_code == 409
 
-    intel = f"{ROOT}/{case_id}/private-documents/{doc_id}/intelligence"
+    intel = f"{VAULT_ROOT}/{case_id}/private-documents/{doc_id}/intelligence"
     extracted = client.post(intel + "/extract", headers=alice)
     assert extracted.status_code == 200, extracted.text
     candidates = extracted.json()["candidates"]
@@ -275,7 +276,7 @@ def test_corrupted_private_review_fails_closed(
     )
     doc_id = document.json()["id"]
     assert client.post(
-        f"{ROOT}/{case_id}/private-documents/{doc_id}/intelligence/extract",
+        f"{VAULT_ROOT}/{case_id}/private-documents/{doc_id}/intelligence/extract",
         headers=alice,
     ).status_code == 200
     with client.app.state.session_factory() as db:
@@ -296,7 +297,7 @@ def test_unsupported_document_is_disclosed_but_does_not_block_non_official_draft
     confirmed_intake(client, alice, case_id, facts=FACTS)
     base = f"{ROOT}/{case_id}"
     response = client.post(
-        base + "/private-documents", headers=alice,
+        f"{VAULT_ROOT}/{case_id}/private-documents", headers=alice,
         data={"category": "identity_document", "privacy_ack": "true",
               "consent_version": "private-documents-2026-11-v1"},
         files={"file": ("fictional.pdf", fixture_pdf("Synthetic identity test"),
@@ -335,7 +336,7 @@ def test_reviewed_document_missing_case_fact_blocks_pdf(
             "Move-in date: 2026-11-05"), "application/pdf")})
     assert result.status_code == 201, result.text
     doc_id = result.json()["id"]
-    intel_url = base + f"/private-documents/{doc_id}/intelligence"
+    intel_url = f"{VAULT_ROOT}/{case_id}/private-documents/{doc_id}/intelligence"
     extracted = client.post(intel_url + "/extract", headers=alice).json()
     reviewed = client.put(intel_url + "/review", headers=alice, json={
         "extraction_digest": extracted["extraction_digest"],
