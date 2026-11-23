@@ -157,7 +157,7 @@ def test_complete_case_domain_graph_copies_to_task_conversation_names():
             c.execute(text(f"""INSERT INTO "{schema}".agent_threads VALUES ('conv-1','owner-1',9,NOW())"""))
             c.execute(text(f"""INSERT INTO "{schema}".agent_thread_cases VALUES ('conv-1','task-1')"""))
             c.execute(text(f"""INSERT INTO "{schema}".case_intakes VALUES
-                ('task-1','owner-1','{{"confirmed":true}}','{{"step":true}}','digest-1',NOW(),NOW())"""))
+                ('task-1','owner-1',jsonb_build_object('confirmed', true),jsonb_build_object('step', true),'digest-1',NOW(),NOW())"""))
             c.execute(text(f"""INSERT INTO "{schema}".agent_run_requests VALUES
                 ('run-linked','conv-1','task-1','msg-1','completed',9,decode('0102','hex'),NOW(),NULL,NULL),
                 ('run-chat','conv-1',NULL,'msg-2','completed',9,decode('0304','hex'),NOW(),NULL,NULL)"""))
