@@ -31,7 +31,7 @@ def _scope(client, owner, case):
 
 def _intake(client, owner, case, *, facts=FACTS, confirm=True):
     path = _scope(client, owner, case)
-    response = client.put(path + "/intake", headers=owner, json={"facts": facts, "confirm": confirm})
+    response = client.put(f"/api/v1/conversations/tasks/{case}/intake", headers=owner, json={"facts": facts, "confirm": confirm})
     assert response.status_code == 200, response.text
 
 
