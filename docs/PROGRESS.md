@@ -20,7 +20,7 @@ The conversation transport and worker are still restricted to isolated developme
 
 - PR #266 merged: consolidated cleanup execution plan and target model draft.
 - M2.4 completed: source-to-target mapping, ownership/cardinality, conversation/task deletion, retention, AAD versioning and runtime uniqueness/receipt constraints are documented in `TASK_CONVERSATION_TARGET_MODEL.md`.
-- M2.5 is the next cleanup design item. No schema, data, encryption, deployment or production execution changes are authorized by M2.4.
+- M2.5 encrypted-payload strategy is documented and now deferred by project-owner decision; no further review work is planned. This does not authorize live key access, schema changes or data migration.
 
 ## Legacy cleanup milestone
 
