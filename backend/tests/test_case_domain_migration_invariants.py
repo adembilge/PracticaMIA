@@ -101,3 +101,63 @@ def test_private_document_encryption_context_binds_owner_and_document_identity()
     preparation_base = preparation_aad("case-a", "alice", "doc-1")
     assert preparation_base != preparation_aad("case-a", "bob", "doc-1")
     assert preparation_base != preparation_aad("case-a", "alice", "doc-2")
+
+
+def _primary_key_columns(model):
+    return tuple(column.name for column in model.__table__.primary_key.columns)
+
+
+def _foreign_key_actions(model):
+    actions = {}
+    for constraint in model.__table__.foreign_key_constraints:
+        for element in constraint.elements:
+            actions[element.target_fullname] = constraint.ondelete or element.ondelete
+    return actions
+
+
+def test_current_record_cardinality_is_explicit_before_domain_rename():
+    from app.agent.threads import AgentThread
+    from app.cases.model import CaseRecord
+
+    # One-to-zero-or-one records: the parent identifier is also the child PK.
+    assert _primary_key_columns(CaseIntake) == ("case_id",)
+    assert _primary_key_columns(CasePreparation) == ("case_id",)
+
+    # One-to-many records: each dependent has an independent stable identity.
+    for model in (PrivateCaseDocument, CaseDocument, CaseAgentTurn):
+        assert _primary_key_columns(model) == ("id",)
+        assert "case_id" not in _primary_key_columns(model)
+
+    # Thread/task association is many-to-many; run rows retain their own identity.
+    assert _primary_key_columns(AgentThreadCase) == ("thread_id", "case_id")
+    assert _primary_key_columns(AgentRunRequest) == ("id",)
+    assert _primary_key_columns(AgentThread) == ("id",)
+    assert _primary_key_columns(CaseRecord) == ("id",)
+
+
+def test_current_cascade_edges_are_explicit_before_domain_rename():
+    expected = {
+        CaseIntake: {"cases.id": "CASCADE"},
+        AgentThreadCase: {
+            "agent_threads.id": "CASCADE",
+            "cases.id": "CASCADE",
+        },
+        AgentRunRequest: {
+            "agent_threads.id": "CASCADE",
+            "agent_thread_cases.thread_id": "CASCADE",
+            "agent_thread_cases.case_id": "CASCADE",
+        },
+        AgentRunEvent: {"agent_run_requests.id": "CASCADE"},
+        AgentRunCheckpoint: {"agent_run_requests.id": "CASCADE"},
+        AgentCaseOperation: {
+            "agent_run_requests.id": "CASCADE",
+            "cases.id": "CASCADE",
+        },
+        PrivateCaseDocument: {"cases.id": "CASCADE"},
+        CasePreparation: {"cases.id": "CASCADE"},
+        CaseDocument: {"cases.id": "CASCADE"},
+        CaseAgentTurn: {"cases.id": "CASCADE"},
+    }
+    for model, actions in expected.items():
+        assert _foreign_key_actions(model) == actions, model.__name__
+
