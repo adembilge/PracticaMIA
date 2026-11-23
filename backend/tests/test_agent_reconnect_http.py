@@ -470,7 +470,7 @@ def test_pending_proposal_replays_the_exact_read_only_preview(client, auth_heade
     case = client.post("/api/v1/cases", headers=owner, json={})
     assert case.status_code == 201
     case_id = UUID(case.json()["id"])
-    intake = f"/api/v1/cases/{case_id}/intake"
+    intake = f"/api/v1/conversations/tasks/{case_id}/intake"
     before = client.get(intake, headers=owner).json()
     factory = client.app.state.session_factory
     with factory.begin() as db:

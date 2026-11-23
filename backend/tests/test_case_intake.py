@@ -31,7 +31,7 @@ def create_scoped_case(client, headers):
 def test_intake_requires_auth_and_completed_scope(client, auth_headers):
     a, b = auth_headers("alice"), auth_headers("bob")
     case_id = client.post("/api/v1/cases", json={}, headers=a).json()["id"]
-    path = f"/api/v1/cases/{case_id}/intake"
+    path = f"/api/v1/conversations/tasks/{case_id}/intake"
     assert client.get(path).status_code == 401
     assert client.get(path, headers=b).status_code == 404
     assert client.put(path, json={"facts": FACTS, "confirm": True}, headers=b).status_code == 404
@@ -45,7 +45,7 @@ def test_intake_requires_auth_and_completed_scope(client, auth_headers):
 def test_draft_confirmation_and_restart_persistence(client, auth_headers):
     headers = auth_headers("alice")
     case_id = create_scoped_case(client, headers)
-    path = f"/api/v1/cases/{case_id}/intake"
+    path = f"/api/v1/conversations/tasks/{case_id}/intake"
     draft = client.put(path, json={"facts": {"citizenship_class":"italian"}, "confirm": False}, headers=headers)
     assert draft.status_code == 200
     assert draft.json()["verification_state"] == "draft"
@@ -87,7 +87,7 @@ def test_draft_confirmation_and_restart_persistence(client, auth_headers):
 def test_strict_validation_rejects_personal_identifiers_and_untrusted_fields(client, auth_headers):
     headers = auth_headers("alice")
     case_id = create_scoped_case(client, headers)
-    path = f"/api/v1/cases/{case_id}/intake"
+    path = f"/api/v1/conversations/tasks/{case_id}/intake"
     for facts in [
         {**FACTS, "previous_address": "Real home address"},
         {**FACTS, "passport_number": "TEST12345"},
@@ -113,7 +113,7 @@ def test_strict_validation_rejects_personal_identifiers_and_untrusted_fields(cli
 def test_outside_scenario_stops_product_route_without_eligibility_claim(client, auth_headers):
     headers = auth_headers("alice")
     case_id = create_scoped_case(client, headers)
-    path = f"/api/v1/cases/{case_id}/intake"
+    path = f"/api/v1/conversations/tasks/{case_id}/intake"
     out = client.put(path, json={
         "facts": {**FACTS, "housing_basis": "guest"}, "confirm": True
     }, headers=headers)
@@ -131,7 +131,7 @@ def test_outside_scenario_stops_product_route_without_eligibility_claim(client, 
 def test_scope_edit_invalidates_and_erases_confirmed_intake(client, auth_headers):
     headers = auth_headers("alice")
     case_id = create_scoped_case(client, headers)
-    path = f"/api/v1/cases/{case_id}/intake"
+    path = f"/api/v1/conversations/tasks/{case_id}/intake"
     assert client.put(path, json={"facts": FACTS, "confirm": True}, headers=headers).status_code == 200
     response = client.patch(f"/api/v1/cases/{case_id}/scope",
                             json={"answers": ["yes", "no"]}, headers=headers)
@@ -150,7 +150,7 @@ def test_archived_case_blocks_stale_chat_intake_writes_until_restored(client, au
     """An old chat form cannot change or erase a case after its owner archives it."""
     owner, other = auth_headers("alice"), auth_headers("bob")
     case_id = create_scoped_case(client, owner)
-    path = f"/api/v1/cases/{case_id}/intake"
+    path = f"/api/v1/conversations/tasks/{case_id}/intake"
     archive = f"/api/v1/cases/{case_id}/archive"
     payload = {"facts": FACTS, "confirm": True}
     assert client.put(path, json=payload, headers=owner).status_code == 200
@@ -188,7 +188,7 @@ def test_delete_intake_and_delete_case_remove_owner_rows(client, auth_headers):
     headers = auth_headers("alice")
     bob = auth_headers("bob")
     case_id = create_scoped_case(client, headers)
-    path = f"/api/v1/cases/{case_id}/intake"
+    path = f"/api/v1/conversations/tasks/{case_id}/intake"
     client.put(path, json={"facts": FACTS, "confirm": True}, headers=headers)
     assert client.delete(path, headers=bob).status_code == 404
     assert client.delete(path, headers=headers).status_code == 204
@@ -200,7 +200,7 @@ def test_delete_intake_and_delete_case_remove_owner_rows(client, auth_headers):
     assert client.get(path, headers=headers).status_code == 404
 
 
-def test_canonical_conversation_task_intake_route_and_hidden_legacy_alias(client, auth_headers):
+def test_canonical_conversation_task_intake_route_and_removed_legacy_alias(client, auth_headers):
     owner, stranger = auth_headers("alice"), auth_headers("bob")
     task_id = client.post("/api/v1/cases", json={}, headers=owner).json()["id"]
     canonical = f"/api/v1/conversations/tasks/{task_id}/intake"
@@ -213,5 +213,7 @@ def test_canonical_conversation_task_intake_route_and_hidden_legacy_alias(client
     assert client.get(canonical).status_code == 401
     assert client.get(canonical, headers=stranger).status_code == 404
     assert client.get(canonical, headers=owner).status_code == 200
-    # Compatibility remains runtime-only until all internal clients are migrated.
-    assert client.get(legacy, headers=owner).status_code == 200
+    # The legacy route is no longer mounted, including for authenticated callers.
+    assert client.get(legacy, headers=owner).status_code == 404
+    assert client.put(legacy, json={"facts": FACTS, "confirm": False}, headers=owner).status_code == 404
+    assert client.delete(legacy, headers=owner).status_code == 404

@@ -28,7 +28,7 @@ CORRECTED_SCOPE = CheckpointState(
 def _start_corrected_run(client, auth_headers, *, query="residenza", language="en"):
     owner = auth_headers("bob")
     case_id = UUID(create_scoped_case(client, owner))
-    intake = client.put(f"/api/v1/cases/{case_id}/intake", headers=owner, json={"facts": FACTS, "confirm": True})
+    intake = client.put(f"/api/v1/conversations/tasks/{case_id}/intake", headers=owner, json={"facts": FACTS, "confirm": True})
     assert intake.status_code == 200
     factory = client.app.state.session_factory
     scope = _thread_context(client, case_id, "bob")

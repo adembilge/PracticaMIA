@@ -52,7 +52,7 @@ def test_scope_matrix(client, auth_headers, monkeypatch, item):
             assert state["official_submission"] is False
             return
         draft = client.put(
-            f"/api/v1/cases/{cid}/intake", headers=headers,
+            f"/api/v1/conversations/tasks/{cid}/intake", headers=headers,
             json={"facts": {**FACTS, "housing_basis": "unknown"}, "confirm": False},
         )
         assert draft.status_code == 200

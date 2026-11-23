@@ -235,7 +235,7 @@ def _thread_context(client, case_id, subject):
 def test_phase4_catalogue_and_search_api_share_exact_approved_evidence(client, auth_headers):
     user = auth_headers("bob")
     case_id = UUID(create_scoped_case(client, user))
-    intake = f"/api/v1/cases/{case_id}/intake"
+    intake = f"/api/v1/conversations/tasks/{case_id}/intake"
     assert client.put(intake, headers=user, json={"facts": FACTS, "confirm": True}).status_code == 200
     context = _thread_context(client, case_id, "bob")
     version, digest = _create(client)
@@ -296,7 +296,7 @@ def test_phase4_search_matches_reviewed_passages_for_address_phrases_and_anpr(cl
     user = auth_headers("alice")
     case_id = UUID(create_scoped_case(client, user))
     assert client.put(
-        f"/api/v1/cases/{case_id}/intake", headers=user, json={"facts": FACTS, "confirm": True},
+        f"/api/v1/conversations/tasks/{case_id}/intake", headers=user, json={"facts": FACTS, "confirm": True},
     ).status_code == 200
     context = _thread_context(client, case_id, "alice")
     html = HTML.replace(b"</body>", b"<h2>Canale</h2><p>ANPR appare in questo esempio sintetico.</p></body>")
@@ -356,7 +356,7 @@ def test_phase4_evidence_hides_foreign_or_unlinked_thread_context(client, auth_h
     user = auth_headers("alice")
     case_id = UUID(create_scoped_case(client, user))
     assert client.put(
-        f"/api/v1/cases/{case_id}/intake", headers=user, json={"facts": FACTS, "confirm": True},
+        f"/api/v1/conversations/tasks/{case_id}/intake", headers=user, json={"facts": FACTS, "confirm": True},
     ).status_code == 200
     context = _thread_context(client, case_id, "alice")
     with client.app.state.session_factory.begin() as db:
@@ -386,7 +386,7 @@ def test_phase4_evidence_hides_foreign_or_unlinked_thread_context(client, auth_h
 def test_phase4_case_evidence_reloads_confirmation_and_scope(client, auth_headers):
     user = auth_headers("alice")
     case_id = UUID(client.post("/api/v1/cases", json={}, headers=user).json()["id"])
-    root = f"/api/v1/cases/{case_id}"
+    root = f"/api/v1/conversations/tasks/{case_id}"
     context = _thread_context(client, case_id, "alice")
     version, digest = _create(client)
     _approve(client, version, digest)
@@ -428,7 +428,7 @@ def test_phase4_case_evidence_fails_closed_for_invalid_or_foreign_intake(client,
     user = auth_headers("alice")
     case_id = UUID(create_scoped_case(client, user))
     assert client.put(
-        f"/api/v1/cases/{case_id}/intake", headers=user, json={"facts": FACTS, "confirm": True},
+        f"/api/v1/conversations/tasks/{case_id}/intake", headers=user, json={"facts": FACTS, "confirm": True},
     ).status_code == 200
     context = _thread_context(client, case_id, "alice")
     for changes, expected in (

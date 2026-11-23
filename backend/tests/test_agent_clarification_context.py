@@ -119,7 +119,7 @@ def test_worker_checks_only_accessible_private_document_reviews(
     saved_facts = FACTS.copy()
     if scenario != "conflict":
         saved_facts.pop("move_in_date")
-        assert client.put(case_path + "/intake", headers=headers, json={
+        assert client.put(f"/api/v1/conversations/tasks/{case_id}/intake", headers=headers, json={
             "facts": saved_facts, "confirm": True,
         }).status_code == 200
 
@@ -208,7 +208,7 @@ def test_worker_checks_only_accessible_private_document_reviews(
     assert replay.json()["events"][0]["result"] == body
     assert client.get(url, headers=auth_headers("bob")).status_code == 404
 
-    facts = client.get(case_path + "/intake", headers=headers).json()["facts"]
+    facts = client.get(f"/api/v1/conversations/tasks/{case_id}/intake", headers=headers).json()["facts"]
     assert facts.get("move_in_date") == saved_facts.get("move_in_date")
 
 

@@ -179,7 +179,7 @@ def test_new_destination_message_invalidates_only_the_same_case_current_handoff(
     owner = auth_headers("alice")
     case_id = UUID(create_scoped_case(client, owner))
     other_id = UUID(create_scoped_case(client, owner))
-    intake_url = f"/api/v1/cases/{case_id}/intake"
+    intake_url = f"/api/v1/conversations/tasks/{case_id}/intake"
     assert client.put(intake_url, headers=owner, json={"facts": FACTS, "confirm": True}).status_code == 200
     saved_intake = client.get(intake_url, headers=owner).json()
     old_url = _publish(client, answer, scope, language, case_id=case_id, read_evidence_scope=lambda *_: scope)

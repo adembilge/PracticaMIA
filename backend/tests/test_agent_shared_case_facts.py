@@ -31,7 +31,7 @@ def _scope(client, owner, case):
 
 def _intake(client, owner, case, *, facts=FACTS, confirm=True):
     path = _scope(client, owner, case)
-    response = client.put(path + "/intake", headers=owner, json={"facts": facts, "confirm": confirm})
+    response = client.put(f"/api/v1/conversations/tasks/{case}/intake", headers=owner, json={"facts": facts, "confirm": confirm})
     assert response.status_code == 200, response.text
 
 
@@ -80,7 +80,7 @@ def test_selected_case_run_reuses_citizenship_but_asks_for_its_own_date_and_hous
     assert question["missing_fields"] == ["move_in_date", "housing_basis"]
     assert FACTS["move_in_date"] not in question["text"]
     assert client.get(target_url + "/events", headers=auth_headers("bob")).status_code == 404
-    intake = client.get(target_path + "/intake", headers=owner).json()
+    intake = client.get(f"/api/v1/conversations/tasks/{target}/intake", headers=owner).json()
     assert not intake["confirmed"] and not intake["facts"]
 
 
@@ -168,4 +168,4 @@ def test_conflicting_current_statement_requires_a_bound_citizenship_reply(client
         last = load_checkpoint(db, **context)
     assert last.state.next_node == "find_evidence"
     assert last.state.routing_corrections.citizenship_class == "italian"
-    assert client.get(target_path + "/intake", headers=owner).json()["facts"] == {}
+    assert client.get(f"/api/v1/conversations/tasks/{target}/intake", headers=owner).json()["facts"] == {}

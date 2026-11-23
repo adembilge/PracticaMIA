@@ -126,11 +126,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # compatibility aliases while internal callers are migrated incrementally.
         api.include_router(task_router, prefix="/api/v1/conversations/tasks")
         api.include_router(task_router, prefix="/api/v1/cases", include_in_schema=False)
-        from app.cases.intake_router import router as task_intake_router, legacy_router as legacy_case_intake_router
+        from app.cases.intake_router import router as task_intake_router
         api.include_router(task_intake_router)
-        # Temporary, undocumented compatibility route for internal callers.
-        # The frontend BFF uses only the canonical conversation/task contract.
-        api.include_router(legacy_case_intake_router, include_in_schema=False)
         if settings.enable_private_document_api:
             from app.private_documents.router import router as private_router, retention_router
             api.include_router(private_router, prefix="/api/v1/conversations/tasks")

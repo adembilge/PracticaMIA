@@ -46,7 +46,7 @@ Auth0, the Next.js server-side API proxy and PostgreSQL persistence support auth
 
 The customer-facing application is the single chat at `/`. The old `/account`, `/cases/*`, `/demo/*` and case-workspace customer pages are removed. The frontend exposes the authenticated conversation proxy under `/api/agent/*` and inline request-intake adapter under `/api/conversations/tasks/{id}/intake`.
 
-**Migration status:** the intake adapter still forwards to the legacy FastAPI `/api/v1/cases/{id}/intake` route. Backend case CRUD, checklist, workflow, package, private-document and preparation routes still use case-named paths or models. These are not customer navigation surfaces, but they are real backend dependencies scheduled for migration in [LEGACY_MIGRATION_PLAN.md](LEGACY_MIGRATION_PLAN.md). Do not describe the backend as case-free until the API and storage migration is complete.
+**Migration status:** the intake adapter and FastAPI backend use only `/api/v1/conversations/tasks/{id}/intake`; the old case-prefixed intake alias has been removed. Backend case CRUD, checklist, workflow, package, private-document and preparation routes or models still retain case-oriented names and are tracked in [LEGACY_MIGRATION_PLAN.md](LEGACY_MIGRATION_PLAN.md). Do not describe the backend as case-free until the API and storage migration is complete.
 
 ## Verification
 

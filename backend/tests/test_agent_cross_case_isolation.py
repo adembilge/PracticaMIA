@@ -81,7 +81,7 @@ def test_two_pending_cases_keep_documents_replies_and_citations_separate(documen
     dates = (date(2026, 11, 5), date(2026, 11, 16))
     statuses = ("reviewed", "needs_review")
     milan_facts = {field: value for field, value in FACTS.items() if field != "move_in_date"}
-    assert client.put(f"/api/v1/cases/{milan_case}/intake", headers=owner, json={
+    assert client.put(f"/api/v1/conversations/tasks/{milan_case}/intake", headers=owner, json={
         "facts": milan_facts, "confirm": True,
     }).status_code == 200
     unsuited = client.patch(f"/api/v1/cases/{como_case}/scope", headers=owner, json={"answers": ["yes", "no"]})
@@ -234,5 +234,5 @@ def test_two_pending_cases_keep_documents_replies_and_citations_separate(documen
         assert own_source.json()["passage"]["citation"]["location_id"] == municipalities[index]
         assert_private_error(client.get(own_source_url, headers=other_account), 404, "unavailable")
 
-    assert client.get(f"/api/v1/cases/{milan_case}/intake", headers=owner).json()["facts"] == milan_facts
-    assert client.get(f"/api/v1/cases/{como_case}/intake", headers=owner).json()["facts"] == {}
+    assert client.get(f"/api/v1/conversations/tasks/{milan_case}/intake", headers=owner).json()["facts"] == milan_facts
+    assert client.get(f"/api/v1/conversations/tasks/{como_case}/intake", headers=owner).json()["facts"] == {}
