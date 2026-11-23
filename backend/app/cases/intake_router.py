@@ -16,8 +16,10 @@ from app.cases.intake_model import CaseIntake
 from app.cases.intake_schemas import IntakeUpdate, REQUIRED_FIELDS, describe_intake
 from app.database import get_session
 
-router = APIRouter(prefix="/api/v1/cases", tags=["case-intake"],
+router = APIRouter(prefix="/api/v1/conversations/tasks", tags=["conversation-task-intake"],
                    dependencies=[Depends(get_principal)])
+legacy_router = APIRouter(prefix="/api/v1/cases", tags=["legacy-compatibility"],
+                          dependencies=[Depends(get_principal)])
 
 
 def _owned_case(
@@ -100,3 +102,10 @@ def erase_intake(case_id: UUID, db: Session = Depends(get_session),
         CaseIntake.case_id == str(case_id), CaseIntake.owner_subject == principal.subject
     ))
     db.commit()
+
+
+# Keep the old path temporarily for already-deployed internal clients and regression
+# fixtures. It is excluded from OpenAPI and is not used by the customer frontend.
+legacy_router.add_api_route("/{case_id}/intake", read_intake, methods=["GET"])
+legacy_router.add_api_route("/{case_id}/intake", write_intake, methods=["PUT"])
+legacy_router.add_api_route("/{case_id}/intake", erase_intake, methods=["DELETE"], status_code=204)

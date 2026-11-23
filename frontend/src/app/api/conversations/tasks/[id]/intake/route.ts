@@ -9,7 +9,7 @@ type Context={params:Promise<{id:string}>};
 export async function GET(_request:NextRequest,{params}:Context){
   const {id}=await params;
   if(!isTaskId(id))return backendError('Request not found',404);
-  return proxyAuthenticatedRequest('GET','/api/v1/cases/'+id+'/intake');
+  return proxyAuthenticatedRequest('GET','/api/v1/conversations/tasks/'+id+'/intake');
 }
 export async function PUT(request:NextRequest,{params}:Context){
   const originError=rejectCrossOrigin(request);
@@ -23,12 +23,12 @@ export async function PUT(request:NextRequest,{params}:Context){
     return backendError('Request too large or missing length',413);
   const raw:unknown=await request.json().catch(()=>null);
   if(!isRequestIntakePayload(raw))return backendError('Invalid request details',422);
-  return proxyAuthenticatedRequest('PUT','/api/v1/cases/'+id+'/intake',raw);
+  return proxyAuthenticatedRequest('PUT','/api/v1/conversations/tasks/'+id+'/intake',raw);
 }
 export async function DELETE(request:NextRequest,{params}:Context){
   const originError=rejectCrossOrigin(request);
   if(originError)return originError;
   const {id}=await params;
   if(!isTaskId(id))return backendError('Request not found',404);
-  return proxyAuthenticatedRequest('DELETE','/api/v1/cases/'+id+'/intake');
+  return proxyAuthenticatedRequest('DELETE','/api/v1/conversations/tasks/'+id+'/intake');
 }

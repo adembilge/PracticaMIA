@@ -198,3 +198,20 @@ def test_delete_intake_and_delete_case_remove_owner_rows(client, auth_headers):
     with client.app.state.session_factory() as db:
         assert db.get(CaseIntake, case_id) is None
     assert client.get(path, headers=headers).status_code == 404
+
+
+def test_canonical_conversation_task_intake_route_and_hidden_legacy_alias(client, auth_headers):
+    owner, stranger = auth_headers("alice"), auth_headers("bob")
+    task_id = client.post("/api/v1/cases", json={}, headers=owner).json()["id"]
+    canonical = f"/api/v1/conversations/tasks/{task_id}/intake"
+    legacy = f"/api/v1/cases/{task_id}/intake"
+
+    # OpenAPI paths use the route template, not the concrete task UUID.
+    paths = client.app.openapi()["paths"]
+    assert "/api/v1/conversations/tasks/{case_id}/intake" in paths
+    assert "/api/v1/cases/{case_id}/intake" not in paths
+    assert client.get(canonical).status_code == 401
+    assert client.get(canonical, headers=stranger).status_code == 404
+    assert client.get(canonical, headers=owner).status_code == 200
+    # Compatibility remains runtime-only until all internal clients are migrated.
+    assert client.get(legacy, headers=owner).status_code == 200
