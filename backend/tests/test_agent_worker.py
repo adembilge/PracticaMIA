@@ -249,7 +249,7 @@ def test_worker_reads_current_confirmed_facts_and_open_review_actions(client, au
     owner = auth_headers()
     case_id = UUID(create_case(client, owner))
     path = f"/api/v1/cases/{case_id}"
-    assert client.put(path + "/intake", headers=owner, json={"facts": FACTS, "confirm": False}).status_code == 200
+    assert client.put(f"/api/v1/conversations/tasks/{case_id}/intake", headers=owner, json={"facts": FACTS, "confirm": False}).status_code == 200
     factory = client.app.state.session_factory
     with factory.begin() as db:
         thread_id = create_thread(db, principal=ALICE)
