@@ -1,6 +1,6 @@
 # Cleanup and legacy migration plan
 
-**Status:** Active — M3 disposable harness implementation in progress, 23 November 2026  
+**Status:** Active — M3 disposable harness merged; full migration blocked on M2.5 approvals and key-custody evidence, 23 November 2026  
 **Current phase:** Phase 4; Phase 5 remains paused  
 **Primary reference:** [Legacy case-to-conversation/task migration](LEGACY_MIGRATION_PLAN.md)  
 **Product contract:** one customer-facing conversation at `/`; internal task/workflow persistence is not a customer-facing task feature.
@@ -13,7 +13,7 @@ This is a code and data-architecture migration plan. It does not authorize produ
 
 ## 2. Current baseline
 
-- PRs #246–#268 are merged; PR #265 contains the latest runtime change, PR #266 consolidated the cleanup plan, PR #267 completed M2.4 and PR #268 completed the M2.5 encrypted-payload design baseline.
+- PRs #246–#269 are merged; PR #265 contains the latest runtime change, PR #266 consolidated the cleanup plan, PR #267 completed M2.4, PR #268 completed the M2.5 encrypted-payload design baseline and PR #269 implemented the disposable M3 migration harness.
 - Public legacy case API aliases and customer-facing case/task/demo navigation have been removed in earlier increments.
 - Canonical task operations are routed under `/api/v1/conversations/tasks`.
 - `ENABLE_TASK_API` is the only supported task-route activation flag and remains disabled by default.
@@ -75,7 +75,7 @@ Acceptance:
 
 ### M3 — Build and validate the reversible data migration
 
-**Status:** One coordinated workstream in progress. Disposable crypto primitives, owner/link checks and a PostgreSQL staging/ledger harness are implemented in `docs/M3_MIGRATION_IMPLEMENTATION.md` and `backend/app/migration_harness/`. Full source-to-target table migration, Alembic target schema and any non-disposable execution remain blocked on M2.5 engineering/security/operator approval and key-custody evidence.
+**Status:** Disposable harness implemented and merged in PR #269. Full source-to-target table migration, Alembic target schema and any non-disposable execution remain blocked in `docs/M3_MIGRATION_IMPLEMENTATION.md` and `backend/app/migration_harness/`. Full source-to-target table migration, Alembic target schema and any non-disposable execution remain blocked on M2.5 engineering/security/operator approval and key-custody evidence.
 
 Deliverables:
 - Freeze exact source-to-target mapping, migration ordering, destination AAD v2, staging ledger and recovery boundaries.
