@@ -59,7 +59,7 @@ def claim_next_run(db: Session, *, lease_for: timedelta, unlinked_only: bool = F
     criteria = [
         AgentRunRequest.status.in_(WORKER_RUN_STATUSES),
         (AgentRunRequest.status == "queued") | ready_checkpoint,
-        AgentRunRequest.case_id.is_(None) | CaseRecord.id.is_not(None),
+        AgentRunRequest.case_id.is_(None) | (CaseRecord.id.is_not(None) & CaseRecord.archived_at.is_(None)),
         or_(AgentRunRequest.lease_token.is_(None), AgentRunRequest.lease_expires_at <= now),
     ]
     if unlinked_only:
