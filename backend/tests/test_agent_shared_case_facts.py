@@ -168,4 +168,4 @@ def test_conflicting_current_statement_requires_a_bound_citizenship_reply(client
         last = load_checkpoint(db, **context)
     assert last.state.next_node == "find_evidence"
     assert last.state.routing_corrections.citizenship_class == "italian"
-    assert client.get(target_path + "/intake", headers=owner).json()["facts"] == {}
+    assert client.get(f"/api/v1/conversations/tasks/{target}/intake", headers=owner).json()["facts"] == {}
