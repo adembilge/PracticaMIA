@@ -18,8 +18,6 @@ from app.database import get_session
 
 router = APIRouter(prefix="/api/v1/conversations/tasks", tags=["conversation-task-intake"],
                    dependencies=[Depends(get_principal)])
-legacy_router = APIRouter(prefix="/api/v1/cases", tags=["legacy-compatibility"],
-                          dependencies=[Depends(get_principal)])
 
 
 def _owned_case(
@@ -103,9 +101,3 @@ def erase_intake(case_id: UUID, db: Session = Depends(get_session),
     ))
     db.commit()
 
-
-# Keep the old path temporarily for already-deployed internal clients and regression
-# fixtures. It is excluded from OpenAPI and is not used by the customer frontend.
-legacy_router.add_api_route("/{case_id}/intake", read_intake, methods=["GET"])
-legacy_router.add_api_route("/{case_id}/intake", write_intake, methods=["PUT"])
-legacy_router.add_api_route("/{case_id}/intake", erase_intake, methods=["DELETE"], status_code=204)
