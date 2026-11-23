@@ -204,7 +204,7 @@ def test_canonical_conversation_task_intake_route_and_removed_legacy_alias(clien
     owner, stranger = auth_headers("alice"), auth_headers("bob")
     task_id = client.post("/api/v1/conversations/tasks", json={}, headers=owner).json()["id"]
     canonical = f"/api/v1/conversations/tasks/{task_id}/intake"
-    legacy = f"/api/v1/conversations/tasks/{task_id}/intake"
+    legacy = f"/api/v1/cases/{task_id}/intake"
 
     # OpenAPI paths use the route template, not the concrete task UUID.
     paths = client.app.openapi()["paths"]
