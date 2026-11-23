@@ -70,7 +70,7 @@ The current harness implements fail-closed owner checks and nullable run-link va
 
 ## 5. Encryption contract
 
-The canonical destination AAD v2 tuple implemented in `destination_aad_v2` is UTF-8 JSON with compact separators and this ordered tuple:
+The exact source AAD v1 builders are implemented for accepted messages, events, checkpoints, preparation payloads and private-vault payloads. Their compact JSON/string encodings are covered by byte-for-byte tests. The canonical destination AAD v2 tuple implemented in `destination_aad_v2` is UTF-8 JSON with compact separators and this ordered tuple:
 
 ```text
 [
@@ -138,7 +138,7 @@ The current PostgreSQL harness exercises atomic target+ledger writes, retry reva
 
 Implemented in this branch:
 
-- Pure tests for pairwise key checks, canonical AAD v2 identity, source authentication, digest validation, destination decrypt verification, owner mismatch, ownerless rows, nullable run links and retention timestamp behavior.
+- Pure tests for pairwise key checks, byte-for-byte source AAD v1 builders, canonical AAD v2 identity, source authentication, digest validation, destination decrypt verification, owner mismatch, ownerless rows, nullable run links and retention timestamp behavior.
 - Disposable PostgreSQL test using a random schema for target/ledger atomicity, retry/revalidation, orphan-target rejection and rollback.
 - Backend CI invokes the PostgreSQL harness in its existing disposable PostgreSQL phase.
 
