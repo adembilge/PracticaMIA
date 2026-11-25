@@ -1,1 +1,0 @@
-"""PracticaMIA backend package."""
