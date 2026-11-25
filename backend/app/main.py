@@ -3,10 +3,12 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 
+from app.api.account import router as account_router
 from app.config import get_settings
 from app.db import get_supabase
 
 app = FastAPI(title="PracticaMIA")
+app.include_router(account_router)
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
