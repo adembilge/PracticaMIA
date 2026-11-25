@@ -77,3 +77,69 @@ create index chunks_embedding_hnsw on public.chunks
 create index chunks_tsv_gin on public.chunks using gin (tsv);
 create index documents_topic_idx on public.documents (topic);
 create index messages_conversation_idx on public.messages (conversation_id, created_at);
+
+create or replace function public.match_chunks(
+  query_embedding vector(384),
+  query_text text,
+  topic_filter text,
+  match_count int
+)
+returns table (
+  id uuid,
+  content text,
+  heading text,
+  url text,
+  title text,
+  topic text,
+  fetched_at timestamptz,
+  cosine_similarity float,
+  rank_score float
+)
+language sql
+stable
+as $$
+  with semantic as (
+    select
+      c.id,
+      row_number() over (order by c.embedding <=> query_embedding) as rnk,
+      (1 - (c.embedding <=> query_embedding))::float as cosine_similarity
+    from public.chunks c
+    join public.documents d on d.id = c.document_id
+    where c.embedding is not null
+      and (topic_filter = '' or d.topic = topic_filter)
+    order by c.embedding <=> query_embedding
+    limit 20
+  ),
+  lexical as (
+    select
+      c.id,
+      row_number() over (
+        order by ts_rank_cd(c.tsv, websearch_to_tsquery('italian', query_text)) desc
+      ) as rnk
+    from public.chunks c
+    join public.documents d on d.id = c.document_id
+    where query_text <> ''
+      and c.tsv @@ websearch_to_tsquery('italian', query_text)
+      and (topic_filter = '' or d.topic = topic_filter)
+    limit 20
+  ),
+  fused as (
+    select
+      coalesce(s.id, l.id) as id,
+      coalesce(s.cosine_similarity, 0)::float as cosine_similarity,
+      (
+        coalesce(1.0 / (60 + s.rnk), 0) + coalesce(1.0 / (60 + l.rnk), 0)
+      )::float as rank_score
+    from semantic s
+    full outer join lexical l on s.id = l.id
+  )
+  select
+    c.id, c.content, c.heading, d.url, d.title, d.topic, d.fetched_at,
+    f.cosine_similarity, f.rank_score
+  from fused f
+  join public.chunks c on c.id = f.id
+  join public.documents d on d.id = c.document_id
+  where f.cosine_similarity >= 0.30
+  order by f.rank_score desc
+  limit match_count;
+$$;
