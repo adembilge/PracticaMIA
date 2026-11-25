@@ -20,6 +20,10 @@ const copy: Record<string, { en: string; it: string }> = {
     en: "This deletes your chats.",
     it: "Questo elimina le tue chat.",
   },
+  deleteChat: {
+    en: "This deletes this chat.",
+    it: "Questo elimina questa chat.",
+  },
   send: { en: "Send", it: "Invia" },
   emptyChat: {
     en: "Ask about an Italian public procedure.",

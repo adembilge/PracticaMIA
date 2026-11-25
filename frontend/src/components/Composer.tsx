@@ -5,15 +5,19 @@ import { useI18n } from "../lib/i18n";
 
 type ComposerProps = {
   conversationId: string;
+  disabled?: boolean;
   onUserMessage: (content: string) => void;
   onAssistantMessage: (message: ChatMessage) => void;
+  onSendFailed: (content: string, error: string) => void;
   onAuthError: () => void;
 };
 
 export function Composer({
   conversationId,
+  disabled = false,
   onUserMessage,
   onAssistantMessage,
+  onSendFailed,
   onAuthError,
 }: ComposerProps) {
   const { t } = useI18n();
@@ -22,7 +26,7 @@ export function Composer({
 
   async function send() {
     const content = draft.trim();
-    if (!content || sending) return;
+    if (!content || sending || disabled) return;
     setSending(true);
     onUserMessage(content);
     setDraft("");
@@ -34,7 +38,9 @@ export function Composer({
         onAuthError();
         return;
       }
+      const message = err instanceof Error ? err.message : "Request failed";
       setDraft(content);
+      onSendFailed(content, message);
     } finally {
       setSending(false);
     }
@@ -45,7 +51,7 @@ export function Composer({
       <textarea
         value={draft}
         rows={3}
-        disabled={sending}
+        disabled={sending || disabled}
         onChange={(event) => setDraft(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Enter" && !event.shiftKey) {
@@ -54,7 +60,12 @@ export function Composer({
           }
         }}
       />
-      <button type="button" className="seal" disabled={sending} onClick={() => void send()}>
+      <button
+        type="button"
+        className="seal"
+        disabled={sending || disabled}
+        onClick={() => void send()}
+      >
         {t("send")}
       </button>
     </p>

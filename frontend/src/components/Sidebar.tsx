@@ -15,29 +15,54 @@ type SidebarProps = {
   onClose?: () => void;
 };
 
+function mergeTitleDrafts(
+  rows: Conversation[],
+  prevConv: Conversation[],
+  prevTitles: Record<string, string>,
+  focusedId: string | null,
+): Record<string, string> {
+  const next = { ...prevTitles };
+  for (const row of rows) {
+    const lastServer = prevConv.find((c) => c.id === row.id)?.title ?? row.title;
+    const draft = prevTitles[row.id] ?? lastServer;
+    if (focusedId === row.id && draft !== lastServer) {
+      next[row.id] = draft;
+    } else {
+      next[row.id] = row.title;
+    }
+  }
+  return next;
+}
+
 export function Sidebar({ hidden, showClose, onClose }: SidebarProps) {
   const { t, lang, setLang } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const focusedTitleIdRef = useRef<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [titles, setTitles] = useState<Record<string, string>>({});
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function refresh() {
     try {
       const rows = await listConversations();
-      setConversations(rows);
-      setTitles((prev) => {
-        const next = { ...prev };
-        for (const row of rows) {
-          if (next[row.id] === undefined) next[row.id] = row.title;
-        }
-        return next;
+      setHistoryError(null);
+      setConversations((prevConv) => {
+        setTitles((prevTitles) =>
+          mergeTitleDrafts(rows, prevConv, prevTitles, focusedTitleIdRef.current),
+        );
+        return rows;
       });
-    } catch {
-      setConversations([]);
+    } catch (err) {
+      if (err instanceof Error && err.message === "Sign in again.") {
+        navigate("/");
+        return;
+      }
+      const message = err instanceof Error ? err.message : "Request failed";
+      setHistoryError(message);
     }
   }
 
@@ -96,6 +121,7 @@ export function Sidebar({ hidden, showClose, onClose }: SidebarProps) {
           {lang === "en" ? "IT" : "EN"}
         </button>
       </p>
+      {historyError ? <p role="alert">{historyError}</p> : null}
       <p>
         <Link to="/app">{t("newChat")}</Link>
       </p>
@@ -106,6 +132,14 @@ export function Sidebar({ hidden, showClose, onClose }: SidebarProps) {
             <p>
               <input
                 value={titles[row.id] ?? row.title}
+                onFocus={() => {
+                  focusedTitleIdRef.current = row.id;
+                }}
+                onBlur={() => {
+                  if (focusedTitleIdRef.current === row.id) {
+                    focusedTitleIdRef.current = null;
+                  }
+                }}
                 onChange={(event) =>
                   setTitles((prev) => ({ ...prev, [row.id]: event.target.value }))
                 }
@@ -135,7 +169,7 @@ export function Sidebar({ hidden, showClose, onClose }: SidebarProps) {
         </button>
       </p>
       <dialog ref={dialogRef} onClose={() => setDeleteError(null)}>
-        <p>{t("deleteConfirm")}</p>
+        <p>{t("deleteChat")}</p>
         {deleteError ? <p role="alert">{deleteError}</p> : null}
         <p>
           <button type="button" onClick={() => dialogRef.current?.close()}>
