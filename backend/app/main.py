@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.config import get_settings
 from app.db import get_supabase
@@ -19,6 +19,13 @@ def probe_db() -> str:
     except Exception:
         return "down"
     return "ok"
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(_request: Request, exc: HTTPException):
+    if isinstance(exc.detail, dict) and "code" in exc.detail:
+        return JSONResponse(status_code=exc.status_code, content=exc.detail)
+    return JSONResponse(status_code=exc.status_code, content={"code": "error", "message": str(exc.detail)})
 
 
 @app.get("/api/health")
