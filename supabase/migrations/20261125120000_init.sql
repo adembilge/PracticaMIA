@@ -143,3 +143,32 @@ as $$
   order by f.rank_score desc
   limit match_count;
 $$;
+
+alter table public.conversations enable row level security;
+alter table public.messages enable row level security;
+alter table public.usage_daily enable row level security;
+alter table public.global_usage_daily enable row level security;
+alter table public.sources enable row level security;
+alter table public.documents enable row level security;
+alter table public.chunks enable row level security;
+alter table public.topic_profiles enable row level security;
+
+create policy conversations_own on public.conversations
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy messages_own on public.messages
+  for all
+  using (
+    exists (
+      select 1 from public.conversations c
+      where c.id = conversation_id and c.user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.conversations c
+      where c.id = conversation_id and c.user_id = auth.uid()
+    )
+  );
