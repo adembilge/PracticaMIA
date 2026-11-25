@@ -5,12 +5,14 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from app.api.account import router as account_router
 from app.api.conversations import router as conversations_router
+from app.api.messages import router as messages_router
 from app.config import get_settings
 from app.db import get_supabase
 
 app = FastAPI(title="PracticaMIA")
 app.include_router(account_router)
 app.include_router(conversations_router)
+app.include_router(messages_router)
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
