@@ -111,10 +111,10 @@ export function Sidebar({ hidden, showClose, onClose }: SidebarProps) {
                 }
               />
               <button type="button" onClick={() => void saveTitle(row.id)}>
-                Save
+                {t("save")}
               </button>
               <button type="button" onClick={() => openDelete(row.id)}>
-                Delete
+                {t("delete")}
               </button>
             </p>
           </li>
@@ -142,7 +142,7 @@ export function Sidebar({ hidden, showClose, onClose }: SidebarProps) {
             {t("cancel")}
           </button>
           <button type="button" onClick={() => void confirmDelete()}>
-            Delete
+            {t("delete")}
           </button>
         </p>
       </dialog>

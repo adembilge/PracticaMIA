@@ -47,6 +47,8 @@ const copy: Record<string, { en: string; it: string }> = {
     en: "Check the email and password.",
     it: "Controlla email e password.",
   },
+  save: { en: "Save", it: "Salva" },
+  delete: { en: "Delete", it: "Elimina" },
   cancel: { en: "Cancel", it: "Annulla" },
   menu: { en: "Menu", it: "Menu" },
   close: { en: "Close", it: "Chiudi" },
