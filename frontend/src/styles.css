@@ -1,0 +1,16 @@
+:root {
+  --bg: #f4f0e6;
+  --ink: #1c1915;
+  --paper: #fffdf8;
+  --line: #d9d0c1;
+  --seal: #8c2f2f;
+  --sidebar: 280px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Source Sans 3", sans-serif;
+}
+h1 { font-family: "Source Serif 4", serif; font-weight: 600; }
