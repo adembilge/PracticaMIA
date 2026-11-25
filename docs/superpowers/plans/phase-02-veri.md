@@ -177,28 +177,37 @@ stable
 as $$
   with semantic as (
     select
-      c.id,
-      row_number() over (order by c.embedding <=> query_embedding) as rnk,
-      (1 - (c.embedding <=> query_embedding))::float as cosine_similarity
-    from public.chunks c
-    join public.documents d on d.id = c.document_id
-    where c.embedding is not null
-      and (topic_filter = '' or d.topic = topic_filter)
-    order by c.embedding <=> query_embedding
-    limit 20
+      nearest.id,
+      row_number() over (order by nearest.distance) as rnk,
+      (1 - nearest.distance)::float as cosine_similarity
+    from (
+      select
+        c.id,
+        (c.embedding <=> query_embedding) as distance
+      from public.chunks c
+      join public.documents d on d.id = c.document_id
+      where c.embedding is not null
+        and (topic_filter = '' or d.topic = topic_filter)
+      order by c.embedding <=> query_embedding
+      limit 20
+    ) nearest
   ),
   lexical as (
     select
-      c.id,
-      row_number() over (
-        order by ts_rank_cd(c.tsv, websearch_to_tsquery('italian', query_text)) desc
-      ) as rnk
-    from public.chunks c
-    join public.documents d on d.id = c.document_id
-    where query_text <> ''
-      and c.tsv @@ websearch_to_tsquery('italian', query_text)
-      and (topic_filter = '' or d.topic = topic_filter)
-    limit 20
+      best.id,
+      row_number() over (order by best.rank desc) as rnk
+    from (
+      select
+        c.id,
+        ts_rank_cd(c.tsv, websearch_to_tsquery('italian', query_text)) as rank
+      from public.chunks c
+      join public.documents d on d.id = c.document_id
+      where query_text <> ''
+        and c.tsv @@ websearch_to_tsquery('italian', query_text)
+        and (topic_filter = '' or d.topic = topic_filter)
+      order by ts_rank_cd(c.tsv, websearch_to_tsquery('italian', query_text)) desc
+      limit 20
+    ) best
   ),
   fused as (
     select
