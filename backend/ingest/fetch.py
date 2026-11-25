@@ -29,6 +29,7 @@ ALLOWED_HOST_SUFFIXES: tuple[str, ...] = (
 USER_AGENT = "PracticaMIA-bot/0.1 (public administration study assistant)"
 TIMEOUT_SECONDS = 20
 MAX_REDIRECTS = 3
+FORBIDDEN_URL_SUBSTRING = "0554_initaliainregola"
 
 
 class FetchResult(BaseModel):
@@ -40,6 +41,8 @@ class FetchResult(BaseModel):
 
 
 def host_allowed(url: str) -> bool:
+    if FORBIDDEN_URL_SUBSTRING in url:
+        return False
     host = (urlparse(url).hostname or "").casefold()
     for suffix in ALLOWED_HOST_SUFFIXES:
         s = suffix.casefold()
@@ -89,7 +92,11 @@ def fetch_url(
     )
     host_next[host] = current + 1.0
 
-    final_path = urlparse(str(response.url)).path.casefold()
+    final_url = str(response.url)
+    if not host_allowed(final_url):
+        return _skip(url, "host")
+
+    final_path = urlparse(final_url).path.casefold()
     if "login" in final_path or "accedi" in final_path:
         return FetchResult(
             url=url,

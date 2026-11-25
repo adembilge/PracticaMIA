@@ -15,7 +15,7 @@ def l2_normalize(vector: list[float]) -> list[float] | None:
     norm = math.sqrt(sum(item * item for item in vector))
     if norm == 0.0:
         return None
-    return [item / norm for item in vector]
+    return [float(item) / norm for item in vector]
 
 
 class Embedder:

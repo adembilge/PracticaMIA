@@ -72,6 +72,9 @@ class MemoryIngestStore:
     def delete_chunks(self, document_id: str) -> None:
         self.chunks_by_doc_id.pop(document_id, None)
 
+    def has_chunks(self, document_id: str) -> bool:
+        return bool(self.chunks_by_doc_id.get(document_id))
+
     def replace_chunks(self, document_id: str, rows: list[dict]) -> None:
         self.chunks_by_doc_id[document_id] = list(rows)
 
@@ -202,3 +205,17 @@ def test_main_missing_supabase(capsys, monkeypatch):
 def test_main_requires_run_subcommand():
     assert main([]) == 2
     assert main(["crawl", "--batch", "a"]) == 2
+
+
+def test_main_prints_error_to_stderr_on_failure(capsys, monkeypatch):
+    class FailingEmbedder:
+        def __init__(self) -> None:
+            raise RuntimeError("db down")
+
+    monkeypatch.setattr("ingest.__main__.get_supabase", lambda: object())
+    monkeypatch.setattr("ingest.__main__.Embedder", FailingEmbedder)
+    code = main(["run", "--batch", "a"])
+    captured = capsys.readouterr()
+    assert code == 1
+    assert captured.err.strip() == "db down"
+    assert captured.out == ""

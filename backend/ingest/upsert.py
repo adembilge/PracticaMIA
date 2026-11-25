@@ -31,7 +31,11 @@ def upsert_document(
 
     content_hash = _content_hash(text)
     existing = store.find_document(url)
-    if existing is not None and existing["content_hash"] == content_hash:
+    if (
+        existing is not None
+        and existing["content_hash"] == content_hash
+        and store.has_chunks(existing["id"])
+    ):
         return "unchanged"
 
     existing_id = existing["id"] if existing is not None else None
@@ -62,7 +66,11 @@ def upsert_document(
         fetched_at=_utc_now_iso(),
         content_hash=content_hash,
     )
-    store.replace_chunks(document_id, rows)
+    try:
+        store.replace_chunks(document_id, rows)
+    except Exception:
+        store.delete_chunks(document_id)
+        raise
     return "inserted"
 
 

@@ -84,6 +84,16 @@ class SupabaseIngestStore:
     def delete_chunks(self, document_id: str) -> None:
         self._client.table("chunks").delete().eq("document_id", document_id).execute()
 
+    def has_chunks(self, document_id: str) -> bool:
+        resp = (
+            self._client.table("chunks")
+            .select("id")
+            .eq("document_id", document_id)
+            .limit(1)
+            .execute()
+        )
+        return bool(resp.data)
+
     def replace_chunks(self, document_id: str, rows: list[dict]) -> None:
         payload = [
             {
@@ -244,10 +254,14 @@ def main(argv: list[str]) -> int:
     try:
         store = SupabaseIngestStore(client)
         embedder = Embedder()
-        with httpx.Client(max_redirects=MAX_REDIRECTS) as http_client:
+        with httpx.Client(
+            follow_redirects=True,
+            max_redirects=MAX_REDIRECTS,
+        ) as http_client:
             fetch = _build_fetch(http_client)
             return run_batch(args.batch, fetch, embedder, store)
-    except Exception:
+    except Exception as exc:
+        print(str(exc), file=sys.stderr)
         return 1
 
 

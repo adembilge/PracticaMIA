@@ -1,4 +1,7 @@
+import json
 import math
+
+import numpy as np
 
 from app.rag.embed import as_passage, as_query, l2_normalize
 
@@ -16,6 +19,14 @@ def test_normalize_unit():
 
 def test_normalize_zero():
     assert l2_normalize([0.0, 0.0]) is None
+
+
+def test_l2_normalize_produces_json_serializable_floats():
+    vector = np.array([3.0, 4.0], dtype=np.float32)
+    normalized = l2_normalize(list(vector))
+    assert normalized is not None
+    json.dumps(normalized)
+    assert all(type(item) is float for item in normalized)
 
 
 class FakeEmbedder:

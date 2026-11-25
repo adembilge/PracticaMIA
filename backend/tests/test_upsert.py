@@ -2,6 +2,8 @@ import hashlib
 import math
 from datetime import datetime, timezone
 
+import pytest
+
 from ingest.models import SourceSpec
 from ingest.upsert import finish_source, upsert_document
 
@@ -75,6 +77,9 @@ class FakeStore:
     def delete_chunks(self, document_id: str) -> None:
         self.delete_chunks_calls.append(document_id)
         self.chunks_by_doc_id.pop(document_id, None)
+
+    def has_chunks(self, document_id: str) -> bool:
+        return bool(self.chunks_by_doc_id.get(document_id))
 
     def replace_chunks(self, document_id: str, rows: list[dict]) -> None:
         self.chunks_by_doc_id[document_id] = list(rows)
@@ -174,6 +179,57 @@ def test_finish_source_error_when_all_skipped():
     row = store.source_updates[-1]
     assert row["status"] == "error"
     assert row["error"] == "first-error"
+
+
+def test_rebuilds_when_hash_matches_but_chunks_missing():
+    source = _source()
+    url = "https://example.com/page"
+    text = _long_text()
+    store = FakeStore()
+    embedder = CountingEmbedder()
+
+    doc_id = store.insert_document(
+        source_id=source.id,
+        url=url,
+        title="Titolo",
+        topic=source.topic,
+        language="it",
+        fetched_at="2020-01-01T00:00:00+00:00",
+        content_hash=_doc_hash(text),
+    )
+    assert store.chunks_by_doc_id.get(doc_id) is None
+
+    outcome = upsert_document(source, url, "Titolo", text, embedder, store)
+
+    assert outcome == "inserted"
+    assert len(store.chunks_by_doc_id[doc_id]) >= 1
+
+
+def test_replace_chunks_failure_clears_chunks_for_retry():
+    source = _source()
+    url = "https://example.com/page"
+    text = _long_text()
+    store = FakeStore()
+    embedder = CountingEmbedder()
+    fail_once = {"value": True}
+
+    def replace_chunks(document_id: str, rows: list[dict]) -> None:
+        if fail_once["value"]:
+            fail_once["value"] = False
+            raise RuntimeError("chunk insert failed")
+        store.chunks_by_doc_id[document_id] = list(rows)
+
+    store.replace_chunks = replace_chunks  # type: ignore[method-assign]
+
+    with pytest.raises(RuntimeError, match="chunk insert failed"):
+        upsert_document(source, url, "Titolo", text, embedder, store)
+
+    doc_id = store.documents_by_url[url]["id"]
+    assert not store.has_chunks(doc_id)
+
+    outcome = upsert_document(source, url, "Titolo", text, embedder, store)
+    assert outcome == "inserted"
+    assert store.has_chunks(doc_id)
 
 
 def test_finish_source_error_when_outcomes_empty():

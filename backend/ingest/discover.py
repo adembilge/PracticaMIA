@@ -1,7 +1,7 @@
 from html.parser import HTMLParser
 from urllib.parse import urljoin
 
-from ingest.fetch import host_allowed
+from ingest.fetch import FORBIDDEN_URL_SUBSTRING, host_allowed
 from ingest.models import SourceSpec
 
 
@@ -58,6 +58,8 @@ def discover(html: str, page_url: str, source: SourceSpec, seen: set[str]) -> li
     for href, text in parser.anchors:
         absolute = urljoin(page_url, href)
         if absolute in seen or absolute in included:
+            continue
+        if FORBIDDEN_URL_SUBSTRING in absolute:
             continue
         if not host_allowed(absolute):
             continue

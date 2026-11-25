@@ -48,6 +48,67 @@ def test_allowed_host_suffixes_match_controller_resolution():
     )
 
 
+def test_fetch_blocks_stale_brochure_url_without_http_call():
+    call_count = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal call_count
+        call_count += 1
+        return httpx.Response(200, content=b"ok")
+
+    client = httpx.Client(
+        transport=httpx.MockTransport(handler),
+        follow_redirects=True,
+        max_redirects=MAX_REDIRECTS,
+    )
+    url = "https://www.poliziadistato.it/archivio/0554_initaliainregola/page"
+    result = fetch_url(
+        url,
+        client,
+        robots_for=lambda _host: RobotFileParser(),
+        now=lambda: 0.0,
+        host_next={},
+        sleep=lambda _s: None,
+    )
+    assert result.skipped_reason == "host"
+    assert result.body == b""
+    assert call_count == 0
+
+
+def test_fetch_skips_when_redirect_leaves_allowed_host():
+    call_count = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal call_count
+        call_count += 1
+        if request.url.host == "www.poliziadistato.it":
+            return httpx.Response(
+                302,
+                headers={"location": "https://evil.example/a"},
+            )
+        return httpx.Response(200, content=b"<html>gotcha</html>")
+
+    client = httpx.Client(
+        transport=httpx.MockTransport(handler),
+        follow_redirects=True,
+        max_redirects=MAX_REDIRECTS,
+    )
+    parser = RobotFileParser()
+    parser.parse(["User-agent: *", "Disallow:"].__iter__())
+    url = "https://www.poliziadistato.it/redirect-me"
+    result = fetch_url(
+        url,
+        client,
+        robots_for=lambda _host: parser,
+        now=lambda: 0.0,
+        host_next={},
+        sleep=lambda _s: None,
+    )
+    assert result.skipped_reason == "host"
+    assert result.body == b""
+    assert call_count >= 1
+
+
 def test_fetch_blocks_disallowed_host_without_http_call():
     call_count = 0
 

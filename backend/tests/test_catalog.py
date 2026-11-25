@@ -99,6 +99,18 @@ def _discover_source() -> SourceSpec:
     )
 
 
+def test_discover_omits_stale_brochure_url():
+    source = _discover_source()
+    page_url = "https://www.poliziadistato.it/articolo/225"
+    html = """
+    <a href="/archivio/0554_initaliainregola/permesso">permesso</a>
+    <a href="/foo/permesso">Rinnovo</a>
+    """
+    found = discover(html, page_url, source, set())
+    assert found == ["https://www.poliziadistato.it/foo/permesso"]
+    assert not any("0554_initaliainregola" in item for item in found)
+
+
 def test_discover_returns_only_allowed_keyword_link():
     source = _discover_source()
     page_url = "https://www.poliziadistato.it/articolo/225"
