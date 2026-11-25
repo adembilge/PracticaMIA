@@ -554,10 +554,10 @@ git commit -m "feat: verify Supabase access tokens"
 
 ### Task 2.6: Faz çıkışı
 
-- [ ] Birim testler geçer.
-- [ ] Dashboard’da sekiz tablo görünür.
-- [ ] `match_chunks` bir satır döner.
-- [ ] Anonim anahtar `chunks` içeriğini okumaz.
-- [ ] `.env` git durumunda yoktur.
+- [x] Birim testler geçer.
+- [x] Dashboard’da sekiz tablo görünür.
+- [x] `match_chunks` bir satır döner.
+- [x] Anonim anahtar `chunks` içeriğini okumaz.
+- [x] `.env` git durumunda yoktur.
 
 Faz 3: [phase-03-arayuz.md](phase-03-arayuz.md)
