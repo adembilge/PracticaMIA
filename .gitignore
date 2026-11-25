@@ -10,3 +10,4 @@ frontend/dist/
 backend/app/static/
 .fastembed_cache/
 *.egg-info/
+.superpowers/

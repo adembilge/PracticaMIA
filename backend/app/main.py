@@ -1,16 +1,31 @@
 from pathlib import Path
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.config import get_settings
+from app.db import get_supabase
 
 app = FastAPI(title="PracticaMIA")
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
 def probe_db() -> str:
-    return "unconfigured"
+    settings = get_settings()
+    if not settings.supabase_url or not settings.supabase_service_role_key:
+        return "unconfigured"
+    try:
+        get_supabase().table("global_usage_daily").select("day").limit(1).execute()
+    except Exception:
+        return "down"
+    return "ok"
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(_request: Request, exc: HTTPException):
+    if isinstance(exc.detail, dict) and "code" in exc.detail:
+        return JSONResponse(status_code=exc.status_code, content=exc.detail)
+    return JSONResponse(status_code=exc.status_code, content={"code": "error", "message": str(exc.detail)})
 
 
 @app.get("/api/health")
