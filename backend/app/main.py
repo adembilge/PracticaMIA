@@ -4,13 +4,21 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
 from app.config import get_settings
+from app.db import get_supabase
 
 app = FastAPI(title="PracticaMIA")
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
 
 def probe_db() -> str:
-    return "unconfigured"
+    settings = get_settings()
+    if not settings.supabase_url or not settings.supabase_service_role_key:
+        return "unconfigured"
+    try:
+        get_supabase().table("global_usage_daily").select("day").limit(1).execute()
+    except Exception:
+        return "down"
+    return "ok"
 
 
 @app.get("/api/health")
