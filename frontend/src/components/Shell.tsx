@@ -27,19 +27,16 @@ export function Shell() {
 
   return (
     <div className="shell">
-      <Sidebar hidden={mobile && sidebarHidden} />
+      <Sidebar
+        hidden={mobile && sidebarHidden}
+        showClose={mobile && !sidebarHidden}
+        onClose={() => setSidebarHidden(true)}
+      />
       <main>
         {mobile && sidebarHidden ? (
           <p>
             <button type="button" onClick={() => setSidebarHidden(false)}>
               {t("menu")}
-            </button>
-          </p>
-        ) : null}
-        {mobile && !sidebarHidden ? (
-          <p>
-            <button type="button" onClick={() => setSidebarHidden(true)}>
-              {t("close")}
             </button>
           </p>
         ) : null}

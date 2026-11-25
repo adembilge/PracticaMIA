@@ -4,13 +4,22 @@ import { supabase } from "../lib/supabase";
 
 type SidebarProps = {
   hidden: boolean;
+  showClose?: boolean;
+  onClose?: () => void;
 };
 
-export function Sidebar({ hidden }: SidebarProps) {
+export function Sidebar({ hidden, showClose, onClose }: SidebarProps) {
   const { t, lang, setLang } = useI18n();
 
   return (
     <aside className={hidden ? "sidebar hidden" : "sidebar"}>
+      {showClose ? (
+        <p>
+          <button type="button" onClick={onClose}>
+            {t("close")}
+          </button>
+        </p>
+      ) : null}
       <h1>{t("appName")}</h1>
       <p>
         <button type="button" onClick={() => setLang(lang === "en" ? "it" : "en")}>
