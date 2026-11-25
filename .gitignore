@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.env
+.env.local
+frontend/.env.local
+frontend/.env.production
+frontend/node_modules/
+frontend/dist/
+backend/app/static/
+.fastembed_cache/
+*.egg-info/
+.superpowers/
+.cursor/
+graphify-out/
