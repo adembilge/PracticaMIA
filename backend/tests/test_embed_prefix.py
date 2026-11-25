@@ -3,7 +3,16 @@ import math
 
 import numpy as np
 
-from app.rag.embed import as_passage, as_query, l2_normalize
+from fastembed import TextEmbedding
+
+from app.rag.embed import as_passage, as_query, l2_normalize, register_e5_small
+
+
+def test_e5_small_is_registered_without_loading_weights():
+    register_e5_small()
+    register_e5_small()
+    names = {item["model"] for item in TextEmbedding.list_supported_models()}
+    assert "intfloat/multilingual-e5-small" in names
 
 
 def test_prefixes():

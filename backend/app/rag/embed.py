@@ -1,6 +1,23 @@
 import math
 
 from fastembed import TextEmbedding
+from fastembed.common.model_description import ModelSource, PoolingType
+
+E5_SMALL = "intfloat/multilingual-e5-small"
+
+
+def register_e5_small() -> None:
+    known = {item["model"] for item in TextEmbedding.list_supported_models()}
+    if E5_SMALL in known:
+        return
+    TextEmbedding.add_custom_model(
+        model=E5_SMALL,
+        pooling=PoolingType.MEAN,
+        normalization=True,
+        sources=ModelSource(hf=E5_SMALL),
+        dim=384,
+        model_file="onnx/model.onnx",
+    )
 
 
 def as_passage(text: str) -> str:
@@ -20,7 +37,8 @@ def l2_normalize(vector: list[float]) -> list[float] | None:
 
 class Embedder:
     def __init__(self) -> None:
-        self._model = TextEmbedding("intfloat/multilingual-e5-small")
+        register_e5_small()
+        self._model = TextEmbedding(E5_SMALL)
 
     def embed_passages(self, texts: list[str]) -> list[list[float]]:
         prefixed = [as_passage(text) for text in texts]
