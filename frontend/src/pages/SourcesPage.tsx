@@ -1,3 +1,10 @@
+import { useI18n } from "../lib/i18n";
+
 export function SourcesPage() {
-  return null;
+  const { t } = useI18n();
+  return (
+    <section>
+      <p>{t("noSources")}</p>
+    </section>
+  );
 }

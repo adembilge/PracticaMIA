@@ -14,3 +14,13 @@ body {
   font-family: "Source Sans 3", sans-serif;
 }
 h1 { font-family: "Source Serif 4", serif; font-weight: 600; }
+.shell { display: grid; grid-template-columns: var(--sidebar) 1fr; min-height: 100vh; }
+.sidebar { background: var(--paper); border-right: 1px solid var(--line); padding: 1rem; }
+.seal { background: var(--seal); color: var(--paper); border: 0; padding: 0.6rem 1rem; }
+.disclaimer { font-size: 0.9rem; }
+.sidebar.hidden { display: none; }
+@media (max-width: 800px) {
+  .shell { grid-template-columns: 1fr; }
+  .sidebar { position: fixed; inset: 0 auto 0 0; width: var(--sidebar); z-index: 2; }
+  .sidebar.hidden { display: none; }
+}
