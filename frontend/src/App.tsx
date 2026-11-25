@@ -33,6 +33,7 @@ export function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/app" element={session ? <Shell /> : <Navigate to="/" replace />}>
             <Route index element={<ChatPage />} />
+            <Route path="c/:conversationId" element={<ChatPage />} />
             <Route path="sources" element={<SourcesPage />} />
             <Route path="account" element={<AccountPage />} />
           </Route>
