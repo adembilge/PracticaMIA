@@ -1,0 +1,43 @@
+import math
+
+from app.rag.embed import as_passage, as_query, l2_normalize
+
+
+def test_prefixes():
+    assert as_passage("ciao").startswith("passage: ")
+    assert as_query("ciao").startswith("query: ")
+
+
+def test_normalize_unit():
+    vector = l2_normalize([3.0, 4.0])
+    assert vector is not None
+    assert abs(sum(item * item for item in vector) - 1) < 1e-9
+
+
+def test_normalize_zero():
+    assert l2_normalize([0.0, 0.0]) is None
+
+
+class FakeEmbedder:
+    def embed_passages(self, texts: list[str]) -> list[list[float]]:
+        return [self._unit_vector() for _ in texts]
+
+    def embed_query(self, text: str) -> list[float]:
+        return self._unit_vector()
+
+    @staticmethod
+    def _unit_vector() -> list[float]:
+        component = 1 / math.sqrt(384)
+        return [component] * 384
+
+
+def test_fake_embedder_unit_vector():
+    embedder = FakeEmbedder()
+    vector = embedder.embed_query("ciao")
+    assert len(vector) == 384
+    assert abs(sum(item * item for item in vector) - 1) < 1e-9
+    passages = embedder.embed_passages(["a", "b"])
+    assert len(passages) == 2
+    for item in passages:
+        assert len(item) == 384
+        assert abs(sum(x * x for x in item) - 1) < 1e-9
