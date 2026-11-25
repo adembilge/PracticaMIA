@@ -26,11 +26,17 @@ export function AccountPage() {
   return (
     <section>
       <p>
-        <button type="button" onClick={() => dialogRef.current?.showModal()}>
+        <button
+          type="button"
+          onClick={() => {
+            setDeleteError(null);
+            dialogRef.current?.showModal();
+          }}
+        >
           {t("deleteAccount")}
         </button>
       </p>
-      <dialog ref={dialogRef}>
+      <dialog ref={dialogRef} onClose={() => setDeleteError(null)}>
         <p>{t("deleteConfirm")}</p>
         {deleteError ? <p role="alert">{deleteError}</p> : null}
         <p>

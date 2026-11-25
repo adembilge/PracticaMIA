@@ -92,5 +92,7 @@ def test_delete_account_upstream_failure(monkeypatch):
         "message": "The account could not be deleted.",
     }
     assert ("table", "conversations") in calls
+    assert ("table", "usage_daily") in calls
     assert ("user", str(user_id)) in calls
     assert calls.index(("table", "conversations")) < calls.index(("user", str(user_id)))
+    assert calls.index(("table", "usage_daily")) < calls.index(("user", str(user_id)))
