@@ -1,0 +1,185 @@
+sources:
+  - id: polizia-permesso
+    topic: immigrazione
+    name: polizia permesso
+    batch: a
+    max_pages: 30
+    portal_url: https://www.poliziadistato.it/articolo/225
+    urls:
+      - https://www.poliziadistato.it/articolo/225
+    keywords:
+      - permesso
+      - soggiorno
+      - questura
+      - rinnovo
+
+  - id: interno-immigrazione
+    topic: immigrazione
+    name: interno immigrazione
+    batch: a
+    max_pages: 30
+    portal_url: https://www.interno.gov.it/it/temi/immigrazione-e-asilo
+    urls:
+      - https://www.interno.gov.it/it/temi/immigrazione-e-asilo
+    keywords:
+      - immigrazione
+      - asilo
+      - visto
+      - ricongiungimento
+
+  - id: portale-immigrazione
+    topic: immigrazione
+    name: portale immigrazione
+    batch: a
+    max_pages: 30
+    portal_url: https://portaleimmigrazione.it/
+    urls:
+      - https://portaleimmigrazione.it/
+    keywords:
+      - permesso
+      - kit
+      - poste
+      - rinnovo
+
+  - id: integrazione-migranti
+    topic: immigrazione
+    name: integrazione migranti
+    batch: a
+    max_pages: 30
+    portal_url: https://www.integrazionemigranti.gov.it/
+    urls:
+      - https://www.integrazionemigranti.gov.it/
+    keywords:
+      - integrazione
+      - permesso
+      - lavoro
+
+  - id: normattiva-tu-immigrazione
+    topic: immigrazione
+    name: normattiva tu immigrazione
+    batch: a
+    max_pages: 30
+    portal_url: https://www.normattiva.it/
+    urls:
+      - https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:decreto.legislativo:1998-07-25;286
+    keywords:
+      - soggiorno
+      - espulsione
+      - lavoro
+
+  - id: dlci-cittadinanza
+    topic: cittadinanza
+    name: dlci cittadinanza
+    batch: a
+    max_pages: 30
+    portal_url: https://libertaciviliimmigrazione.dlci.interno.gov.it/cittadinanza-invia-la-tua-domanda
+    urls:
+      - https://libertaciviliimmigrazione.dlci.interno.gov.it/cittadinanza-invia-la-tua-domanda
+    keywords:
+      - cittadinanza
+      - domanda
+      - contributo
+      - B1
+
+  - id: portale-cittadinanza
+    topic: cittadinanza
+    name: portale cittadinanza
+    batch: a
+    max_pages: 30
+    portal_url: https://cittadinanza.dlci.interno.it
+    urls:
+      - https://cittadinanza.dlci.interno.it
+    keywords:
+      - cittadinanza
+      - SPID
+      - CIE
+
+  - id: normattiva-cittadinanza
+    topic: cittadinanza
+    name: normattiva cittadinanza
+    batch: a
+    max_pages: 30
+    portal_url: https://www.normattiva.it/
+    urls:
+      - https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1992-02-05;91
+    keywords:
+      - cittadinanza
+      - matrimonio
+      - residenza
+
+  - id: anpr-cittadino
+    topic: anagrafe
+    name: anpr cittadino
+    batch: a
+    max_pages: 30
+    portal_url: https://www.anagrafenazionale.interno.it/area-cittadino/
+    urls:
+      - https://www.anagrafenazionale.interno.it/area-cittadino/
+    keywords:
+      - residenza
+      - cambio
+      - certificato
+      - autocertificazione
+
+  - id: normattiva-anagrafe-legge
+    topic: anagrafe
+    name: normattiva anagrafe legge
+    batch: a
+    max_pages: 30
+    portal_url: https://www.normattiva.it/
+    urls:
+      - https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:legge:1954-12-24;1228
+    keywords:
+      - anagrafe
+      - popolazione
+
+  - id: normattiva-anagrafe-regolamento
+    topic: anagrafe
+    name: normattiva anagrafe regolamento
+    batch: a
+    max_pages: 30
+    portal_url: https://www.normattiva.it/
+    urls:
+      - https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:1989-05-30;223
+    keywords:
+      - residenza
+      - dimora
+      - famiglia
+
+  - id: normattiva-autocertificazione
+    topic: anagrafe
+    name: normattiva autocertificazione
+    batch: a
+    max_pages: 30
+    portal_url: https://www.normattiva.it/
+    urls:
+      - https://www.normattiva.it/uri-res/N2Ls?urn:nir:presidente.repubblica:decreto:2000-12-28;445
+    keywords:
+      - autocertificazione
+      - dichiarazione sostitutiva
+
+  - id: spid
+    topic: identita_digitale
+    name: spid
+    batch: a
+    max_pages: 30
+    portal_url: https://www.spid.gov.it/
+    urls:
+      - https://www.spid.gov.it/
+    keywords:
+      - SPID
+      - identità
+      - gestore
+
+  - id: cie
+    topic: identita_digitale
+    name: cie
+    batch: a
+    max_pages: 30
+    portal_url: https://www.cartaidentita.interno.gov.it/
+    urls:
+      - https://www.cartaidentita.interno.gov.it/
+    keywords:
+      - CIE
+      - carta
+      - identità
