@@ -126,8 +126,12 @@ class SupabaseIngestStore:
         ).eq("id", source_id).execute()
 
     def count_chunks(self) -> int:
-        resp = self._client.table("chunks").select("id").execute()
-        return len(resp.data or [])
+        resp = (
+            self._client.table("chunks")
+            .select("id", count="exact", head=True)
+            .execute()
+        )
+        return resp.count or 0
 
 
 def _source_status(outcomes: list[str]) -> str:
