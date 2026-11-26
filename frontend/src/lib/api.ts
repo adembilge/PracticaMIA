@@ -98,24 +98,27 @@ export async function streamMessage(
   lang: "en" | "it",
 ): Promise<void> {
   const { onToken, onCitations, onDone, onError } = handlers;
+  const headers = await authHeader();
   let response: Response;
   try {
     response = await fetch(`/api/conversations/${id}/messages`, {
       method: "POST",
       headers: {
-        ...(await authHeader()),
+        ...headers,
         "Content-Type": "application/json",
         "Accept-Language": lang,
       },
       body: JSON.stringify({ content }),
     });
-  } catch (err) {
-    if (err instanceof Error && err.message === "Sign in again.") throw err;
+  } catch {
     onError("upstream", "API unreachable");
     return;
   }
 
-  if (!response.ok || !response.body) {
+  if (!response.ok) {
+    await readError(response);
+  }
+  if (!response.body) {
     onError("upstream", "API unreachable");
     return;
   }
@@ -147,14 +150,17 @@ export async function streamMessage(
       return;
     }
     if (name === "done") {
+      stopped = true;
       onDone();
       return;
     }
     if (name === "error") {
+      stopped = true;
       onError(
         typeof record.code === "string" ? record.code : "upstream",
         typeof record.message === "string" ? record.message : "API unreachable",
       );
+      return;
     }
   }
 
@@ -196,8 +202,9 @@ export async function streamMessage(
       if (done) break;
       pushText(decoder.decode(value, { stream: true }));
     }
+    const tail = decoder.decode();
     if (!stopped) {
-      pushText(decoder.decode());
+      pushText(tail);
       if (!stopped && pending) {
         handleLine(pending.endsWith("\r") ? pending.slice(0, -1) : pending);
         pending = "";
