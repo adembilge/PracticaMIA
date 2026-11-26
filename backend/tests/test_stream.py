@@ -52,3 +52,13 @@ def test_blank_line_before_held_marker_preserved():
     visible, held = split_stream_chunk("", "Hello\n\n")
     assert visible == "Hello\n\n"
     assert held == ""
+
+
+def test_visible_lines_after_held_marker_keep_trailing_newline():
+    visible, held = split_stream_chunk("", "CITATIONS: abc\nHello\n")
+    assert visible == "Hello\n"
+    assert held == "CITATIONS: abc\n"
+
+    visible, held = split_stream_chunk("", "Hello\nCITATIONS: abc\nWorld\n")
+    assert visible == "Hello\nWorld\n"
+    assert held == "CITATIONS: abc\n"

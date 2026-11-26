@@ -24,12 +24,18 @@ def _line_states(text: str) -> list[tuple[str, bool]]:
     return states
 
 
-def _visible_from_complete(visible_lines: list[str], held_follows: bool) -> str:
-    if not visible_lines:
-        return ""
-    if held_follows:
-        return "\n".join(visible_lines)
-    return "".join(line + "\n" for line in visible_lines)
+def _visible_line_suffix(items: list[tuple[str, str]], visible_index: int) -> str:
+    rest = items[visible_index + 1 :]
+    if not rest:
+        return "\n"
+    if any(kind == "visible" for kind, _ in rest):
+        return "\n"
+    if rest[-1][0] == "incomplete":
+        if _is_marker_line(rest[-1][1]):
+            return ""
+        return "\n"
+    # trailing held complete lines only
+    return ""
 
 
 def split_stream_chunk(buffer: str, incoming: str) -> tuple[str, str]:
@@ -38,28 +44,29 @@ def split_stream_chunk(buffer: str, incoming: str) -> tuple[str, str]:
         return "", ""
 
     states = _line_states(text)
-    visible_lines: list[str] = []
-    held_complete: list[str] = []
-    incomplete = ""
-
+    items: list[tuple[str, str]] = []
     for content, is_complete in states:
         if not is_complete:
-            incomplete = content
+            items.append(("incomplete", content))
             break
         if _is_marker_line(content):
-            held_complete.append(content + "\n")
+            items.append(("held", content + "\n"))
         else:
-            visible_lines.append(content)
+            items.append(("visible", content))
 
-    if incomplete:
-        held_prefix = "".join(held_complete)
-        if _is_marker_line(incomplete):
-            visible = _visible_from_complete(visible_lines, held_follows=True)
-            return visible, held_prefix + incomplete
-        visible = _visible_from_complete(visible_lines, held_follows=False)
-        return visible, held_prefix + incomplete
+    visible_parts: list[str] = []
+    held_parts: list[str] = []
+    for i, (kind, value) in enumerate(items):
+        if kind == "visible":
+            visible_parts.append(value + _visible_line_suffix(items, i))
+        elif kind == "held":
+            held_parts.append(value)
 
-    held = "".join(held_complete)
-    held_follows = bool(held_complete)
-    visible = _visible_from_complete(visible_lines, held_follows=held_follows)
+    visible = "".join(visible_parts)
+    incomplete = ""
+    for kind, value in reversed(items):
+        if kind == "incomplete":
+            incomplete = value
+            break
+    held = "".join(held_parts) + incomplete
     return visible, held
