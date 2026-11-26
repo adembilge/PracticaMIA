@@ -35,9 +35,14 @@ def _hostname_ends_with(url: str, expected_host: str) -> bool:
 
 
 def _host_accepted(chunks: list, expected_host: str, topic: str) -> bool:
-    if any(_hostname_ends_with(c.get("url") or "", expected_host) for c in chunks):
-        return True
-    return _hostname_ends_with(TOPICS[topic].portal_url, expected_host)
+    portal_host = urlsplit(TOPICS[topic].portal_url).hostname or ""
+    for chunk in chunks:
+        url = chunk.get("url") or ""
+        if _hostname_ends_with(url, expected_host):
+            return True
+        if portal_host and _hostname_ends_with(url, portal_host):
+            return True
+    return False
 
 
 def _load_topic_profiles(client) -> list[dict]:
