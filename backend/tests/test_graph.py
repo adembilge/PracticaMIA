@@ -34,9 +34,11 @@ class FakeEmbedder:
 class ChunkRpc:
     def __init__(self) -> None:
         self.count = 0
+        self.queries: list[str] = []
 
     def __call__(self, embedding, query_text, topic_filter, match_count):
         self.count += 1
+        self.queries.append(query_text)
         return [CHUNK]
 
 
@@ -56,8 +58,12 @@ class RecordingComplete:
 
     def __call__(self, messages: list[dict]) -> str:
         self.count += 1
-        index = min(self.count - 1, len(self.responses) - 1)
-        return self.responses[index]
+        if self.count > len(self.responses):
+            raise RuntimeError(
+                f"RecordingComplete exhausted: call {self.count}, "
+                f"only {len(self.responses)} scripted response(s)"
+            )
+        return self.responses[self.count - 1]
 
 
 def _invoke(graph, question: str) -> dict:
@@ -77,6 +83,28 @@ def test_graph_refine_triggers_second_retrieval():
 
     assert complete.count == 2
     assert rpc.count == 2
+    assert rpc.queries[1] == "rinnovo permesso"
+    assert result.get("refined_query") is None
+    assert result["answer"] == "Testo finale."
+    assert result["citations"][0]["url"].endswith("/225")
+    assert result["insufficient"] is False
+
+
+def test_graph_ignores_refine_after_second_retrieval():
+    rpc = ChunkRpc()
+    complete = RecordingComplete(
+        [
+            "Testo.\nCITATIONS: known\nREFINE: rinnovo permesso",
+            "Testo finale.\nCITATIONS: known\nREFINE: altra query",
+        ]
+    )
+    graph = build_graph(FakeEmbedder(), complete, PROFILES, rpc)
+    result = _invoke(graph, "Come rinnovo il permesso di soggiorno?")
+
+    assert complete.count == 2
+    assert rpc.count == 2
+    assert rpc.queries[1] == "rinnovo permesso"
+    assert result.get("refined_query") is None
     assert result["answer"] == "Testo finale."
     assert result["citations"][0]["url"].endswith("/225")
     assert result["insufficient"] is False
