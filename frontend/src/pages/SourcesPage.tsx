@@ -11,6 +11,7 @@ export function SourcesPage() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const [sources, setSources] = useState<Source[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -21,7 +22,9 @@ export function SourcesPage() {
           navigate("/");
           return;
         }
-        setSources([]);
+        const message =
+          err instanceof Error ? err.message : "Failed to load sources.";
+        setError(message);
       }
     })();
   }, [navigate]);
@@ -36,6 +39,14 @@ export function SourcesPage() {
     }
     return groups;
   }, [sources]);
+
+  if (error) {
+    return (
+      <section>
+        <p role="alert">{error}</p>
+      </section>
+    );
+  }
 
   if (sources === null) {
     return <section />;
