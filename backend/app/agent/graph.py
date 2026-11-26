@@ -201,6 +201,7 @@ def stream_grounded_answer(question, history, embedder, complete, profiles, rpc)
 
         raw_parts: list[str] = []
         held = ""
+        visible_chunks: list[str] = []
         for piece in iter_model_chunks(
             build_prompt(
                 {
@@ -215,10 +216,10 @@ def stream_grounded_answer(question, history, embedder, complete, profiles, rpc)
             raw_parts.append(piece)
             visible, held = split_stream_chunk(held, piece)
             if visible:
-                yield ("token", visible)
+                visible_chunks.append(visible)
         tail = _visible_tail(held)
         if tail:
-            yield ("token", tail)
+            visible_chunks.append(tail)
 
         raw = "".join(raw_parts)
         answer, citation_ids, refine = parse_generation(raw)
@@ -227,5 +228,7 @@ def stream_grounded_answer(question, history, embedder, complete, profiles, rpc)
             refined_query = refine
             retrieval_round = 1
             continue
+        for chunk_text in visible_chunks:
+            yield ("token", chunk_text)
         yield ("result", {"answer": answer, "citations": citations})
         return

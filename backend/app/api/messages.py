@@ -155,10 +155,10 @@ def save_turn(
         [{"role": row["role"], "content": row["content"]} for row in prior]
     )
     store.insert_message(conversation_id, "user", content, [])
-    context = build_turn_context()
     answer = ""
     citations: list[dict] = []
     try:
+        context = build_turn_context()
         for kind, payload in stream_grounded_answer(
             content,
             history,
@@ -172,7 +172,7 @@ def save_turn(
             elif kind == "result":
                 answer = payload["answer"]
                 citations = _jsonable_citations(payload["citations"])
-    except RuntimeError:
+    except Exception:
         yield sse("error", {"code": "upstream", "message": _UPSTREAM})
         return
 
@@ -185,7 +185,7 @@ def save_turn(
         quota_mod.SupabaseQuotaStore(db_mod.get_supabase()),
     )
     yield sse("citations", {"citations": citations})
-    yield sse("done", {"message_id": message["id"]})
+    yield sse("done", {"message_id": message["id"], "answer": answer})
 
 
 @router.get("/api/conversations/{conversation_id}/messages")

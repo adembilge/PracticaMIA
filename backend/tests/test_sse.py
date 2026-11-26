@@ -246,7 +246,7 @@ def test_stream_token_citations_done_and_saves_rows(monkeypatch):
     assert rows[0]["citations"] == []
     assert rows[1]["content"] == "Answer text"
     assert rows[1]["citations"] == events[1][1]["citations"]
-    assert events[2][1] == {"message_id": rows[1]["id"]}
+    assert events[2][1] == {"message_id": rows[1]["id"], "answer": "Answer text"}
     assert roles_at_complete == ["user"]
     assert calls["complete"] == 1
     assert calls["groq_complete"] == 0
@@ -281,6 +281,33 @@ def test_model_runtime_error_emits_upstream_and_keeps_user_row(monkeypatch):
     assert increments == []
 
 
+def test_context_failure_emits_upstream_without_assistant_or_quota(monkeypatch):
+    user_id = uuid4()
+    client, store = _client(monkeypatch, user_id)
+    conv = store.insert_conversation(str(user_id), "New chat")
+    increments: list = []
+    _patch_quota(monkeypatch, {"allowed": True, "reason": "ok"}, increments)
+
+    def boom():
+        raise TimeoutError("profile load failed")
+
+    monkeypatch.setattr("app.api.messages.build_turn_context", boom)
+    question = "How do I renew a residence permit?"
+    response = _post(client, conv["id"], question)
+
+    assert response.status_code == 200
+    events = parse_sse(response.text)
+    assert events[-1] == (
+        "error",
+        {"code": "upstream", "message": "The answer service is unavailable."},
+    )
+    assert "done" not in [name for name, _payload in events]
+    rows = store.list_messages(conv["id"])
+    assert [row["role"] for row in rows] == ["user"]
+    assert rows[0]["content"] == question
+    assert increments == []
+
+
 def test_refine_runs_second_retrieval_and_stops(monkeypatch):
     user_id = uuid4()
     client, store = _client(monkeypatch, user_id)
@@ -303,15 +330,59 @@ def test_refine_runs_second_retrieval_and_stops(monkeypatch):
     response = _post(client, conv["id"], question)
 
     events = parse_sse(response.text)
-    assert [name for name, _payload in events] == ["token", "token", "citations", "done"]
-    assert events[0][1] == {"text": "Partial"}
-    assert events[1][1] == {"text": "Answer text"}
-    assert events[2][1]["citations"][0]["url"] == CHUNK_URL
+    assert [name for name, _payload in events] == ["token", "citations", "done"]
+    assert [payload for name, payload in events if name == "token"] == [
+        {"text": "Answer text"}
+    ]
+    assert "Partial" not in response.text
+    assert events[1][1]["citations"][0]["url"] == CHUNK_URL
+    assert events[2][1]["answer"] == "Answer text"
     rows = store.list_messages(conv["id"])
     assert rows[1]["content"] == "Answer text"
     assert calls["n"] == 2
     assert rpc.queries == [question, "permesso di soggiorno"]
     assert len(increments) == 1
+
+
+def test_refine_empty_second_retrieval_does_not_keep_first_draft(monkeypatch):
+    user_id = uuid4()
+    client, store = _client(monkeypatch, user_id)
+    conv = store.insert_conversation(str(user_id), "New chat")
+    increments: list = []
+    calls = {"n": 0}
+    _patch_quota(monkeypatch, {"allowed": True, "reason": "ok"}, increments)
+    question = "Come rinnovo il permesso di soggiorno?"
+
+    class FirstQueryOnlyRpc:
+        def __init__(self) -> None:
+            self.queries: list[str] = []
+
+        def __call__(self, embedding, query_text, topic_filter, match_count):
+            self.queries.append(query_text)
+            if query_text == question:
+                return [dict(CHUNK)]
+            return []
+
+    def complete(_messages):
+        calls["n"] += 1
+        return "Partial\nCITATIONS: chunk-1\nREFINE: permesso di soggiorno"
+
+    rpc = FirstQueryOnlyRpc()
+    _install_context(monkeypatch, complete=complete, rpc=rpc)
+    response = _post(client, conv["id"], question)
+
+    events = parse_sse(response.text)
+    token_texts = [payload["text"] for name, payload in events if name == "token"]
+    assert len(token_texts) == 1
+    assert "Partial" not in response.text
+    assert CHUNK_URL in token_texts[0]
+    rows = store.list_messages(conv["id"])
+    assert rows[1]["content"] == token_texts[0]
+    assert "Partial" not in rows[1]["content"]
+    assert calls["n"] == 1
+    assert len(increments) == 1
+    assert events[-1][0] == "done"
+    assert events[-1][1]["answer"] == rows[1]["content"]
 
 
 def test_unsupported_language_skips_model_and_still_increments(monkeypatch):

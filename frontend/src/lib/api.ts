@@ -92,7 +92,7 @@ export async function streamMessage(
   handlers: {
     onToken: (text: string) => void;
     onCitations: (items: Citation[]) => void;
-    onDone: () => void;
+    onDone: (answer: string) => void;
     onError: (code: string, message: string) => void;
   },
   lang: "en" | "it",
@@ -151,7 +151,7 @@ export async function streamMessage(
     }
     if (name === "done") {
       stopped = true;
-      onDone();
+      onDone(typeof record.answer === "string" ? record.answer : "");
       return;
     }
     if (name === "error") {
@@ -210,6 +210,7 @@ export async function streamMessage(
         pending = "";
       }
     }
+    if (!stopped) onError("upstream", "API unreachable");
   } catch {
     if (!stopped) onError("upstream", "API unreachable");
   } finally {

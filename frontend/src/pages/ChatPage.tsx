@@ -143,7 +143,9 @@ export function ChatPage() {
               prev.map((row) => (row.id === assistantId ? { ...row, citations: items } : row)),
             );
           },
-          onDone: () => {},
+          onDone: (answer) => {
+            replaceAssistant(answer);
+          },
           onError: (code, message) => {
             if (code === "quota_user" || code === "quota_global") replaceAssistant(t("quota"));
             else replaceAssistant(message);
