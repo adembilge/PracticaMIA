@@ -95,6 +95,9 @@ class MemoryIngestStore:
             }
         )
 
+    def count_chunks(self) -> int:
+        return sum(len(rows) for rows in self.chunks_by_doc_id.values())
+
 
 def _ok_fetch(body: bytes | None = None):
     payload = body if body is not None else _html_fixture()

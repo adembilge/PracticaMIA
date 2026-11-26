@@ -1,4 +1,5 @@
 import hashlib
+from collections.abc import Callable
 from datetime import datetime, timezone
 from typing import Literal
 
@@ -25,8 +26,13 @@ def upsert_document(
     text: str,
     embedder,
     store,
+    *,
+    count_chunks: Callable[[], int] | None = None,
 ) -> Outcome:
     if len(text.split()) < 200:
+        return "skipped"
+
+    if count_chunks is not None and count_chunks() >= 40000:
         return "skipped"
 
     content_hash = _content_hash(text)
@@ -86,7 +92,9 @@ def finish_source(
         error = None
     else:
         status = "error"
-        if errors:
+        if "corpus cap" in errors:
+            error = "corpus cap"
+        elif errors:
             error = errors[0]
         elif outcomes:
             error = outcomes[0]
