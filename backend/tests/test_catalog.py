@@ -94,6 +94,41 @@ def test_load_sources_batch_b_official_catalog_returns_five():
     assert all(s.batch == "b" for s in sources)
 
 
+def test_load_sources_batch_c_official_catalog_returns_seven():
+    expected_ids = {
+        "giustizia",
+        "anpr-famiglia",
+        "registro-imprese",
+        "cimea",
+        "mur",
+        "automobilista",
+        "locazione",
+    }
+    sources = load_sources("c")
+    assert len(sources) == 7
+    assert {s.id for s in sources} == expected_ids
+    assert all(s.batch == "c" for s in sources)
+
+
+def test_catalog_covers_every_topic():
+    topics = {item.topic for item in load_sources("all")}
+    assert topics == {
+        "immigrazione",
+        "cittadinanza",
+        "anagrafe",
+        "identita_digitale",
+        "lavoro_previdenza",
+        "fisco",
+        "sanita",
+        "giustizia",
+        "famiglia",
+        "impresa",
+        "istruzione",
+        "mobilita",
+        "casa",
+    }
+
+
 def test_catalog_excludes_stale_brochure():
     path = Path(__file__).resolve().parents[1] / "ingest" / "sources.yaml"
     text = path.read_text(encoding="utf-8")

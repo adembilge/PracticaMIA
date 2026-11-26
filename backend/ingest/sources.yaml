@@ -251,3 +251,98 @@ sources:
       - contratto
       - lavoro
       - assunzione
+
+  - id: giustizia
+    topic: giustizia
+    name: Ministero della Giustizia
+    batch: c
+    max_pages: 30
+    portal_url: https://www.giustizia.it/
+    urls:
+      - https://www.giustizia.it/
+    keywords:
+      - patrocinio
+      - casellario
+      - notifica
+      - processo
+
+  - id: anpr-famiglia
+    topic: famiglia
+    name: ANPR stato civile
+    batch: c
+    max_pages: 30
+    portal_url: https://www.anagrafenazionale.interno.it/area-cittadino/
+    urls:
+      - https://www.anagrafenazionale.interno.it/area-cittadino/
+    keywords:
+      - matrimonio
+      - nascita
+      - stato civile
+      - unione
+
+  - id: registro-imprese
+    topic: impresa
+    name: Registro Imprese
+    batch: c
+    max_pages: 30
+    portal_url: https://www.registroimprese.it/
+    urls:
+      - https://www.registroimprese.it/
+    keywords:
+      - impresa
+      - avvio
+      - sede
+      - visura
+
+  - id: cimea
+    topic: istruzione
+    name: CIMEA
+    batch: c
+    max_pages: 30
+    portal_url: https://www.cimea.it/
+    urls:
+      - https://www.cimea.it/
+    keywords:
+      - riconoscimento
+      - titolo
+      - equipollenza
+
+  - id: mur
+    topic: istruzione
+    name: MUR
+    batch: c
+    max_pages: 30
+    portal_url: https://www.mur.gov.it/
+    urls:
+      - https://www.mur.gov.it/
+    keywords:
+      - università
+      - iscrizione
+      - titolo
+
+  - id: automobilista
+    topic: mobilita
+    name: Portale dell'Automobilista
+    batch: c
+    max_pages: 30
+    portal_url: https://www.ilportaledellautomobilista.it/
+    urls:
+      - https://www.ilportaledellautomobilista.it/
+    keywords:
+      - patente
+      - conversione
+      - motorizzazione
+
+  - id: locazione
+    topic: casa
+    name: Registrazione locazione
+    batch: c
+    max_pages: 30
+    portal_url: https://www.agenziaentrate.gov.it/
+    urls:
+      - https://www.agenziaentrate.gov.it/
+    keywords:
+      - locazione
+      - registrazione
+      - cedolare
+      - contratto
