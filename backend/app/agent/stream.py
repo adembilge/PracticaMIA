@@ -1,6 +1,5 @@
 _CITATIONS = "CITATIONS:"
 _REFINE = "REFINE:"
-_MARKERS = (_CITATIONS, _REFINE)
 
 
 def _is_marker_line(line: str) -> bool:
@@ -10,7 +9,27 @@ def _is_marker_line(line: str) -> bool:
 def _could_be_marker_prefix(fragment: str) -> bool:
     if _is_marker_line(fragment):
         return False
-    return any(marker.startswith(fragment) for marker in _MARKERS)
+    return _CITATIONS.startswith(fragment) or _REFINE.startswith(fragment)
+
+
+def _line_states(text: str) -> list[tuple[str, bool]]:
+    states: list[tuple[str, bool]] = []
+    start = 0
+    for i, ch in enumerate(text):
+        if ch == "\n":
+            states.append((text[start:i], True))
+            start = i + 1
+    if start < len(text):
+        states.append((text[start:], False))
+    return states
+
+
+def _visible_from_complete(visible_lines: list[str], held_follows: bool) -> str:
+    if not visible_lines:
+        return ""
+    if held_follows:
+        return "\n".join(visible_lines)
+    return "".join(line + "\n" for line in visible_lines)
 
 
 def split_stream_chunk(buffer: str, incoming: str) -> tuple[str, str]:
@@ -18,33 +37,29 @@ def split_stream_chunk(buffer: str, incoming: str) -> tuple[str, str]:
     if not text:
         return "", ""
 
-    if text.endswith("\n"):
-        incomplete = ""
-        complete_lines = text.split("\n")
-    else:
-        parts = text.split("\n")
-        incomplete = parts[-1]
-        complete_lines = parts[:-1]
-
+    states = _line_states(text)
     visible_lines: list[str] = []
     held_complete: list[str] = []
-    for line in complete_lines:
-        if _is_marker_line(line):
-            held_complete.append(line)
+    incomplete = ""
+
+    for content, is_complete in states:
+        if not is_complete:
+            incomplete = content
+            break
+        if _is_marker_line(content):
+            held_complete.append(content + "\n")
         else:
-            visible_lines.append(line)
+            visible_lines.append(content)
 
     if incomplete:
+        held_prefix = "".join(held_complete)
         if _is_marker_line(incomplete):
-            visible = "\n".join(visible_lines)
-        else:
-            visible = "\n".join(visible_lines)
-            if visible_lines:
-                visible += "\n"
-        held_parts = [*held_complete, incomplete]
-        held = held_parts[0] if len(held_parts) == 1 else "\n".join(held_parts)
-        return visible, held
+            visible = _visible_from_complete(visible_lines, held_follows=True)
+            return visible, held_prefix + incomplete
+        visible = _visible_from_complete(visible_lines, held_follows=False)
+        return visible, held_prefix + incomplete
 
-    visible = "".join(line + "\n" for line in visible_lines)
-    held = "\n".join(held_complete) if held_complete else ""
+    held = "".join(held_complete)
+    held_follows = bool(held_complete)
+    visible = _visible_from_complete(visible_lines, held_follows=held_follows)
     return visible, held
