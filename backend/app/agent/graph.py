@@ -2,7 +2,7 @@ from typing import Callable, Literal
 
 from langgraph.graph import END, StateGraph
 
-from app.agent.parse import parse_generation, validate_citations
+from app.agent.parse import parse_generation, strip_urls, validate_citations
 from app.agent.prompt import build_prompt
 from app.agent.state import AgentState
 from app.agent.stream import split_stream_chunk
@@ -229,6 +229,6 @@ def stream_grounded_answer(question, history, embedder, complete, profiles, rpc)
             retrieval_round = 1
             continue
         for chunk_text in visible_chunks:
-            yield ("token", chunk_text)
+            yield ("token", strip_urls(chunk_text))
         yield ("result", {"answer": answer, "citations": citations})
         return
