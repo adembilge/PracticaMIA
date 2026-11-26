@@ -1,7 +1,7 @@
 from ingest.__main__ import main, run_batch
 from ingest.fetch import FetchResult
 from ingest.models import SourceSpec
-from tests.test_embed_prefix import FakeEmbedder
+from test_embed_prefix import FakeEmbedder
 
 
 def _html_fixture() -> bytes:
