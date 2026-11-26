@@ -21,3 +21,4 @@ class AgentState(TypedDict):
     answer: str
     citations: list[Citation]
     insufficient: bool
+    route: Literal["end", "retrieve", "generate"]
