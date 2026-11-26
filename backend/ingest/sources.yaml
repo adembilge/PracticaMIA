@@ -183,3 +183,71 @@ sources:
       - CIE
       - carta
       - identità
+
+  - id: agenzia-entrate
+    topic: fisco
+    name: Agenzia delle Entrate
+    batch: b
+    max_pages: 30
+    portal_url: https://www.agenziaentrate.gov.it/
+    urls:
+      - https://www.agenziaentrate.gov.it/
+    keywords:
+      - codice fiscale
+      - dichiarazione
+      - IMU
+      - partita IVA
+
+  - id: inps
+    topic: lavoro_previdenza
+    name: INPS
+    batch: b
+    max_pages: 30
+    portal_url: https://www.inps.it/
+    urls:
+      - https://www.inps.it/
+    keywords:
+      - NASpI
+      - contributi
+      - pensione
+      - disoccupazione
+
+  - id: inail
+    topic: lavoro_previdenza
+    name: INAIL
+    batch: b
+    max_pages: 30
+    portal_url: https://www.inail.it/
+    urls:
+      - https://www.inail.it/
+    keywords:
+      - infortunio
+      - malattia professionale
+      - premio
+
+  - id: salute
+    topic: sanita
+    name: Ministero della Salute
+    batch: b
+    max_pages: 30
+    portal_url: https://www.salute.gov.it/
+    urls:
+      - https://www.salute.gov.it/
+    keywords:
+      - SSN
+      - tessera sanitaria
+      - medico
+      - stranieri
+
+  - id: lavoro
+    topic: lavoro_previdenza
+    name: Ministero del Lavoro
+    batch: b
+    max_pages: 30
+    portal_url: https://www.lavoro.gov.it/
+    urls:
+      - https://www.lavoro.gov.it/
+    keywords:
+      - contratto
+      - lavoro
+      - assunzione

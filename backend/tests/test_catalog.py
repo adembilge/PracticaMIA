@@ -80,6 +80,20 @@ def test_load_sources_batch_a_official_catalog_returns_fourteen():
     assert all(s.portal_url == "https://www.normattiva.it/" for s in normattiva)
 
 
+def test_load_sources_batch_b_official_catalog_returns_five():
+    expected_ids = {
+        "agenzia-entrate",
+        "inps",
+        "inail",
+        "salute",
+        "lavoro",
+    }
+    sources = load_sources("b")
+    assert len(sources) == 5
+    assert {s.id for s in sources} == expected_ids
+    assert all(s.batch == "b" for s in sources)
+
+
 def test_catalog_excludes_stale_brochure():
     path = Path(__file__).resolve().parents[1] / "ingest" / "sources.yaml"
     text = path.read_text(encoding="utf-8")
