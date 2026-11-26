@@ -1,26 +1,47 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Composer } from "../components/Composer";
 import { MessageList } from "../components/MessageList";
 import {
   createConversation,
   listMessages,
+  streamMessage,
   type ChatMessage,
 } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 
+const EXAMPLES: Record<"en" | "it", string[]> = {
+  en: [
+    "How do I renew a residence permit?",
+    "How do I change my registered address?",
+    "How do I apply for Italian citizenship by residence?",
+  ],
+  it: [
+    "Come rinnovo il permesso di soggiorno?",
+    "Come cambio residenza?",
+    "Come chiedo la cittadinanza per residenza?",
+  ],
+};
+
 export function ChatPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const navigate = useNavigate();
   const { conversationId } = useParams();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [sendError, setSendError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
+  const flight = useRef(0);
+  const conversationRef = useRef(conversationId);
+  conversationRef.current = conversationId;
 
   useEffect(() => {
+    flight.current += 1;
+    sendingRef.current = false;
+    setSending(false);
     if (!conversationId) {
       setMessages([]);
       setLoadError(null);
@@ -28,7 +49,6 @@ export function ChatPage() {
     }
     setMessages([]);
     setLoadError(null);
-    setSendError(null);
     let cancelled = false;
     setLoading(true);
     (async () => {
@@ -77,29 +97,74 @@ export function ChatPage() {
     }
   }
 
-  function appendUser(content: string) {
-    setSendError(null);
+  async function submit(content: string) {
+    const trimmed = content.trim();
+    if (!trimmed || !conversationId || sendingRef.current || loading || loadError) return;
+    const requestConversation = conversationId;
+    const ticket = flight.current + 1;
+    flight.current = ticket;
+    sendingRef.current = true;
+    setSending(true);
+    const stamp = Date.now();
+    const assistantId = `pending-assistant-${stamp}`;
     setMessages((prev) => [
       ...prev,
-      {
-        id: `pending-${Date.now()}`,
-        role: "user",
-        content,
-        citations: [],
-      },
+      { id: `pending-user-${stamp}`, role: "user", content: trimmed, citations: [] },
+      { id: assistantId, role: "assistant", content: "", citations: [] },
     ]);
-  }
 
-  function rollbackUser(content: string) {
-    setMessages((prev) => {
-      for (let i = prev.length - 1; i >= 0; i -= 1) {
-        const row = prev[i];
-        if (row.role === "user" && row.content === content && row.id.startsWith("pending-")) {
-          return [...prev.slice(0, i), ...prev.slice(i + 1)];
-        }
+    function stillHere() {
+      return conversationRef.current === requestConversation && flight.current === ticket;
+    }
+
+    function replaceAssistant(text: string) {
+      if (!stillHere()) return;
+      setMessages((prev) =>
+        prev.map((row) => (row.id === assistantId ? { ...row, content: text } : row)),
+      );
+    }
+
+    try {
+      await streamMessage(
+        requestConversation,
+        trimmed,
+        {
+          onToken: (text) => {
+            if (!stillHere()) return;
+            setMessages((prev) =>
+              prev.map((row) =>
+                row.id === assistantId ? { ...row, content: row.content + text } : row,
+              ),
+            );
+          },
+          onCitations: (items) => {
+            if (!stillHere()) return;
+            setMessages((prev) =>
+              prev.map((row) => (row.id === assistantId ? { ...row, citations: items } : row)),
+            );
+          },
+          onDone: (answer) => {
+            replaceAssistant(answer);
+          },
+          onError: (code, message) => {
+            if (code === "quota_user" || code === "quota_global") replaceAssistant(t("quota"));
+            else replaceAssistant(message);
+          },
+        },
+        lang,
+      );
+    } catch (err) {
+      if (err instanceof Error && err.message === "Sign in again.") {
+        navigate("/");
+        return;
       }
-      return prev;
-    });
+      replaceAssistant(err instanceof Error ? err.message : "API unreachable");
+    } finally {
+      if (flight.current === ticket) {
+        sendingRef.current = false;
+        setSending(false);
+      }
+    }
   }
 
   if (!conversationId) {
@@ -118,27 +183,29 @@ export function ChatPage() {
   }
 
   const composerBlocked = loading || loadError !== null;
+  const examples = EXAMPLES[lang];
 
   return (
     <section>
       {loadError ? <p role="alert">{loadError}</p> : null}
       <MessageList messages={messages} />
+      {messages.length === 0 && loadError === null && !loading ? (
+        <p>
+          {examples.map((question) => (
+            <button
+              key={question}
+              type="button"
+              className="seal"
+              disabled={sending}
+              onClick={() => void submit(question)}
+            >
+              {question}
+            </button>
+          ))}
+        </p>
+      ) : null}
       <p className="disclaimer">{t("disclaimer")}</p>
-      {sendError ? <p role="alert">{sendError}</p> : null}
-      <Composer
-        conversationId={conversationId}
-        disabled={composerBlocked}
-        onUserMessage={appendUser}
-        onAssistantMessage={(message) => {
-          setSendError(null);
-          setMessages((prev) => [...prev, message]);
-        }}
-        onSendFailed={(content, error) => {
-          rollbackUser(content);
-          setSendError(error);
-        }}
-        onAuthError={() => navigate("/")}
-      />
+      <Composer disabled={composerBlocked || sending} onSubmit={(content) => void submit(content)} />
     </section>
   );
 }

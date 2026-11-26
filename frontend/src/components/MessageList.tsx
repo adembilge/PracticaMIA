@@ -1,4 +1,5 @@
 import type { ChatMessage } from "../lib/api";
+import { CitationList } from "./CitationList";
 
 type MessageListProps = {
   messages: ChatMessage[];
@@ -7,21 +8,12 @@ type MessageListProps = {
 export function MessageList({ messages }: MessageListProps) {
   return (
     <div>
-    {messages.map((message) => (
-      <article key={message.id} className={message.role}>
-        <p>{message.content}</p>
-        {message.citations.length > 0 ? (
-          <div>
-            {message.citations.map((citation) => (
-              <p key={citation.chunk_id}>
-                <a href={citation.url}>{citation.title}</a>
-                {citation.heading ? ` — ${citation.heading}` : null}
-              </p>
-            ))}
-          </div>
-        ) : null}
-      </article>
-    ))}
+      {messages.map((message) => (
+        <article key={message.id} className={message.role}>
+          <p>{message.content}</p>
+          <CitationList citations={message.citations} />
+        </article>
+      ))}
     </div>
   );
 }
