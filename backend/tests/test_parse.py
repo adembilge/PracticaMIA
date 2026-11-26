@@ -45,3 +45,11 @@ def test_validate_drops_unknown_ids():
 def test_strip_urls():
     assert "evil.example" not in strip_urls("See https://evil.example/a please.")
     assert strip_urls("See https://evil.example/a please.") == "See  please."
+
+
+def test_parse_generation_strips_model_url_and_keeps_citation_id():
+    raw = "See https://evil.example/a\nCITATIONS: chunk-1"
+    answer, ids, refine = parse_generation(raw)
+    assert "evil.example" not in answer
+    assert ids == ["chunk-1"]
+    assert refine is None

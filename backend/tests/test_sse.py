@@ -449,6 +449,26 @@ def test_empty_retrieval_uses_portal_reply_without_model(monkeypatch):
     assert events[-1][0] == "done"
 
 
+def test_token_events_strip_model_urls_citations_keep_chunk_url(monkeypatch):
+    user_id = uuid4()
+    client, store = _client(monkeypatch, user_id)
+    conv = store.insert_conversation(str(user_id), "New chat")
+    _patch_quota(monkeypatch, {"allowed": True, "reason": "ok"}, [])
+    _patch_groq(monkeypatch, {"groq_complete": 0, "groq_stream": 0})
+
+    def complete(_messages):
+        return "See https://evil.example/a\nCITATIONS: chunk-1"
+
+    _install_context(monkeypatch, complete=complete, rpc=ChunkRpc())
+    response = _post(client, conv["id"], "Come rinnovo il permesso?")
+
+    events = parse_sse(response.text)
+    token_text = "".join(payload["text"] for name, payload in events if name == "token")
+    assert "evil.example" not in token_text
+    citations = next(payload["citations"] for name, payload in events if name == "citations")
+    assert citations[0]["url"] == CHUNK_URL
+
+
 def test_history_uses_prior_messages_without_the_new_question(monkeypatch):
     user_id = uuid4()
     client, store = _client(monkeypatch, user_id)

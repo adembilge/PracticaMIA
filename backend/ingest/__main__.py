@@ -125,6 +125,14 @@ class SupabaseIngestStore:
             }
         ).eq("id", source_id).execute()
 
+    def count_chunks(self) -> int:
+        resp = (
+            self._client.table("chunks")
+            .select("id", count="exact", head=True)
+            .execute()
+        )
+        return resp.count or 0
+
 
 def _source_status(outcomes: list[str]) -> str:
     if any(item in ("inserted", "unchanged") for item in outcomes):
@@ -176,6 +184,11 @@ def run_batch(
                     outcomes.append("skipped")
                     continue
 
+                if len(text.split()) >= 200 and store.count_chunks() >= 40000:
+                    errors.append("corpus cap")
+                    outcomes.append("skipped")
+                    continue
+
                 outcomes.append(
                     upsert_document(
                         source,
@@ -184,6 +197,7 @@ def run_batch(
                         text,
                         embedder,
                         store,
+                        count_chunks=store.count_chunks,
                     )
                 )
         except Exception as exc:
@@ -259,7 +273,12 @@ def main(argv: list[str]) -> int:
             max_redirects=MAX_REDIRECTS,
         ) as http_client:
             fetch = _build_fetch(http_client)
-            return run_batch(args.batch, fetch, embedder, store)
+            batch_code = run_batch(args.batch, fetch, embedder, store)
+        chunk_count = store.count_chunks()
+        print(f"chunk_count={chunk_count}")
+        if chunk_count > 40000:
+            return 1
+        return batch_code
     except Exception as exc:
         print(str(exc), file=sys.stderr)
         return 1

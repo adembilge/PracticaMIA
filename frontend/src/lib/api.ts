@@ -30,6 +30,16 @@ export type Citation = {
   heading: string;
   fetched_at: string;
 };
+export type Source = {
+  id: string;
+  name: string;
+  topic: string;
+  batch: string;
+  portal_url: string;
+  last_crawled_at: string | null;
+  status: string;
+};
+
 export type ChatMessage = {
   id: string;
   role: "user" | "assistant";
@@ -41,6 +51,12 @@ export async function deleteAccount(): Promise<void> {
   const response = await fetch("/api/account", { method: "DELETE", headers: await authHeader() });
   if (response.status === 204) return;
   await readError(response);
+}
+
+export async function listSources(): Promise<Source[]> {
+  const response = await fetch("/api/sources", { headers: await authHeader() });
+  if (!response.ok) await readError(response);
+  return response.json();
 }
 
 export async function listConversations(): Promise<Conversation[]> {
