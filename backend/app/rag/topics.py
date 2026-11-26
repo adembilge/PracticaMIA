@@ -46,7 +46,9 @@ _PROFILE_DATA: dict[str, dict[str, str]] = {
     "anagrafe": {
         "description": (
             "Cambio di residenza, iscrizione anagrafica, stato di famiglia, certificati e autocertificazione. "
-            "Address change, civil registry and self-certification."
+            "Address change, civil registry and self-certification. "
+            "Documenti per la registrazione della residenza dei cittadini non UE. "
+            "Residency registration documents for a non-EU citizen."
         ),
         "portal_url": "https://www.anagrafenazionale.interno.it/area-cittadino/",
         "portal_name": "ANPR",
